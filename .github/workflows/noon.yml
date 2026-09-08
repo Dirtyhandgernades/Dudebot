@@ -1,0 +1,36 @@
+name: Noon Discord notifier
+on:
+  schedule:
+    - cron: '47 19 * * 1-5' # 11:47 literal PST. Waits for 20:00 UTC.
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: smg-state-writer
+  cancel-in-progress: false
+jobs:
+  notify:
+    if: vars.SMG_LIVE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SURGE_RETURN_MIN_PCT: ${{ vars.SURGE_RETURN_MIN_PCT }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - run: python -m smg.cli noon --send
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smg-report-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30

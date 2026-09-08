@@ -1,0 +1,26 @@
+name: Discover IPOs and direct offerings
+on:
+  schedule:
+    - cron: '17 17 * * 1-5' # Research preparation; sends no messages.
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: smg-state-writer
+  cancel-in-progress: false
+jobs:
+  research:
+    if: vars.SMG_LIVE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SURGE_RETURN_MIN_PCT: ${{ vars.SURGE_RETURN_MIN_PCT }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - run: python -m smg.cli discover

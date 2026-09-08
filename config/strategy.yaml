@@ -1,0 +1,32 @@
+# Confirmed strategy. Null means unresolved, never an implicit 100% threshold.
+surge_return_min_pct: null
+ipo_max_age_years: 3
+ipo_focus_days: [30, 100]
+ipo_preferred_age_years: 1
+ipo_operations_countries: [CN]
+offer_gross_usd_min: 15000000
+offer_gross_usd_max: 30000000
+offer_price_usd_min: 4
+offer_price_usd_max: 10
+rvol_min: 1.0
+exclude_halted: true
+exclude_acquisition_corps: true
+exclude_five_letter_tickers: true
+entity_match_min: 1
+# Clearly labeled engineering defaults from the implementation brief.
+rvol_target_sessions: 60
+rvol_min_sessions: 20
+monthly_return_sessions: 21
+max_snapshot_age_seconds: 300
+direct_offering_backfill_days: 30
+direct_offering_require_monthly_surge: false
+notification_timezone: fixed_UTC_minus_08
+notification_time: '12:00'
+send_window_seconds: 60
+no_match_message: false
+# Free data/filing requests happen only in live mode. Caps preserve backlog.
+parser_max_filings_per_run: 100
+filings_max_downloads_per_run: 150
+market_feed: sip
+market_data_delay_minutes: 16  # Free consolidated data. Deliberate lag, labeled in alerts.
+state_branch: smg-state

@@ -1,0 +1,45 @@
+@everyone
+SMG screening digest | 2026-09-08 12:00 PST
+
+**RECENT IPOs**
+
+**IPO SURGE MATCH | DEMO | Synthetic Example Company (not a real issuer)**
+IPO 2026-07-15; 55 days old | operations: CN
+Offering: $20,000,000 at $5.00 per share/ADS.
+User-list match: Cathay Securities (underwriter; High-Suspicion Focus Group).
+Price $18.00 | 21-session return 180.00% | 5-session 42.00%.
+RVOL 2.20× vs 38 prior sessions at the same minute; 20-session RVOL 1.80×.
+Volume 2,200,000 / baseline 1,000,000.00; recent-high drawdown -5.00%.
+Rationale: offering terms and a verified listed-firm relationship passed; configured surge and RVOL floor passed.
+Data feed: synthetic; declared delay 0 minutes.
+Price as of 2026-09-08T19:59:00+00:00; halt checked 2026-09-08T20:00:05+00:00.
+Priority: 30–100-day IPO focus.
+Data notes: SHORT_BASELINE
+Filing notes: Synthetic test fixture; no live securities were screened.
+Sources:
+<https://example.com/SYNTHETIC-FILING>
+<https://example.com/SYNTHETIC-MARKET-DATA>
+<https://example.com/SYNTHETIC-HALTS>
+
+**DIRECT OFFERINGS**
+
+**DIRECT OFFERING REVIEW | DOFR | Synthetic Example Company (not a real issuer)**
+Offering 2026-09-07; closed | operations: US
+Offering: $20,000,000 at $5.00 per share/ADS.
+User-list match: Cathay Securities (underwriter; High-Suspicion Focus Group).
+Price $18.00 | 21-session return 180.00% | 5-session 42.00%.
+RVOL 2.20× vs 38 prior sessions at the same minute; 20-session RVOL 1.80×.
+Volume 2,200,000 / baseline 1,000,000.00; recent-high drawdown -5.00%.
+Rationale: offering terms and a verified listed-firm relationship passed; RVOL floor passed; transaction is for case-by-case team review.
+Data feed: synthetic; declared delay 0 minutes.
+Price as of 2026-09-08T19:59:00+00:00; halt checked 2026-09-08T20:00:05+00:00.
+Data notes: SHORT_BASELINE
+
+
+--- NEXT MESSAGE ---
+
+Filing notes: Synthetic test fixture; no live securities were screened.
+Sources:
+<https://example.com/SYNTHETIC-FILING>
+<https://example.com/SYNTHETIC-MARKET-DATA>
+<https://example.com/SYNTHETIC-HALTS>

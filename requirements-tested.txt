@@ -1,0 +1,8 @@
+# Direct dependencies used for the verified offline test run.
+requests==2.34.2
+pydantic==2.13.4
+PyYAML==6.0.3
+beautifulsoup4==4.15.0
+exchange-calendars==4.13.2
+pandas==2.2.3
+pytest==9.1.1
