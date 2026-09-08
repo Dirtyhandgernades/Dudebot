@@ -50,11 +50,20 @@ rate-limited HTTP client, pagination, SIP, split adjustment, and a historical
 symbol `asof` date. No account/order or Discord endpoint is used.
 
 The manual **Historical backtest (bounded, no messages)** workflow limits
-runs to 15 minutes, two quarters or 25 candidate decisions. A push on its
+runs to 15 minutes, at most 32 quarters or 25 candidate decisions. A push on its
 development branch also starts one bounded collection run. It uses only the
 Alpaca and SEC secrets, preserves state in an Actions cache, and uploads
 reports and an index checkpoint for 30 days. Caches can be evicted; download
 checkpoints to preserve long backfills. There is no automatic repeating job.
+
+Collection also audits at most 40 real source filings, split between IPO and
+direct-offering queues. `filing_research.json` retains recognized transactions,
+source hashes, quoted evidence and ticker suggestions. The historical audit
+overrides the production parser's assumed Nasdaq exchange to UNVERIFIED because
+these independent SEC leads have not passed historical exchange mapping.
+Unrecognized transaction wording is a parser result, never proof that no
+qualifying transaction existed. Filing context, cancellation status and mapping
+remain explicit gaps; these research leads are not replay-ready packets.
 
 ## Research packet contract
 

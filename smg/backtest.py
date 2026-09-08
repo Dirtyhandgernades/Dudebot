@@ -291,7 +291,7 @@ def main(argv=None):
     parser.add_argument('--max-records', type=int, default=25)
     parser.add_argument('--max-quarters', type=int, default=2)
     args = parser.parse_args(argv)
-    if args.start > args.end or not 1 <= args.max_records <= 1000 or not 1 <= args.max_quarters <= 4 or not 1 <= args.lookback <= 252:
+    if args.start > args.end or not 1 <= args.max_records <= 1000 or not 1 <= args.max_quarters <= 32 or not 1 <= args.lookback <= 252:
         parser.error('Invalid window or run budget')
     cfg_raw = yaml.safe_load((args.root / 'config/strategy.yaml').read_text())
     if os.environ.get('SURGE_RETURN_MIN_PCT', '').strip():
@@ -321,12 +321,16 @@ def main(argv=None):
         issues.append('IPO_SURGE_THRESHOLD_NOT_SET')
     collection = None
     provider_access = None
+    source_audit = None
     if args.command == 'collect-indexes':
         provider_access = probe_market(cfg)
         try:
             collection = collect_indexes(state, args.start, args.end, args.max_quarters)
         except Exception as exc:
             collection = {'status': 'INCOMPLETE', 'reason': type(exc).__name__}
+        from .historical_discovery import audit_filings
+        source_audit, research = audit_filings(state,args.start,args.end,entries)
+        write_json(out / 'filing_research.json', research)
     if args.command == 'replay' and packets and secrets['ALPACA_API_KEY'] and secrets['ALPACA_SECRET_KEY']:
         market = CachedMarket(Alpaca(Http(), os.environ['ALPACA_API_KEY'], os.environ['ALPACA_SECRET_KEY'], cfg.market_feed, cfg.market_data_delay_minutes), state / 'bars')
         done = {r['input_sha256'] for r in decisions}; count = 0; started = time.monotonic()
@@ -363,9 +367,9 @@ def main(argv=None):
         'extra_alert_records':len(extras) if decisions else None,
         'repeat_alert_records':sum(max(0, n - 1) for n in Counter(r['candidate_key'] for r in decisions if r['status']=='QUALIFIED').values()) if decisions else None,
         'event_symbol_rule_conflicts':sum(bool(r['event_symbol_exclusion']) for r in comparison),
-        'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'run_key':run_key}
+        'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,'run_key':run_key}
     write_json(out / 'summary.json', summary)
-    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection']}))
+    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit']}))
     return 2 if summary['status'] == 'NOT_RUN' else 0
 
 

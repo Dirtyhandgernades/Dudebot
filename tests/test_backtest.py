@@ -185,3 +185,25 @@ def test_audit_reports_null_detection_counts(tmp_path, monkeypatch):
     with (tmp_path/'event_comparison.csv').open() as stream:
         rows = list(csv.DictReader(stream))
     assert len(rows) == 230 and all(r['result'] == 'NOT_EVALUABLE' for r in rows)
+
+
+def test_independent_filing_audit_resumes_without_current_universe(tmp_path, monkeypatch):
+    import sqlite3
+    from smg.historical_discovery import audit_filings
+    db = sqlite3.connect(tmp_path/'indexes.sqlite')
+    db.execute('CREATE TABLE leads (path TEXT PRIMARY KEY, cik TEXT, name TEXT, form TEXT, filed_at TEXT)')
+    db.execute('INSERT INTO leads VALUES (?,?,?,?,?)',('edgar/data/1/test.txt','1','Historical Delisted Issuer','424B4','2024-01-03'))
+    db.commit(); db.close()
+    monkeypatch.setenv('SEC_USER_AGENT','test test@example.com')
+    calls=[]
+    def fetch(self,url,**kwargs):
+        calls.append(url)
+        return '<html><body>This document has no recognized transaction.</body></html>'
+    monkeypatch.setattr('smg.historical_discovery.Http.text',fetch)
+    first, records = audit_filings(tmp_path,date(2022,7,29),date(2025,7,28),{})
+    second, again = audit_filings(tmp_path,date(2022,7,29),date(2025,7,28),{})
+    assert len(calls)==1 and records==again
+    assert first['pipelines']['RECENT_IPO']['audited_filings']==1
+    assert second['downloaded_this_run']==0
+    assert records[0]['status']=='NO_TRANSACTION_RECOGNIZED_BY_PARSER'
+    assert second['screening_detections'] is None

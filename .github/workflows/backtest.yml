@@ -49,7 +49,7 @@ jobs:
           if [ "$BACKTEST_COMMAND" = replay ]; then
             python -m smg.backtest replay --packets "$PACKET_PATH" --max-records 25
           else
-            python -m smg.backtest "$BACKTEST_COMMAND" --max-quarters 2
+            python -m smg.backtest "$BACKTEST_COMMAND" --max-quarters 32
           fi
           result=$?
           if [ "$result" = 2 ]; then
