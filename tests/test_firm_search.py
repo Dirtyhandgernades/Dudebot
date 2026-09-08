@@ -40,3 +40,21 @@ def test_name_alone_is_not_a_verified_role():
     assert extract_associations('UHY appears in this document without any role.',entries)==[]
     r=extract_associations('UHY was our auditor.',entries)
     assert r[0]['verification']=='AUTOMATED_ROLE_PROXIMITY_REQUIRES_REVIEW'
+
+
+def test_server_error_splits_range_and_preserves_resume(tmp_path,monkeypatch):
+    from smg.transport import ProviderError
+    monkeypatch.setenv('SEC_USER_AGENT','test test@example.com')
+    def fail(*args,**kwargs):raise ProviderError('efts.sec.gov',500)
+    monkeypatch.setattr('smg.firm_search.Http.json',fail)
+    entries={'auditor':{'Listed':['UHY']}}
+    one=collect_firm_search(tmp_path,date(2025,7,28),entries,max_pages=1)
+    assert one['pages_this_run']==1 and one['query_counts']['SPLIT']==1
+    calls=[]
+    def ok(*args,**kwargs):
+        calls.append(kwargs['params'])
+        return {'hits':{'total':{'value':0,'relation':'eq'},'hits':[]}}
+    monkeypatch.setattr('smg.firm_search.Http.json',ok)
+    two=collect_firm_search(tmp_path,date(2025,7,28),entries,max_pages=1)
+    assert calls[0]['startdt']>'2025-01-01'
+    assert two['query_counts']['DONE']==1

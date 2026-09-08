@@ -323,6 +323,46 @@ def audit_reference_market(events, cfg, state, budget=250):
     return records
 
 
+def resolve_sample_gaps(samples,cfg,state,budget=50):
+    """Widen empty five-minute probes; availability only, never an alert.
+
+    Same-session minutes end before the original delayed cutoff. Daily fallback
+    ends on the preceding calendar day, so no later same-day data is included.
+    """
+    records=[];started=time.monotonic();calls=0
+    market=Alpaca(Http(),os.environ.get('ALPACA_API_KEY',''),os.environ.get('ALPACA_SECRET_KEY',''),cfg.market_feed,cfg.market_data_delay_minutes)
+    configured=all(os.environ.get(k) for k in ['ALPACA_API_KEY','ALPACA_SECRET_KEY'])
+    for sample in samples:
+        if sample['status']!='NO_BARS_IN_SAMPLED_INTERVAL':continue
+        query=sample['query'];end=stamp(query['end']);opening,_=session_bounds(end.date())
+        path=state/'reference-gap-audit'/(fingerprint({'version':1,'query':query})+'.json')
+        result=json.loads(path.read_text()) if path.exists() else None
+        if result is None and configured and calls<budget and time.monotonic()-started<150:
+            calls+=1
+            try:
+                bars=market.bars(sample['ticker'],opening,end,asof=query['asof'])
+                result={'status':'SAME_SESSION_HISTORY_AVAILABLE' if bars else 'NO_SAME_SESSION_MINUTES',
+                        'minute_start':opening.isoformat(),'minute_end':end.isoformat(),
+                        'minute_bar_count':len(bars),'asof':query['asof'],'feed':cfg.market_feed}
+                if bars:result['latest_minute']=max(b.start for b in bars).isoformat()
+                else:
+                    daily_end=end.replace(hour=0,minute=0,second=0)-timedelta(seconds=1)
+                    params={'symbols':sample['ticker'],'timeframe':'1Day','start':(daily_end-timedelta(days=35)).isoformat(),
+                            'end':daily_end.isoformat(),'asof':query['asof'],'feed':cfg.market_feed,'adjustment':'split','limit':10000}
+                    raw=market.http.json('https://data.alpaca.markets/v2/stocks/bars',params=params,headers=market.headers)
+                    if raw.get('next_page_token'):raise ValueError('UNEXPECTED_DAILY_PAGINATION')
+                    daily=(raw.get('bars') or {}).get(sample['ticker'],[])
+                    result.update(status='OLDER_DAILY_HISTORY_ONLY' if daily else 'NO_BARS_IN_WIDER_INTERVAL',
+                                  daily_bar_count=len(daily),daily_query=params)
+                write_json(path,result)
+            except Exception as exc:
+                result={'status':'PROVIDER_ERROR','error_type':type(exc).__name__,'http_status':getattr(exc,'status',None)}
+                if getattr(exc,'status',None) in {401,403,429}:configured=False
+        records.append(dict(event_id=sample['event_id'],ticker=sample['ticker'],event_date=sample['event_date'],
+                            **(result or {'status':'NOT_CHECKED'})))
+    return records
+
+
 def probe_firm_search(end):
     agent=os.environ.get('SEC_USER_AGENT','')
     if '@' not in agent:
@@ -385,6 +425,7 @@ def main(argv=None):
     firm_search_access = None
     firm_discovery = None
     firm_role_audit = None
+    gap_audit = []
     if args.command == 'collect-indexes':
         provider_access = probe_market(cfg)
         try:
@@ -406,6 +447,8 @@ def main(argv=None):
         write_json(out / 'filing_research.json',research)
         market_samples=audit_reference_market(events,cfg,state,budget=0)
         write_json(out / 'reference_market_samples.json',market_samples)
+        gap_audit=resolve_sample_gaps(market_samples,cfg,state)
+        write_json(out / 'reference_gap_audit.json',gap_audit)
         firm_discovery=collect_firm_search(state,args.end,entries)
         if firm_discovery.get('query_set'):
             firm_role_audit,observations=audit_firm_hits(state,firm_discovery['query_set'],entries)
@@ -462,6 +505,7 @@ def main(argv=None):
         'event_symbol_rule_conflicts':sum(bool(r['event_symbol_exclusion']) for r in comparison),
         'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,
         'reference_market_sample_counts':dict(Counter(r['status'] for r in market_samples)),
+        'reference_gap_audit_counts':dict(Counter(r['status'] for r in gap_audit)),
         'firm_search_access':firm_search_access,'firm_discovery':firm_discovery,'firm_role_audit':firm_role_audit,'run_key':run_key}
     write_json(out / 'summary.json', summary)
     print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit','reference_market_sample_counts','firm_discovery','firm_role_audit']}))

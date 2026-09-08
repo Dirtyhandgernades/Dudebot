@@ -17,6 +17,26 @@ from smg.providers import Alpaca
 from smg.rules import EntityList, evaluate
 
 UTC = timezone.utc
+
+
+def test_gap_daily_fallback_never_uses_event_day_or_later_cutoff(tmp_path,monkeypatch):
+    from smg.backtest import resolve_sample_gaps
+    monkeypatch.setenv('ALPACA_API_KEY','synthetic')
+    monkeypatch.setenv('ALPACA_SECRET_KEY','synthetic')
+    monkeypatch.setattr(Alpaca,'bars',lambda *a,**k:[])
+    calls=[]
+    def daily(self,url,**kwargs):
+        calls.append(kwargs['params'])
+        return {'bars':{'GDHG':[{'t':'2025-07-23T04:00:00Z'}]}}
+    monkeypatch.setattr('smg.backtest.Http.json',daily)
+    cfg=Config.model_validate(yaml.safe_load(Path('config/strategy.yaml').read_text()))
+    samples=[{'event_id':'test','ticker':'GDHG','event_date':'2025-07-25','status':'NO_BARS_IN_SAMPLED_INTERVAL',
+              'query':{'end':'2025-07-24T19:43:00+00:00','asof':'2025-07-24'}}]
+    result=resolve_sample_gaps(samples,cfg,tmp_path)
+    assert result[0]['status']=='OLDER_DAILY_HISTORY_ONLY'
+    assert datetime.fromisoformat(calls[0]['end'])<datetime(2025,7,24,tzinfo=UTC)
+    assert resolve_sample_gaps(samples,cfg,tmp_path,budget=0)==result
+    assert len(calls)==1
 ENTITIES = EntityList(yaml.safe_load(Path('config/entities.yaml').read_text()))
 
 

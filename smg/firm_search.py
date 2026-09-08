@@ -77,6 +77,18 @@ def collect_firm_search(state,end,entries,max_pages=200):
                                (new_offset,count,'DONE' if new_offset>=count else 'PENDING',key))
             except Exception as exc:
                 errors.append({'error_type':type(exc).__name__,'http_status':getattr(exc,'status',None),'start':first,'end':last,'offset':offset})
+                # Some large EFTS result sets fail on later pages. Preserve hits
+                # and retry smaller date ranges, with a bounded attempt count.
+                if getattr(exc,'status',None) in {500,502,503,504} and first<last:
+                    left=date.fromisoformat(first);right=date.fromisoformat(last)
+                    middle=left+(right-left)//2
+                    with db:
+                        db.execute("UPDATE queries SET status='SPLIT' WHERE key=?",(key,))
+                        for a,b in [(left,middle),(middle+timedelta(days=1),right)]:
+                            child=version+':'+str(a)+':'+str(b)
+                            db.execute('INSERT OR IGNORE INTO queries VALUES (?,?,?,?,?,?)',(child,str(a),str(b),0,None,'PENDING'))
+                    pages+=1
+                    if len(errors)<8:continue
                 break
         counts=dict(db.execute('SELECT status,count(*) FROM queries WHERE key LIKE ? GROUP BY status',(version+':%',)).fetchall())
         return {'status':'SEARCH_INDEX_COMPLETE' if not counts.get('PENDING') and not counts.get('TRUNCATED') and not errors else 'PARTIAL_FIRM_SEARCH',
