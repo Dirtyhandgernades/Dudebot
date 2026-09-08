@@ -1,6 +1,6 @@
 # Validation record
 
-- 100 offline tests passed with `python -m pytest -q` on September 8, 2026.
+- 105 offline tests passed with `python -m pytest -q` on September 8, 2026, including live firm-watch formatting, unknown terms, negative role statements, SPAC exclusions, and durable activation receipts.
 - Added historical availability/timestamp checks, strict and firm-first comparison, unknown-halt handling, query checkpoints, SEC server-error date splitting, and wider market-gap probes. Synthetic tests are not historical detections.
 - The synthetic end-to-end demo produces two qualified alerts, three excluded records, and one RVOL rejection. It cannot send messages.
 - Tested cases include both local SEC parsing pipelines, exact evidence provenance, five-letter and acquisition-company exclusions, original IPO dates, offering boundaries, entity roles, bundled warrants, same-time RVOL, missing history, declared data delays, stale prices/halts, noon timing, one-ping payloads, restart deduplication, pagination, and SHA-guarded state writes.

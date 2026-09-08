@@ -1,5 +1,16 @@
 # Dudebot setup: exact secret names
 
+The user authorized live deployment on September 8, 2026. The firm-first profile
+is now the configured default. Discovery and noon Discord delivery default to
+enabled after deployment; repository variables `SMG_LIVE_ENABLED=false` and
+`DISCORD_ENABLED=false` remain explicit stop switches. Older opt-in instructions
+below describe the original release. All four secrets remain required.
+
+The activation workflow runs on a main-branch deployment change and sends one
+mention-free receipt after SEC discovery and an authenticated Alpaca check.
+Stock alerts still run only in the configured noon minute. The receipt does not
+claim a completed backtest, complete universe coverage, or a stock detection.
+
 Add these **four repository secrets** at [Settings → Secrets and variables → Actions → Secrets](https://github.com/Dirtyhandgernades/Dudebot/settings/secrets/actions), using **New repository secret** for each one.
 
 | Exact secret name | Value to paste | Where to get it |

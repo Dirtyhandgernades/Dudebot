@@ -43,7 +43,7 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','scan','noon','demo'])
+    parser.add_argument('command',choices=['doctor','discover','scan','noon','demo','activate'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
     parser.add_argument('--send',action='store_true',help='Only noon mode can send, and only during the configured noon minute')
     args=parser.parse_args();root=args.root.resolve();cfg,entries=settings(root)
@@ -65,11 +65,33 @@ def main():
     try:
         if args.command=='discover':
             sec=Sec(http,required_env('SEC_USER_AGENT'),store)
-            discovery=Discovery(sec,LocalParser(entries),store,cfg);candidates=discovery.run(now)
+            if cfg.screening_profile=='firm_first':
+                from .live_firms import LiveFirmDiscovery
+                discovery=LiveFirmDiscovery(sec,LocalParser(entries),store,cfg)
+            else:discovery=Discovery(sec,LocalParser(entries),store,cfg)
+            candidates=discovery.run(now)
             print(json.dumps({'stored_candidates':len(candidates),'issues':discovery.issues,'filing_downloads':discovery.downloads}));return
+        if args.command=='activate':
+            if os.environ.get('DISCORD_ENABLED')!='true':raise ValueError('Discord delivery is disabled')
+            from .backtest import probe_market
+            health=probe_market(cfg)
+            if health.get('status')!='ACCESS_VERIFIED':raise ValueError('Alpaca health probe failed')
+            discovery=store.get('live_discovery')
+            if not discovery:raise ValueError('Run live discovery before activation')
+            sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
+            release=json.loads((root/'config/deployment.json').read_text())['release_id']
+            content=('Dudebot is deployed with the firm-first screen. Underwriters, auditors and counsel lead the watchlist; stocks can qualify before a pump.\n'
+                'Hard exclusions: halted/suspended stocks, SPACs/acquisition corporations, and exactly-five-letter tickers. Unknown checks suppress stock alerts.\n'
+                'Stock alerts: weekdays at 12:00 fixed PST (20:00 UTC; 1 p.m. PDT in summer), using free Alpaca SIP delayed 16 minutes. GitHub scheduling can run late.\n'
+                f'Initial discovery reviewed {discovery["reviewed"]} source records; further work resumes on schedule. Coverage remains partial.\n'
+                'Historical screening replay is incomplete; no detection rate is established. This is an activation receipt, not a stock alert.')
+            receipt=sender.activation(release,content)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'activation.json').write_text(json.dumps(dict(receipt,provider_health=health,discovery=discovery),indent=2))
+            print(json.dumps({'activation':receipt}));return
         market=Alpaca(http,required_env('ALPACA_API_KEY'),required_env('ALPACA_SECRET_KEY'),cfg.market_feed,cfg.market_data_delay_minutes)
         candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
-        candidates=[c for c in candidates if c.pipeline=='RECENT_IPO' or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days)]
+        candidates=[c for c in candidates if c.pipeline in {'RECENT_IPO','FIRM_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days)]
         scanner=Scanner(market,NasdaqHalts(http),cfg,entities,store)
         if args.command=='noon':
             local=local_time(now,cfg);target=local.replace(hour=12,minute=0,second=0,microsecond=0).astimezone(UTC)
@@ -79,7 +101,7 @@ def main():
             if (target-now).total_seconds()>20*60:
                 print('TOO_EARLY_FOR_NOON_WORKER');return
             # Workflows start early. Prep data near noon, then refresh recent bars and halts at dispatch.
-            while datetime.now(UTC)<target-timedelta(seconds=100):time.sleep(min(20,max(.1,(target-timedelta(seconds=100)-datetime.now(UTC)).total_seconds())))
+            while datetime.now(UTC)<target-timedelta(seconds=480):time.sleep(min(20,max(.1,(target-timedelta(seconds=480)-datetime.now(UTC)).total_seconds())))
         results=scanner.scan(candidates,datetime.now(UTC))
         if args.command=='noon':
             while datetime.now(UTC)<target:time.sleep(min(5,max(.02,(target-datetime.now(UTC)).total_seconds())))

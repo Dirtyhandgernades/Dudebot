@@ -1,4 +1,5 @@
 # User clarification: keep 12%-23% gains eligible at low priority.
+screening_profile: firm_first
 # Existing monthly window remains 21 trading sessions. No tolerance is added twice.
 surge_return_min_pct: 12
 ipo_low_priority_surge_max_pct: 23

@@ -18,6 +18,10 @@ def firm_structure(candidate,cfg,entities,now):
         hard.append('FIVE_LETTER_TICKER')
     if candidate.is_acquisition_corp is True:
         hard.append('ACQUISITION_CORPORATION')
+    if re.search(r'\bacquisition\s+corp(?:oration)?\b',candidate.name,re.I):
+        hard.append('ACQUISITION_CORPORATION_NAME')
+    if candidate.exchange not in {'XNAS','NASDAQ'}:
+        hard.append('EXCHANGE_OUTSIDE_SCOPE')
     if candidate.is_acquisition_corp is None or 'is_acquisition_corp' not in candidate.evidence:
         reasons.append('UNKNOWN_ISSUER_CLASSIFICATION')
     # Transaction/current relationships are still required. An old IPO
@@ -29,6 +33,10 @@ def firm_structure(candidate,cfg,entities,now):
         reasons.append('UNVERIFIED_COMMON_EQUITY')
     if candidate.event_date>now.date():
         reasons.append('FUTURE_EVENT')
+    if candidate.status=='canceled' and candidate.pipeline!='FIRM_WATCH':
+        reasons.append('TRANSACTION_RELATIONSHIP_REVIEW_REQUIRED')
+    if any('RELATIONSHIP_CHANGE_REVIEW' in n for n in candidate.notes):
+        reasons.append('RELATIONSHIP_CHANGE_REVIEW_REQUIRED')
     if not 0 <= (now-candidate.reviewed_at).total_seconds() <= 26*3600:
         reasons.append('STALE_OR_FUTURE_FILING_REVIEW')
     result=Evaluation(candidate=candidate,status='EXCLUDED' if hard else 'REVIEW_REQUIRED' if reasons else 'STRUCTURAL_MATCH',

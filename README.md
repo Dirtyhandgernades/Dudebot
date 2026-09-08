@@ -1,6 +1,19 @@
 # Dudebot · DECA SMG notifier
 
-A rules-based stock research notifier running in GitHub Actions. It discovers recent IPOs and direct offerings from public SEC filings, checks market confirmation with Alpaca, and sends a Discord digest with the rationale and source links. It never places orders.
+A rules-based stock research notifier running in GitHub Actions. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
+
+The three hard exclusions remain halts/suspensions, acquisition corporations/SPACs,
+and exactly-five-letter tickers. Unknown classification, stale prices or unknown
+halt checks suppress alerts. Missing offering terms, low RVOL and an absent pump
+are disclosed as preferences/data gaps. `screening_profile: strict` restores the
+original transaction screen documented below. Direct offerings keep their own
+relationships; an issuer-level historical underwriter is labeled in `FIRM_WATCH`.
+
+Live deployment enables the existing weekday discovery and noon schedules by
+default. Set repository variable `SMG_LIVE_ENABLED=false` to stop both, or
+`DISCORD_ENABLED=false` to stop messages. A deployment sends one durable,
+mention-free activation receipt; stock alerts retain the noon gate and one
+`@everyone` mention. The historical replay remains incomplete.
 
 **No Anthropic, OpenAI, Massive, or other paid AI service is required.** Filing extraction runs locally in Python. Alpaca's free historical consolidated SIP feed is used with a deliberate **16-minute delay**; every alert states the feed, timestamp, and delay. See [SETUP.md](SETUP.md) for the exact four secrets and activation steps.
 
@@ -8,7 +21,7 @@ This repository is public. GitHub currently includes standard hosted Actions run
 
 For the pending three-year historical replay and the user's reference-event comparison, see [backtest/README.md](backtest/README.md) and [CODEX_HANDOFF.md](CODEX_HANDOFF.md). The full real backtest remains incomplete.
 
-## Your screening rules
+## Original strict screen (available as a separate profile)
 
 The bot checks the filing criteria first, then obtains market confirmation. Missing or ambiguous required facts remain review records, rather than becoming qualified alerts.
 

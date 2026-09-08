@@ -30,7 +30,9 @@ class EntityList:
             entry = self.entries.get((role, normalize_name(item.name)))
             if not entry:
                 continue
-            if candidate.pipeline == 'DIRECT_OFFERING':
+            if candidate.pipeline == 'FIRM_WATCH':
+                valid = item.relationship in {'transaction','current'} or (role=='underwriter' and item.relationship=='historical')
+            elif candidate.pipeline == 'DIRECT_OFFERING':
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})
             else:
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})
@@ -46,6 +48,7 @@ def structural(c: Candidate, cfg: Config, entities: EntityList, now: datetime) -
     if c.is_acquisition_corp is None: unknown.append('UNKNOWN_ISSUER_CLASSIFICATION')
     if c.security_type not in {'CS','ADRC','ADS','COMMON_STOCK'}: unknown.append('UNVERIFIED_COMMON_EQUITY')
     if c.status == 'canceled': excluded.append('OFFERING_CANCELED')
+    if c.pipeline == 'FIRM_WATCH': unknown.append('FIRM_WATCH_HAS_NO_VERIFIED_TRANSACTION')
     if c.status == 'unknown': unknown.append('UNKNOWN_TRANSACTION_STATUS')
     if not c.terms_unambiguous: unknown.append('AMBIGUOUS_OFFERING_TERMS')
     if c.currency != 'USD': unknown.append('UNVERIFIED_USD_TERMS')

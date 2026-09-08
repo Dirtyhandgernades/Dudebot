@@ -2,6 +2,16 @@
 
 ## Continuation update, September 8, 2026
 
+Latest user authorization: finish the bot and deploy live into Discord. Firm-first
+is integrated into live discovery, Scanner and digest formatting. The new
+FIRM_WATCH pipeline accepts documented issuer-level firm history without treating
+it as a later direct offering. Unknown hard exclusions still suppress delivery.
+Live workflows default on, with explicit repository-variable false stop switches.
+An idempotent activation receipt is authorized outside noon without mentions;
+stock alerts retain the original noon schedule. 105 offline tests pass. Deployment
+receipt and live discovery results must be checked before claiming activation.
+Prior paragraphs describing firm-first as research-only are superseded.
+
 Development is pushed to `codex/historical-backtest`, draft PR #1. The latest
 gap-resolution workflow is https://github.com/Dirtyhandgernades/Dudebot/actions/runs/34191049268.
 100 offline tests pass. Initial Alpaca probes found bars for 180 events and empty
