@@ -7,7 +7,9 @@ class Strict(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
 
 class Config(Strict):
+    screening_profile: Literal['strict','firm_first'] = 'strict'
     surge_return_min_pct: float | None = Field(default=None, gt=0)
+    ipo_low_priority_surge_max_pct: float | None = Field(default=None, gt=0)
     ipo_max_age_years: int = Field(default=3, ge=1)
     ipo_focus_days: list[int] = [30, 100]
     ipo_preferred_age_years: int = 1
@@ -50,7 +52,7 @@ class EntityMatch(Strict):
     evidence: Evidence
 
 class Candidate(Strict):
-    pipeline: Literal['RECENT_IPO','DIRECT_OFFERING']
+    pipeline: Literal['RECENT_IPO','DIRECT_OFFERING','FIRM_WATCH']
     cik: str
     ticker: str
     name: str

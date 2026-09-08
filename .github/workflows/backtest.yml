@@ -1,0 +1,76 @@
+name: Historical backtest (bounded, no messages)
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Audit, collect independent SEC leads, or replay prepared historical packets
+        type: choice
+        options: [firm-search, audit, collect-indexes, replay]
+        default: firm-search
+      packets:
+        description: Repository-relative reviewed packet JSONL path (replay only)
+        type: string
+        default: backtest/packets.jsonl
+  push:
+    branches: [codex/historical-backtest]
+    paths: [smg/backtest.py, smg/firm_search.py, .github/workflows/backtest.yml]
+permissions:
+  contents: read
+concurrency:
+  group: historical-backtest-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      SURGE_RETURN_MIN_PCT: ${{ vars.SURGE_RETURN_MIN_PCT }}
+      BACKTEST_COMMAND: ${{ inputs.command || 'firm-search' }}
+      PACKET_PATH: ${{ inputs.packets || 'backtest/packets.jsonl' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/cache/restore@v4
+        with:
+          path: backtest/runtime
+          key: historical-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: historical-v1-${{ github.ref_name }}-
+      - name: Run bounded historical work
+        shell: bash
+        run: |
+          set +e
+          if [ "$BACKTEST_COMMAND" = replay ]; then
+            python -m smg.backtest replay --packets "$PACKET_PATH" --max-records 25
+          else
+            python -m smg.backtest "$BACKTEST_COMMAND" --max-quarters 32
+          fi
+          result=$?
+          if [ "$result" = 2 ]; then
+            echo '::warning::Replay NOT_RUN. See summary.json for missing inputs. No detection rate is established.'
+            exit 0
+          fi
+          exit "$result"
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime
+          key: historical-v1-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: historical-backtest-${{ github.run_id }}-${{ github.run_attempt }}
+          path: backtest/reports
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: historical-checkpoint-${{ github.run_id }}-${{ github.run_attempt }}
+          path: backtest/runtime/**/*.sqlite
+          retention-days: 30

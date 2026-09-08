@@ -1,5 +1,8 @@
-# Confirmed strategy. Null means unresolved, never an implicit 100% threshold.
-surge_return_min_pct: null
+# User clarification: keep 12%-23% gains eligible at low priority.
+screening_profile: firm_first
+# Existing monthly window remains 21 trading sessions. No tolerance is added twice.
+surge_return_min_pct: 12
+ipo_low_priority_surge_max_pct: 23
 ipo_max_age_years: 3
 ipo_focus_days: [30, 100]
 ipo_preferred_age_years: 1

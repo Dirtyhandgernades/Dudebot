@@ -12,7 +12,7 @@ class Http:
         host=urlsplit(url).hostname
         if urlsplit(url).scheme!='https':raise ValueError('HTTPS required')
         # SEC requests are serialized below 10/s; Nasdaq feed no more than once/minute is cached by caller.
-        interval=.2 if host in {'www.sec.gov','data.sec.gov'} else .35 if host=='data.alpaca.markets' else .03
+        interval=.2 if host in {'www.sec.gov','data.sec.gov','efts.sec.gov'} else .35 if host=='data.alpaca.markets' else .03
         time.sleep(max(0,interval-(time.monotonic()-self.last.get(host,0))))
         self.last[host]=time.monotonic()
         for attempt in range(3 if method=='GET' else 1):

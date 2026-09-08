@@ -16,12 +16,14 @@ class Alpaca:
         if feed=='sip' and delay_minutes<16:raise ValueError('Free SIP mode needs the 16-minute delay')
         self.http=http;self.feed=feed;self.delay_minutes=delay_minutes
         self.headers={'APCA-API-KEY-ID':key_id,'APCA-API-SECRET-KEY':secret}
-    def bars(self,ticker,start,end):
+    def bars(self,ticker,start,end,*,asof=None):
         # The explicit end prevents accidental requests for subscription-only recent SIP data.
         if not isinstance(end,datetime):raise ValueError('Explicit timezone-aware end timestamp required')
         if end.tzinfo is None:raise ValueError('Timezone-aware end required')
         params={'symbols':ticker,'timeframe':'1Min','start':start.isoformat(),'end':end.isoformat(),
                 'adjustment':'split','feed':self.feed,'limit':10000,'sort':'asc'}
+        if asof is not None:
+            params['asof']=date.fromisoformat(str(asof)).isoformat()
         seen=set();result=[]
         while True:
             data=self.http.json('https://data.alpaca.markets/v2/stocks/bars',params=dict(params),headers=self.headers)

@@ -1,5 +1,53 @@
 # Dudebot continuation handoff
 
+## Continuation update, September 8, 2026
+
+Latest user authorization: finish the bot and deploy live into Discord. Firm-first
+is integrated into live discovery, Scanner and digest formatting. The new
+FIRM_WATCH pipeline accepts documented issuer-level firm history without treating
+it as a later direct offering. Unknown hard exclusions still suppress delivery.
+Live workflows default on, with explicit repository-variable false stop switches.
+An idempotent activation receipt is authorized outside noon without mentions;
+stock alerts retain the original noon schedule. 105 offline tests pass. Deployment
+receipt and live discovery results must be checked before claiming activation.
+Prior paragraphs describing firm-first as research-only are superseded.
+
+Development is pushed to `codex/historical-backtest`, draft PR #1. The latest
+gap-resolution workflow is https://github.com/Dirtyhandgernades/Dudebot/actions/runs/34191049268.
+100 offline tests pass. Initial Alpaca probes found bars for 180 events and empty
+five-minute intervals for 50; `reference_gap_audit.json` records wider checks.
+An empty five-minute probe is not proof of missing whole-session history.
+SEC full-text HTTP 500 errors now split into smaller date ranges and preserve
+checkpoints. All 27 SEC index quarters are collected; source review is incomplete.
+
+`backtest/reviewed_firm_findings.json` verifies pre-drop IPO firm relationships for
+RAYA and GDHG, covering five reference events. Their $12M and ~$7M base proceeds
+fail the original strict IPO floor but are preferences under firm-first. These
+source findings are not replay detections. Do not fabricate point-in-time filing
+review or historical halt clearance. Actual screening replay remains incomplete.
+The firm-first module is research/backtest only; production still uses the strict
+entrypoint until explicitly integrated. No changes have been merged to main.
+
+The later user clarification adds a separate firm-first research screen: one
+verified listed underwriter/auditor/counsel is central; price, proceeds, geography,
+IPO age, RVOL and pump status are preferences. The user explicitly reconfirmed
+halts/suspensions, SPAC/acquisition corporations and five-letter tickers as hard
+exclusions. Keep the original strict result alongside the firm-first comparison.
+Wei, Wei & Co. has SUPER priority. Retain the existing counsel list. The supplied
+message.txt exactly matches all 230 committed reference events.
+
+The user clarified the surge threshold: retain 12%–23% gains at low priority.
+The implementation now uses a 12% floor and a 23% inclusive low-priority ceiling
+over the existing 21 trading sessions. This supersedes the unresolved threshold
+statements below. The user also reported adding all repository secrets; provider
+access must be checked by the bounded historical workflow, not assumed locally.
+
+`smg.backtest` now collects independent SEC index leads and replays prepared
+point-in-time research packets with event comparison. See `backtest/README.md`.
+Full historical candidate construction, mapping, filing review and halt coverage
+remain incomplete. No real detection rate or miss count is established. The
+earlier handoff below remains the requirements record, not a current progress report.
+
 Continue development of **Dirtyhandgernades/Dudebot**, a DECA Stock Market Game research notifier. The user asked to move the ongoing work into Codex after the initial implementation was published. Preserve the existing work and finish the historical backtest next.
 
 ## What the user wants next

@@ -1,0 +1,40 @@
+[
+  {
+    "ticker": "RAYA",
+    "issuer": "Erayak Power Solution Group Inc.",
+    "cik": "1825875",
+    "source_date": "2022-12-14",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1825875/000121390022080911/ea1703536kex99-1_eravakpower.htm",
+    "source_type": "SEC-filed IPO pricing announcement",
+    "underwriters": ["Craft Capital Management LLC", "R.F. Lafferty & Co., Inc."],
+    "issuer_counsel": ["Ortoli Rosenstadt LLP"],
+    "offering_price_usd": 4,
+    "base_gross_proceeds_usd": 12000000,
+    "ipo_trading_date_announced": "2022-12-14",
+    "finding": "PRE_DROP_FIRM_RELATIONSHIP_VERIFIED",
+    "strict_ipo_structural_issue": "BASE_GROSS_BELOW_15000000",
+    "firm_first_interpretation": "Firm criterion supported; low proceeds are a preference gap",
+    "detection_status": "NOT_ESTABLISHED",
+    "remaining_gaps": ["Point-in-time candidate and filing review", "Historical ticker/share-class continuity", "Historical halt coverage", "Market confirmation and corporate-action review"],
+    "scope": "Targeted source review; not independent discovery or a replay alert. Pricing announcement does not verify closing. IPO firms alone do not establish a later direct-offering relationship."
+  },
+  {
+    "ticker": "GDHG",
+    "issuer": "Golden Heaven Group Holdings Ltd.",
+    "cik": "1928340",
+    "source_date": "2023-04-14",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1928340/000121390023030234/ea177003ex99-2_goldenheaven.htm",
+    "source_type": "SEC-filed IPO closing announcement",
+    "underwriters": ["Revere Securities LLC", "R.F. Lafferty & Co., Inc."],
+    "issuer_counsel": ["Hunter Taubman Fischer & Li LLC"],
+    "offering_price_usd": 4,
+    "base_gross_proceeds_usd": 7000000,
+    "ipo_trading_date_announced": "2023-04-12",
+    "finding": "PRE_DROP_FIRM_RELATIONSHIP_VERIFIED",
+    "strict_ipo_structural_issue": "BASE_GROSS_BELOW_15000000",
+    "firm_first_interpretation": "Firm criterion supported; low proceeds are a preference gap",
+    "detection_status": "NOT_ESTABLISHED",
+    "remaining_gaps": ["Point-in-time candidate and filing review", "Historical ticker/share-class continuity", "Historical halt coverage", "Market confirmation and corporate-action review"],
+    "scope": "Targeted source review; not independent discovery or a replay alert. IPO firms alone do not establish a later direct-offering relationship."
+  }
+]

@@ -19,7 +19,7 @@ class EntityList:
         self.entries = {}
         for role, groups in data.items():
             for category, names in groups.items():
-                priority = 0 if category in {'High-Suspicion Focus Group','High-Suspicion Parties'} else 1 if category.startswith('Additional') else 2
+                priority = -1 if category.startswith('SUPER ') else 0 if category in {'High-Suspicion Focus Group','High-Suspicion Parties'} else 1 if category.startswith('Additional') else 2
                 for name in names:
                     self.entries[(role, normalize_name(name))] = dict(name=name, role=role, category=category, priority=priority)
 
@@ -30,7 +30,9 @@ class EntityList:
             entry = self.entries.get((role, normalize_name(item.name)))
             if not entry:
                 continue
-            if candidate.pipeline == 'DIRECT_OFFERING':
+            if candidate.pipeline == 'FIRM_WATCH':
+                valid = item.relationship in {'transaction','current'} or (role=='underwriter' and item.relationship=='historical')
+            elif candidate.pipeline == 'DIRECT_OFFERING':
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})
             else:
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})
@@ -46,6 +48,7 @@ def structural(c: Candidate, cfg: Config, entities: EntityList, now: datetime) -
     if c.is_acquisition_corp is None: unknown.append('UNKNOWN_ISSUER_CLASSIFICATION')
     if c.security_type not in {'CS','ADRC','ADS','COMMON_STOCK'}: unknown.append('UNVERIFIED_COMMON_EQUITY')
     if c.status == 'canceled': excluded.append('OFFERING_CANCELED')
+    if c.pipeline == 'FIRM_WATCH': unknown.append('FIRM_WATCH_HAS_NO_VERIFIED_TRANSACTION')
     if c.status == 'unknown': unknown.append('UNKNOWN_TRANSACTION_STATUS')
     if not c.terms_unambiguous: unknown.append('AMBIGUOUS_OFFERING_TERMS')
     if c.currency != 'USD': unknown.append('UNVERIFIED_USD_TERMS')
@@ -79,6 +82,11 @@ def evaluate(c, cfg, entities, now, snapshot=None, halt=None):
     if result.status != 'STRUCTURAL_MATCH': return result
     if not halt or halt.status != 'CLEAR' or not 0 <= (now-halt.checked_at).total_seconds() <= cfg.max_snapshot_age_seconds:
         result.status='REVIEW_REQUIRED'; result.reasons.append('UNKNOWN_OR_STALE_HALT_STATUS'); return result
+    return market_confirmation(result,cfg,now,snapshot)
+
+def market_confirmation(result,cfg,now,snapshot):
+    """Market rules alone; caller must retain structural and halt gating."""
+    c=result.candidate
     if snapshot is None:
         result.status='REVIEW_REQUIRED'; result.reasons.append('MISSING_MARKET_DATA'); return result
     result.snapshot=snapshot
@@ -108,4 +116,9 @@ def evaluate(c, cfg, entities, now, snapshot=None, halt=None):
         primary=0 if cfg.ipo_focus_days[0]<=age_days<=cfg.ipo_focus_days[1] else 1 if c.ipo_date >= years_ago(now.date(),cfg.ipo_preferred_age_years) else 2
     else: primary=1 if c.operations_country in {'US','CA'} else 0
     result.rank=[primary,min(m['priority'] for m in result.matches),-len(result.matches),-(snapshot.monthly_return or 0),-snapshot.rvol]
+    if c.pipeline=='RECENT_IPO' and cfg.ipo_low_priority_surge_max_pct is not None:
+        low_priority=snapshot.monthly_return <= cfg.ipo_low_priority_surge_max_pct
+        # Retain existing age/entity ranking within each surge priority band.
+        result.rank=[int(low_priority)]+result.rank
+        if low_priority: result.reasons.append('LOW_PRIORITY_MONTHLY_SURGE')
     return result

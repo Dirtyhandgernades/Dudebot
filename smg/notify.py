@@ -22,6 +22,23 @@ def metric(value,suffix=''):
 
 def rationale(e):
     c=e.candidate;m=e.snapshot
+    if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons:
+        entity='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches)
+        phase='monthly history unavailable' if m.monthly_return is None else 'below preferred surge' if 'NOT_YET_PUMPED_OR_BELOW_PREFERRED_SURGE' in e.reasons else 'lower-priority surge' if 'LOW_PRIORITY_MONTHLY_SURGE' in e.reasons else 'pumped'
+        if m.drawdown_pct<=-20:phase+='; below recent high'
+        lines=[f'**FIRM-FIRST WATCH | {clean(c.ticker)} | {clean(c.name)}**',
+               'Listed-firm relationship: '+clean(entity)+'.',
+               f'Price ${m.price:,.2f} | 21-session return {metric(m.monthly_return,"%")} | RVOL {metric(m.rvol,"×")}.',
+               f'State: {phase}; drawdown from recent high {m.drawdown_pct:.2f}%.',
+               f'IPO date: {c.ipo_date or "unverified"} | offering price {metric(c.offer_price)}; proceeds {metric(c.offer_gross)}.',
+               'Offering size, price, age, geography and pump/volume are preferences; firm association is a research signal.',
+               f'Data: {m.feed}, delayed {m.declared_delay_minutes} minutes; price {m.price_time.isoformat()}.',
+               f'Halt check: {e.halt.checked_at.isoformat()}.']
+        gaps=[r.removeprefix('PREFERENCE_GAP:') for r in e.reasons if r.startswith('PREFERENCE_GAP:')]
+        if gaps:lines.append('Preference/data gaps: '+clean(', '.join(gaps))[:450])
+        urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
+        lines+=['Sources:']+[f'<{u}>' for u in urls if urlsplit(u).scheme=='https' and '@' not in urlsplit(u).netloc]
+        return '\n'.join(lines)
     entity='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches)
     title='IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'
     age=f'IPO {c.ipo_date}; {(m.asof.date()-c.ipo_date).days} days old' if c.pipeline=='RECENT_IPO' else f'Offering {c.event_date}; {c.status}'
@@ -35,8 +52,11 @@ def rationale(e):
         'Rationale: offering terms and a verified listed-firm relationship passed; '+('configured surge and RVOL floor passed.' if c.pipeline=='RECENT_IPO' else 'RVOL floor passed; transaction is for case-by-case team review.'),
         f'Data feed: {m.feed}; declared delay {m.declared_delay_minutes} minutes.',
         f'Price as of {m.price_time.isoformat()}; halt checked {e.halt.checked_at.isoformat()}.']
-    if e.rank and e.rank[0]==0:
+    age_priority_index=1 if c.pipeline=='RECENT_IPO' and len(e.rank)==6 else 0
+    if e.rank and e.rank[age_priority_index]==0:
         lines.append('Priority: '+('30–100-day IPO focus.' if c.pipeline=='RECENT_IPO' else 'operations outside the U.S./Canada.'))
+    if 'LOW_PRIORITY_MONTHLY_SURGE' in e.reasons:
+        lines.append('Low priority: monthly gain is within the configured lower surge band; all screening rules still apply.')
     if m.flags:lines.append('Data notes: '+clean(', '.join(m.flags)))
     if c.notes:lines.append('Filing notes: '+clean('; '.join(c.notes))[:500])
     urls=list(dict.fromkeys([x['evidence']['url'] for x in e.matches]+[v.url for v in c.evidence.values()]+[m.source_url,e.halt.source_url]))
@@ -46,7 +66,7 @@ def rationale(e):
 
 def digest(evaluations,now,cfg):
     groups=[]
-    for pipeline,label in [('RECENT_IPO','RECENT IPOs'),('DIRECT_OFFERING','DIRECT OFFERINGS')]:
+    for pipeline,label in [('FIRM_WATCH','FIRM WATCHLIST'),('RECENT_IPO','RECENT IPOs'),('DIRECT_OFFERING','DIRECT OFFERINGS')]:
         items=sorted([e for e in evaluations if e.status=='QUALIFIED' and e.candidate.pipeline==pipeline],key=lambda e:e.rank)
         if items:groups.append('**'+label+'**\n\n'+'\n\n'.join(rationale(e) for e in items))
     if not groups:return []
@@ -69,6 +89,21 @@ class DiscordSender:
         if parsed.query or parsed.fragment:raise ValueError('Webhook URL must not include query/fragment')
         self.http=http;self.webhook=webhook;self.store=store;self.checkpoint=checkpoint
         self.clock=clock or (lambda:datetime.now(UTC))
+    def activation(self,release_id,content):
+        """User-authorized deployment receipt, without mentions or stock alerts."""
+        from .transport import ProviderError
+        key='activation:'+release_id
+        existing=self.store.get(key)
+        if existing:return existing
+        claim={'status':'CLAIMED','claimed_at':self.clock().isoformat()}
+        self.store.put(key,claim);self.checkpoint(self.store)
+        try:
+            data=self.http.json(self.webhook,method='POST',params={'wait':'true'},
+                body={'content':content,'allowed_mentions':{'parse':[]}},timeout=8)
+            claim.update(status='SENT',message_id=data['id'],channel_id=data.get('channel_id'))
+        except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
+        self.store.put(key,claim);self.checkpoint(self.store)
+        return claim
     def send(self,evaluations,cfg):
         from .transport import ProviderError
         now=self.clock()
