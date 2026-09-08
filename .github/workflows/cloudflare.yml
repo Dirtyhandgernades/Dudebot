@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [cloudflare/**, .github/workflows/cloudflare.yml, smg/cloud_dispatch.py, smg/notify.py]
+    paths: [cloudflare/**, .github/workflows/cloudflare.yml, smg/cloud_dispatch.py, smg/notify.py, smg/cli.py]
 permissions:
   contents: write
 concurrency:

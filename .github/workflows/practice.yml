@@ -2,7 +2,7 @@ name: One practice Discord reference check # Existing receipt is reformatted int
 on:
   push:
     branches: [main]
-    paths: [.github/workflows/practice.yml, smg/notify.py, smg/practice.py]
+    paths: [.github/workflows/practice.yml, smg/notify.py, smg/practice.py, smg/cli.py]
   workflow_dispatch:
 permissions:
   contents: write
