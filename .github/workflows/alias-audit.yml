@@ -1,0 +1,28 @@
+name: Check two historical ticker gaps
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [smg/alias_audit.py, .github/workflows/alias-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - run: python -m smg.alias_audit
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-alias-gap-receipt
+          path: reports/alias-audit.json
