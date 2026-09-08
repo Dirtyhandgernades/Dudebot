@@ -279,6 +279,45 @@ def probe_market(cfg):
         return {'status':'FAILED', 'error_type':type(exc).__name__, 'http_status':getattr(exc,'status',None)}
 
 
+def audit_reference_market(events, cfg, state, budget=250):
+    """Targeted data-availability audit, wholly separate from screening.
+
+    Five minutes before the last eligible prior noon are sampled. This cannot
+    establish RVOL, a 21-session return, full history, or a strategy detection.
+    """
+    records = []
+    configured = all(os.environ.get(k) for k in ['ALPACA_API_KEY','ALPACA_SECRET_KEY'])
+    market = Alpaca(Http(),os.environ.get('ALPACA_API_KEY',''),os.environ.get('ALPACA_SECRET_KEY',''),cfg.market_feed,cfg.market_data_delay_minutes)
+    cache = state / 'reference-market-samples'
+    started = time.monotonic(); calls = 0; access_failed = False
+    for event in events:
+        day = date.fromisoformat(event['event_date'])
+        eligible = [decision_time(d,cfg) for d in prior_sessions(day,20)]
+        now = next((t for t in reversed(eligible) if t is not None),None)
+        record = dict(event_id=event['event_id'],ticker=event['ticker'],event_date=event['event_date'],
+                      status='NOT_SAMPLED',sample_end='',bar_count=None,source_url='https://data.alpaca.markets/v2/stocks/bars')
+        if now:
+            cutoff = now-timedelta(minutes=cfg.market_data_delay_minutes)
+            query = dict(ticker=event['ticker'],asof=str(now.date()),start=(cutoff-timedelta(minutes=5)).isoformat(),
+                         end=(cutoff-timedelta(minutes=1)).isoformat(),feed=cfg.market_feed,adjustment='split')
+            path = cache / (fingerprint(query)+'.json')
+            result = json.loads(path.read_text()) if path.exists() else None
+            if result is None and configured and not access_failed and calls<budget and time.monotonic()-started<300:
+                try:
+                    bars = market.bars(event['ticker'],stamp(query['start']),stamp(query['end']),asof=now.date())
+                    result = dict(status='BARS_AVAILABLE_IN_SAMPLE' if bars else 'NO_BARS_IN_SAMPLED_INTERVAL',
+                                  sample_end=query['end'],bar_count=len(bars),query=query)
+                    write_json(path,result)
+                except Exception as exc:
+                    result = dict(status='PROVIDER_ERROR',error_type=type(exc).__name__,http_status=getattr(exc,'status',None))
+                    access_failed = getattr(exc,'status',None) in {401,403,429}
+                calls+=1
+            if result:
+                record.update(result)
+        records.append(record)
+    return records
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['audit', 'collect-indexes', 'replay'])
@@ -322,6 +361,7 @@ def main(argv=None):
     collection = None
     provider_access = None
     source_audit = None
+    market_samples = []
     if args.command == 'collect-indexes':
         provider_access = probe_market(cfg)
         try:
@@ -331,6 +371,8 @@ def main(argv=None):
         from .historical_discovery import audit_filings
         source_audit, research = audit_filings(state,args.start,args.end,entries)
         write_json(out / 'filing_research.json', research)
+        market_samples = audit_reference_market(events,cfg,state)
+        write_json(out / 'reference_market_samples.json',market_samples)
     if args.command == 'replay' and packets and secrets['ALPACA_API_KEY'] and secrets['ALPACA_SECRET_KEY']:
         market = CachedMarket(Alpaca(Http(), os.environ['ALPACA_API_KEY'], os.environ['ALPACA_SECRET_KEY'], cfg.market_feed, cfg.market_data_delay_minutes), state / 'bars')
         done = {r['input_sha256'] for r in decisions}; count = 0; started = time.monotonic()
@@ -350,6 +392,12 @@ def main(argv=None):
         if not present:
             issues.append(key + '_NOT_CONFIGURED_LOCALLY')
     comparison, extras = compare(events, decisions, args.lookback)
+    samples_by_event = {r['event_id']:r for r in market_samples}
+    for row in comparison:
+        sample = samples_by_event.get(row['event_id'],{})
+        row['market_sample_status'] = sample.get('status','NOT_SAMPLED')
+        row['market_sample_end'] = sample.get('sample_end','')
+        row['market_sample_bar_count'] = sample.get('bar_count','')
     with (out / 'event_comparison.csv').open('w', newline='', encoding='utf-8') as stream:
         writer = csv.DictWriter(stream, fieldnames=list(comparison[0])); writer.writeheader(); writer.writerows(comparison)
     write_json(out / 'decisions.json', decisions)
@@ -367,9 +415,10 @@ def main(argv=None):
         'extra_alert_records':len(extras) if decisions else None,
         'repeat_alert_records':sum(max(0, n - 1) for n in Counter(r['candidate_key'] for r in decisions if r['status']=='QUALIFIED').values()) if decisions else None,
         'event_symbol_rule_conflicts':sum(bool(r['event_symbol_exclusion']) for r in comparison),
-        'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,'run_key':run_key}
+        'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,
+        'reference_market_sample_counts':dict(Counter(r['status'] for r in market_samples)),'run_key':run_key}
     write_json(out / 'summary.json', summary)
-    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit']}))
+    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit','reference_market_sample_counts']}))
     return 2 if summary['status'] == 'NOT_RUN' else 0
 
 

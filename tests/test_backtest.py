@@ -207,3 +207,22 @@ def test_independent_filing_audit_resumes_without_current_universe(tmp_path, mon
     assert second['downloaded_this_run']==0
     assert records[0]['status']=='NO_TRANSACTION_RECOGNIZED_BY_PARSER'
     assert second['screening_detections'] is None
+
+
+def test_reference_market_samples_are_prior_delayed_and_cached(tmp_path,monkeypatch):
+    from smg.backtest import audit_reference_market
+    monkeypatch.setenv('ALPACA_API_KEY','fake'); monkeypatch.setenv('ALPACA_SECRET_KEY','fake')
+    calls=[]
+    def bars(self,ticker,start,end,*,asof):
+        calls.append((ticker,start,end,asof))
+        return []
+    monkeypatch.setattr('smg.backtest.Alpaca.bars',bars)
+    events=[dict(event_id='one',ticker='OLD',event_date='2024-02-05',reported_drop_pct='-99')]
+    first=audit_reference_market(events,Config(),tmp_path)
+    second=audit_reference_market(events,Config(),tmp_path)
+    assert first==second and len(calls)==1
+    assert calls[0][3]==date(2024,2,2)
+    assert calls[0][1]==datetime(2024,2,2,19,39,tzinfo=UTC)
+    assert calls[0][2]==datetime(2024,2,2,19,43,tzinfo=UTC)
+    assert first[0]['status']=='NO_BARS_IN_SAMPLED_INTERVAL'
+    assert 'reported_drop_pct' not in json.dumps(first)

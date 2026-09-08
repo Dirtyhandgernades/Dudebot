@@ -65,6 +65,16 @@ Unrecognized transaction wording is a parser result, never proof that no
 qualifying transaction existed. Filing context, cancellation status and mapping
 remain explicit gaps; these research leads are not replay-ready packets.
 
+`reference_market_samples.json` is a separate targeted data-availability audit.
+For each reference event it requests the five completed minute bars preceding
+the delayed cutoff at the last eligible prior noon. At most 250 event requests
+or five minutes of work are allowed per run; successful responses are cached.
+An empty response is a gap in that sampled interval, not proof of absent daily
+history, a halt, or a strategy miss. Available bars do not establish complete
+RVOL/monthly history. Reference dates and symbols select only these diagnostic
+samples and the comparison; they do not select the discovery universe or alter
+screening features. Drop percentages are never sent to providers or rules.
+
 ## Research packet contract
 
 Each JSONL line describes one candidate at one permitted noon decision.
