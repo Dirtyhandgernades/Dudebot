@@ -156,6 +156,16 @@ issuer used that symbol throughout the lookback.
 
 ## Work still required
 
+`firm-search` now widens empty reference five-minute probes to same-session
+minutes before the original cutoff, followed by prior daily history when needed.
+It saves `reference_gap_audit.json`. Recovered history is a data-availability
+finding, not a fresh decision-time quote, a complete market snapshot, or a clear
+historical halt check. The original narrow sample is retained for comparison.
+SEC server errors split the date range with bounded retries and durable progress.
+
+`reviewed_firm_findings.json` contains targeted, source-reviewed IPO relationships
+for RAYA and GDHG. It is not input to independent discovery and not a replay packet.
+
 Build and validate historical exchange/CIK/share-class mappings; download and
 review indexed prospectuses and their then-public context; produce candidate
 versions without resetting original listing dates or terms; establish

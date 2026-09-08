@@ -2,6 +2,22 @@
 
 ## Continuation update, September 8, 2026
 
+Development is pushed to `codex/historical-backtest`, draft PR #1. The latest
+gap-resolution workflow is https://github.com/Dirtyhandgernades/Dudebot/actions/runs/34191049268.
+100 offline tests pass. Initial Alpaca probes found bars for 180 events and empty
+five-minute intervals for 50; `reference_gap_audit.json` records wider checks.
+An empty five-minute probe is not proof of missing whole-session history.
+SEC full-text HTTP 500 errors now split into smaller date ranges and preserve
+checkpoints. All 27 SEC index quarters are collected; source review is incomplete.
+
+`backtest/reviewed_firm_findings.json` verifies pre-drop IPO firm relationships for
+RAYA and GDHG, covering five reference events. Their $12M and ~$7M base proceeds
+fail the original strict IPO floor but are preferences under firm-first. These
+source findings are not replay detections. Do not fabricate point-in-time filing
+review or historical halt clearance. Actual screening replay remains incomplete.
+The firm-first module is research/backtest only; production still uses the strict
+entrypoint until explicitly integrated. No changes have been merged to main.
+
 The later user clarification adds a separate firm-first research screen: one
 verified listed underwriter/auditor/counsel is central; price, proceeds, geography,
 IPO age, RVOL and pump status are preferences. The user explicitly reconfirmed
