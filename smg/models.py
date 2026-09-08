@@ -8,6 +8,7 @@ class Strict(BaseModel):
 
 class Config(Strict):
     surge_return_min_pct: float | None = Field(default=None, gt=0)
+    ipo_low_priority_surge_max_pct: float | None = Field(default=None, gt=0)
     ipo_max_age_years: int = Field(default=3, ge=1)
     ipo_focus_days: list[int] = [30, 100]
     ipo_preferred_age_years: int = 1

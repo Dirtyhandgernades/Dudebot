@@ -6,7 +6,7 @@ A rules-based stock research notifier running in GitHub Actions. It discovers re
 
 This repository is public. GitHub currently includes standard hosted Actions runners for public repositories at no charge. This is a scheduled program with no credit balance to refill; continued operation depends on GitHub, Alpaca, SEC, and Discord availability and policies. It cannot promise indefinite service or exact wall-clock delivery. [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)
 
-For the pending three-year historical replay and the user's reference-event comparison, see [CODEX_HANDOFF.md](CODEX_HANDOFF.md). The real backtest has not been run.
+For the pending three-year historical replay and the user's reference-event comparison, see [backtest/README.md](backtest/README.md) and [CODEX_HANDOFF.md](CODEX_HANDOFF.md). The full real backtest remains incomplete.
 
 ## Your screening rules
 
@@ -22,13 +22,13 @@ The bot checks the filing criteria first, then obtains market confirmation. Miss
 | Offering price | $4–$10 inclusive per traded share/ADS, not the current stock price |
 | Exclusions | Current halts/suspensions; acquisition corporations/SPACs; every exactly-five-letter ticker independently |
 | RVOL | At least 1.0 against comparable same-time historical volume |
-| IPO surge | Trailing 21-session price return; numeric minimum must be supplied |
+| IPO surge | At least 12% over 21 trading sessions; 12%–23% inclusive is low priority, above 23% normal priority |
 | Direct offerings | Separate research pipeline; no mandatory monthly surge by default |
 | Notification | One digest per eligible trading day, only during the configured noon minute, with one `@everyone` mention |
 
 The source firm's category names are the user's screening labels. A list match does not establish fraud, manipulation, or a future price decline. Trading and reversal decisions remain the team's case-by-case decisions.
 
-`config/entities.yaml` contains the supplied firm list. `config/strategy.yaml` holds the rules and explicit engineering defaults. The monthly surge threshold remains `null` because the user has not supplied a number. Set repository variable `SURGE_RETURN_MIN_PCT` to resolve it. Until then, IPO surge alerts are marked `CONFIG_REQUIRED`; the separate direct-offering review can still qualify.
+`config/entities.yaml` contains the supplied firm list. `config/strategy.yaml` holds the rules and explicit engineering defaults. The user clarified a 12% monthly floor with 12%–23% inclusive retained at low priority. Repository variable `SURGE_RETURN_MIN_PCT` can override the floor. A deliberately null threshold still produces `CONFIG_REQUIRED`; direct-offering review remains separate.
 
 ## Try it without credentials
 

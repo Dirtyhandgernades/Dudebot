@@ -79,6 +79,11 @@ def evaluate(c, cfg, entities, now, snapshot=None, halt=None):
     if result.status != 'STRUCTURAL_MATCH': return result
     if not halt or halt.status != 'CLEAR' or not 0 <= (now-halt.checked_at).total_seconds() <= cfg.max_snapshot_age_seconds:
         result.status='REVIEW_REQUIRED'; result.reasons.append('UNKNOWN_OR_STALE_HALT_STATUS'); return result
+    return market_confirmation(result,cfg,now,snapshot)
+
+def market_confirmation(result,cfg,now,snapshot):
+    """Market rules alone; caller must retain structural and halt gating."""
+    c=result.candidate
     if snapshot is None:
         result.status='REVIEW_REQUIRED'; result.reasons.append('MISSING_MARKET_DATA'); return result
     result.snapshot=snapshot
@@ -108,4 +113,9 @@ def evaluate(c, cfg, entities, now, snapshot=None, halt=None):
         primary=0 if cfg.ipo_focus_days[0]<=age_days<=cfg.ipo_focus_days[1] else 1 if c.ipo_date >= years_ago(now.date(),cfg.ipo_preferred_age_years) else 2
     else: primary=1 if c.operations_country in {'US','CA'} else 0
     result.rank=[primary,min(m['priority'] for m in result.matches),-len(result.matches),-(snapshot.monthly_return or 0),-snapshot.rvol]
+    if c.pipeline=='RECENT_IPO' and cfg.ipo_low_priority_surge_max_pct is not None:
+        low_priority=snapshot.monthly_return <= cfg.ipo_low_priority_surge_max_pct
+        # Retain existing age/entity ranking within each surge priority band.
+        result.rank=[int(low_priority)]+result.rank
+        if low_priority: result.reasons.append('LOW_PRIORITY_MONTHLY_SURGE')
     return result

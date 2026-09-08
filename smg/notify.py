@@ -35,8 +35,11 @@ def rationale(e):
         'Rationale: offering terms and a verified listed-firm relationship passed; '+('configured surge and RVOL floor passed.' if c.pipeline=='RECENT_IPO' else 'RVOL floor passed; transaction is for case-by-case team review.'),
         f'Data feed: {m.feed}; declared delay {m.declared_delay_minutes} minutes.',
         f'Price as of {m.price_time.isoformat()}; halt checked {e.halt.checked_at.isoformat()}.']
-    if e.rank and e.rank[0]==0:
+    age_priority_index=1 if c.pipeline=='RECENT_IPO' and len(e.rank)==6 else 0
+    if e.rank and e.rank[age_priority_index]==0:
         lines.append('Priority: '+('30–100-day IPO focus.' if c.pipeline=='RECENT_IPO' else 'operations outside the U.S./Canada.'))
+    if 'LOW_PRIORITY_MONTHLY_SURGE' in e.reasons:
+        lines.append('Low priority: monthly gain is within the configured lower surge band; all screening rules still apply.')
     if m.flags:lines.append('Data notes: '+clean(', '.join(m.flags)))
     if c.notes:lines.append('Filing notes: '+clean('; '.join(c.notes))[:500])
     urls=list(dict.fromkeys([x['evidence']['url'] for x in e.matches]+[v.url for v in c.evidence.values()]+[m.source_url,e.halt.source_url]))

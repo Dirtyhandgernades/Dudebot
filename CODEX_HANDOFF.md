@@ -1,5 +1,19 @@
 # Dudebot continuation handoff
 
+## Continuation update, September 8, 2026
+
+The user clarified the surge threshold: retain 12%–23% gains at low priority.
+The implementation now uses a 12% floor and a 23% inclusive low-priority ceiling
+over the existing 21 trading sessions. This supersedes the unresolved threshold
+statements below. The user also reported adding all repository secrets; provider
+access must be checked by the bounded historical workflow, not assumed locally.
+
+`smg.backtest` now collects independent SEC index leads and replays prepared
+point-in-time research packets with event comparison. See `backtest/README.md`.
+Full historical candidate construction, mapping, filing review and halt coverage
+remain incomplete. No real detection rate or miss count is established. The
+earlier handoff below remains the requirements record, not a current progress report.
+
 Continue development of **Dirtyhandgernades/Dudebot**, a DECA Stock Market Game research notifier. The user asked to move the ongoing work into Codex after the initial implementation was published. Preserve the existing work and finish the historical backtest next.
 
 ## What the user wants next
