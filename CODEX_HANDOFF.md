@@ -2,6 +2,43 @@
 
 ## Continuation update, September 8, 2026
 
+First independent replay completed: 78 filings processed, 23 candidate records /
+17 distinct tickers, 439 historical decisions. Eight independently found tickers
+are in the reference file: BTOG, GVH, IFBD, JBDI, JZ, MTC, TKLF, ZJYL. None of
+the first-20-session-after-filing samples overlapped reference lookbacks, so no
+timely detections were established. This sampling limitation is now corrected:
+daily watch continues through END using the latest selected source already public
+for each issuer. Inspect the next workflow's results; don't reuse the initial
+439-decision batch as if it were the expanded run. Cap, halt, full context and
+historical mapping gaps remain unverified and prevent eligible alert claims.
+
+Latest user requirement: independent discovery must not read message.txt/reference
+tickers to select stocks. The file is a holdout comparison. Finding most is the
+benchmark, not a result already achieved. Hard DECA gates now apply to both
+profiles: Nasdaq/NYSE, current price > $3, reported market cap >= $25M, minimum
+opening order planning 10 shares. Missing historical market cap is a gap, never
+filled using today's cap. Free current Nasdaq screener caps covered all 19 earlier
+live candidates in a local data-access check. 121 Python + 5 dispatcher tests pass.
+
+Cloudflare activation succeeded in run 34281212506. Endpoint:
+https://dudebot-dispatch.dudebot-dirtyhandgernades.workers.dev
+It verified storage and edited existing practice message 1546917333065408734,
+then set cloud_dispatch.enabled=true in smg-state. First real noon alarm still
+pending. GitHub remains the data preparer and can delay it: today's scheduled
+noon run 34279293529 started at 21:12 UTC and reported MISSED_SEND_WINDOW.
+Do not claim the whole pipeline is independent of GitHub or guarantees no delays.
+
+Independent source replay run 34281212486 uses the prior 15,054-document firm
+corpus, selects 78 sources across 13 quarters / 60 issuers, then screens following
+sessions before reading labels. Inspect its result before claiming any matches.
+This is a bounded partial source-triggered replay, not a full daily universe run.
+Historical market cap, halt history, source context and symbol intervals remain
+unverified. Report conditional firm/price matches separately from verified alerts.
+
+Targeted alias audit run 34252502063 recovered same-session bars for MDJH (UOKA
+label) and HRYU (GITS label). Both lacked a fresh sampled noon price. These are
+retrospective data-gap resolutions, not discovery or detections.
+
 Latest user decisions supersede the old clock instructions below: noon Pacific /
 2 p.m. Central must follow local daylight-saving time. Account creation for the
 free Cloudflare dispatcher is complete; API token/account-ID connection and

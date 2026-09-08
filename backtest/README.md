@@ -1,5 +1,21 @@
 # Historical replay status
 
+September 8 continuation: `smg.source_replay` now runs real, independently
+selected issuer samples through historical noon price checks and the firm-first
+engine. The first 78-filing batch produced 17 distinct tickers, eight overlapping
+the user's reference symbols, but its 439 sampled decisions did not establish
+timely detections. The sampling horizon has been extended to daily watches through
+the backtest end. Reports distinguish conditional firm/price matches from eligible
+alerts. Current hard gates are Nasdaq/NYSE, price > $3, market cap >= $25M, plus
+the prior halt/SPAC/five-letter exclusions. Historical cap and halt data remain
+gaps; today's cap is never backfilled into historical decisions. The original
+prepared-packet replay below still has no complete research packets.
+
+Reference CSV loading occurs only after independent source selection and market
+decisions. Targeted ticker/alias probes are separate diagnostics and cannot be
+reported as independent discoveries. See the Independent historical source replay
+workflow and its event-by-event artifact. This is not full market-universe coverage.
+
 The requested window is July 29, 2022 through July 28, 2025. Comparison uses
 the preceding 20 trading sessions, excludes the event date, and retains all
 230 reference events (137 symbols). These are analysis parameters, not added
@@ -36,8 +52,7 @@ to `firm_first_event_comparison.csv`; the strict comparison is retained.
 Wei, Wei & Co. now has the user's SUPER priority tier. The existing three counsel
 firms remain because the user's new Counsel section was blank. An old IPO
 underwriter still cannot establish a later direct-offering transaction role.
-This new profile is currently a backtest/research implementation; the live
-notifier still uses the strict production entrypoint pending integration.
+Firm-first is now integrated into the live notifier as the default profile.
 
 The attached `message.txt` was checked against the committed reference CSV:
 all 230 rows match in order, ticker, date and reported drop percentage.

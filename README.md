@@ -2,6 +2,20 @@
 
 A rules-based stock research notifier running in GitHub Actions. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
 
+The user's DECA gates apply to both profiles: **Nasdaq or NYSE common equity,
+current price strictly above $3, and market cap at least $25 million**. Unknown
+market cap suppresses eligibility. Current reported caps come from Nasdaq's free
+public stock screener; the report records retrieval time because the source does
+not publish a timestamp for each cap value. They are never reused for historical
+decisions. Opening buy/short order planning uses a minimum of 10 shares; the bot
+does not submit orders, simulate fees, or assert game-security-table availability.
+
+The independently selected source replay is separate from targeted data-gap
+diagnostics. `smg.source_replay` selects six distinct issuers per quarter from the
+firm-search corpus, watches them daily through the window's end, and reads the user's
+reference events only after screening. This is a partial issuer sample;
+historical market cap, halt and complete context coverage remain unresolved.
+
 The three hard exclusions remain halts/suspensions, acquisition corporations/SPACs,
 and exactly-five-letter tickers. Unknown classification, stale prices or unknown
 halt checks suppress alerts. Missing offering terms, low RVOL and an absent pump
@@ -62,7 +76,7 @@ The demo uses fictional securities and an explicit demonstration-only 100% thres
 
 ## Free data and discovery
 
-**Recent IPOs:** SEC quarterly indexes supply three years of `424B4` prospectus leads for current Nasdaq issuers. SEC ticker/CIK mappings identify the issuer. Listing dates must be supported by explicit trading-date language in filings; filing date is never substituted for IPO date. A changed ticker does not reset the IPO clock. Ambiguous multiple-share-class mappings require review.
+**Recent IPOs:** SEC quarterly indexes supply three years of `424B4` prospectus leads for current Nasdaq/NYSE issuers. SEC ticker/CIK mappings identify the issuer. Listing dates must be supported by explicit trading-date language in filings; filing date is never substituted for IPO date. A changed ticker does not reset the IPO clock. Ambiguous multiple-share-class mappings require review.
 
 **Direct offerings:** A separate scan checks the past 30 days of prospectuses and `8-K`/`6-K` filings. A bounded current-filings Atom feed adds same-day leads; the nightly-updated index fills gaps from the bounded feed. Registered direct offerings must have their own offering terms. A shelf registration, ATM program, or direct exchange listing alone does not qualify. A historical IPO underwriter alone cannot qualify a later direct offering.
 

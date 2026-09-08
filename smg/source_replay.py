@@ -1,8 +1,8 @@
 """Independent, bounded source-triggered historical screening replay.
 
 Reference events are opened only after discovery and market decisions finish.
-This first pass covers selected independent filings and their next 20 sessions,
-not the complete three-year market universe. Unknown historical cap/halts stay gaps.
+This pass watches selected independent issuers through the end of the window,
+not the complete market universe. Unknown historical cap/halts stay gaps.
 """
 import csv,hashlib,json,os,re,sqlite3,time
 from collections import Counter,defaultdict
@@ -83,10 +83,16 @@ def main():
     for c in candidates:
         known=public_at({'filed_at':str(c.event_date)})
         if known.date()>END:continue
-        days=calendar(known.year).sessions_in_range(str(known.date()),str(min(END,known.date()+timedelta(days=60))))
+        days=calendar(END.year).sessions_in_range(str(known.date()),str(END))
         times=[decision_time(s.date(),cfg) for s in days]
-        times=[t for t in times if t and t>=known][:20]
+        times=[t for t in times if t and t>=known]
         for now in times:jobs[now].append(c)
+    # Firm-watch eligibility has no 20-session expiry. Use the newest selected
+    # filing already public for each issuer, while retaining the context gap.
+    for now,group in jobs.items():
+        latest={}
+        for c in sorted(group,key=lambda c:c.event_date):latest[c.cik]=c
+        jobs[now]=list(latest.values())
     records=[];market_requests=0;headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
     for now,group in sorted(jobs.items()):
         if time.monotonic()-started>600:break
@@ -120,7 +126,7 @@ def main():
             records.append(dict(ticker=c.ticker,cik=c.cik,decision_at=now.isoformat(),status=result.status,reasons=result.reasons,
                 source_date=str(c.event_date),source_url=c.matches[0].evidence.url,firms=[m['name'] for m in structure.matches],
                 raw_price=s.price if s else None,firm_and_price_match=firm_price,unresolved=gaps,
-                review_scope='Source-triggered first-20-session sample; no full context or eligibility certification'))
+                review_scope='Daily watch through window end using latest selected public source; no full context or eligibility certification'))
     # Holdout boundary: labels are first read here, after all selections/decisions.
     with (root/'backtest/reference_events.csv').open() as stream:events=list(csv.DictReader(stream))
     comparisons=[]
@@ -136,13 +142,13 @@ def main():
     write_json(out/'sources.json',sources);write_json(out/'decisions.json',records)
     with (out/'event_comparison.csv').open('w',newline='') as stream:
         writer=csv.DictWriter(stream,fieldnames=list(comparisons[0]));writer.writeheader();writer.writerows(comparisons)
-    summary=dict(status='PARTIAL_SOURCE_TRIGGERED_REPLAY',start=str(START),end=str(END),source_selection='Six independent CIKs per quarter; annual filings then priced IPO/event filings; no reference input',
+    summary=dict(status='PARTIAL_DAILY_WATCH_REPLAY',start=str(START),end=str(END),source_selection='Six independent CIKs per quarter; daily watch after known source through window end; no reference input',
         selected_sources=len(selected),sources_processed=len(sources),extracted_candidates=len(candidates),candidate_symbols=sorted({c.ticker for c in candidates}),
         evaluated_decisions=len(records),planned_decisions=sum(len(v) for v in jobs.values()),market_requests=market_requests,
         screening_counts=dict(Counter(r['status'] for r in records)),comparison_counts=dict(Counter(r['result'] for r in comparisons)),
         conditional_reference_symbols=sorted({r['ticker'] for r in comparisons if r['result']=='CONDITIONAL_FIRM_AND_PRICE_MATCH'}),
         verified_detections=0,verified_misses=None,full_detection_rate=None,universe_complete=False,
-        limitations=['Partial independently selected source sample, not a full daily universe replay','No historical cap/halts or complete source-context certification','Raw historical prices used for the $3 gate; no split-adjusted future price leakage','Conditional firm-price matches are not eligible alerts'])
+        limitations=['Partial independently selected issuer sample, not a full market universe replay','No historical cap/halts or complete source-context certification','Raw historical prices used for the $3 gate; no split-adjusted future price leakage','Conditional firm-price matches are not eligible alerts'])
     write_json(out/'summary.json',summary);print(json.dumps(summary))
 
 if __name__=='__main__':main()
