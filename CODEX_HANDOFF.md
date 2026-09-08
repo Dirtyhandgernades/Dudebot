@@ -2,6 +2,14 @@
 
 ## Continuation update, September 8, 2026
 
+The later user clarification adds a separate firm-first research screen: one
+verified listed underwriter/auditor/counsel is central; price, proceeds, geography,
+IPO age, RVOL and pump status are preferences. The user explicitly reconfirmed
+halts/suspensions, SPAC/acquisition corporations and five-letter tickers as hard
+exclusions. Keep the original strict result alongside the firm-first comparison.
+Wei, Wei & Co. has SUPER priority. Retain the existing counsel list. The supplied
+message.txt exactly matches all 230 committed reference events.
+
 The user clarified the surge threshold: retain 12%–23% gains at low priority.
 The implementation now uses a 12% floor and a 23% inclusive low-priority ceiling
 over the existing 21 trading sessions. This supersedes the unresolved threshold

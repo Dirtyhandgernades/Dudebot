@@ -27,6 +27,7 @@ from .models import Candidate, Config, HaltCheck
 from .providers import Alpaca
 from .rules import EntityList, evaluate, market_confirmation, structural, years_ago
 from .transport import Http
+from .firm_first import firm_structure, evaluate_firm_first
 
 UTC = timezone.utc
 START = date(2022, 7, 29)
@@ -134,12 +135,12 @@ def replay_packet(packet, cfg, entities, market):
     errors = packet_errors(packet, candidate, now)
     if errors:
         row['reasons'] = errors; return row
-    if candidate.pipeline == 'DIRECT_OFFERING' and candidate.event_date < now.date() - timedelta(days=cfg.direct_offering_backfill_days):
-        row.update(status='EXCLUDED', reasons=['DIRECT_OFFERING_OUTSIDE_BACKFILL']); return row
+    direct_expired = candidate.pipeline == 'DIRECT_OFFERING' and candidate.event_date < now.date() - timedelta(days=cfg.direct_offering_backfill_days)
     halt = historical_halt(packet, now)
     structure = structural(candidate, cfg, entities, now)
     snapshot = None
-    if structure.status == 'STRUCTURAL_MATCH' and halt.status != 'HALTED':
+    firm_struct = firm_structure(candidate,cfg,entities,now)
+    if (structure.status == 'STRUCTURAL_MATCH' or firm_struct.status == 'STRUCTURAL_MATCH') and halt.status != 'HALTED':
         effective = now - timedelta(minutes=cfg.market_data_delay_minutes)
         try:
             rows = market.bars(candidate.ticker, effective - timedelta(days=150), effective, asof=now.date())
@@ -149,8 +150,12 @@ def replay_packet(packet, cfg, entities, market):
         except Exception as exc:
             row['reasons'] = ['MARKET_DATA_UNAVAILABLE:' + type(exc).__name__]; return row
     result = evaluate(candidate, cfg, entities, now, snapshot, halt)
+    if direct_expired:
+        result.status='EXCLUDED';result.reasons.append('DIRECT_OFFERING_OUTSIDE_BACKFILL')
     row.update(status=result.status, reasons=result.reasons, evaluation=result.model_dump(mode='json'))
-    if halt.status == 'UNKNOWN' and structure.status == 'STRUCTURAL_MATCH':
+    firm_result=evaluate_firm_first(candidate,cfg,entities,now,snapshot,halt)
+    row['firm_first_evaluation']=firm_result.model_dump(mode='json')
+    if halt.status == 'UNKNOWN' and structure.status == 'STRUCTURAL_MATCH' and not direct_expired:
         # No fabricated CLEAR record. Reuse just the production market rules.
         diagnostic = market_confirmation(structure, cfg, now, snapshot)
         row['other_criteria_status'] = diagnostic.status
@@ -318,6 +323,20 @@ def audit_reference_market(events, cfg, state, budget=250):
     return records
 
 
+def probe_firm_search(end):
+    agent=os.environ.get('SEC_USER_AGENT','')
+    if '@' not in agent:
+        return {'status':'NOT_RUN'}
+    try:
+        data=Http().json('https://efts.sec.gov/LATEST/search-index',headers={'User-Agent':agent},params={
+            'q':'"Wei, Wei" OR "Cathay Securities"','dateRange':'custom','startdt':'2001-01-01',
+            'enddt':str(end),'from':0,'size':1})
+        return {'status':'SEARCH_ACCESS_VERIFIED','keys':list(data),'hits':data.get('hits'),
+                'purpose':'Independent firm-name search access and schema check; not verified issuer relationships'}
+    except Exception as exc:
+        return {'status':'FAILED','error_type':type(exc).__name__,'http_status':getattr(exc,'status',None)}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['audit', 'collect-indexes', 'replay'])
@@ -349,6 +368,7 @@ def main(argv=None):
     if args.packets:
         packets = [json.loads(line) for line in args.packets.read_text(encoding='utf-8').splitlines() if line.strip()]
     run_key = fingerprint({'cfg':cfg.model_dump(),'entities':entries,'packets':packets,'engine':Path(__file__).read_text(),
+                           'firm_first':Path(__file__).with_name('firm_first.py').read_text(),
                            'rules':Path(__file__).with_name('rules.py').read_text(),'market':Path(__file__).with_name('market.py').read_text(),
                            'providers':Path(__file__).with_name('providers.py').read_text()})
     checkpoint = state / ('replay-' + run_key + '.json')
@@ -362,6 +382,7 @@ def main(argv=None):
     provider_access = None
     source_audit = None
     market_samples = []
+    firm_search_access = None
     if args.command == 'collect-indexes':
         provider_access = probe_market(cfg)
         try:
@@ -373,6 +394,8 @@ def main(argv=None):
         write_json(out / 'filing_research.json', research)
         market_samples = audit_reference_market(events,cfg,state)
         write_json(out / 'reference_market_samples.json',market_samples)
+        firm_search_access=probe_firm_search(args.end)
+        write_json(out / 'firm_search_probe.json',firm_search_access)
     if args.command == 'replay' and packets and secrets['ALPACA_API_KEY'] and secrets['ALPACA_SECRET_KEY']:
         market = CachedMarket(Alpaca(Http(), os.environ['ALPACA_API_KEY'], os.environ['ALPACA_SECRET_KEY'], cfg.market_feed, cfg.market_data_delay_minutes), state / 'bars')
         done = {r['input_sha256'] for r in decisions}; count = 0; started = time.monotonic()
@@ -392,6 +415,13 @@ def main(argv=None):
         if not present:
             issues.append(key + '_NOT_CONFIGURED_LOCALLY')
     comparison, extras = compare(events, decisions, args.lookback)
+    firm_decisions=[dict(r,status=r.get('firm_first_evaluation',{}).get('status','DATA_GAP'),
+                         reasons=r.get('firm_first_evaluation',{}).get('reasons',r['reasons']),
+                         evaluation=r.get('firm_first_evaluation',{})) for r in decisions]
+    firm_comparison, firm_extras=compare(events,firm_decisions,args.lookback)
+    with (out / 'firm_first_event_comparison.csv').open('w',newline='',encoding='utf-8') as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(firm_comparison[0]));writer.writeheader();writer.writerows(firm_comparison)
+    write_json(out / 'firm_first_extra_alerts.json',firm_extras)
     samples_by_event = {r['event_id']:r for r in market_samples}
     for row in comparison:
         sample = samples_by_event.get(row['event_id'],{})
@@ -412,11 +442,13 @@ def main(argv=None):
         'actual_detected_symbols':len({r['ticker'] for r in hits}) if decisions else None,
         'actual_misses':None, 'detection_rate':None,
         'comparison_counts':dict(Counter(r['result'] for r in comparison)),
+        'firm_first_comparison_counts':dict(Counter(r['result'] for r in firm_comparison)),
         'extra_alert_records':len(extras) if decisions else None,
         'repeat_alert_records':sum(max(0, n - 1) for n in Counter(r['candidate_key'] for r in decisions if r['status']=='QUALIFIED').values()) if decisions else None,
         'event_symbol_rule_conflicts':sum(bool(r['event_symbol_exclusion']) for r in comparison),
         'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,
-        'reference_market_sample_counts':dict(Counter(r['status'] for r in market_samples)),'run_key':run_key}
+        'reference_market_sample_counts':dict(Counter(r['status'] for r in market_samples)),
+        'firm_search_access':firm_search_access,'run_key':run_key}
     write_json(out / 'summary.json', summary)
     print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit','reference_market_sample_counts']}))
     return 2 if summary['status'] == 'NOT_RUN' else 0

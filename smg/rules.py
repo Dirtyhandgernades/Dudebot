@@ -19,7 +19,7 @@ class EntityList:
         self.entries = {}
         for role, groups in data.items():
             for category, names in groups.items():
-                priority = 0 if category in {'High-Suspicion Focus Group','High-Suspicion Parties'} else 1 if category.startswith('Additional') else 2
+                priority = -1 if category.startswith('SUPER ') else 0 if category in {'High-Suspicion Focus Group','High-Suspicion Parties'} else 1 if category.startswith('Additional') else 2
                 for name in names:
                     self.entries[(role, normalize_name(name))] = dict(name=name, role=role, category=category, priority=priority)
 

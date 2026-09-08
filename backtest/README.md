@@ -23,6 +23,27 @@ priority, above 23% has normal priority. Age and entity ordering remains within
 each IPO surge band. The direct-offering pipeline has no added surge requirement.
 `SURGE_RETURN_MIN_PCT`, if set, still overrides the configured floor.
 
+The user's subsequent instruction adds a separately reported **firm-first**
+research profile (`smg/firm_first.py`). Any one verified listed firm relationship
+is central. Offering size/price, geography, IPO age, RVOL and whether the stock
+has already pumped are preferences rather than exclusions in that profile.
+Halts/suspensions, SPACs/acquisition corporations and exactly-five-letter symbols
+remain hard exclusions, as explicitly reconfirmed by the user. Unknown issuer
+classification or halt history cannot become a verified match. Firm-first
+research does not claim to predict a drop. Its comparison is written separately
+to `firm_first_event_comparison.csv`; the strict comparison is retained.
+
+Wei, Wei & Co. now has the user's SUPER priority tier. The existing three counsel
+firms remain because the user's new Counsel section was blank. An old IPO
+underwriter still cannot establish a later direct-offering transaction role.
+This new profile is currently a backtest/research implementation; the live
+notifier still uses the strict production entrypoint pending integration.
+
+The attached `message.txt` was checked against the committed reference CSV:
+all 230 rows match in order, ticker, date and reported drop percentage.
+Attachment SHA256: `9fdb4cfae47462bd0af2cc72b98ef40098130ff0b49f09340aa6833439fbadcf`.
+The attachment is comparison data, not instructions or screening features.
+
 ## Commands
 
 Run from the repository root, with Python 3.11+ and the existing dependencies:
