@@ -6,6 +6,8 @@ A rules-based stock research notifier running in GitHub Actions. It discovers re
 
 This repository is public. GitHub currently includes standard hosted Actions runners for public repositories at no charge. This is a scheduled program with no credit balance to refill; continued operation depends on GitHub, Alpaca, SEC, and Discord availability and policies. It cannot promise indefinite service or exact wall-clock delivery. [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)
 
+For the pending three-year historical replay and the user's reference-event comparison, see [CODEX_HANDOFF.md](CODEX_HANDOFF.md). The real backtest has not been run.
+
 ## Your screening rules
 
 The bot checks the filing criteria first, then obtains market confirmation. Missing or ambiguous required facts remain review records, rather than becoming qualified alerts.
