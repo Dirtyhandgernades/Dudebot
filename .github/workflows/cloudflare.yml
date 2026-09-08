@@ -47,6 +47,9 @@ jobs:
           python -m pip install -e '.[test]' -c requirements-tested.txt
           python -m pytest -q
           node --test cloudflare/core.test.mjs
+      - name: Ensure free workers.dev address
+        if: steps.connection.outputs.ready == 'true'
+        run: python cloudflare/bootstrap.py
       - name: Deploy dispatcher
         id: deploy
         if: steps.connection.outputs.ready == 'true'
