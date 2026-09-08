@@ -130,6 +130,6 @@ class LocalParser:
             if re.search(r'change.{0,40}(?:independent |registered )?auditor|dismissed.{0,100}(?:auditor|accounting firm)|engaged.{0,100}(?:auditor|accounting firm)',doc['text'],re.I):notes.append('Auditor-change language found: '+doc['url'])
             if re.search(r'ADS ratio|depositary share ratio',doc['text'],re.I):notes.append('ADS ratio requires comparison with market-data unit.')
         return Candidate(pipeline=pipeline,cik=context['cik'],ticker=context['ticker'],name=context['name'],event_id=event_id,
-            exchange='XNAS',operations_country=country,ipo_date=ipo_date,event_date=event_date,status=status,security_type=security,
+            exchange=context.get('exchange','XNAS'),operations_country=country,ipo_date=ipo_date,event_date=event_date,status=status,security_type=security,
             is_acquisition_corp=is_acquisition,offer_price=price,offer_gross=gross,currency=currency,base_shares=shares,
             terms_unambiguous=bool(price and gross and not ambiguous),matches=matches,evidence=proofs,notes=list(dict.fromkeys(notes)),reviewed_at=now)

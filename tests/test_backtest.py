@@ -85,7 +85,8 @@ def test_noon_fixed_pst_and_delay():
     result = replay_packet(p, Config(surge_return_min_pct=12), ENTITIES, market)
     assert market.end.hour == 19 and market.end.minute == 44
     assert market.asof == date(2026, 9, 8)
-    assert result['status'] == 'MATCH_EXCEPT_UNKNOWN_HALT'
+    assert result['firm_first_evaluation']['status'] == 'REVIEW_REQUIRED'
+    assert 'GAME_MARKET_CAP_UNKNOWN' in result['firm_first_evaluation']['reasons']
     assert result['evaluation']['halt']['status'] == 'UNKNOWN'
 
 

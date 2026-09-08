@@ -1,5 +1,8 @@
 # User clarification: keep 12%-23% gains eligible at low priority.
 screening_profile: firm_first
+game_min_price_exclusive: 3.0
+game_min_market_cap: 25000000
+game_min_order_shares: 10
 # Existing monthly window remains 21 trading sessions. No tolerance is added twice.
 surge_return_min_pct: 12
 ipo_low_priority_surge_max_pct: 23

@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {dateKey,pacificParts,validateBundle,DispatchService} from './core.mjs';
 const target=Date.parse('2026-09-08T19:00:00Z');
 function fixture() {
-  return {version:1,profile:'firm_first',feed:'sip',delay_minutes:16,send_at:new Date(target).toISOString(),generated_at:new Date(target-90_000).toISOString(),
+  return {version:2,profile:'firm_first',feed:'sip',delay_minutes:16,send_at:new Date(target).toISOString(),generated_at:new Date(target-90_000).toISOString(),
     items:[{status:'QUALIFIED',ticker:'TEST',is_acquisition_corp:false,classification_evidence:true,exchange:'XNAS',security_type:'CS',firm_matches:1,
       corporate_action_review:false,halt_status:'CLEAR',halt_checked_at:new Date(target-90_000).toISOString(),reviewed_at:new Date(target-3600_000).toISOString(),
+      price:4,market_cap:25_000_000,market_cap_observed_at:new Date(target-3600_000).toISOString(),market_cap_source:'https://example.com/fixture',
       asof:new Date(target-18*60_000).toISOString(),price_time:new Date(target-18*60_000).toISOString(),
       payload:{content:'@everyone\nResearch watchlist',allowed_mentions:{parse:['everyone']},embeds:[{title:'TEST',description:'Test fixture',fields:[]}]}}]};
 }
@@ -24,7 +25,7 @@ test('Pacific noon follows both seasons',()=>{
 });
 test('hard exclusions and stale data suppress delivery',()=>{
   for(const change of [{ticker:'ABCDE'},{is_acquisition_corp:true},{classification_evidence:false},{halt_status:'UNKNOWN'},
-    {corporate_action_review:true},{firm_matches:0},{halt_checked_at:'2026-09-08T18:00:00Z'},{price_time:'2026-09-08T18:00:00Z'}]) {
+    {price:3},{market_cap:24_999_999},{market_cap:null},{corporate_action_review:true},{firm_matches:0},{halt_checked_at:'2026-09-08T18:00:00Z'},{price_time:'2026-09-08T18:00:00Z'}]) {
     const b=fixture();Object.assign(b.items[0],change);assert.throws(()=>validateBundle(b,target));
   }
   assert.throws(()=>validateBundle(fixture(),target+60_000));

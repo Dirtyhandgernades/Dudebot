@@ -45,7 +45,7 @@ class Sec:
     def json(self,url):return self.http.json(url,headers=self.headers)
     def universe(self):
         raw=self.json('https://www.sec.gov/files/company_tickers_exchange.json')
-        return [dict(zip(raw['fields'],r)) for r in raw['data'] if dict(zip(raw['fields'],r)).get('exchange')=='Nasdaq']
+        return [dict(zip(raw['fields'],r)) for r in raw['data'] if dict(zip(raw['fields'],r)).get('exchange') in {'Nasdaq','NYSE'}]
     def submissions(self,cik,since):
         raw=self.json(f'https://data.sec.gov/submissions/CIK{int(cik):010d}.json')
         sets=[raw['filings']['recent']]

@@ -12,23 +12,28 @@ async function authorized(request,env) {
 export default {
   async fetch(request,env) {
     const path=new URL(request.url).pathname;
-    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:1,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
+    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:2,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
     if(request.method==='GET' && path==='/status')return env.DISPATCH.getByName(dateKey(Date.now())).fetch(request);
     if(request.method!=='POST' || !['/prepare','/practice-format','/verify'].includes(path))return new Response('Not found',{status:404});
+    let stage='read';
     try {
       const raw=await request.text();if(raw.length>200_000)return new Response('Too large',{status:413});
       const body=JSON.parse(raw);
       if(path==='/practice-format') {
+        stage='validate_practice';
         if(!/^\d+$/.test(body.message_id))throw new Error('Invalid message');
         validatePayload(body.payload,false);
-        const response=await fetch(webhookURL(env.DISCORD_WEBHOOK_URL)+'/messages/'+body.message_id,{
-          method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body.payload),signal:AbortSignal.timeout(8000),redirect:'error'});
+        const destination=webhookURL(env.DISCORD_WEBHOOK_URL)+'/messages/'+body.message_id;
+        stage='discord_edit';
+        const response=await fetch(destination,{
+          method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body.payload),signal:AbortSignal.timeout(8000),redirect:'manual'});
         if(!response.ok)return Response.json({status:'EDIT_FAILED',http_status:response.status},{status:502});
+        stage='discord_receipt';
         const data=await response.json();return Response.json({status:'UPDATED',message_id:data.id});
       }
       return env.DISPATCH.getByName(dateKey(Date.now())).fetch(new Request(request.url,{method:'POST',body:raw}));
-    } catch {return Response.json({error:'Invalid request or delivery failed'},{status:400});}
+    } catch(e) {return Response.json({status:'FORMAT_FAILED',error:'Invalid request or delivery failed',stage,error_type:e.name},{status:path==='/practice-format'?200:400});}
   }
 };
 export class NoonDispatch extends DurableObject {

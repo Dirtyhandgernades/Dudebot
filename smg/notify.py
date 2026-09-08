@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 import hashlib,json,re
 from urllib.parse import urlsplit
 from .market import snapshot_window
+from .game_rules import eligibility
 UTC=timezone.utc
 
 def local_time(now,cfg):
@@ -84,6 +85,7 @@ def digest(evaluations,now,cfg):
                          {'name':'Price','value':'$'+metric(m.price),'inline':True},
                          {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
                          {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
+                         {'name':'DECA eligibility','value':f'Reported market cap: ${metric(m.market_cap)}\nNasdaq/NYSE · price > $3 · cap ≥ $25M\nMinimum opening order: 10 shares (~${metric(m.price*10)} before fees)','inline':False},
                          {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
                'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
                'timestamp':m.price_time.isoformat()}
@@ -135,6 +137,7 @@ class DiscordSender:
         good=[]
         for e in evaluations:
             if e.status!='QUALIFIED' or not e.halt or e.halt.status!='CLEAR' or not e.snapshot:continue
+            if eligibility(e.snapshot,cfg,now)[0]:continue
             effective_now=now-timedelta(minutes=e.snapshot.declared_delay_minutes)
             feed_ok=e.snapshot.feed=='synthetic' or (e.snapshot.feed==cfg.market_feed and e.snapshot.declared_delay_minutes==cfg.market_data_delay_minutes)
             if feed_ok and 0<=(now-e.halt.checked_at).total_seconds()<=cfg.max_snapshot_age_seconds and all(0<=(effective_now-t).total_seconds()<=cfg.max_snapshot_age_seconds for t in [e.snapshot.price_time,e.snapshot.asof]):good.append(e)

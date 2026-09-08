@@ -1,6 +1,7 @@
 import re
 from datetime import date, datetime, timedelta
 from .models import Config, Candidate, Evaluation, Snapshot, HaltCheck
+from .game_rules import eligibility,APPROVED_EXCHANGES
 
 def years_ago(day: date, years: int) -> date:
     try:
@@ -43,7 +44,7 @@ class EntityList:
 def structural(c: Candidate, cfg: Config, entities: EntityList, now: datetime) -> Evaluation:
     excluded, unknown = [], []
     if re.fullmatch('[A-Z]{5}', c.ticker.upper()): excluded.append('FIVE_LETTER_TICKER')
-    if c.exchange not in {'XNAS','NASDAQ'}: excluded.append('EXCHANGE_OUTSIDE_SCOPE')
+    if c.exchange not in APPROVED_EXCHANGES: excluded.append('EXCHANGE_OUTSIDE_SCOPE')
     if c.is_acquisition_corp is True: excluded.append('ACQUISITION_CORPORATION')
     if c.is_acquisition_corp is None: unknown.append('UNKNOWN_ISSUER_CLASSIFICATION')
     if c.security_type not in {'CS','ADRC','ADS','COMMON_STOCK'}: unknown.append('UNVERIFIED_COMMON_EQUITY')
@@ -96,6 +97,9 @@ def market_confirmation(result,cfg,now,snapshot):
     age=(effective_now-snapshot.price_time).total_seconds()
     if not 0 <= age <= cfg.max_snapshot_age_seconds or not 0 <= (effective_now-snapshot.asof).total_seconds() <= cfg.max_snapshot_age_seconds:
         result.status='REVIEW_REQUIRED'; result.reasons.append('STALE_OR_FUTURE_MARKET_DATA'); return result
+    game_status,game_reasons=eligibility(snapshot,cfg,now)
+    if game_status:
+        result.status=game_status;result.reasons+=game_reasons;return result
     fatal = [f for f in snapshot.flags if f in {'MISSING_SESSION_DATA','CORPORATE_ACTION_REVIEW','MARKET_CLOSED'}]
     if fatal or snapshot.rvol is None or snapshot.baseline_sessions < cfg.rvol_min_sessions:
         result.status='REVIEW_REQUIRED'; result.reasons += fatal or ['INSUFFICIENT_VOLUME_HISTORY']; return result

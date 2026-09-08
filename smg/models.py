@@ -7,6 +7,9 @@ class Strict(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
 
 class Config(Strict):
+    game_min_price_exclusive: Literal[3.0] = 3.0
+    game_min_market_cap: Literal[25000000] = 25000000
+    game_min_order_shares: Literal[10] = 10
     screening_profile: Literal['strict','firm_first'] = 'strict'
     surge_return_min_pct: float | None = Field(default=None, gt=0)
     ipo_low_priority_surge_max_pct: float | None = Field(default=None, gt=0)
@@ -86,6 +89,10 @@ class Bar(Strict):
     volume: float = Field(ge=0)
 
 class Snapshot(Strict):
+    market_cap: float | None = Field(default=None,ge=0)
+    market_cap_observed_at: datetime | None = None
+    market_cap_source: str | None = None
+    market_cap_basis: str | None = None
     asof: datetime
     price_time: datetime
     price: float

@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from .models import Evaluation
 from .rules import structural
+from .game_rules import eligibility,APPROVED_EXCHANGES
 
 
 def firm_structure(candidate,cfg,entities,now):
@@ -20,7 +21,7 @@ def firm_structure(candidate,cfg,entities,now):
         hard.append('ACQUISITION_CORPORATION')
     if re.search(r'\bacquisition\s+corp(?:oration)?\b',candidate.name,re.I):
         hard.append('ACQUISITION_CORPORATION_NAME')
-    if candidate.exchange not in {'XNAS','NASDAQ'}:
+    if candidate.exchange not in APPROVED_EXCHANGES:
         hard.append('EXCHANGE_OUTSIDE_SCOPE')
     if candidate.is_acquisition_corp is None or 'is_acquisition_corp' not in candidate.evidence:
         reasons.append('UNKNOWN_ISSUER_CLASSIFICATION')
@@ -65,6 +66,9 @@ def evaluate_firm_first(candidate,cfg,entities,now,snapshot=None,halt=None):
         result.status='REVIEW_REQUIRED';result.reasons.append('STALE_OR_FUTURE_MARKET_DATA');return result
     if 'CORPORATE_ACTION_REVIEW' in snapshot.flags:
         result.status='REVIEW_REQUIRED';result.reasons.append('CORPORATE_ACTION_REVIEW');return result
+    game_status,game_reasons=eligibility(snapshot,cfg,now)
+    if game_status:
+        result.status=game_status;result.reasons+=game_reasons;return result
     if not halt or halt.status!='CLEAR' or not 0 <= (now-halt.checked_at).total_seconds() <= cfg.max_snapshot_age_seconds:
         result.status='MATCH_EXCEPT_UNKNOWN_HALT';result.reasons.append('UNKNOWN_OR_STALE_HALT_STATUS');return result
     result.status='QUALIFIED'

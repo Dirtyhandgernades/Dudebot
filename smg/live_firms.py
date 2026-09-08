@@ -42,7 +42,7 @@ def extract_watch(job,docs,now,entries):
             notes.append('RELATIONSHIP_CHANGE_REVIEW: '+doc['url'])
         if search([doc],r'ADS ratio|depositary share ratio|ticker change',re.I):notes.append('ADS ratio or ticker change requires review')
     return Candidate(pipeline='FIRM_WATCH',cik=job['cik'],ticker=job['ticker'],name=job['name'],event_id='FIRMS',
-        exchange='XNAS',operations_country=None,ipo_date=None,event_date=date.fromisoformat(primary['date']),status='unknown',
+        exchange=job.get('exchange','XNAS'),operations_country=None,ipo_date=None,event_date=date.fromisoformat(primary['date']),status='unknown',
         security_type='ADS' if security and 'depositary' in security[0].group().lower() else 'CS' if security else None,
         is_acquisition_corp=classification,offer_price=None,offer_gross=None,currency=None,base_shares=None,
         terms_unambiguous=False,matches=matches,evidence=proofs,notes=notes+['Current listed-firm watch; no transaction terms inferred.'],reviewed_at=now)
@@ -61,7 +61,7 @@ class LiveFirmDiscovery:
             if not first<=src['file_date']<=last:raise ValueError('SEARCH_DATE_MISMATCH')
             acc,filename=hit['_id'].split(':',1)
             if '..' in filename or not re.fullmatch(r'\d{10}-\d{2}-\d{6}',acc):continue
-            u=choices[0];job=dict(cik=cik,ticker=u['ticker'],name=u['name'],date=src['file_date'],
+            u=choices[0];job=dict(cik=cik,ticker=u['ticker'],name=u['name'],exchange='XNYS' if u.get('exchange')=='NYSE' else 'XNAS',date=src['file_date'],
                 url=f'https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace("-","")}/{quote(filename,safe="/")}')
             self.store.put('firm_job:'+hit['_id'],job)
 
@@ -146,7 +146,7 @@ class LiveFirmDiscovery:
                 docs=[dict(doc,date=job['date'])]
                 # Refresh current symbol from today's exchange universe; never
                 # reset listing age or invent an IPO date after a rename.
-                current=universe[job['cik']][0];job=dict(job,ticker=current['ticker'],name=current['name'])
+                current=universe[job['cik']][0];job=dict(job,ticker=current['ticker'],name=current['name'],exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS')
                 filings=self.sec.submissions(job['cik'],max(date.fromisoformat(job['date']),now.date()-timedelta(days=450)))
                 changes=[f for f in filings if f['date']>job['date'] and f['form'] in {'8-K','6-K','20-F','10-K'}]
                 context_notes,acquisition=self.review_context(changes)

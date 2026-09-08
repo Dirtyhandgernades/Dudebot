@@ -27,7 +27,7 @@ class Discovery:
                 if len(choices)!=1:
                     self.issues.append('Ambiguous share-class mapping for CIK '+row['cik']);continue
                 u=choices[0];key='job:'+pipeline+':'+row['accession']
-                self.store.put(key,dict(row,pipeline=pipeline,ticker=u['ticker'],name=u['name'],exchange='XNAS'))
+                self.store.put(key,dict(row,pipeline=pipeline,ticker=u['ticker'],name=u['name'],exchange='XNYS' if u.get('exchange')=='NYSE' else 'XNAS'))
         self.store.put('universe_asof',now.isoformat())
         self.store.put('ipo_index_through',str(now.date()))
     def docs_for(self,job,now):

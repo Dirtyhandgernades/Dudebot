@@ -1,0 +1,42 @@
+name: Independent historical source replay
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [smg/source_replay.py, .github/workflows/source-replay.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: historical-checkpoint-34191049268-1
+          run-id: 34191049268
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/independent-checkpoint
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/source-replay
+          key: source-replay-v1-${{ github.run_id }}
+          restore-keys: source-replay-v1-
+      - run: python -m smg.source_replay
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: independent-source-replay-${{ github.run_id }}
+          path: reports/source-replay/

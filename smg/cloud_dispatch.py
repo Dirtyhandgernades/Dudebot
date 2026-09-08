@@ -4,6 +4,7 @@ from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 from .notify import digest
+from .game_rules import eligibility
 
 def dispatch_key(webhook):
     # Domain-separated derivative of the existing high-entropy secret. Never logged.
@@ -21,6 +22,7 @@ def bundle(results,now,target,cfg):
     good=[]
     for e in results:
         if e.status!='QUALIFIED' or not e.snapshot or not e.halt or e.halt.status!='CLEAR':continue
+        if eligibility(e.snapshot,cfg,target)[0]:continue
         s=e.snapshot;effective=target-timedelta(minutes=16)
         if s.feed!='sip' or s.declared_delay_minutes!=16:continue
         if not 0<=(target-e.halt.checked_at).total_seconds()<=300:continue
@@ -34,9 +36,10 @@ def bundle(results,now,target,cfg):
             classification_evidence='is_acquisition_corp' in c.evidence,exchange=c.exchange,security_type=c.security_type,
             firm_matches=len(e.matches),corporate_action_review='CORPORATE_ACTION_REVIEW' in s.flags,
             halt_status=e.halt.status,halt_checked_at=e.halt.checked_at.isoformat(),reviewed_at=c.reviewed_at.isoformat(),
-            asof=s.asof.isoformat(),price_time=s.price_time.isoformat(),payload=payload))
+            asof=s.asof.isoformat(),price_time=s.price_time.isoformat(),price=s.price,market_cap=s.market_cap,
+            market_cap_observed_at=s.market_cap_observed_at.isoformat(),market_cap_source=s.market_cap_source,payload=payload))
     if len(items)>30:raise ValueError('More than 30 qualified stocks: dispatcher capacity review required')
-    return dict(version=1,profile='firm_first',feed='sip',delay_minutes=16,generated_at=now.isoformat(),send_at=target.isoformat(),items=items)
+    return dict(version=2,profile='firm_first',feed='sip',delay_minutes=16,generated_at=now.isoformat(),send_at=target.isoformat(),items=items)
 
 def prepare(http,endpoint,webhook,results,now,target,cfg):
     body=bundle(results,now,target,cfg)
@@ -59,7 +62,7 @@ def register():
     for attempt in range(12):
         try:
             health=http.json(endpoint+'/health',timeout=10)
-            if health.get('version')==1 and health.get('configured') is True:break
+            if health.get('version')==2 and health.get('configured') is True:break
         except ProviderError:pass
         if attempt==11:raise ValueError('Cloudflare HTTPS/route is not ready; rerun deployment after propagation')
         if attempt==0:print('Waiting briefly for the new Cloudflare HTTPS endpoint to become ready')
@@ -74,7 +77,8 @@ def register():
     text,audit=practice_payload(store,root,now,cfg,EntityList(entries))
     formatted=http.json(endpoint+'/practice-format',method='POST',headers=headers,
         body={'message_id':receipt['message_id'],'payload':practice_embed(text,audit,now)})
-    if formatted.get('status')!='UPDATED' or formatted.get('message_id')!=receipt['message_id']:raise ValueError('Cloudflare Discord smoke check failed')
+    if formatted.get('status')!='UPDATED' or formatted.get('message_id')!=receipt['message_id']:
+        raise ValueError('Cloudflare Discord smoke check failed: '+str({k:formatted.get(k) for k in ['status','stage','error_type','http_status']}))
     record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,
                 limitation='Hosted delivery verified; first real noon alarm and qualified delivery still pending')
     store.put('cloud_dispatch',record);backend.checkpoint(store)

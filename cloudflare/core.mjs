@@ -28,12 +28,15 @@ export function validateBundle(b, now, preparing=false) {
   check(preparing ? target-now>0 && target-now<=5*60_000 : now>=target && now<target+60_000,'Outside delivery window');
   const generated=stamp(b.generated_at);
   check(now>=generated && now-generated<=5*60_000,'Stale bundle');
-  check(b.version===1 && b.profile==='firm_first' && b.feed==='sip' && b.delay_minutes===16,'Unsupported screen/data mode');
+  check(b.version===2 && b.profile==='firm_first' && b.feed==='sip' && b.delay_minutes===16,'Unsupported screen/data mode');
   check(Array.isArray(b.items) && b.items.length<=30,'Invalid item count');
   b.items.forEach((item,i)=>{
     check(item.status==='QUALIFIED' && item.halt_status==='CLEAR','Unqualified item');
     check(typeof item.ticker==='string' && /^[A-Z][A-Z0-9.-]*$/.test(item.ticker) && !/^[A-Z]{5}$/.test(item.ticker),'Excluded ticker');
-    check(item.is_acquisition_corp===false && item.classification_evidence===true && ['XNAS','NASDAQ'].includes(item.exchange),'Excluded/unknown issuer');
+    check(item.is_acquisition_corp===false && item.classification_evidence===true && ['XNAS','NASDAQ','XNYS','NYSE'].includes(item.exchange),'Excluded/unknown issuer');
+    check(Number.isFinite(item.price) && item.price>3 && Number.isFinite(item.market_cap) && item.market_cap>=25_000_000,'Game price/capitalization exclusion');
+    const capAge=now-stamp(item.market_cap_observed_at);
+    check(capAge>=0 && capAge<=26*3600_000 && typeof item.market_cap_source==='string' && item.market_cap_source.startsWith('https://'),'Unknown market cap source');
     check(['CS','ADRC','ADS','COMMON_STOCK'].includes(item.security_type) && item.firm_matches>0 && item.corporate_action_review===false,'Unreviewed security/firm');
     const freshnessAt=preparing?target:now;
     for(const value of [item.price_time,item.asof]) {const time=stamp(value),age=freshnessAt-16*60_000-time;check(age>=0 && age<=300_000 && time<=now-16*60_000,'Stale/future market data');}
@@ -71,7 +74,7 @@ export class DispatchService {
       try {
         validateBundle(bundle,this.clock());
         const response=await this.request(webhookURL(this.env.DISCORD_WEBHOOK_URL)+'?wait=true',{
-          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item.payload),signal:AbortSignal.timeout(8000),redirect:'error'});
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item.payload),signal:AbortSignal.timeout(8000),redirect:'manual'});
         if(!response.ok){receipt.status=response.status===429?'RATE_LIMITED':'DISCORD_REJECTED';receipt.http_status=response.status;break;}
         const data=await response.json();check(/^\d+$/.test(data.id),'Missing Discord receipt');
         receipt.messages.push(data.id);receipt.status=receipt.messages.length===bundle.items.length?'SENT':'PARTIAL';
