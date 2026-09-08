@@ -1,5 +1,9 @@
 # Validation record
 
+- September 8 update: 113 Python tests and 5 hosted-dispatcher tests pass locally. Embed size/mention handling, reformatting the existing practice message, Pacific daylight-saving time, stale-data rejection, and durable duplicate suppression are covered.
+- Practice run 34250065854 returned Discord receipt SENT, message ID 1546917333065408734. Current reference overlap: HPAI, JBDI, LNKS, WCT. These use current filings and are not historical detections. The later embed edit and Cloudflare deployment require their own receipts.
+- Cloudflare deployment validates authenticated durable storage and edits the existing practice message through Cloudflare before selecting it as the delivery owner. A successful deployment is not proof that a future noon alarm or qualified-stock send has occurred.
+
 - 107 offline tests passed with `python -m pytest -q` on September 8, 2026, including live firm-watch formatting, unknown terms, negative role statements, SPAC exclusions, durable activation receipts, context-backlog resumption, and fresh discovery during older backfill.
 - Added historical availability/timestamp checks, strict and firm-first comparison, unknown-halt handling, query checkpoints, SEC server-error date splitting, and wider market-gap probes. Synthetic tests are not historical detections.
 - The synthetic end-to-end demo produces two qualified alerts, three excluded records, and one RVOL rejection. It cannot send messages.

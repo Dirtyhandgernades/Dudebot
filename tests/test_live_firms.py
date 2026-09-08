@@ -26,9 +26,10 @@ def test_firm_watch_unknown_terms_can_reach_live_digest():
     e=evaluate_firm_first(c,CFG,EntityList(ENTRIES),NOW,s,h)
     assert e.status=='QUALIFIED' and e.rank[0]==-1
     payload=digest([e],NOW,CFG)
-    assert 'FIRM-FIRST WATCH' in payload[0]['content']
-    assert 'surge and RVOL floor passed' not in payload[0]['content']
-    assert 'unavailable' in payload[0]['content']
+    embed=payload[0]['embeds'][0]
+    assert 'FIRM-FIRST WATCH' in embed['title']
+    assert 'surge and RVOL floor passed' not in embed['description']
+    assert 'unavailable' in embed['description']
 
 def test_name_alone_and_denied_role_do_not_become_live_matches():
     assert watch('Wei, Wei & Co. LLP appears in a list.') is None

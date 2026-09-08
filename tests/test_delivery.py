@@ -32,6 +32,11 @@ def test_one_ping_and_payload_limits():
     assert all(len(x['content'])<=2000 for x in p)
     assert all(x['allowed_mentions']['parse']==[] for x in p[1:])
     assert '@everyone' not in clean('@everyone <@123>')
+    for message in p:
+        e=message['embeds'][0]
+        assert len(e['title'])<=256 and len(e['description'])<=4096
+        assert all(len(f['value'])<=1024 for f in e['fields'])
+        assert len(e['title'])+len(e['description'])+len(e['footer']['text'])+sum(len(f['name'])+len(f['value']) for f in e['fields'])<=6000
 
 def test_claim_persisted_before_send_and_dedup(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();checkpoints=[]
@@ -57,3 +62,15 @@ def test_changed_halt_and_stale_result_suppressed(tmp_path):
         if item.halt:item.halt.status='HALTED'
     sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:NOW)
     assert sender.send(items,Config())=='NO_QUALIFIED_MATCHES' and not http.calls
+
+def test_practice_reformat_edits_same_message_without_second_post(tmp_path):
+    store=Store(tmp_path/'s.db');http=FakeHttp()
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:NOW)
+    first=sender.activation('practice','Practice')
+    body={'content':'','embeds':[{'title':'Practice','description':'Current research only'}]}
+    updated=sender.activation('practice',body,format_version='embed-v1')
+    assert updated['message_id']==first['message_id'] and updated['format_status']=='UPDATED'
+    assert [c['method'] for c in http.calls]==['POST','PATCH']
+    assert http.calls[-1]['body']['allowed_mentions']=={'parse':[]}
+    sender.activation('practice',body,format_version='embed-v1')
+    assert len(http.calls)==2

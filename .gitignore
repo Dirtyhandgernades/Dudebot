@@ -8,3 +8,5 @@ runtime/
 reports/
 build/
 dist/
+node_modules/
+.wrangler/

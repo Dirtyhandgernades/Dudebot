@@ -1,4 +1,4 @@
-name: One practice Discord reference check
+name: One practice Discord reference check # Existing receipt is reformatted into an embed; no second ping.
 on:
   push:
     branches: [main]

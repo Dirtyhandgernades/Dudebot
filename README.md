@@ -83,18 +83,15 @@ An optional `iex` feed with zero delay can be configured in the strategy file. I
 - Alpaca split adjustment applies to price and volume. ADS-ratio or unresolved unit changes require review. Corporate-action changes not identified by available filings can still require human investigation.
 - Nasdaq's current-day halt RSS is checked before confirmation. A quote-resumption time alone does not establish trading resumption. Unknown status, feed failure, or stale prices suppress qualification. Older suspensions absent from the current-day feed ordinarily fail the price-freshness gate; this public feed is not an exchange status guarantee.
 
-## Noon means literal PST by default
+## Noon Pacific / 2 p.m. Central
 
-The supplied setting is **12:00 PST, fixed UTC−08:00 year-round**, or **20:00 UTC**. In daylight saving months this is 1 p.m. PDT. The workflow starts at 19:47 UTC, prepares data, and opens the sending gate only during 20:00:00–20:00:59 UTC on an eligible market day. Early-close days and holidays do not send.
+The user confirmed local daylight-saving time: **12:00 Pacific / 2:00 Central**, using `America/Los_Angeles`. This is 19:00 UTC during daylight time and 20:00 UTC during standard time. The workflow prestarts at 18:17 and 19:17 UTC; the applicable run has a 43-minute startup buffer and the other exits. Early-close days and holidays do not send.
 
-To use **noon local Pacific time year-round**, set `notification_timezone: America/Los_Angeles` and replace the cron entry in `.github/workflows/noon.yml` with both:
+Alerts use Discord embeds: one card per stock, matched firms, market context, timestamps and filing links. The first message requests `@everyone`; later cards do not repeat the mention. Practice checks have no mentions and are explicitly labeled as research checks.
 
-```yaml
-- cron: '47 18 * * 1-5'
-- cron: '47 19 * * 1-5'
-```
+The optional [free Cloudflare dispatcher](cloudflare/README.md) owns the final timed send after verified deployment. Python refreshes data before noon, uploads the prepared cards, and Cloudflare stores an alarm for local noon. It rejects stale data and persists a claim before contacting Discord. GitHub still prepares the data; late or missing preparation cannot produce a reliable alert. Neither this architecture nor a separate Discord bot can guarantee zero network delay.
 
-The application selects local noon and the extra run exits. GitHub can delay or drop scheduled jobs. Late runs are skipped, without a catch-up ping. The time gate controls initiation of requests; network delivery can finish later. Public repository schedules may be disabled after 60 days without repository activity. [Schedule behavior](https://docs.github.com/actions/using-workflows/events-that-trigger-workflows#schedule), [enabling workflows](https://docs.github.com/actions/managing-workflow-runs/disabling-and-enabling-a-workflow)
+Before Cloudflare activation, GitHub sends through the same webhook and noon gate. After activation, a shared delivery claim prevents both senders from pinging. GitHub can delay or drop scheduled jobs, and public repository schedules may be disabled after 60 days without activity. [Schedule behavior](https://docs.github.com/actions/using-workflows/events-that-trigger-workflows#schedule), [enabling workflows](https://docs.github.com/actions/managing-workflow-runs/disabling-and-enabling-a-workflow)
 
 ## Sending, reports, and state
 

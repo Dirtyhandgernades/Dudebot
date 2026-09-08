@@ -2,6 +2,24 @@
 
 ## Continuation update, September 8, 2026
 
+Latest user decisions supersede the old clock instructions below: noon Pacific /
+2 p.m. Central must follow local daylight-saving time. Account creation for the
+free Cloudflare dispatcher is complete; API token/account-ID connection and
+deployment must be verified. The optional worker moves the final send off GitHub,
+but Python preparation still depends on GitHub and no zero-delay guarantee exists.
+See cloudflare/README.md for deployment and current limitations.
+
+The user requested Discohook-style embeds. Live alerts now use stock cards; the
+practice command edits its existing message into an embed instead of posting twice.
+Confirmed practice receipt: run 34250065854, message 1546917333065408734,
+channel 1546733107846324254. Its HPAI/JBDI/LNKS/WCT overlap is present-day
+research, not historical detection. 113 Python and 5 dispatcher tests pass locally.
+
+Historical audit: 220/230 events have some sampled pre-event market bars after
+wider probes. Ten retain specific gaps (renames, first trading days and de-SPACs).
+Actual historical replay detections and misses are still not established. Do not
+turn availability, source-only firm matches, or current ticker overlap into hits.
+
 PR #1 merged to main as 4820eaad100e590c1d6dd8c13c83507d921f29b6.
 Live activation run 34192293139 succeeded: 19 firm-watch candidates stored,
 55 source records reviewed, Alpaca ACCESS_VERIFIED, and Discord receipt SENT

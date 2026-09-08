@@ -30,3 +30,16 @@ def practice_payload(store,root,now,cfg,entities):
         text='\n'.join(lines[:3]+['Full per-stock audit is in the workflow artifact.']+lines[-3:])
     return text,{'reference_events':len(events),'reference_symbols':len(reference),'overlap_tickers':symbols,'rows':rows,
                  'meaning':'Present-day research overlap only; not a historical backtest or a live alert'}
+
+
+def practice_embed(text,audit,now):
+    fields=[{'name':r['ticker']+' · '+r['firm_check'],
+             'value':clean('; '.join(r['firms']))[:600]+f"\nSource dated {r['source_date']}",'inline':False} for r in audit['rows'][:20]]
+    return {'username':'Dudebot','content':'', 'embeds':[{
+        'title':'Dudebot · Practice research check','color':0x39B9A8,
+        'description':f"**{audit['reference_events']} reference events · {audit['reference_symbols']} stocks**\nCurrent overlap: **{', '.join(audit['overlap_tickers']) or 'None'}**\n\n"
+            'These are current filing matches, not historical detections or qualified stock alerts. Historical replay remains incomplete.',
+        'fields':fields[:6]+[{'name':'Delivery & data','value':'12:00 Pacific / 2:00 Central, following daylight saving time. Free Alpaca SIP is delayed 16 minutes.','inline':False},
+            {'name':'Hard exclusions','value':'Halted/suspended stocks, SPACs/acquisition corporations, and exactly-five-letter tickers. Unknown checks suppress alerts.','inline':False}],
+        'footer':{'text':'Practice only · No trade or detection claim'},'timestamp':now.isoformat()}],
+        'allowed_mentions':{'parse':[]}}

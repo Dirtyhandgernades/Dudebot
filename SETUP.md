@@ -46,7 +46,7 @@ GitHub supplies `GITHUB_TOKEN`, `GITHUB_REPOSITORY`, and `GITHUB_ACTIONS` automa
 4. Run **Discover IPOs and direct offerings** manually. It reads public SEC filings and saves candidates without sending messages. Inspect its logs for source errors or a remaining backfill budget. Initial three-year discovery can require multiple runs.
 5. Set `DISCORD_ENABLED=true` when ready for the daily digest. The noon workflow refuses out-of-window sends even when manually started. Leave the Discord variable false to inspect reports first.
 
-The default target is **12:00 PST, fixed UTC−08:00 year-round (20:00 UTC)**. During daylight saving time this is **1 p.m. PDT**. To use noon local Pacific time instead, follow the two configuration changes in the README. Every alert clearly labels the **16-minute market-data delay**.
+The target is **12:00 Pacific / 2:00 Central**, following local daylight-saving time (19:00 UTC in summer, 20:00 UTC in winter). Every alert clearly labels the **16-minute market-data delay**. For the independently hosted final delivery step, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and follow [Cloudflare setup](cloudflare/README.md). A separate Discord bot account is unnecessary.
 
 ## Cost and operating limits
 
