@@ -3,7 +3,7 @@ from datetime import date,timedelta
 import hashlib,re,time
 from urllib.parse import quote
 
-from .models import Candidate,EntityMatch
+from .models import Candidate,EntityMatch,Evidence
 from .extraction import evidence,name_pattern,search
 from .firm_search import query_text
 
@@ -52,11 +52,55 @@ class LiveFirmDiscovery:
     def __init__(self,sec,parser,store,cfg):
         self.sec=sec;self.entries=parser.entities;self.store=store;self.cfg=cfg;self.issues=[];self.downloads=0
 
+    def queue_hits(self,hits,universe,first,last):
+        for hit in hits:
+            src=hit['_source'];ciks=src.get('ciks',[])
+            if len(ciks)!=1:continue
+            cik=str(int(ciks[0]));choices=universe.get(cik,[])
+            if len(choices)!=1:continue
+            if not first<=src['file_date']<=last:raise ValueError('SEARCH_DATE_MISMATCH')
+            acc,filename=hit['_id'].split(':',1)
+            if '..' in filename or not re.fullmatch(r'\d{10}-\d{2}-\d{6}',acc):continue
+            u=choices[0];job=dict(cik=cik,ticker=u['ticker'],name=u['name'],date=src['file_date'],
+                url=f'https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace("-","")}/{quote(filename,safe="/")}')
+            self.store.put('firm_job:'+hit['_id'],job)
+
+    def review_context(self,filings):
+        """Persist small review results per immutable SEC source, not full texts."""
+        notes=[];acquisition=None
+        for filing in filings:
+            key='firm_context:'+hashlib.sha256(filing['url'].encode()).hexdigest()
+            checked=self.store.get(key)
+            if checked is None:
+                if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
+                raw=self.sec.document(filing['url']);self.downloads+=1
+                doc=dict(raw,date=filing['date']);flags=[]
+                if search([doc],r'(?:dismissed|terminated|change.{0,30}|engaged|appointed).{0,90}(?:auditor|accounting firm|counsel|placement agent)',re.I):
+                    flags.append('RELATIONSHIP_CHANGE_REVIEW: '+filing['url'])
+                if search([doc],r'ADS ratio|depositary share ratio|ticker change',re.I):flags.append('ADS ratio or ticker change requires review')
+                hit=search([doc],r'\b(?:we are|we were|the company is|the company was)\s+(?:a |an )?(?:blank.check company|special purpose acquisition company)\b')
+                checked={'notes':flags,'acquisition_evidence':hit[2].model_dump(mode='json') if hit else None}
+                self.store.put(key,checked)
+            notes.extend(checked['notes'])
+            if checked['acquisition_evidence']:acquisition=checked['acquisition_evidence']
+        return list(dict.fromkeys(notes)),acquisition
+
     def run(self,now):
         started=time.monotonic();universe={}
         for u in self.sec.universe():
             if not re.fullmatch('[A-Z]{5}',u['ticker']):universe.setdefault(str(int(u['cik'])),[]).append(u)
         q=query_text(self.entries);version=hashlib.sha256(q.encode()).hexdigest()
+        # New filings must not wait behind the historical backfill cursor.
+        recent_start=str(now.date()-timedelta(days=2));recent_end=str(now.date())
+        try:
+            recent=self.sec.http.json('https://efts.sec.gov/LATEST/search-index',headers=self.sec.headers,params={
+                'q':q,'forms':'20-F,10-K,424B4,424B5,6-K,8-K','dateRange':'custom',
+                'startdt':recent_start,'enddt':recent_end,'from':0})
+            if recent.get('timed_out') or recent.get('_shards',{}).get('failed'):raise ValueError('INCOMPLETE_SEARCH')
+            hits=recent['hits']['hits'];total=recent['hits']['total'];total=total['value'] if isinstance(total,dict) else total
+            self.queue_hits(hits,universe,recent_start,recent_end)
+            if total>len(hits):self.issues.append('RECENT_SEARCH_PARTIAL; additional pages remain in backfill')
+        except Exception as exc:self.issues.append('Recent firm search: '+type(exc).__name__)
         cursor=self.store.get('firm_cursor',{})
         if not cursor or cursor.get('version')!=version or (cursor.get('done') and cursor['end']!=str(now.date())):
             cursor={'version':version,'start':str(now.date()-timedelta(days=450)),'end':str(now.date()),'offset':0,'done':False}
@@ -70,19 +114,16 @@ class LiveFirmDiscovery:
                     'startdt':cursor['start'],'enddt':cursor['end'],'from':cursor['offset']})
                 if data.get('timed_out') or data.get('_shards',{}).get('failed'):raise ValueError('INCOMPLETE_SEARCH')
                 hits=data['hits']['hits'];total=data['hits']['total'];total=total['value'] if isinstance(total,dict) else total
-                for hit in hits:
-                    src=hit['_source'];ciks=src.get('ciks',[])
-                    if len(ciks)!=1:continue
-                    cik=str(int(ciks[0]));choices=universe.get(cik,[])
-                    if len(choices)!=1:continue
-                    if not cursor['start']<=src['file_date']<=cursor['end']:raise ValueError('SEARCH_DATE_MISMATCH')
-                    acc,filename=hit['_id'].split(':',1)
-                    if '..' in filename or not re.fullmatch(r'\d{10}-\d{2}-\d{6}',acc):continue
-                    u=choices[0];job=dict(cik=cik,ticker=u['ticker'],name=u['name'],date=src['file_date'],
-                        url=f'https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace("-","")}/{quote(filename,safe="/")}')
-                    self.store.put('firm_job:'+hit['_id'],job)
+                if total>=10000 and cursor['start']<cursor['end']:
+                    first=date.fromisoformat(cursor['start']);last=date.fromisoformat(cursor['end']);middle=first+(last-first)//2
+                    cursor.setdefault('pending',[]).append([str(first),str(middle)])
+                    cursor.update(start=str(middle+timedelta(days=1)),offset=0,done=False)
+                    self.store.put('firm_cursor',cursor);continue
+                self.queue_hits(hits,universe,cursor['start'],cursor['end'])
                 cursor['offset']+=len(hits);cursor['done']=cursor['offset']>=total
                 if not hits and not cursor['done']:raise ValueError('EMPTY_SEARCH_PAGE')
+                if cursor['done'] and cursor.get('pending'):
+                    first,last=cursor['pending'].pop();cursor.update(start=first,end=last,offset=0,done=False)
                 if cursor['offset']>=10000 and not cursor['done']:
                     self.issues.append('SEARCH_RESULT_LIMIT; historical/backfill coverage incomplete');break
                 self.store.put('firm_cursor',cursor)
@@ -90,9 +131,11 @@ class LiveFirmDiscovery:
                 self.issues.append('Firm search: '+type(exc).__name__);break
         # Prefer current issuers already watched; then the newest unseen sources.
         jobs=sorted(self.store.items('firm_job:'),key=lambda x:x[1]['date'],reverse=True)
-        # Do not let repeated reviews of old candidates starve new issuers.
-        # New/unreviewed sources come first; existing watches are refreshed next.
-        jobs.sort(key=lambda x:bool(self.store.get('firm_checked:'+x[0])))
+        fresh=[j for j in jobs if not self.store.get('firm_checked:'+j[0])]
+        refresh=[j for j in jobs if self.store.get('firm_checked:'+j[0]) and self.store.get('candidate:FIRM_WATCH:'+j[1]['cik']+':FIRMS')]
+        # Reserve refresh capacity so an initial backfill cannot make all live
+        # candidates stale. Keep new-source capacity in the same bounded run.
+        jobs=refresh[:20]+fresh+refresh[20:]
         reviewed=set();count=0
         for key,job in jobs:
             if count>=60 or self.downloads>=self.cfg.filings_max_downloads_per_run or time.monotonic()-started>300:break
@@ -106,14 +149,14 @@ class LiveFirmDiscovery:
                 current=universe[job['cik']][0];job=dict(job,ticker=current['ticker'],name=current['name'])
                 filings=self.sec.submissions(job['cik'],max(date.fromisoformat(job['date']),now.date()-timedelta(days=450)))
                 changes=[f for f in filings if f['date']>job['date'] and f['form'] in {'8-K','6-K','20-F','10-K'}]
-                if len(changes)>3:
-                    self.issues.append(job['ticker']+': RECENT_CONTEXT_BACKLOG');continue
-                for filing in changes:
-                    if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
-                    extra=self.sec.document(filing['url']);self.downloads+=1;docs.append(dict(extra,date=filing['date']))
+                context_notes,acquisition=self.review_context(changes)
                 candidate=extract_watch(job,docs,now,self.entries);count+=1
                 self.store.put('firm_checked:'+key,str(now.date()))
                 if candidate:
+                    candidate.notes+=context_notes
+                    if acquisition:
+                        candidate.is_acquisition_corp=True
+                        candidate.evidence['is_acquisition_corp']=Evidence.model_validate(acquisition)
                     self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'));reviewed.add(job['cik'])
             except Exception as exc:self.issues.append(job['ticker']+': '+type(exc).__name__)
         self.store.put('discovery_issues',self.issues)

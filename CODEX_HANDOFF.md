@@ -2,6 +2,16 @@
 
 ## Continuation update, September 8, 2026
 
+PR #1 merged to main as 4820eaad100e590c1d6dd8c13c83507d921f29b6.
+Live activation run 34192293139 succeeded: 19 firm-watch candidates stored,
+55 source records reviewed, Alpaca ACCESS_VERIFIED, and Discord receipt SENT
+with message ID 1546760331131625533 in channel 1546733107846324254.
+These are research candidates and an activation receipt, not stock detections.
+A follow-up removes a permanent three-context-document backlog gate, caches
+context review results, reserves refresh capacity and searches fresh filings
+independently of backfill. 107 offline tests pass. Full historical replay remains
+incomplete and must not be described as completed or profitable.
+
 Latest user authorization: finish the bot and deploy live into Discord. Firm-first
 is integrated into live discovery, Scanner and digest formatting. The new
 FIRM_WATCH pipeline accepts documented issuer-level firm history without treating

@@ -58,3 +58,42 @@ def test_uncertain_activation_is_not_retried(tmp_path):
     assert sender.activation('v1','receipt')['status']=='DELIVERY_UNCERTAIN'
     assert sender.activation('v1','receipt')['status']=='DELIVERY_UNCERTAIN'
     assert http.calls==1
+
+def test_context_backlog_resumes_without_downloading_reviewed_sources(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    import pytest
+    class Sec:
+        calls=[]
+        def document(self,url):
+            self.calls.append(url)
+            return dict(url=url,sha256='fixture',text='The company dismissed its auditor. We were a blank check company.')
+    sec=Sec();store=Store(tmp_path/'context.db')
+    cfg=CFG.model_copy(update={'filings_max_downloads_per_run':2})
+    files=[dict(url='https://example.com/'+str(i),date=str(NOW.date())) for i in range(3)]
+    one=LiveFirmDiscovery(sec,LocalParser(ENTRIES),store,cfg)
+    with pytest.raises(ValueError,match='DOWNLOAD_BUDGET'):one.review_context(files)
+    two=LiveFirmDiscovery(sec,LocalParser(ENTRIES),store,cfg)
+    notes,acquisition=two.review_context(files)
+    assert len(sec.calls)==3 and two.downloads==1
+    assert len(notes)==3 and acquisition is not None
+
+def test_new_filings_are_processed_while_backfill_cursor_is_older(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    from smg.firm_search import query_text
+    import hashlib
+    class HTTP:
+        def json(self,url,**kw):
+            p=kw['params'];fresh=p['enddt']==str(NOW.date())
+            hits=[{'_id':'0000000001-26-000001:annual.htm','_source':{'ciks':['1'],'file_date':str(NOW.date())}}] if fresh else []
+            return {'hits':{'total':{'value':len(hits),'relation':'eq'},'hits':hits}}
+    class Sec:
+        http=HTTP();headers={}
+        def universe(self):return [{'cik':1,'ticker':'ACTV','name':'Operating Company'}]
+        def document(self,url):return dict(url=url,sha256='fixture',text='We are a manufacturer of consumer products. Our ordinary shares trade on Nasdaq. Wei, Wei & Co. LLP is our auditor.')
+        def submissions(self,*a):return []
+    store=Store(tmp_path/'fresh.db')
+    store.put('firm_cursor',dict(version=hashlib.sha256(query_text(ENTRIES).encode()).hexdigest(),start='2025-01-01',end='2025-01-31',offset=0,done=False))
+    results=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).run(NOW)
+    assert len(results)==1 and results[0].ticker=='ACTV'
