@@ -65,21 +65,31 @@ def rationale(e):
     return '\n'.join(lines)
 
 def digest(evaluations,now,cfg):
-    groups=[]
-    for pipeline,label in [('FIRM_WATCH','FIRM WATCHLIST'),('RECENT_IPO','RECENT IPOs'),('DIRECT_OFFERING','DIRECT OFFERINGS')]:
-        items=sorted([e for e in evaluations if e.status=='QUALIFIED' and e.candidate.pipeline==pipeline],key=lambda e:e.rank)
-        if items:groups.append('**'+label+'**\n\n'+'\n\n'.join(rationale(e) for e in items))
-    if not groups:return []
-    text='SMG screening digest | '+local_time(now,cfg).strftime('%Y-%m-%d %H:%M %Z')+'\n\n'+'\n\n'.join(groups)
-    chunks=[];current=''
-    for line in text.splitlines(keepends=True):
-        while len(line)>1850:
-            if current:chunks.append(current);current=''
-            chunks.append(line[:1850]);line=line[1850:]
-        if len(current)+len(line)>1850:chunks.append(current);current=''
-        current+=line
-    if current:chunks.append(current)
-    return [{'content':('@everyone\n' if i==0 else '')+part,'allowed_mentions':{'parse':['everyone'] if i==0 else []}} for i,part in enumerate(chunks)]
+    items=sorted([e for e in evaluations if e.status=='QUALIFIED'],key=lambda e:e.rank)
+    payloads=[]
+    for i,e in enumerate(items):
+        c=e.candidate;m=e.snapshot
+        firm_first='VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons
+        title='FIRM-FIRST WATCH' if firm_first else 'IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'
+        super_priority=any(x.get('category','').startswith('SUPER ') for x in e.matches)
+        firms='\n'.join(f"**{clean(x['name'])}** · {clean(x['role'])} · {clean(x['category'])}" for x in e.matches)
+        urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
+        sources='\n'.join(f'[Filing {n+1}]({u})' for n,u in enumerate(urls) if urlsplit(u).scheme=='https' and '@' not in urlsplit(u).netloc and not any(x in u for x in '()<>\n\r'))
+        details=rationale(e).split('\n')[2:]
+        # One card per stock stays below Discord's 6,000-character aggregate embed limit.
+        description='\n'.join(x for x in details if x!='Sources:' and not x.startswith('<https://'))[:2500]
+        embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
+               'color':0xE7AF38 if super_priority else 0x39B9A8,
+               'fields':[{'name':'Matched firms','value':firms[:1000] or 'Unavailable','inline':False},
+                         {'name':'Price','value':'$'+metric(m.price),'inline':True},
+                         {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
+                         {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
+                         {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
+               'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
+               'timestamp':m.price_time.isoformat()}
+        payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**Daily research watchlist** · '+local_time(now,cfg).strftime('%b %d, %Y · %H:%M %Z'),
+                         'embeds':[embed],'allowed_mentions':{'parse':['everyone'] if i==0 else []}})
+    return payloads
 
 class DiscordSender:
     def __init__(self,http,webhook,store,checkpoint,clock=None):
@@ -89,18 +99,31 @@ class DiscordSender:
         if parsed.query or parsed.fragment:raise ValueError('Webhook URL must not include query/fragment')
         self.http=http;self.webhook=webhook;self.store=store;self.checkpoint=checkpoint
         self.clock=clock or (lambda:datetime.now(UTC))
-    def activation(self,release_id,content):
+    def activation(self,release_id,content,format_version=None):
         """User-authorized deployment receipt, without mentions or stock alerts."""
         from .transport import ProviderError
         key='activation:'+release_id
         existing=self.store.get(key)
-        if existing:return existing
+        body=dict(content) if isinstance(content,dict) else {'content':content}
+        body['allowed_mentions']={'parse':[]}
+        if existing:
+            # Reformat the already-authorized practice message, never create another ping.
+            if format_version and existing.get('status')=='SENT' and existing.get('format_version')!=format_version:
+                message_id=str(existing.get('message_id',''))
+                if not message_id.isdigit():raise ValueError('Invalid stored Discord message ID')
+                try:
+                    self.http.json(self.webhook+'/messages/'+message_id,method='PATCH',body=body,timeout=8)
+                    existing.update(format_version=format_version,format_status='UPDATED')
+                except ProviderError:existing['format_status']='UPDATE_UNCERTAIN'
+                self.store.put(key,existing);self.checkpoint(self.store)
+            return existing
         claim={'status':'CLAIMED','claimed_at':self.clock().isoformat()}
         self.store.put(key,claim);self.checkpoint(self.store)
         try:
             data=self.http.json(self.webhook,method='POST',params={'wait':'true'},
-                body={'content':content,'allowed_mentions':{'parse':[]}},timeout=8)
+                body=body,timeout=8)
             claim.update(status='SENT',message_id=data['id'],channel_id=data.get('channel_id'))
+            if format_version:claim['format_version']=format_version
         except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
         self.store.put(key,claim);self.checkpoint(self.store)
         return claim
