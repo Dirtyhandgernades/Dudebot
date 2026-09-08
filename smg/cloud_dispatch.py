@@ -1,5 +1,5 @@
 """Prepare real evaluated alerts for the free Cloudflare noon dispatcher."""
-import hashlib,json,os
+import hashlib,json,os,time
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -55,8 +55,15 @@ def register():
     if os.environ.get('DISCORD_ENABLED')!='true':raise ValueError('Discord delivery is disabled')
     endpoint=endpoint_url(required_env('CLOUDFLARE_DEPLOYMENT_URL'))
     webhook=required_env('DISCORD_WEBHOOK_URL');headers={'Authorization':'Bearer '+dispatch_key(webhook)}
-    health=http.json(endpoint+'/health')
-    if health.get('version')!=1 or health.get('configured') is not True:raise ValueError('Cloudflare health check failed')
+    from .transport import ProviderError
+    for attempt in range(12):
+        try:
+            health=http.json(endpoint+'/health',timeout=10)
+            if health.get('version')==1 and health.get('configured') is True:break
+        except ProviderError:pass
+        if attempt==11:raise ValueError('Cloudflare HTTPS/route is not ready; rerun deployment after propagation')
+        if attempt==0:print('Waiting briefly for the new Cloudflare HTTPS endpoint to become ready')
+        time.sleep(5)
     verify=http.json(endpoint+'/verify',method='POST',headers=headers,body={})
     if verify.get('status')!='VERIFIED':raise ValueError('Cloudflare durable storage verification failed')
     backend=GitHubState(http,required_env('GITHUB_REPOSITORY'),required_env('GITHUB_TOKEN'),cfg.state_branch)
