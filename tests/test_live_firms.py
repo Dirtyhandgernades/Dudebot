@@ -97,3 +97,21 @@ def test_new_filings_are_processed_while_backfill_cursor_is_older(tmp_path):
     store.put('firm_cursor',dict(version=hashlib.sha256(query_text(ENTRIES).encode()).hexdigest(),start='2025-01-01',end='2025-01-31',offset=0,done=False))
     results=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).run(NOW)
     assert len(results)==1 and results[0].ticker=='ACTV'
+
+def test_practice_uses_real_store_overlap_without_claiming_detection(tmp_path):
+    from smg.practice import practice_payload
+    c=watch();c.ticker='WCT';store=Store(tmp_path/'practice.db')
+    store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    payload,audit=practice_payload(store,Path.cwd(),NOW,CFG,EntityList(ENTRIES))
+    assert audit['overlap_tickers']==['WCT']
+    assert 'not historical detections or qualified stock alerts' in payload
+    assert '@everyone' not in payload and len(payload)<=2000
+
+def test_configured_noon_follows_pacific_and_central_dst():
+    from datetime import datetime,timezone
+    from smg.cli import settings
+    from smg.notify import local_time
+    cfg,_=settings(Path.cwd())
+    assert cfg.notification_timezone=='America/Los_Angeles'
+    assert local_time(datetime(2026,7,15,19,tzinfo=timezone.utc),cfg).hour==12
+    assert local_time(datetime(2026,1,15,20,tzinfo=timezone.utc),cfg).hour==12

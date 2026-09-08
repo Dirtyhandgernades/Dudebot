@@ -43,7 +43,7 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','scan','noon','demo','activate'])
+    parser.add_argument('command',choices=['doctor','discover','scan','noon','demo','activate','practice'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
     parser.add_argument('--send',action='store_true',help='Only noon mode can send, and only during the configured noon minute')
     args=parser.parse_args();root=args.root.resolve();cfg,entries=settings(root)
@@ -63,6 +63,15 @@ def main():
     entities=EntityList(entries)
     now=datetime.now(UTC)
     try:
+        if args.command=='practice':
+            if os.environ.get('DISCORD_ENABLED')!='true':raise ValueError('Discord delivery is disabled')
+            from .practice import practice_payload
+            payload,audit=practice_payload(store,root,now,cfg,entities)
+            sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
+            receipt=sender.activation('practice-reference-check-2026-09-08',payload)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'practice.json').write_text(json.dumps(dict(receipt=receipt,audit=audit),indent=2))
+            print(json.dumps({'practice_receipt':receipt,'overlap':audit['overlap_tickers']}));return
         if args.command=='discover':
             sec=Sec(http,required_env('SEC_USER_AGENT'),store)
             if cfg.screening_profile=='firm_first':
@@ -98,7 +107,7 @@ def main():
             # Fail closed rather than silently waiting for tomorrow when a run is late.
             if now>=target+timedelta(seconds=cfg.send_window_seconds):
                 print('MISSED_SEND_WINDOW');return
-            if (target-now).total_seconds()>20*60:
+            if (target-now).total_seconds()>60*60:
                 print('TOO_EARLY_FOR_NOON_WORKER');return
             # Workflows start early. Prep data near noon, then refresh recent bars and halts at dispatch.
             while datetime.now(UTC)<target-timedelta(seconds=480):time.sleep(min(20,max(.1,(target-timedelta(seconds=480)-datetime.now(UTC)).total_seconds())))

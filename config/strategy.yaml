@@ -23,7 +23,7 @@ monthly_return_sessions: 21
 max_snapshot_age_seconds: 300
 direct_offering_backfill_days: 30
 direct_offering_require_monthly_surge: false
-notification_timezone: fixed_UTC_minus_08
+notification_timezone: America/Los_Angeles
 notification_time: '12:00'
 send_window_seconds: 60
 no_match_message: false
