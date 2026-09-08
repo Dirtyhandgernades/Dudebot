@@ -5,8 +5,8 @@ on:
       command:
         description: Audit, collect independent SEC leads, or replay prepared historical packets
         type: choice
-        options: [audit, collect-indexes, replay]
-        default: collect-indexes
+        options: [firm-search, audit, collect-indexes, replay]
+        default: firm-search
       packets:
         description: Repository-relative reviewed packet JSONL path (replay only)
         type: string
@@ -28,7 +28,7 @@ jobs:
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
       SURGE_RETURN_MIN_PCT: ${{ vars.SURGE_RETURN_MIN_PCT }}
-      BACKTEST_COMMAND: ${{ inputs.command || 'collect-indexes' }}
+      BACKTEST_COMMAND: ${{ inputs.command || 'firm-search' }}
       PACKET_PATH: ${{ inputs.packets || 'backtest/packets.jsonl' }}
     steps:
       - uses: actions/checkout@v4
@@ -72,5 +72,5 @@ jobs:
         if: always()
         with:
           name: historical-checkpoint-${{ github.run_id }}-${{ github.run_attempt }}
-          path: backtest/runtime/**/indexes.sqlite
+          path: backtest/runtime/**/*.sqlite
           retention-days: 30

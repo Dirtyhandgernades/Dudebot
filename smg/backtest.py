@@ -339,7 +339,7 @@ def probe_firm_search(end):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['audit', 'collect-indexes', 'replay'])
+    parser.add_argument('command', choices=['audit', 'collect-indexes', 'firm-search', 'replay'])
     parser.add_argument('--root', type=Path, default=Path.cwd())
     parser.add_argument('--start', type=date.fromisoformat, default=START)
     parser.add_argument('--end', type=date.fromisoformat, default=END)
@@ -383,6 +383,8 @@ def main(argv=None):
     source_audit = None
     market_samples = []
     firm_search_access = None
+    firm_discovery = None
+    firm_role_audit = None
     if args.command == 'collect-indexes':
         provider_access = probe_market(cfg)
         try:
@@ -396,6 +398,18 @@ def main(argv=None):
         write_json(out / 'reference_market_samples.json',market_samples)
         firm_search_access=probe_firm_search(args.end)
         write_json(out / 'firm_search_probe.json',firm_search_access)
+    if args.command=='firm-search':
+        from .firm_search import collect_firm_search,audit_firm_hits
+        from .historical_discovery import audit_filings
+        collection=collect_indexes(state,args.start,args.end,0)
+        source_audit,research=audit_filings(state,args.start,args.end,entries,budget=0)
+        write_json(out / 'filing_research.json',research)
+        market_samples=audit_reference_market(events,cfg,state,budget=0)
+        write_json(out / 'reference_market_samples.json',market_samples)
+        firm_discovery=collect_firm_search(state,args.end,entries)
+        if firm_discovery.get('query_set'):
+            firm_role_audit,observations=audit_firm_hits(state,firm_discovery['query_set'],entries)
+            write_json(out / 'firm_role_observations.json',observations)
     if args.command == 'replay' and packets and secrets['ALPACA_API_KEY'] and secrets['ALPACA_SECRET_KEY']:
         market = CachedMarket(Alpaca(Http(), os.environ['ALPACA_API_KEY'], os.environ['ALPACA_SECRET_KEY'], cfg.market_feed, cfg.market_data_delay_minutes), state / 'bars')
         done = {r['input_sha256'] for r in decisions}; count = 0; started = time.monotonic()
@@ -448,9 +462,9 @@ def main(argv=None):
         'event_symbol_rule_conflicts':sum(bool(r['event_symbol_exclusion']) for r in comparison),
         'issues':issues,'local_credentials_present':secrets,'index_collection':collection,'provider_access':provider_access,'source_audit':source_audit,
         'reference_market_sample_counts':dict(Counter(r['status'] for r in market_samples)),
-        'firm_search_access':firm_search_access,'run_key':run_key}
+        'firm_search_access':firm_search_access,'firm_discovery':firm_discovery,'firm_role_audit':firm_role_audit,'run_key':run_key}
     write_json(out / 'summary.json', summary)
-    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit','reference_market_sample_counts']}))
+    print(json.dumps({k:summary[k] for k in ['status','reference_events','reference_symbols','evaluated_candidate_decisions','actual_detected_events','actual_misses','issues','provider_access','index_collection','source_audit','reference_market_sample_counts','firm_discovery','firm_role_audit']}))
     return 2 if summary['status'] == 'NOT_RUN' else 0
 
 

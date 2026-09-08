@@ -37,7 +37,7 @@ def audit_filings(state, start, end, entries, budget=40):
             # Separate quotas prevent the much larger direct queue starving IPOs.
             jobs = db.execute(f'''SELECT * FROM leads WHERE {form_filter} AND filed_at>=? AND filed_at<=?
                 AND path NOT IN (SELECT path FROM parsed_filings WHERE pipeline=?)
-                ORDER BY filed_at, path LIMIT ?''', (since, str(end), pipeline, max(1,budget//2))).fetchall()
+                ORDER BY filed_at, path LIMIT ?''', (since, str(end), pipeline, max(0,budget//2))).fetchall()
             for job in jobs:
                 if time.monotonic()-started > 360:
                     errors.append('FILING_AUDIT_TIME_BUDGET'); break

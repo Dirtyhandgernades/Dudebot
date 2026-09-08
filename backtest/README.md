@@ -51,6 +51,7 @@ Run from the repository root, with Python 3.11+ and the existing dependencies:
 ```bash
 python -m smg.backtest audit
 python -m smg.backtest collect-indexes --max-quarters 2
+python -m smg.backtest firm-search
 python -m smg.backtest replay --packets backtest/packets.jsonl --max-records 25
 ```
 
@@ -72,7 +73,7 @@ symbol `asof` date. No account/order or Discord endpoint is used.
 
 The manual **Historical backtest (bounded, no messages)** workflow limits
 runs to 15 minutes, at most 32 quarters or 25 candidate decisions. A push on its
-development branch also starts one bounded collection run. It uses only the
+development branch starts one bounded firm-search run. It uses only the
 Alpaca and SEC secrets, preserves state in an Actions cache, and uploads
 reports and an index checkpoint for 30 days. Caches can be evicted; download
 checkpoints to preserve long backfills. There is no automatic repeating job.
@@ -95,6 +96,22 @@ history, a halt, or a strategy miss. Available bars do not establish complete
 RVOL/monthly history. Reference dates and symbols select only these diagnostic
 samples and the comparison; they do not select the discovery universe or alter
 screening features. Drop percentages are never sent to providers or rules.
+
+`firm-search` uses SEC's full-text search over the configured firm names, with
+IPO/registration, offering, annual and event forms. It searches calendar years
+back to 2001, starting with recent years. Queries whose totals hit the search
+limit are split into smaller date ranges rather than silently truncated. At
+most 200 search pages/six minutes and 80 document audits/five minutes run per
+invocation. Progress commits after each page and document. This is independently
+selected research, not a scan selected from the reference stocks.
+
+The report distinguishes search hits from role-review leads. A firm name near
+an auditor/counsel/underwriter phrase is an automated lead, not semantically
+verified evidence. Dated inline-XBRL ticker/exchange facts are retained from the
+filing; current search display names are not used as historical ticker mappings.
+Source review, historical ticker intervals, SPAC classification and halt status
+remain required. Exact-name search can miss aliases, former firm names and text
+variants. Search-index completion is not complete market-universe coverage.
 
 ## Research packet contract
 
