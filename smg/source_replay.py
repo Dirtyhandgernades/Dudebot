@@ -9,6 +9,7 @@ from collections import Counter,defaultdict
 from datetime import date,datetime,timedelta,timezone
 from pathlib import Path
 from bs4 import BeautifulSoup
+from lxml import html as lhtml
 from .backtest import START,END,public_at,decision_time,prior_sessions,write_json
 from .cli import settings
 from .live_firms import extract_watch
@@ -51,8 +52,11 @@ def select_sources(db_path,per_quarter=None):
 
 
 def source_identity(soup,text):
-    facts={e.get('name','').lower():[] for e in soup.find_all(attrs={'name':True})}
-    for e in soup.find_all(attrs={'name':True}):facts[e['name'].lower()].append(e.get_text(' ',strip=True))
+    native=callable(getattr(soup,'xpath',None))
+    def content(node):return ' '.join(node.itertext()).strip() if native else node.get_text(' ',strip=True)
+    elements=soup.xpath('//*[@name]') if native else soup.find_all(attrs={'name':True})
+    facts={e.get('name','').lower():[] for e in elements}
+    for e in elements:facts[e.get('name').lower()].append(content(e))
     symbols={s.strip() for s in facts.get('dei:tradingsymbol',[]) if re.fullmatch('[A-Z]{1,6}',s.strip())}
     exchanges={s.upper().strip() for s in facts.get('dei:securityexchangename',[])}
     exchange='XNYS' if exchanges & {'NYSE','XNYS'} else 'XNAS' if exchanges & {'NASDAQ','XNAS'} else None
@@ -60,11 +64,11 @@ def source_identity(soup,text):
     # The registration table is dated issuer evidence. Search-result display
     # names may contain today's ticker and must never supply historical symbols.
     registered=[]
-    for table in soup.find_all('table'):
-        heading=table.get_text(' ',strip=True)
+    for table in (soup.xpath('//table') if native else soup.find_all('table')):
+        heading=content(table)
         if not re.search(r'trading\s+symbols?',heading,re.I):continue
-        for row in table.find_all('tr'):
-            cells=[c.get_text(' ',strip=True) for c in row.find_all(['td','th'],recursive=False)]
+        for row in (table.xpath('.//tr') if native else table.find_all('tr')):
+            cells=[content(c) for c in (row.xpath('./td|./th') if native else row.find_all(['td','th'],recursive=False))]
             if not cells:continue
             joined=' '.join(cells)
             if not re.search(r'ordinary shares|common (?:stock|shares)|depositary shares',joined,re.I):continue
@@ -88,11 +92,12 @@ def source_identity(soup,text):
 def parse_source(identifier,src,raw,entries):
     accession,filename=identifier.split(':',1)
     url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
-    soup=BeautifulSoup(raw,'html.parser')
-    identity_text=' '.join(soup.get_text(' ',strip=True).split())
+    soup=lhtml.document_fromstring(raw.encode('utf8'),parser=lhtml.HTMLParser(encoding='utf8',no_network=True))
+    identity_text=' '.join(' '.join(soup.itertext()).split())
     symbol,exchange,names=source_identity(soup,identity_text)
-    for e in soup(['script','style','ix:header']):e.decompose()
-    text=' '.join(soup.get_text(' ',strip=True).split())
+    for e in list(soup.iter()):
+        if e.tag in {'script','style','ix:header'}:e.drop_tree()
+    text=' '.join(' '.join(soup.itertext()).split())
     if not symbol or exchange is None:return None,'SOURCE_SYMBOL_OR_EXCHANGE_UNRESOLVED'
     doc=dict(url=url,text=text,date=src['file_date'],sha256=hashlib.sha256(raw.encode()).hexdigest())
     known=public_at({'filed_at':src['file_date']})
@@ -112,7 +117,7 @@ def main():
         if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession) or '..' in filename:continue
         url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
         path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.html')
-        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v2.json')
+        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v3.json')
         try:
             if parsed_path.exists():
                 parsed=json.loads(parsed_path.read_text());status=parsed['status']

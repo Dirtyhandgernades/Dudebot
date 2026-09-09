@@ -32,7 +32,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: backtest/runtime/source-replay
-          key: source-replay-v1-${{ github.run_id }}
+          key: source-replay-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: source-replay-v1-
       - run: python -m smg.source_replay
       - uses: actions/upload-artifact@v4

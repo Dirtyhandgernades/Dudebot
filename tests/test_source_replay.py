@@ -1,6 +1,7 @@
 import json,sqlite3
 from bs4 import BeautifulSoup
 from smg.source_replay import select_sources,source_identity
+from lxml import html as lhtml
 
 def test_source_selection_uses_dated_firm_corpus_and_distinct_issuers(tmp_path):
     path=tmp_path/'sources.sqlite';db=sqlite3.connect(path)
@@ -27,6 +28,8 @@ def test_registered_symbol_overrides_historical_prose_symbol():
     <p>Our previous ticker symbol "OLD".</p>'''
     soup=BeautifulSoup(raw,'html.parser')
     assert source_identity(soup,soup.get_text(' ',strip=True))[:2]==('NEW','XNAS')
+    native=lhtml.document_fromstring(raw)
+    assert source_identity(native,' '.join(native.itertext()))[:2]==('NEW','XNAS')
 
 
 def test_registration_table_maps_common_equity_without_using_warrant_ticker():
@@ -35,3 +38,5 @@ def test_registration_table_maps_common_equity_without_using_warrant_ticker():
     <tr><td>Warrants</td><td>ABCDW</td><td>Nasdaq Capital Market</td></tr></table>'''
     soup=BeautifulSoup(raw,'html.parser')
     assert source_identity(soup,soup.get_text(' ',strip=True))[:2]==('ABCD','XNAS')
+    native=lhtml.document_fromstring(raw)
+    assert source_identity(native,' '.join(native.itertext()))[:2]==('ABCD','XNAS')

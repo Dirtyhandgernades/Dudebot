@@ -14,6 +14,9 @@ def extract_watch(job,docs,now,entries):
         for names in groups.values():
             for name in names:
                 pattern=name_pattern(name)
+                # Most firms are absent. Avoid three full-document role scans
+                # for every absent name in long annual filings.
+                if not re.search(pattern,primary['text'],re.I):continue
                 # Require role language attached to the named party, not just
                 # a name somewhere in the same filing or an unrelated adviser.
                 roles={'auditor':r'(?:our\s+)?(?:independent registered public accounting firm|independent auditor|auditor)',
