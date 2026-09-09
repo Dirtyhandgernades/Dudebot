@@ -1,0 +1,41 @@
+name: Audit cached historical issuer identities
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [smg/source_identity_audit.py, .github/workflows/source-identity-audit.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: historical-checkpoint-34191049268-1
+          run-id: 34191049268
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/independent-checkpoint
+      - uses: actions/cache/restore@v4
+        with:
+          path: backtest/runtime/source-replay
+          key: source-identity-audit-readonly-${{ github.run_id }}
+          restore-keys: source-replay-v1-
+      - name: Inspect cached annual filing identities without downloading sources
+        timeout-minutes: 3
+        run: python -m smg.source_identity_audit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-identity-audit-${{ github.run_id }}
+          path: reports/source-identity-audit/audit.json
+          if-no-files-found: error

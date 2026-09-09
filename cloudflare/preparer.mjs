@@ -46,6 +46,7 @@ export class HostedPreparer {
     const now=this.clock();validateSeed(seed,now);
     requireValue(this.env.ALPACA_API_KEY && this.env.ALPACA_SECRET_KEY,'Missing Alpaca connection');
     const candidates=seed.candidates.filter(c=>target-Date.parse(c.reviewed_at)>=0 && target-Date.parse(c.reviewed_at)<=26*3600_000);
+    const decisions=seed.candidates.filter(c=>!candidates.includes(c)).map(c=>({ticker:c.ticker,status:'WITHHELD',reasons:['STALE_SOURCE_REVIEW']}));
     const capSources={};const capValues={};
     for(const exchange of ['nasdaq','nyse']) {
       const url='https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=0&exchange='+exchange;
@@ -71,8 +72,16 @@ export class HostedPreparer {
     for(const c of candidates) {
       const rows=(bars[c.ticker]||[]).filter(r=>Date.parse(r.t)<=effective-60_000).sort((a,b)=>Date.parse(a.t)-Date.parse(b.t));
       const last=rows.at(-1),cap=capValues[c.ticker];
-      if(!last || !(last.c>3) || !(cap>=25_000_000) || halted.has(c.ticker))continue;
-      const age=target-16*60_000-Date.parse(last.t);if(age<0 || age>300_000)continue;
+      const reasons=[];
+      if(!last)reasons.push('NO_RECENT_BAR');
+      else {
+        if(!(last.c>3))reasons.push('PRICE_NOT_ABOVE_3');
+        const age=target-16*60_000-Date.parse(last.t);if(age<0 || age>300_000)reasons.push('STALE_PRICE');
+      }
+      if(!cap)reasons.push('MARKET_CAP_UNAVAILABLE');else if(cap<25_000_000)reasons.push('MARKET_CAP_BELOW_25M');
+      if(halted.has(c.ticker))reasons.push('HALTED');
+      decisions.push({ticker:c.ticker,status:reasons.length?'WITHHELD':'QUALIFIED',reasons,price:last?.c??null,market_cap:cap??null});
+      if(reasons.length)continue;
       const fields=[{name:'Listed firms',value:c.firms.map(f=>f.name+' ('+f.role+')').join('\n').slice(0,1024)},
         {name:'Price / game eligibility',value:'$'+last.c.toFixed(2)+' · Reported cap $'+(cap/1e6).toFixed(1)+'M\nMinimum 10 shares: $'+(last.c*10).toFixed(2)+' before fees'},
         {name:'Filing evidence',value:c.source_url},{name:'Pump / volume context',value:'Monthly surge and relative volume unavailable in hosted refresh; these remain preferences.'}];
@@ -84,6 +93,6 @@ export class HostedPreparer {
     }
     const bundle={version:2,profile:'firm_first',feed:'sip',delay_minutes:16,generated_at:new Date(this.clock()).toISOString(),send_at:new Date(target).toISOString(),items};
     if(!verifyOnly)validateBundle(bundle,this.clock(),true);
-    return {bundle,audit:{seed_candidates:seed.candidates.length,fresh_source_candidates:candidates.length,qualified:items.length,provider_check:'VERIFIED',at:new Date(this.clock()).toISOString()}};
+    return {bundle,audit:{seed_candidates:seed.candidates.length,fresh_source_candidates:candidates.length,qualified:items.length,decisions,provider_check:'VERIFIED',at:new Date(this.clock()).toISOString()}};
   }
 }

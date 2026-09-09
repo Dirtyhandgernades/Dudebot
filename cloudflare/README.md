@@ -1,75 +1,67 @@
 # Free hosted Discord delivery
 
-This small Worker uses a SQLite Durable Object to store a prepared research digest
-and wake at noon Pacific / 2 p.m. Central, following daylight-saving time. It uses
-the existing Discord webhook. No domain, Discord bot user, paid market feed, or
-hosted AI service is required.
+Cloudflare now performs the near-noon market refresh and sends the Discord report.
+GitHub continues SEC filing discovery and uploads the source-reviewed candidate
+pool. No Discord bot user, paid feed, paid AI service or always-on PC is required.
 
-Cloudflare offers SQLite Durable Objects on the Workers Free plan. Free-plan
-limits stop operations when exceeded; keep the account on Free. The expected
-traffic here is a handful of requests per trading day, not an always-running VM.
+The persistent hosted clock refreshes at 11:58 a.m. Pacific and dispatches at noon
+Pacific / 2 p.m. Central on weekdays, following daylight-saving time. Each day it
+schedules the next wake-up before attempting delivery. Late alarms beyond the noon
+minute are suppressed; network/provider outages can still prevent delivery.
+
+The hosted refresh fetches free Alpaca SIP bars with a 16-minute delay, current
+Nasdaq/NYSE screener market caps, and the current halt feed. It uses at most 30
+source-reviewed firm candidates. Source reviews older than 26 hours are withheld;
+GitHub delays that also prevent filing-review refresh can therefore still limit
+coverage. Current cap values have retrieval timestamps, but the vendor publishes
+no individual valuation timestamp. Pump and relative-volume context are explicitly
+unavailable in the small hosted refresh and remain preferences. The Python path
+can still prepare richer reports for the same daily dispatcher.
+
+Both paths preserve firm-first classification, Nasdaq/NYSE common equity, price
+strictly above $3, market cap at least $25 million, the halt/SPAC/five-letter hard
+exclusions, source freshness and market-data freshness. Cards show matched firms,
+filing evidence, price, cap and the minimum 10-share cost before fees. They make no
+orders. Unknown required checks never become stock picks.
+
+A missing, invalid or empty prepared report produces a clearly labeled noon status
+embed without mentions. Stock digests allow one @everyone mention. The daily
+Durable Object atomically claims the receipt before Discord POST, so competing
+alarms cannot duplicate a report. Uncertain delivery and rate-limit rejections are
+recorded without automatically resending possibly delivered messages.
+
+Deployment uses the existing GitHub Actions secrets CLOUDFLARE_API_TOKEN,
+CLOUDFLARE_ACCOUNT_ID, DISCORD_WEBHOOK_URL, ALPACA_API_KEY and ALPACA_SECRET_KEY.
+SEC_USER_AGENT stays in the filing-discovery job. Never put secret values in code
+or chat. Deployment tests the code, installs the runtime secrets, verifies durable
+storage, edits the existing practice message, uploads candidates, tests the hosted
+provider connections, and arms the clock. The receipt records all results.
+
+The account-scoped Cloudflare token needs Workers Scripts Edit and Account Settings
+Read, plus User Details Read and Memberships Read for Wrangler. No custom domain,
+KV, R2, Pages or paid Worker plan is needed. Keep the account on Free.
 [Cloudflare pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/)
 
-## Connect the account
+Authenticated endpoints: GET /status reads today's delivery receipt; GET /clock
+reads the next hosted wake-up and last preparation/delivery; POST /verify checks
+storage; POST /practice-format edits the existing practice message; POST /seed
+stores reviewed candidates; POST /preparation-check probes providers without arming
+or sending a report; POST /clock arms the recurring clock while respecting pause;
+POST /pause cancels the clock and today's pending bundle; POST /resume explicitly
+restarts the clock without clearing delivered receipts.
 
-1. Create a Cloudflare API token scoped to your account. The Edit Cloudflare
-   Workers template is a starting point; this workers.dev deployment needs
-   Workers Scripts Edit and Account Settings Read. User Details Read and
-   Memberships Read support Wrangler's account checks. It uses no zone routes,
-   KV, R2, Pages, containers, builds or agents permissions. Leave IP restrictions
-   empty for GitHub-hosted runners. An expiration date is optional; an expired
-   token stops future deployments, not an already-running Worker.
-2. Add GitHub Actions secret `CLOUDFLARE_API_TOKEN` and secret
-   `CLOUDFLARE_ACCOUNT_ID`. Never commit or paste the values in chat.
-3. Run **Deploy free Cloudflare dispatcher** in Actions. The workflow tests the
-   code, deploys `dudebot-dispatch`, and installs the existing Discord webhook plus
-   a domain-separated secret derived from that webhook. There is no third secret
-   for you to generate. If the webhook rotates, rerun this deployment.
-4. The workflow verifies authenticated durable storage and reformats the existing
-   practice message through Cloudflare. Only after both succeed does it store the
-   endpoint and select Cloudflare as the delivery owner on the `smg-state` branch.
-   The receipt artifact identifies the deployed endpoint and practice-message ID.
-   If Cloudflare requests a workers.dev subdomain first, choose one under Workers
-   & Pages in the dashboard, then rerun deployment.
+Repository stop variables only stop GitHub jobs/uploads. To stop hosted delivery,
+open GitHub Actions, choose **Control hosted Dudebot delivery**, run the workflow
+with `pause`, and inspect the returned PAUSED state. Use `status` to inspect it or
+`resume` to restart. Disabling the public workers.dev route does not cancel Durable
+Object alarms. Explicit pause survives ordinary deployments and blocks in-flight
+preparation from re-arming delivery. An already-issued Discord request cannot be
+recalled; remaining cards are suppressed.
 
-[Official GitHub deployment guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
-
-## Delivery behavior and limits
-
-GitHub still performs the SEC and Alpaca work. Its job starts early, warms market
-history, refreshes prices/halts about 90 seconds before noon, and uploads the
-digest. Cloudflare's durable alarm then owns the outbound send. This removes a
-GitHub job startup from the final delivery step; it does not eliminate upstream
-data delays, missed GitHub preparation, API outages, rate limits or network delay.
-
-Only firm-first / SIP / 16-minute-delay bundles are accepted. The sender rechecks
-issuer exclusions, evidence markers, listed-firm matches, review freshness,
-market timestamps, halt status, date and the noon window. No qualified stocks
-means no Discord message. Stale, late, missing or ambiguous records never become
-fallback stock alerts. Cards include actual metrics, matched firms and source
-links, with one allowed `@everyone` mention per daily digest.
-
-The Python job stores the shared daily delivery claim before uploading. The
-Durable Object stores its own claim before Discord POST. Alarm retries cannot
-send the digest twice. A timeout remains DELIVERY_UNCERTAIN; a Discord rate limit
-or rejection is recorded and stops the digest. A failed preparation does not
-silently fall back to a second sender. The current bound is 30 stock cards/day.
-
-Authenticated GET `/status` returns today's alarm receipt. POST `/verify` checks
-storage; POST `/practice-format` edits an existing message without a new ping.
-Neither is a test of a future real noon alarm. The first qualified noon delivery
-must be inspected separately before calling the hosted path fully validated.
-
-`DISCORD_ENABLED=false` or `SMG_LIVE_ENABLED=false` prevents future preparation.
-If a digest is already armed, disable the Worker in Cloudflare to stop that day's
-send; GitHub variables cannot retroactively cancel an already-stored alarm.
-
-[Durable alarm semantics](https://developers.cloudflare.com/durable-objects/api/alarms/)
-
-## Historical validation remains separate
-
-The practice message identifies HPAI, JBDI, LNKS and WCT in currently processed
-filings. It does not prove pre-drop detections in the 230-event reference set.
-Some historical bars are available for 220 events; ten retain diagnosed market
-gaps. The full historical source/mapping/halt review and actual screening replay
-remain incomplete. Offline tests verify software behavior, not trading results.
+September 9 live delivery is confirmed in run 34400550008: hosted preparation at
+18:58:06 UTC qualified three of eight fresh candidates from nine stored candidates.
+The daily receipt was claimed at 19:00:00.504 UTC and finished SENT with three
+Discord message IDs. The next refresh is September 10 at 18:58 UTC. Fifteen reviewed
+candidates were uploaded afterward. A later provider probe is diagnostic and does
+not change the noon report. These runtime checks do not prove historical strategy
+performance or guarantee future zero-delay delivery.

@@ -1,6 +1,6 @@
 # Dudebot · DECA SMG notifier
 
-A rules-based stock research notifier running in GitHub Actions. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
+A rules-based stock research notifier using GitHub for filing discovery and Cloudflare for hosted noon market refresh and Discord delivery. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
 
 The user's DECA gates apply to both profiles: **Nasdaq or NYSE common equity,
 current price strictly above $3, and market cap at least $25 million**. Unknown
@@ -11,9 +11,9 @@ decisions. Opening buy/short order planning uses a minimum of 10 shares; the bot
 does not submit orders, simulate fees, or assert game-security-table availability.
 
 The independently selected source replay is separate from targeted data-gap
-diagnostics. `smg.source_replay` selects six distinct issuers per quarter from the
-firm-search corpus, watches them daily through the window's end, and reads the user's
-reference events only after screening. This is a partial issuer sample;
+diagnostics. `smg.source_replay` selects primary filings from the independent
+firm-search corpus, watches discovered issuers daily through the window's end, and
+reads the user's reference events only after screening. Checkpoints bound each run;
 historical market cap, halt and complete context coverage remain unresolved.
 
 The three hard exclusions remain halts/suspensions, acquisition corporations/SPACs,
@@ -24,10 +24,13 @@ original transaction screen documented below. Direct offerings keep their own
 relationships; an issuer-level historical underwriter is labeled in `FIRM_WATCH`.
 
 Live deployment enables the existing weekday discovery and noon schedules by
-default. Set repository variable `SMG_LIVE_ENABLED=false` to stop both, or
-`DISCORD_ENABLED=false` to stop messages. A deployment sends one durable,
+default. Repository variables `SMG_LIVE_ENABLED=false` or `DISCORD_ENABLED=false`
+stop the relevant GitHub jobs/uploads. To stop hosted delivery, run the
+**Control hosted Dudebot delivery** workflow with `pause`; use `resume` to restart.
+Pause cancels alarms and pending picks and survives deployments. A deployment sends one durable,
 mention-free activation receipt; stock alerts retain the noon gate and one
-`@everyone` mention. The historical replay remains incomplete.
+`@everyone` mention. A missing or unqualified report produces a status embed without
+a mention. The full historical replay remains incomplete.
 
 **No Anthropic, OpenAI, Massive, or other paid AI service is required.** Filing extraction runs locally in Python. Alpaca's free historical consolidated SIP feed is used with a deliberate **16-minute delay**; every alert states the feed, timestamp, and delay. See [SETUP.md](SETUP.md) for the exact four secrets and activation steps.
 

@@ -13,7 +13,7 @@ async function authorized(request,env) {
 export default {
   async fetch(request,env) {
     const path=new URL(request.url).pathname;
-    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:4,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
+    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:5,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
     if(['/pause','/resume'].includes(path) && request.method==='POST')return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(['/clock','/seed','/preparation-check'].includes(path) && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
@@ -78,7 +78,11 @@ export class NoonDispatch extends DurableObject {
       await this.service.alarm(true);
       return Response.json({receipt:await this.ctx.storage.get('receipt')||null});
     }
-    if(request.method==='GET')return Response.json({receipt:await this.ctx.storage.get('receipt')||null,verification:await this.ctx.storage.get('verification')||null,paused:await this.ctx.storage.get('paused')||false,armed:!!await this.ctx.storage.get('bundle')});
+    if(request.method==='GET') {
+      const bundle=await this.ctx.storage.get('bundle'),receipt=await this.ctx.storage.get('receipt')||null;
+      return Response.json({receipt,verification:await this.ctx.storage.get('verification')||null,paused:await this.ctx.storage.get('paused')||false,armed:!!bundle && !receipt,
+        prepared_tickers:bundle?.items.map(item=>item.ticker)||[],delivered_tickers:receipt?.status==='SENT'?bundle?.items.slice(0,receipt.messages.length).map(item=>item.ticker)||[]:[]});
+    }
     if(path==='/verify') {
       // Verify durable persistence without modifying an armed noon alarm.
       await this.ctx.storage.put('verification',{status:'VERIFIED',at:new Date().toISOString()});

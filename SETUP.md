@@ -3,7 +3,10 @@
 The user authorized live deployment on September 8, 2026. The firm-first profile
 is now the configured default. Discovery and noon Discord delivery default to
 enabled after deployment; repository variables `SMG_LIVE_ENABLED=false` and
-`DISCORD_ENABLED=false` remain explicit stop switches. Older opt-in instructions
+`DISCORD_ENABLED=false` stop the GitHub jobs/uploads. Hosted delivery must be paused
+separately using Actions -> Control hosted Dudebot delivery -> `pause`; `resume`
+explicitly restarts it. This pause survives deployment and cancels pending alarms.
+Older opt-in instructions
 below describe the original release. All four secrets remain required.
 
 The activation workflow runs on a main-branch deployment change and sends one

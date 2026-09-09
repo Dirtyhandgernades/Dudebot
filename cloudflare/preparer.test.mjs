@@ -20,12 +20,19 @@ test('hosted refresh uses real provider fields and same hard bundle validation',
   const result=await new HostedPreparer(env,provider(),()=>now).prepare(seed(),target);
   assert.equal(result.bundle.items.length,1);assert.equal(result.bundle.items[0].price,4);
   assert.equal(result.bundle.items[0].market_cap,25_000_000);assert.equal(result.audit.provider_check,'VERIFIED');
+  assert.deepEqual(result.audit.decisions,[{ticker:'TEST',status:'QUALIFIED',reasons:[],price:4,market_cap:25_000_000}]);
 });
 test('price, capitalization and stale filing reviews cannot produce hosted stock picks',async()=>{
   for(const options of [{price:3},{cap:24_999_999}])assert.equal((await new HostedPreparer(env,provider(options),()=>now).prepare(seed(),target)).bundle.items.length,0);
   const stale=seed();stale.candidates[0].reviewed_at=new Date(now-27*3600_000).toISOString();
   assert.equal((await new HostedPreparer(env,provider(),()=>now).prepare(stale,target)).bundle.items.length,0);
   const invalid=seed();invalid.candidates[0].ticker='ABCDE';assert.throws(()=>validateSeed(invalid,now));
+});
+test('preparation audit separates hard exclusions from unavailable data',async()=>{
+  const result=await new HostedPreparer(env,provider({price:3,cap:0}),()=>now).prepare(seed(),target);
+  assert.deepEqual(result.audit.decisions[0].reasons,['PRICE_NOT_ABOVE_3','MARKET_CAP_UNAVAILABLE']);
+  const stale=seed();stale.candidates[0].reviewed_at=new Date(now-27*3600_000).toISOString();
+  assert.deepEqual((await new HostedPreparer(env,provider(),()=>now).prepare(stale,target)).audit.decisions[0].reasons,['STALE_SOURCE_REVIEW']);
 });
 test('unhealthy halt feed fails preparation and halted symbols are withheld',async()=>{
   await assert.rejects(new HostedPreparer(env,provider({stamp:now-3600_000}),()=>now).prepare(seed(),target),/Stale halt/);
