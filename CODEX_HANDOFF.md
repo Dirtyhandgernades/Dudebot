@@ -2,6 +2,22 @@
 
 ## Continuation update, September 8, 2026
 
+September 9 UTC continuation: broader replay run 34303054242 at commit
+6c0435cf7af024c7d568a376dceee9954b82d3ae is processing the independent primary
+filing corpus, replacing the six-issuer-per-quarter selection. Exhibits no longer
+stand in for primary reports; registered symbols override obsolete prose symbols;
+registration tables supply dated common-equity mappings. Pre-window 2022 sources
+are included. Runtime/checkpoints still bound coverage. Inspect the actual artifact
+before claiming broader matches. 124 Python tests pass.
+
+Cloudflare now also has a persistent weekday noon clock. Deployment registration
+arms its next Pacific noon independently of GitHub. It invokes the same daily
+dispatcher with atomic receipt claims. A missing, stale or empty prepared report
+produces a clearly labeled status embed without a mention or stock picks. It does
+not solve GitHub-dependent fresh stock preparation. Late alarms beyond the minute
+are suppressed. Eight dispatcher tests cover DST, fallback status and duplicate
+alarm races. Verify deployment/clock receipt before claiming the clock is armed.
+
 Expanded daily replay completed successfully in run 34282115089 at commit
 772882394821da2db10ff8177e25ff9152b6b5b7. Artifact 10078229629 contains all
 6,421 planned decisions for the same 78 selected filings / 17 distinct tickers.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dateKey,pacificParts,validateBundle,DispatchService} from './core.mjs';
+import {dateKey,pacificParts,nextPacificNoon,validateBundle,DispatchService} from './core.mjs';
 const target=Date.parse('2026-09-08T19:00:00Z');
 function fixture() {
   return {version:2,profile:'firm_first',feed:'sip',delay_minutes:16,send_at:new Date(target).toISOString(),generated_at:new Date(target-90_000).toISOString(),
@@ -15,7 +15,8 @@ class Storage {
   async get(k){return structuredClone(this.records.get(k));}
   async put(k,v){this.records.set(k,structuredClone(v));}
   async setAlarm(t){this.alarmTime=t;}
-  async transaction(fn){return fn(this);}
+  queue=Promise.resolve();
+  transaction(fn){const result=this.queue.then(()=>fn(this));this.queue=result.catch(()=>{});return result;}
 }
 test('Pacific noon follows both seasons',()=>{
   assert.equal(pacificParts(target).hour,'12');
@@ -51,4 +52,31 @@ test('late alarm records suppression without contacting Discord',async()=>{
   const service=new DispatchService(storage,{},async()=>{calls++;},()=>clock);
   await service.prepare(fixture());clock=target+60_000;await service.alarm();assert.equal(calls,0);
   assert.equal((await storage.get('receipt')).status,'SUPPRESSED_STALE_OR_INVALID');
+});
+
+test('persistent noon schedule crosses weekends and both DST transitions',()=>{
+  assert.equal(new Date(nextPacificNoon(Date.parse('2026-03-06T20:00:00Z'))).toISOString(),'2026-03-09T19:00:00.000Z');
+  assert.equal(new Date(nextPacificNoon(Date.parse('2026-10-30T19:00:00Z'))).toISOString(),'2026-11-02T20:00:00.000Z');
+  assert.equal(nextPacificNoon(target-1000),target);
+});
+
+test('missing preparation gets one honest status embed and no mention',async()=>{
+  const storage=new Storage();let calls=0;
+  const service=new DispatchService(storage,{DISCORD_WEBHOOK_URL:'https://discord.com/api/webhooks/123/fake'},async(url,options)=>{
+    calls++;const body=JSON.parse(options.body);
+    assert.deepEqual(body.allowed_mentions.parse,[]);
+    assert.match(body.embeds[0].description,/did not provide a fresh report/);
+    assert.equal((await storage.get('receipt')).status,'NO_PREPARED_REPORT');
+    return Response.json({id:'998877'});
+  },()=>target);
+  await Promise.all([service.alarm(true),service.alarm(true)]);
+  assert.equal(calls,1);assert.equal((await storage.get('receipt')).delivery_status,'SENT');
+});
+
+test('clock and prepared alarm race cannot duplicate stock delivery',async()=>{
+  const storage=new Storage();let calls=0,clock=target-90_000;
+  const service=new DispatchService(storage,{DISCORD_WEBHOOK_URL:'https://discord.com/api/webhooks/123/fake'},async()=>{calls++;return Response.json({id:'123'});},()=>clock);
+  await service.prepare(fixture());clock=target;
+  await Promise.all([service.alarm(true),service.alarm()]);
+  assert.equal(calls,1);assert.equal((await storage.get('receipt')).status,'SENT');
 });

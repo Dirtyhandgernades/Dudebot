@@ -79,8 +79,10 @@ def register():
         body={'message_id':receipt['message_id'],'payload':practice_embed(text,audit,now)})
     if formatted.get('status')!='UPDATED' or formatted.get('message_id')!=receipt['message_id']:
         raise ValueError('Cloudflare Discord smoke check failed: '+str({k:formatted.get(k) for k in ['status','stage','error_type','http_status']}))
-    record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,
-                limitation='Hosted delivery verified; first real noon alarm and qualified delivery still pending')
+    clock=http.json(endpoint+'/clock',method='POST',headers=headers,body={}).get('clock')
+    if not clock or not clock.get('enabled'):raise ValueError('Hosted noon clock was not enabled')
+    record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,
+                limitation='Hosted clock armed; first noon alarm pending. Fresh stock report preparation still depends on GitHub; missing reports get a status embed.')
     store.put('cloud_dispatch',record);backend.checkpoint(store)
     folder=root/'reports';folder.mkdir(exist_ok=True)
     (folder/'cloudflare-deployment.json').write_text(json.dumps(record,indent=2));print(json.dumps(record))

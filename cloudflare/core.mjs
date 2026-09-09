@@ -5,6 +5,25 @@ export function pacificParts(time) {
     weekday:'short',hourCycle:'h23'}).formatToParts(new Date(time)).map(p=>[p.type,p.value]));
 }
 export function dateKey(time) {const p=pacificParts(time);return `${p.year}-${p.month}-${p.day}`;}
+export function nextPacificNoon(now) {
+  const start=new Date(now);start.setUTCHours(0,0,0,0);
+  for(let day=0;day<8;day++)for(const hour of [19,20]) {
+    const target=start.getTime()+day*86400_000+hour*3600_000,p=pacificParts(target);
+    if(target>now && p.hour==='12' && !['Sat','Sun'].includes(p.weekday))return target;
+  }
+  throw new Error('No next Pacific noon');
+}
+export function statusPayload(status,now) {
+  const reason={NO_PREPARED_REPORT:'The data preparation job did not provide a fresh report before noon.',
+    NO_QUALIFIED_MATCHES:'The prepared report contained no stocks with all required checks verified.',
+    SUPPRESSED_STALE_OR_INVALID:'The prepared report failed its freshness or validation checks.'}[status];
+  check(reason,'Unsupported daily status');
+  return {content:'',allowed_mentions:{parse:[]},embeds:[{title:'Dudebot · Noon status',color:0xe5a92a,
+    description:reason+' No stock recommendations are included in this status message.',
+    fields:[{name:'Screen',value:'Listed firms first · Nasdaq/NYSE · Price > $3 · Market cap ≥ $25M'},
+      {name:'Delivery',value:'Hosted noon Pacific / 2 p.m. Central status. Market data preparation may still be delayed.'}],
+    footer:{text:'Dudebot · '+dateKey(now)},timestamp:new Date(now).toISOString()}]};
+}
 function check(value, message) {if(!value) throw new Error(message);}
 function stamp(value) {check(typeof value==='string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value),'Invalid timestamp'); const n=Date.parse(value);check(Number.isFinite(n),'Invalid timestamp');return n;}
 export function validatePayload(p, allowPing=false) {
@@ -61,15 +80,41 @@ export class DispatchService {
       return {status:'ARMED',send_at:bundle.send_at,stocks:bundle.items.length};
     });
   }
-  async alarm() {
+  async dailyStatus(status) {
+    const receipt={status,claimed_at:new Date(this.clock()).toISOString(),messages:[]};
+    if(!await this.claim(receipt))return;
+    try {
+      const payload=statusPayload(status,this.clock());validatePayload(payload,false);
+      const response=await this.request(webhookURL(this.env.DISCORD_WEBHOOK_URL)+'?wait=true',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000),redirect:'manual'});
+      if(!response.ok){receipt.delivery_status='REJECTED';receipt.http_status=response.status;}
+      else {const data=await response.json();check(/^\d+$/.test(data.id),'Missing status receipt');receipt.delivery_status='SENT';receipt.messages.push(data.id);}
+    } catch {receipt.delivery_status='UNCERTAIN';}
+    await this.storage.put('receipt',receipt);return receipt;
+  }
+  async claim(receipt) {
+    return this.storage.transaction(async tx=>{
+      if(await tx.get('receipt'))return false;
+      await tx.put('receipt',receipt);return true;
+    });
+  }
+  async alarm(clockTick=false) {
     const bundle=await this.storage.get('bundle');
-    if(!bundle || await this.storage.get('receipt'))return;
+    if(await this.storage.get('receipt'))return;
+    if(!bundle) {
+      if(clockTick)return this.dailyStatus('NO_PREPARED_REPORT');
+      return;
+    }
     let receipt={status:'CLAIMED',claimed_at:new Date(this.clock()).toISOString(),messages:[]};
     try {validateBundle(bundle,this.clock());webhookURL(this.env.DISCORD_WEBHOOK_URL);}
-    catch {await this.storage.put('receipt',{status:'SUPPRESSED_STALE_OR_INVALID',checked_at:receipt.claimed_at});return;}
+    catch {
+      const p=pacificParts(this.clock());
+      if(p.hour==='12' && p.minute==='00' && !['Sat','Sun'].includes(p.weekday))return this.dailyStatus('SUPPRESSED_STALE_OR_INVALID');
+      await this.claim({status:'SUPPRESSED_STALE_OR_INVALID',checked_at:receipt.claimed_at});return;
+    }
+    if(!bundle.items.length)return this.dailyStatus('NO_QUALIFIED_MATCHES');
     // Commit before any request; an alarm retry must not duplicate a Discord ping.
-    await this.storage.put('receipt',receipt);
-    if(!bundle.items.length){receipt.status='NO_QUALIFIED_MATCHES';await this.storage.put('receipt',receipt);return;}
+    if(!await this.claim(receipt))return;
     for(const item of bundle.items) {
       try {
         validateBundle(bundle,this.clock());
