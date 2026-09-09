@@ -67,6 +67,13 @@ def upload_seed(http,endpoint,webhook,candidates,now,cfg,entities):
     return http.json(endpoint_url(endpoint)+'/seed',method='POST',headers={'Authorization':'Bearer '+dispatch_key(webhook)},
                      body=seed_candidates(candidates,now,cfg,entities))
 
+def clock_registration(response):
+    clock=response.get('clock')
+    paused=response.get('control',{}).get('paused') is True
+    if not clock or (not clock.get('enabled') and not paused):
+        raise ValueError('Hosted noon clock was neither enabled nor explicitly paused')
+    return clock,paused
+
 def register():
     """Deployment smoke check, then select one delivery owner in persistent state."""
     from .cli import settings,required_env
@@ -82,13 +89,16 @@ def register():
     for attempt in range(12):
         try:
             health=http.json(endpoint+'/health',timeout=10)
-            if health.get('version')==3 and health.get('configured') is True:break
+            if health.get('version')==4 and health.get('configured') is True:break
         except ProviderError:pass
         if attempt==11:raise ValueError('Cloudflare HTTPS/route is not ready; rerun deployment after propagation')
         if attempt==0:print('Waiting briefly for the new Cloudflare HTTPS endpoint to become ready')
         time.sleep(5)
     verify=http.json(endpoint+'/verify',method='POST',headers=headers,body={})
     if verify.get('status')!='VERIFIED':raise ValueError('Cloudflare durable storage verification failed')
+    previous=http.json(endpoint+'/clock',headers=headers)
+    daily_receipt=http.json(endpoint+'/status',headers=headers)
+    print(json.dumps({'previous_hosted_clock':previous,'today_delivery':daily_receipt}))
     backend=GitHubState(http,required_env('GITHUB_REPOSITORY'),required_env('GITHUB_TOKEN'),cfg.state_branch)
     path=root/'runtime/state.sqlite';backend.restore(path);store=Store(path)
     receipt=store.get('activation:practice-reference-check-2026-09-08')
@@ -104,10 +114,11 @@ def register():
     seed=upload_seed(http,endpoint,webhook,candidates,now,cfg,EntityList(entries))
     provider_check=http.json(endpoint+'/preparation-check',method='POST',headers=headers,body={},timeout=55)
     if provider_check.get('provider_check')!='VERIFIED':raise ValueError('Cloudflare market preparation check failed: '+str(provider_check))
-    clock=http.json(endpoint+'/clock',method='POST',headers=headers,body={}).get('clock')
-    if not clock or not clock.get('enabled'):raise ValueError('Hosted noon clock was not enabled')
-    record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,seed=seed,provider_check=provider_check,
-                limitation='Hosted price/cap/halt refresh and clock enabled; first noon alarm pending. GitHub still refreshes the source-reviewed candidate pool; stale sources are withheld.')
+    clock,paused=clock_registration(http.json(endpoint+'/clock',method='POST',headers=headers,body={}))
+    # enabled selects the delivery owner; a paused Worker must not enable a direct GitHub fallback.
+    record=dict(enabled=True,paused=paused,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,seed=seed,provider_check=provider_check,
+                previous_clock_result=previous.get('last'),previous_preparation=previous.get('preparation'),today_receipt=daily_receipt.get('receipt'),
+                limitation='Hosted price/cap/halt refresh and clock verified; inspect today_receipt for actual delivery. GitHub refreshes the source-reviewed candidate pool; stale sources are withheld. Explicit pause survives deployment.')
     store.put('cloud_dispatch',record);backend.checkpoint(store)
     folder=root/'reports';folder.mkdir(exist_ok=True)
     (folder/'cloudflare-deployment.json').write_text(json.dumps(record,indent=2));print(json.dumps(record))

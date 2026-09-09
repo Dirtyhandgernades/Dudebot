@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dateKey,pacificParts,nextPacificNoon,validateBundle,DispatchService} from './core.mjs';
+import {ClockControl,dateKey,pacificParts,nextPacificNoon,validateBundle,DispatchService} from './core.mjs';
 const target=Date.parse('2026-09-08T19:00:00Z');
 function fixture() {
   return {version:2,profile:'firm_first',feed:'sip',delay_minutes:16,send_at:new Date(target).toISOString(),generated_at:new Date(target-90_000).toISOString(),
@@ -14,7 +14,9 @@ class Storage {
   records=new Map(); alarmTime=null;
   async get(k){return structuredClone(this.records.get(k));}
   async put(k,v){this.records.set(k,structuredClone(v));}
+  async delete(k){this.records.delete(k);}
   async setAlarm(t){this.alarmTime=t;}
+  async deleteAlarm(){this.alarmTime=null;}
   queue=Promise.resolve();
   transaction(fn){const result=this.queue.then(()=>fn(this));this.queue=result.catch(()=>{});return result;}
 }
@@ -79,4 +81,59 @@ test('clock and prepared alarm race cannot duplicate stock delivery',async()=>{
   await service.prepare(fixture());clock=target;
   await Promise.all([service.alarm(true),service.alarm()]);
   assert.equal(calls,1);assert.equal((await storage.get('receipt')).status,'SENT');
+});
+
+test('pause cancels both alarms, discards pending stock picks and survives ordinary clock setup',async()=>{
+  const global=new Storage(),day=new Storage();let now=target-90_000,calls=0;
+  const control=new ClockControl(global,async(key,action)=>{
+    assert.equal(key,'2026-09-08');await service[action]();
+  },()=>now);
+  const service=new DispatchService(day,{DISCORD_WEBHOOK_URL:'https://discord.com/api/webhooks/123/fake'},async()=>{calls++;return Response.json({id:'123'});},()=>now,async()=>!(await control.state()).paused);
+  await control.arm();await service.prepare(fixture());
+  await control.pause();
+  assert.equal(global.alarmTime,null);assert.equal(day.alarmTime,null);assert.equal(await day.get('bundle'),undefined);
+  assert.equal((await control.arm()).enabled,false);assert.equal(global.alarmTime,null);
+  assert.equal((await service.prepare(fixture())).status,'PAUSED');
+  now=target;await service.alarm(true);assert.equal(calls,0);
+});
+
+test('a paused in-flight preparation cannot re-arm either the clock or the daily dispatcher',async()=>{
+  const global=new Storage(),day=new Storage();let release,entered;
+  const waiting=new Promise(resolve=>{entered=resolve;});
+  const gate=new Promise(resolve=>{release=resolve;});
+  const service=new DispatchService(day,{},undefined,()=>target-90_000,async()=>{entered();await gate;return true;});
+  const control=new ClockControl(global,async(_,action)=>service[action](),()=>target-90_000);
+  const oldClock=await control.arm(),preparing=service.prepare(fixture());await waiting;
+  await control.pause();release();
+  assert.equal((await preparing).status,'PAUSED');assert.equal(day.alarmTime,null);
+  assert.equal(await control.active(oldClock),false);
+  assert.equal(await control.advance(oldClock,{...oldClock,phase:'send',next_at:oldClock.send_at}),false);
+  assert.equal(global.alarmTime,null);
+});
+
+test('explicit resume retains sent receipts and invalidates work begun before pause',async()=>{
+  const global=new Storage(),day=new Storage();let now=target-90_000,calls=0;
+  const service=new DispatchService(day,{DISCORD_WEBHOOK_URL:'https://discord.com/api/webhooks/123/fake'},async()=>{calls++;return Response.json({id:'123'});},()=>now,async()=>!(await control.state()).paused);
+  const control=new ClockControl(global,async(_,action)=>service[action](),()=>now);
+  const oldClock=await control.arm();await service.prepare(fixture());now=target;await service.alarm();assert.equal(calls,1);
+  await control.pause();const resumed=await control.arm(true);
+  assert.equal(resumed.send_at,'2026-09-09T19:00:00.000Z');assert.equal((await control.state()).paused,false);
+  assert.equal(await control.active(oldClock),false);assert.equal((await day.get('receipt')).status,'SENT');
+  await service.alarm(true);assert.equal(calls,1);
+});
+
+test('pause during a multi-card report prevents all subsequent Discord requests',async()=>{
+  const storage=new Storage();let now=target-90_000,calls=0;
+  const service=new DispatchService(storage,{DISCORD_WEBHOOK_URL:'https://discord.com/api/webhooks/123/fake'},async()=>{
+    calls++;await service.pause();return Response.json({id:'123'});
+  },()=>now);
+  const b=fixture(),second=structuredClone(b.items[0]);second.ticker='NEXT';second.payload.content='';second.payload.allowed_mentions.parse=[];b.items.push(second);
+  await service.prepare(b);now=target;await service.alarm();
+  assert.equal(calls,1);assert.equal((await storage.get('receipt')).status,'PAUSED');assert.deepEqual((await storage.get('receipt')).messages,['123']);
+});
+
+test('unavailable global pause state fails closed before preparation or status posting',async()=>{
+  const storage=new Storage();let calls=0;
+  const service=new DispatchService(storage,{},async()=>{calls++;},()=>target-90_000,async()=>{throw new Error('control unavailable');});
+  assert.equal((await service.prepare(fixture())).status,'PAUSED');await service.alarm(true);assert.equal(calls,0);
 });

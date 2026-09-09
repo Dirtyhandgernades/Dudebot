@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {DispatchService,dateKey,pacificParts,nextPacificNoon,validatePayload,webhookURL} from './core.mjs';
+import {ClockControl,DispatchService,dateKey,pacificParts,nextPacificNoon,validatePayload,webhookURL} from './core.mjs';
 import {HostedPreparer,validateSeed} from './preparer.mjs';
 
 async function authorized(request,env) {
@@ -13,8 +13,9 @@ async function authorized(request,env) {
 export default {
   async fetch(request,env) {
     const path=new URL(request.url).pathname;
-    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:3,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
+    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:4,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
+    if(['/pause','/resume'].includes(path) && request.method==='POST')return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(['/clock','/seed','/preparation-check'].includes(path) && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(request.method==='GET' && path==='/status')return env.DISPATCH.getByName(dateKey(Date.now())).fetch(request);
     if(request.method!=='POST' || !['/prepare','/practice-format','/verify'].includes(path))return new Response('Not found',{status:404});
@@ -39,9 +40,25 @@ export default {
   }
 };
 export class NoonDispatch extends DurableObject {
-  constructor(ctx,env){super(ctx,env);this.service=new DispatchService(ctx.storage,env);}
+  constructor(ctx,env){
+    super(ctx,env);
+    this.service=new DispatchService(ctx.storage,env,undefined,undefined,async()=>{
+      const response=await env.DISPATCH.getByName('persistent-noon-clock').fetch(new Request('https://internal/control-state'));
+      return response.ok && (await response.json()).paused===false;
+    });
+    this.control=new ClockControl(ctx.storage,async(day,action)=>{
+      const response=await env.DISPATCH.getByName(day).fetch(new Request('https://internal/day-'+action,{method:'POST'}));
+      if(!response.ok)throw new Error('Daily delivery control failed');
+    });
+  }
   async fetch(request) {
     const path=new URL(request.url).pathname;
+    // These internal paths are not forwarded by the public Worker router.
+    if(path==='/control-state')return Response.json(await this.control.state());
+    if(path==='/day-pause')return Response.json(await this.service.pause());
+    if(path==='/day-resume')return Response.json(await this.service.resume());
+    if(path==='/pause' && request.method==='POST')return this.ctx.blockConcurrencyWhile(async()=>Response.json(await this.control.pause()));
+    if(path==='/resume' && request.method==='POST')return this.ctx.blockConcurrencyWhile(async()=>Response.json({status:'RESUMED',clock:await this.control.arm(true)}));
     if(path==='/seed' && request.method==='POST') {
       const raw=await request.text();if(raw.length>200_000)return new Response('Too large',{status:413});
       try {const seed=validateSeed(JSON.parse(raw),Date.now());await this.ctx.storage.put('seed',seed);return Response.json({status:'STORED',candidates:seed.candidates.length});}
@@ -52,13 +69,8 @@ export class NoonDispatch extends DurableObject {
       catch(e){return Response.json({provider_check:'FAILED',error:e.message});}
     }
     if(path==='/clock') {
-      if(request.method==='POST') {
-        const next=nextPacificNoon(Date.now());
-        const refresh=Math.max(Date.now()+1000,next-120_000);
-        await this.ctx.storage.put('clock',{enabled:true,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(refresh).toISOString()});
-        await this.ctx.storage.setAlarm(refresh);
-      }
-      return Response.json({clock:await this.ctx.storage.get('clock')||null,last:await this.ctx.storage.get('clock_last')||null,preparation:await this.ctx.storage.get('preparation_last')||null});
+      if(request.method==='POST')await this.ctx.blockConcurrencyWhile(()=>this.control.arm());
+      return Response.json({control:await this.control.state(),clock:await this.ctx.storage.get('clock')||null,last:await this.ctx.storage.get('clock_last')||null,preparation:await this.ctx.storage.get('preparation_last')||null});
     }
     if(path==='/clock-tick') {
       const p=pacificParts(Date.now());
@@ -66,7 +78,7 @@ export class NoonDispatch extends DurableObject {
       await this.service.alarm(true);
       return Response.json({receipt:await this.ctx.storage.get('receipt')||null});
     }
-    if(request.method==='GET')return Response.json({receipt:await this.ctx.storage.get('receipt')||null,verification:await this.ctx.storage.get('verification')||null,armed:!!await this.ctx.storage.get('bundle')});
+    if(request.method==='GET')return Response.json({receipt:await this.ctx.storage.get('receipt')||null,verification:await this.ctx.storage.get('verification')||null,paused:await this.ctx.storage.get('paused')||false,armed:!!await this.ctx.storage.get('bundle')});
     if(path==='/verify') {
       // Verify durable persistence without modifying an armed noon alarm.
       await this.ctx.storage.put('verification',{status:'VERIFIED',at:new Date().toISOString()});
@@ -77,24 +89,27 @@ export class NoonDispatch extends DurableObject {
   }
   async alarm(){
     const clock=await this.ctx.storage.get('clock');
-    if(!clock?.enabled)return this.service.alarm();
+    if(!clock)return this.service.alarm();
+    if(!clock.enabled || !await this.control.active(clock))return;
     const due=Date.parse(clock.next_at),now=Date.now();
     if(clock.phase==='prepare') {
       const target=Date.parse(clock.send_at);
-      await this.ctx.storage.put('clock',{...clock,phase:'send',next_at:clock.send_at});await this.ctx.storage.setAlarm(target);
+      if(!await this.control.advance(clock,{...clock,phase:'send',next_at:clock.send_at}))return;
       try {
         const seed=await this.ctx.storage.get('seed');
         const result=await new HostedPreparer(this.env).prepare(seed,target);
+        // A pause or re-arm while provider requests were in flight invalidates this work.
+        if(!await this.control.active(clock))return;
         const response=await this.env.DISPATCH.getByName(dateKey(target)).fetch(new Request('https://internal/prepare',{method:'POST',body:JSON.stringify(result.bundle)}));
         if(!response.ok)throw new Error('Daily dispatcher rejected hosted bundle');
+        if((await response.json()).status!=='ARMED')return;
         await this.ctx.storage.put('preparation_last',result.audit);
       } catch(e){await this.ctx.storage.put('preparation_last',{status:'PREPARATION_FAILED',error:e.message,at:new Date().toISOString()});}
       return;
     }
     // Schedule tomorrow before dispatch so a provider failure cannot stop the clock.
     const next=nextPacificNoon(Math.max(now,due));
-    await this.ctx.storage.put('clock',{...clock,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(next-120_000).toISOString()});
-    await this.ctx.storage.setAlarm(next-120_000);
+    if(!await this.control.advance(clock,{...clock,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(next-120_000).toISOString()}))return;
     if(now<due || now-due>=60_000) {
       await this.ctx.storage.put('clock_last',{status:'MISSED_CLOCK_WINDOW',due_at:clock.next_at});return;
     }

@@ -1,0 +1,29 @@
+name: Control hosted Dudebot delivery
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Pause, explicitly resume, or inspect hosted delivery
+        required: true
+        default: status
+        type: choice
+        options: [status, pause, resume]
+permissions:
+  contents: read
+concurrency:
+  group: dudebot-hosted-control
+  cancel-in-progress: false
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply explicit hosted control
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          HOSTED_ACTION: ${{ inputs.action }}
+        run: python cloudflare/control.py "$HOSTED_ACTION"

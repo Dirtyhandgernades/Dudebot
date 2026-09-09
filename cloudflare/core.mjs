@@ -13,6 +13,42 @@ export function nextPacificNoon(now) {
   }
   throw new Error('No next Pacific noon');
 }
+export class ClockControl {
+  constructor(storage,daily,clock=()=>Date.now()){Object.assign(this,{storage,daily,clock});}
+  async state(){return await this.storage.get('control')||{paused:false,revision:0};}
+  async pause() {
+    await this.storage.transaction(async tx=>{
+      const control=await tx.get('control')||{revision:0};
+      await tx.put('control',{paused:true,revision:control.revision+1});
+      await tx.put('clock',{...await tx.get('clock'),enabled:false,paused:true});
+      await tx.deleteAlarm();
+    });
+    // The day keeps its receipt: pause/resume must never erase duplicate protection.
+    await this.daily(dateKey(this.clock()),'pause');
+    return {status:'PAUSED',control:await this.state(),clock:await this.storage.get('clock')};
+  }
+  async arm(resume=false) {
+    if(resume)await this.daily(dateKey(this.clock()),'resume');
+    return this.storage.transaction(async tx=>{
+      const control=await tx.get('control')||{paused:false,revision:0};
+      if(control.paused && !resume)return await tx.get('clock');
+      const next=nextPacificNoon(this.clock()),refresh=Math.max(this.clock()+1000,next-120_000);
+      const state={paused:false,revision:control.revision+1};
+      const clock={enabled:true,paused:false,revision:state.revision,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(refresh).toISOString()};
+      await tx.put('control',state);await tx.put('clock',clock);await tx.setAlarm(refresh);return clock;
+    });
+  }
+  async active(clock) {
+    const control=await this.state();return !control.paused && control.revision===(clock.revision||0);
+  }
+  async advance(expected,next) {
+    return this.storage.transaction(async tx=>{
+      const control=await tx.get('control')||{paused:false,revision:0},current=await tx.get('clock');
+      if(control.paused || control.revision!==(expected.revision||0) || current?.next_at!==expected.next_at || current?.phase!==expected.phase)return false;
+      await tx.put('clock',next);await tx.setAlarm(Date.parse(next.next_at));return true;
+    });
+  }
+}
 export function statusPayload(status,now) {
   const reason={NO_PREPARED_REPORT:'The data preparation job did not provide a fresh report before noon.',
     NO_QUALIFIED_MATCHES:'The prepared report contained no stocks with all required checks verified.',
@@ -71,10 +107,20 @@ export function webhookURL(raw) {
   return u.toString();
 }
 export class DispatchService {
-  constructor(storage,env,request=(...args)=>fetch(...args),clock=()=>Date.now()) {Object.assign(this,{storage,env,request,clock});}
+  constructor(storage,env,request=(...args)=>fetch(...args),clock=()=>Date.now(),deliveryAllowed=async()=>true) {Object.assign(this,{storage,env,request,clock,deliveryAllowed});}
+  async allowed() {
+    try {return await this.deliveryAllowed() && !await this.storage.get('paused');}catch{return false;}
+  }
+  async pause() {
+    await this.storage.transaction(async tx=>{await tx.put('paused',true);await tx.delete('bundle');await tx.deleteAlarm();});
+    return {status:'PAUSED'};
+  }
+  async resume() {await this.storage.put('paused',false);return {status:'RESUMED',receipt:await this.storage.get('receipt')||null};}
   async prepare(bundle) {
+    if(!await this.allowed())return {status:'PAUSED'};
     const target=validateBundle(bundle,this.clock(),true);
     return this.storage.transaction(async tx=>{
+      if(await tx.get('paused'))return {status:'PAUSED'};
       const receipt=await tx.get('receipt'); if(receipt)return receipt;
       await tx.put('bundle',bundle);await tx.setAlarm(target);
       return {status:'ARMED',send_at:bundle.send_at,stocks:bundle.items.length};
@@ -84,6 +130,7 @@ export class DispatchService {
     const receipt={status,claimed_at:new Date(this.clock()).toISOString(),messages:[]};
     if(!await this.claim(receipt))return;
     try {
+      if(!await this.allowed()){receipt.delivery_status='PAUSED';await this.storage.put('receipt',receipt);return receipt;}
       const payload=statusPayload(status,this.clock());validatePayload(payload,false);
       const response=await this.request(webhookURL(this.env.DISCORD_WEBHOOK_URL)+'?wait=true',{
         method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000),redirect:'manual'});
@@ -93,12 +140,14 @@ export class DispatchService {
     await this.storage.put('receipt',receipt);return receipt;
   }
   async claim(receipt) {
+    if(!await this.allowed())return false;
     return this.storage.transaction(async tx=>{
-      if(await tx.get('receipt'))return false;
+      if(await tx.get('paused') || await tx.get('receipt'))return false;
       await tx.put('receipt',receipt);return true;
     });
   }
   async alarm(clockTick=false) {
+    if(!await this.allowed())return {status:'PAUSED'};
     const bundle=await this.storage.get('bundle');
     if(await this.storage.get('receipt'))return;
     if(!bundle) {
@@ -117,6 +166,7 @@ export class DispatchService {
     if(!await this.claim(receipt))return;
     for(const item of bundle.items) {
       try {
+        if(!await this.allowed()){receipt.status='PAUSED';break;}
         validateBundle(bundle,this.clock());
         const response=await this.request(webhookURL(this.env.DISCORD_WEBHOOK_URL)+'?wait=true',{
           method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item.payload),signal:AbortSignal.timeout(8000),redirect:'manual'});

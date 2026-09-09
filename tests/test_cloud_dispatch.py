@@ -4,6 +4,13 @@ from smg.cloud_dispatch import bundle,dispatch_key,endpoint_url
 from smg.demo import NOW
 from test_firm_first import run,CFG
 
+def test_deployment_accepts_persistent_pause_without_treating_broken_clock_as_paused():
+    from smg.cloud_dispatch import clock_registration
+    clock={'enabled':False,'paused':True}
+    assert clock_registration({'clock':clock,'control':{'paused':True}})==(clock,True)
+    with pytest.raises(ValueError):clock_registration({'clock':{'enabled':False}})
+    with pytest.raises(ValueError):clock_registration({'control':{'paused':True}})
+
 def test_bundle_preserves_checks_and_embed_from_real_evaluation():
     e=run();cfg=CFG.model_copy(update={'screening_profile':'firm_first'})
     result=bundle([e],NOW,NOW+timedelta(seconds=90),cfg)
