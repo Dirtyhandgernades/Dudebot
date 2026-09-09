@@ -71,7 +71,7 @@ export function webhookURL(raw) {
   return u.toString();
 }
 export class DispatchService {
-  constructor(storage,env,request=(...args)=>fetch(...args),clock=Date.now) {Object.assign(this,{storage,env,request,clock});}
+  constructor(storage,env,request=(...args)=>fetch(...args),clock=()=>Date.now()) {Object.assign(this,{storage,env,request,clock});}
   async prepare(bundle) {
     const target=validateBundle(bundle,this.clock(),true);
     return this.storage.transaction(async tx=>{

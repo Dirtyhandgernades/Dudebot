@@ -82,7 +82,7 @@ def register():
     for attempt in range(12):
         try:
             health=http.json(endpoint+'/health',timeout=10)
-            if health.get('version')==2 and health.get('configured') is True:break
+            if health.get('version')==3 and health.get('configured') is True:break
         except ProviderError:pass
         if attempt==11:raise ValueError('Cloudflare HTTPS/route is not ready; rerun deployment after propagation')
         if attempt==0:print('Waiting briefly for the new Cloudflare HTTPS endpoint to become ready')

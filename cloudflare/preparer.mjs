@@ -36,9 +36,10 @@ export function haltedSymbols(xml,now) {
   return halted;
 }
 export class HostedPreparer {
-  constructor(env,request=(...args)=>fetch(...args),clock=Date.now){Object.assign(this,{env,request,clock});}
+  constructor(env,request=(...args)=>fetch(...args),clock=()=>Date.now()){Object.assign(this,{env,request,clock});}
   async get(url,headers={}) {
-    const r=await this.request(url,{headers,redirect:'manual',signal:AbortSignal.timeout(10000)});
+    let r;try {r=await this.request(url,{headers,redirect:'manual',signal:AbortSignal.timeout(10000)});}
+    catch(e){throw new Error(new URL(url).hostname+': '+e.message);}
     requireValue(r.ok,new URL(url).hostname+' HTTP '+r.status);return r;
   }
   async prepare(seed,target,verifyOnly=false) {
