@@ -25,3 +25,14 @@ def test_dispatcher_address_and_secret_derivation():
         with pytest.raises(ValueError):endpoint_url(url)
     assert len(dispatch_key('fake-secret'))==64
     assert dispatch_key('fake-secret')!=dispatch_key('different-secret')
+
+def test_hosted_seed_requires_reviewed_firm_structure_and_preserves_evidence():
+    from smg.cloud_dispatch import seed_candidates
+    from test_live_firms import watch,ENTRIES
+    from smg.rules import EntityList
+    c=watch();c.matches[0].evidence.url='https://www.sec.gov/Archives/edgar/data/1/report.htm'
+    packet=seed_candidates([c],NOW,CFG,EntityList(ENTRIES))
+    assert packet['candidates'][0]['ticker']==c.ticker
+    assert packet['candidates'][0]['firms'][0]['role']=='auditor'
+    c.reviewed_at-=timedelta(hours=27)
+    assert seed_candidates([c],NOW,CFG,EntityList(ENTRIES))['candidates']==[]

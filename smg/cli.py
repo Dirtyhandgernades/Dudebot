@@ -81,6 +81,10 @@ def main():
                 discovery=LiveFirmDiscovery(sec,LocalParser(entries),store,cfg)
             else:discovery=Discovery(sec,LocalParser(entries),store,cfg)
             candidates=discovery.run(now)
+            cloud=store.get('cloud_dispatch',{})
+            if cloud.get('enabled') and os.environ.get('DISCORD_ENABLED')=='true':
+                from .cloud_dispatch import upload_seed
+                upload_seed(http,cloud['endpoint'],required_env('DISCORD_WEBHOOK_URL'),candidates,datetime.now(UTC),cfg,entities)
             print(json.dumps({'stored_candidates':len(candidates),'issues':discovery.issues,'filing_downloads':discovery.downloads}));return
         if args.command=='activate':
             if os.environ.get('DISCORD_ENABLED')!='true':raise ValueError('Discord delivery is disabled')

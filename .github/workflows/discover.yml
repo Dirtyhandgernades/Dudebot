@@ -17,6 +17,8 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SURGE_RETURN_MIN_PCT: ${{ vars.SURGE_RETURN_MIN_PCT }}
       SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

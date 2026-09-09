@@ -47,6 +47,26 @@ def prepare(http,endpoint,webhook,results,now,target,cfg):
     if result.get('status')!='ARMED':raise ValueError('Cloudflare did not arm a new delivery; inspect dispatcher status')
     return result
 
+def seed_candidates(candidates,now,cfg,entities):
+    from .firm_first import firm_structure
+    selected=[]
+    for c in candidates:
+        result=firm_structure(c,cfg,entities,now)
+        if c.pipeline!='FIRM_WATCH' or result.status!='STRUCTURAL_MATCH':continue
+        if any('ads ratio' in n.lower() or 'ticker change' in n.lower() for n in c.notes):continue
+        selected.append((min(m['priority'] for m in result.matches),-len(result.matches),c,result))
+    selected.sort(key=lambda x:(x[0],x[1],x[2].ticker))
+    rows=[]
+    for _,_,c,result in selected[:30]:
+        rows.append(dict(ticker=c.ticker,is_acquisition_corp=False,classification_evidence=True,corporate_action_review=False,
+            exchange=c.exchange,security_type=c.security_type,reviewed_at=c.reviewed_at.isoformat(),
+            firms=[dict(name=m['name'],role=m['role']) for m in result.matches],source_url=c.matches[0].evidence.url))
+    return dict(version=1,generated_at=now.isoformat(),candidates=rows,omitted_for_capacity=max(0,len(selected)-30))
+
+def upload_seed(http,endpoint,webhook,candidates,now,cfg,entities):
+    return http.json(endpoint_url(endpoint)+'/seed',method='POST',headers={'Authorization':'Bearer '+dispatch_key(webhook)},
+                     body=seed_candidates(candidates,now,cfg,entities))
+
 def register():
     """Deployment smoke check, then select one delivery owner in persistent state."""
     from .cli import settings,required_env
@@ -79,10 +99,15 @@ def register():
         body={'message_id':receipt['message_id'],'payload':practice_embed(text,audit,now)})
     if formatted.get('status')!='UPDATED' or formatted.get('message_id')!=receipt['message_id']:
         raise ValueError('Cloudflare Discord smoke check failed: '+str({k:formatted.get(k) for k in ['status','stage','error_type','http_status']}))
+    from .models import Candidate
+    candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:FIRM_WATCH:')]
+    seed=upload_seed(http,endpoint,webhook,candidates,now,cfg,EntityList(entries))
+    provider_check=http.json(endpoint+'/preparation-check',method='POST',headers=headers,body={},timeout=55)
+    if provider_check.get('provider_check')!='VERIFIED':raise ValueError('Cloudflare market preparation check failed: '+str(provider_check))
     clock=http.json(endpoint+'/clock',method='POST',headers=headers,body={}).get('clock')
     if not clock or not clock.get('enabled'):raise ValueError('Hosted noon clock was not enabled')
-    record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,
-                limitation='Hosted clock armed; first noon alarm pending. Fresh stock report preparation still depends on GitHub; missing reports get a status embed.')
+    record=dict(enabled=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,seed=seed,provider_check=provider_check,
+                limitation='Hosted price/cap/halt refresh and clock enabled; first noon alarm pending. GitHub still refreshes the source-reviewed candidate pool; stale sources are withheld.')
     store.put('cloud_dispatch',record);backend.checkpoint(store)
     folder=root/'reports';folder.mkdir(exist_ok=True)
     (folder/'cloudflare-deployment.json').write_text(json.dumps(record,indent=2));print(json.dumps(record))

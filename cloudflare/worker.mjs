@@ -1,5 +1,6 @@
 import {DurableObject} from 'cloudflare:workers';
 import {DispatchService,dateKey,pacificParts,nextPacificNoon,validatePayload,webhookURL} from './core.mjs';
+import {HostedPreparer,validateSeed} from './preparer.mjs';
 
 async function authorized(request,env) {
   if(!env.DISPATCH_KEY || env.DISPATCH_KEY.length!==64)return false;
@@ -14,7 +15,7 @@ export default {
     const path=new URL(request.url).pathname;
     if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:2,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
-    if(path==='/clock' && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
+    if(['/clock','/seed','/preparation-check'].includes(path) && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(request.method==='GET' && path==='/status')return env.DISPATCH.getByName(dateKey(Date.now())).fetch(request);
     if(request.method!=='POST' || !['/prepare','/practice-format','/verify'].includes(path))return new Response('Not found',{status:404});
     let stage='read';
@@ -41,13 +42,23 @@ export class NoonDispatch extends DurableObject {
   constructor(ctx,env){super(ctx,env);this.service=new DispatchService(ctx.storage,env);}
   async fetch(request) {
     const path=new URL(request.url).pathname;
+    if(path==='/seed' && request.method==='POST') {
+      const raw=await request.text();if(raw.length>200_000)return new Response('Too large',{status:413});
+      try {const seed=validateSeed(JSON.parse(raw),Date.now());await this.ctx.storage.put('seed',seed);return Response.json({status:'STORED',candidates:seed.candidates.length});}
+      catch {return Response.json({status:'INVALID_SEED'},{status:400});}
+    }
+    if(path==='/preparation-check' && request.method==='POST') {
+      try {const seed=await this.ctx.storage.get('seed');const result=await new HostedPreparer(this.env).prepare(seed,Date.now()+120_000,true);return Response.json(result.audit);}
+      catch(e){return Response.json({provider_check:'FAILED',error:e.message});}
+    }
     if(path==='/clock') {
       if(request.method==='POST') {
         const next=nextPacificNoon(Date.now());
-        await this.ctx.storage.put('clock',{enabled:true,next_at:new Date(next).toISOString()});
-        await this.ctx.storage.setAlarm(next);
+        const refresh=Math.max(Date.now()+1000,next-120_000);
+        await this.ctx.storage.put('clock',{enabled:true,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(refresh).toISOString()});
+        await this.ctx.storage.setAlarm(refresh);
       }
-      return Response.json({clock:await this.ctx.storage.get('clock')||null,last:await this.ctx.storage.get('clock_last')||null});
+      return Response.json({clock:await this.ctx.storage.get('clock')||null,last:await this.ctx.storage.get('clock_last')||null,preparation:await this.ctx.storage.get('preparation_last')||null});
     }
     if(path==='/clock-tick') {
       const p=pacificParts(Date.now());
@@ -68,10 +79,22 @@ export class NoonDispatch extends DurableObject {
     const clock=await this.ctx.storage.get('clock');
     if(!clock?.enabled)return this.service.alarm();
     const due=Date.parse(clock.next_at),now=Date.now();
+    if(clock.phase==='prepare') {
+      const target=Date.parse(clock.send_at);
+      await this.ctx.storage.put('clock',{...clock,phase:'send',next_at:clock.send_at});await this.ctx.storage.setAlarm(target);
+      try {
+        const seed=await this.ctx.storage.get('seed');
+        const result=await new HostedPreparer(this.env).prepare(seed,target);
+        const response=await this.env.DISPATCH.getByName(dateKey(target)).fetch(new Request('https://internal/prepare',{method:'POST',body:JSON.stringify(result.bundle)}));
+        if(!response.ok)throw new Error('Daily dispatcher rejected hosted bundle');
+        await this.ctx.storage.put('preparation_last',result.audit);
+      } catch(e){await this.ctx.storage.put('preparation_last',{status:'PREPARATION_FAILED',error:e.message,at:new Date().toISOString()});}
+      return;
+    }
     // Schedule tomorrow before dispatch so a provider failure cannot stop the clock.
     const next=nextPacificNoon(Math.max(now,due));
-    await this.ctx.storage.put('clock',{...clock,next_at:new Date(next).toISOString()});
-    await this.ctx.storage.setAlarm(next);
+    await this.ctx.storage.put('clock',{...clock,phase:'prepare',send_at:new Date(next).toISOString(),next_at:new Date(next-120_000).toISOString()});
+    await this.ctx.storage.setAlarm(next-120_000);
     if(now<due || now-due>=60_000) {
       await this.ctx.storage.put('clock_last',{status:'MISSED_CLOCK_WINDOW',due_at:clock.next_at});return;
     }
