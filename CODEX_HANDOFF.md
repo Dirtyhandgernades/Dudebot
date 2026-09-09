@@ -2,6 +2,21 @@
 
 ## Continuation update, September 8, 2026
 
+Expanded daily replay completed successfully in run 34282115089 at commit
+772882394821da2db10ff8177e25ff9152b6b5b7. Artifact 10078229629 contains all
+6,421 planned decisions for the same 78 selected filings / 17 distinct tickers.
+Comparison: 2 conditional firm/price matches (BTOG before 2024-06-28 via WWC;
+MTC before 2024-05-20 via WestPark), 2 sampled without a firm/price match
+(GVH and JZ: sampled prices below $3 plus missing sessions), 226 not covered.
+Zero fully verified detections; misses and full detection rate remain undefined.
+Historical cap, halt, later source context and symbol intervals remain gaps.
+52/78 sampled filings had unresolved ticker/exchange, so discovery coverage is
+the main next priority. The user benchmark of finding most examples is unmet.
+Do not call this a completed full-universe backtest. The 439-decision results
+below are superseded by this daily-watch run. Local outputs/backtest/daily-replay
+contains the downloaded evidence; outputs/backtest/progress_report.md is updated.
+Rough overall remaining effort is 50%, an estimate, not a measured progress score.
+
 First independent replay completed: 78 filings processed, 23 candidate records /
 17 distinct tickers, 439 historical decisions. Eight independently found tickers
 are in the reference file: BTOG, GVH, IFBD, JBDI, JZ, MTC, TKLF, ZJYL. None of
