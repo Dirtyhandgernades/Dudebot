@@ -72,7 +72,8 @@ def source_identity(soup,text):
             if not cells:continue
             joined=' '.join(cells)
             if not re.search(r'ordinary shares|common (?:stock|shares)|depositary shares',joined,re.I):continue
-            ex='XNAS' if re.search(r'Nasdaq',joined,re.I) else 'XNYS' if re.search(r'New York Stock Exchange|\bNYSE\b',joined,re.I) else None
+            other_nyse=re.search(r'(?:NYSE|New York Stock Exchange)\s*(?:American|Arca|National|Texas)',joined,re.I)
+            ex='XNAS' if re.search(r'Nasdaq',joined,re.I) else 'XNYS' if not other_nyse and re.search(r'New York Stock Exchange|\bNYSE\b',joined,re.I) else None
             for cell in cells:
                 symbol=re.sub(r'\s*\([0-9]+\)\s*$','',cell).strip(' \"“”')
                 if ex and re.fullmatch('[A-Z]{1,6}',symbol) and symbol not in {'NYSE','NASDAQ','XNAS','XNYS'}:
@@ -81,13 +82,16 @@ def source_identity(soup,text):
         table_symbol,table_exchange=registered[0]
         if not symbols or table_symbol in symbols:return table_symbol,table_exchange,names
     if len(symbols)==1 and exchange:return next(iter(symbols)),exchange,names
-    if not symbols:
-        symbols=set(re.findall(r'(?:Nasdaq|NASDAQ|NYSE)\s*[:：]\s*([A-Z]{1,6})\b',text))
-        symbols|=set(re.findall(r'(?:trading |ticker |trading ticker )?symbol\s+[“"\']([A-Z]{1,6})[”"\']',text))
-    if exchange is None:
-        if re.search(r'(?:listed|trade[sd]?|trading)\s+(?:on|in)\s+(?:the\s+)?Nasdaq',text,re.I):exchange='XNAS'
-        elif re.search(r'(?:listed|trade[sd]?|trading)\s+(?:on|in)\s+(?:the\s+)?New York Stock Exchange',text,re.I):exchange='XNYS'
-    return next(iter(symbols)) if len(symbols)==1 else None,exchange,names
+    # Never take a customer's, competitor's or officer's former employer's
+    # ticker from an unscoped NASDAQ:XYZ mention elsewhere in an issuer filing.
+    own=r'(?:our|the company[’\']s)\s+[^;]{0,90}?(?:shares|stock|ADSs?)\b[^;]{0,160}?(?:listed|trade[sd]?|trading)\b[^;]{0,80}?'
+    venue=r'(Nasdaq|New York Stock Exchange|NYSE)(?!\s*(?:American|Arca|National|Texas))'
+    symbol=r'[^;]{0,100}?\b(?:symbol|ticker)\s*[“"\']((?-i:[A-Z]{1,6}))[”"\']'
+    declarations={(m.group(2),'XNAS' if m.group(1).lower()=='nasdaq' else 'XNYS') for m in re.finditer(own+venue+symbol,text,re.I)}
+    if len(declarations)==1:
+        ticker,venue=next(iter(declarations))
+        if not symbols or symbols=={ticker}:return ticker,venue,names
+    return None,None,names
 
 def parse_source(identifier,src,raw,entries):
     accession,filename=identifier.split(':',1)
@@ -117,7 +121,7 @@ def main():
         if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession) or '..' in filename:continue
         url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
         path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.html')
-        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v3.json')
+        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v4.json')
         try:
             if parsed_path.exists():
                 parsed=json.loads(parsed_path.read_text());status=parsed['status']

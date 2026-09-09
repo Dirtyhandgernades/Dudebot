@@ -10,9 +10,12 @@ from .firm_search import query_text
 
 def extract_watch(job,docs,now,entries):
     primary=docs[0];matches=[];proofs={};notes=[]
+    folded=primary['text'].casefold()
     for role,groups in entries.items():
         for names in groups.values():
             for name in names:
+                brand=next((t for t in re.findall(r'[A-Za-z0-9]+',name) if len(t)>=3),None)
+                if brand and brand.casefold() not in folded:continue
                 pattern=name_pattern(name)
                 # Most firms are absent. Avoid three full-document role scans
                 # for every absent name in long annual filings.

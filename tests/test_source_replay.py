@@ -40,3 +40,18 @@ def test_registration_table_maps_common_equity_without_using_warrant_ticker():
     assert source_identity(soup,soup.get_text(' ',strip=True))[:2]==('ABCD','XNAS')
     native=lhtml.document_fromstring(raw)
     assert source_identity(native,' '.join(native.itertext()))[:2]==('ABCD','XNAS')
+
+
+def test_other_company_ticker_cannot_become_the_issuer_identity():
+    raw='<p>We are a private advertising company. A former employer was Expedia (NASDAQ:EXPE). Companies may be listed on Nasdaq.</p>'
+    native=lhtml.document_fromstring(raw)
+    assert source_identity(native,' '.join(native.itertext()))[:2]==(None,None)
+    raw='<p>Our ordinary shares are listed on the Nasdaq Capital Market under the symbol "REAL". Expedia (NASDAQ:EXPE) is a customer.</p>'
+    native=lhtml.document_fromstring(raw)
+    assert source_identity(native,' '.join(native.itertext()))[:2]==('REAL','XNAS')
+
+
+def test_nyse_american_is_not_treated_as_nyse():
+    raw='<table><tr><td>Trading Symbol(s)</td></tr><tr><td>Common stock</td><td>TEST</td><td>NYSE American</td></tr></table>'
+    native=lhtml.document_fromstring(raw)
+    assert source_identity(native,' '.join(native.itertext()))[:2]==(None,None)
