@@ -36,7 +36,7 @@ export function haltedSymbols(xml,now) {
   return halted;
 }
 export class HostedPreparer {
-  constructor(env,request=fetch,clock=Date.now){Object.assign(this,{env,request,clock});}
+  constructor(env,request=(...args)=>fetch(...args),clock=Date.now){Object.assign(this,{env,request,clock});}
   async get(url,headers={}) {
     const r=await this.request(url,{headers,redirect:'manual',signal:AbortSignal.timeout(10000)});
     requireValue(r.ok,new URL(url).hostname+' HTTP '+r.status);return r;
