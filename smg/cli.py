@@ -81,10 +81,6 @@ def main():
                 discovery=LiveFirmDiscovery(sec,LocalParser(entries),store,cfg)
             else:discovery=Discovery(sec,LocalParser(entries),store,cfg)
             candidates=discovery.run(now)
-            from .shortability import archive_current
-            archive_current(store,http,sorted({c.ticker for c in candidates}),now,
-                required_env('ALPACA_API_KEY'),required_env('ALPACA_SECRET_KEY'))
-            checkpoint(store)
             cloud=store.get('cloud_dispatch',{})
             if cloud.get('enabled') and os.environ.get('DISCORD_ENABLED')=='true':
                 from .cloud_dispatch import upload_seed
