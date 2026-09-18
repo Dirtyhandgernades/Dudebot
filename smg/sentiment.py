@@ -5,6 +5,7 @@ cached by the caller; this module does not scrape at high frequency.
 """
 import re
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from collections import Counter
 from email.utils import parsedate_to_datetime
 from urllib.parse import quote
@@ -18,7 +19,7 @@ def _news_score(title):
     return sum(w in words for w in positive)-sum(w in words for w in negative)
 
 def collect(ticker, http=None):
-    http=http or Http();out={'ticker':ticker,'providers':{},'score':None,'limitations':[]}
+    http=http or Http();out={'ticker':ticker,'observed_at':datetime.now(timezone.utc).isoformat(),'providers':{},'score':None,'limitations':[]}
     scores=[]
     try:
         raw=http.text('https://finviz.com/quote.ashx?t='+quote(ticker),headers={'User-Agent':'Mozilla/5.0'})

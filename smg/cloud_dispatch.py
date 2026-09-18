@@ -72,6 +72,14 @@ def upload_seed(http,endpoint,webhook,candidates,now,cfg,entities):
         borrow=current_assets(http,[row['ticker'] for row in packet['candidates']])
         for row in packet['candidates']:
             row['current_borrow']=borrow['assets'].get(row['ticker'],{'status':'UNAVAILABLE'})
+        packet['candidates']=[row for row in packet['candidates'] if row['current_borrow'].get('status')=='CURRENT'
+                              and row['current_borrow'].get('shortable') is True
+                              and row['current_borrow'].get('borrow_status') in {'easy_to_borrow','easy_to_borrow_or_locate'}]
+        from .sentiment import collect
+        for row in packet['candidates']:
+            row['sentiment']=collect(row['ticker'],http)
+        # Sentiment ranks the watchlist only; it never changes hard gates.
+        packet['candidates'].sort(key=lambda row:(-(row.get('sentiment',{}).get('score') or 0),row['ticker']))
         packet['shortability']=borrow['limitation']
     except Exception:
         packet['shortability']='CURRENT_BORROW_UNAVAILABLE; historical status unknown'

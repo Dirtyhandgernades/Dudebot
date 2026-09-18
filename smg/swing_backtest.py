@@ -130,7 +130,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         curve.append(dict(date=day,equity=equity if valuation_complete else None,open_positions=len(positions)))
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
-    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,
+    borrow_metrics={'detected':signals if side<0 else 0,'executable':0,'unavailable':signals if side<0 else 0,'rejected':0}
+    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,borrow_metrics=borrow_metrics,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
