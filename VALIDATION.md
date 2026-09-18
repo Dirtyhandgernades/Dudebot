@@ -1,8 +1,5 @@
 # Validation record
 
-- September 9: hosted Alpaca, Nasdaq market-cap and halt-feed checks succeeded from Cloudflare in run 34304719557. Nine source-reviewed candidates were stored; the off-hours probe correctly produced zero qualified picks. The clock is armed to refresh at 18:58 UTC and send at 19:00 UTC on September 9 (noon Pacific). The first real noon alarm remains pending.
-- Broader replay run 34303054242 processed 847 of 2,608 selected primary filings and all 90,160 planned decisions for those sources: 27 provisional firm/price event matches, 12 sampled without a match, 191 uncovered. Source identity auditing found an unrelated-company ticker could be selected from filing prose; the parser now requires issuer-linked declarations, and corrected replay results must replace these provisional counts.
-- Current Python and hosted dispatcher tests cover the game gates, historical identity boundaries, DST/weekends, atomic duplicate protection and hosted provider parsing. Test success is not trading-performance evidence.
 - Latest DECA update: 121 Python tests and 5 dispatcher tests pass. Both profiles and both senders enforce current price > $3 and market cap >= $25M, with Nasdaq/NYSE scope. Boundary, unknown/future cap and independent source-selection tests are included.
 - Cloudflare activation verified durable storage and successfully edited the existing practice message in run 34281212506. The free Worker is selected as delivery owner; the first qualified noon alarm is not yet validated.
 - Today’s GitHub noon run 34279293529 started late and logged MISSED_SEND_WINDOW. Cloudflare final delivery does not eliminate the remaining dependency on GitHub preparing fresh data.
@@ -19,5 +16,5 @@
 - Nasdaq's public halt RSS returned HTTP 200 during development and its field names matched the parser.
 - Authenticated historical Alpaca SIP access and SEC downloads succeeded in the bounded GitHub backtest workflow. Initial five-minute probes found bars for 180 of 230 reference events and empty intervals for 50; these are availability results only. Wider gap checks retain the historical cutoff and do not infer halt clearance.
 - Live Discord activation succeeded in run https://github.com/Dirtyhandgernades/Dudebot/actions/runs/34192293139. Discord returned message ID 1546760331131625533. This was an activation receipt without mentions, not a qualified stock alert. Initial discovery reviewed 55 source records and stored 19 research candidates; coverage is partial.
-- Real partial historical replays have completed; the full universe and point-in-time eligibility verification remain incomplete. Offline unit tests and fictional examples are not backtest evidence. The user-supplied event list is retained as comparison labels.
+- No real historical market replay has been completed. Offline unit tests and fictional examples are not backtest evidence. The user-supplied event list is retained as unverified comparison labels.
 - Dependency versions used locally are recorded in `requirements-tested.txt`.

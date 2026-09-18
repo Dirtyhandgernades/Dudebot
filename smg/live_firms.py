@@ -139,9 +139,10 @@ class LiveFirmDiscovery:
         jobs=sorted(self.store.items('firm_job:'),key=lambda x:x[1]['date'],reverse=True)
         fresh=[j for j in jobs if not self.store.get('firm_checked:'+j[0])]
         refresh=[j for j in jobs if self.store.get('firm_checked:'+j[0]) and self.store.get('candidate:FIRM_WATCH:'+j[1]['cik']+':FIRMS')]
-        # Reserve refresh capacity so an initial backfill cannot make all live
-        # candidates stale. Keep new-source capacity in the same bounded run.
-        jobs=refresh[:20]+fresh+refresh[20:]
+        # Existing candidates are the live trading universe. Refresh most of
+        # them first so a growing historical backlog cannot silently age out
+        # every alert. Keep ten slots for genuinely new filings each run.
+        jobs=refresh[:50]+fresh[:10]+refresh[50:]+fresh[10:]
         reviewed=set();count=0
         for key,job in jobs:
             if count>=60 or self.downloads>=self.cfg.filings_max_downloads_per_run or time.monotonic()-started>300:break
