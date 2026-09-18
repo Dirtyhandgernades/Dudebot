@@ -28,6 +28,13 @@ def frozen_cohort(records, start=START):
     return sorted({r['ticker'] for r in latest.values()
         if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in r.get('reasons',[])})
 
+def broad_cohort(records, start=START):
+    """Independent long universe: every issuer-linked extracted symbol before start.
+    It still excludes five-letter symbols and does not read reference labels.
+    """
+    return sorted({r['ticker'] for r in records if r.get('cik') and r['decision_at'][:10]<start
+                   and r.get('ticker') and not __import__('re').fullmatch('[A-Z]{5}',r['ticker'])})
+
 def download(symbols, start, end, cache):
     http=Http();headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
     output={};requests=0
@@ -65,7 +72,7 @@ def signal(history):
         result.append('BREAKOUT_LONG')
     return result
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -84,8 +91,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             if not bar:
                 gaps['MISSING_EXIT_BAR']+=1;continue
             ratio=bar['c']/p['adjusted_entry'];gross=p['notional']*side*(ratio-1)
-            exit_fee=p['notional']*ratio*fee
-            borrow=p['notional']*.10*(date.fromisoformat(day)-date.fromisoformat(p['entry_date'])).days/365 if side<0 else 0
+            exit_fee=p['notional']*ratio*fee+commission
+            borrow=p['notional']*borrow_rate*(date.fromisoformat(day)-date.fromisoformat(p['entry_date'])).days/365 if side<0 else 0
             pnl=gross-p['entry_fee']-exit_fee-borrow
             cash+=p['notional']+gross-exit_fee-borrow
             trades.append({**p,'exit_date':day,'ticker':ticker,'side':'LONG' if side>0 else 'SHORT','pnl':pnl,'return_pct':100*pnl/p['notional'],'gross_return_pct':100*side*(ratio-1)})
@@ -107,9 +114,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['MISSING_ENTRY_BAR']+=1;continue
                 if entry['c']<=3:
                     gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                shares=math.floor(min(initial*.10,cash/(1+fee))/entry['c'])
+                shares=math.floor(min(initial*.10,(cash-commission)/(1+fee))/entry['c'])
                 if shares<10:continue
-                notional=shares*entry['c'];entry_fee=notional*fee
+                notional=shares*entry['c'];entry_fee=notional*fee+commission
                 cash-=notional+entry_fee
                 planned=sessions[min(i+hold,index[days[-1]])]
                 positions[ticker]=dict(signal_date=prior[-1],entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee)
@@ -123,32 +130,37 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         curve.append(dict(date=day,equity=equity if valuation_complete else None,open_positions=len(positions)))
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
-    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,initial_balance=initial,
+    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
         gross_20pct_winners=sum(t['gross_return_pct']>=20-1e-10 for t in trades),gross_30pct_winners=sum(t['gross_return_pct']>=30-1e-10 for t in trades),
-        signals=signals,gaps=dict(gaps),trades=trades,daily_equity=curve)
+        signals=signals,gaps=dict(gaps),unresolved_positions=positions,trades=trades,daily_equity=curve)
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--replay',default='backtest/runtime/corrected-replay/decisions.json')
     args=parser.parse_args();root=Path.cwd();records=json.loads(Path(args.replay).read_text())
-    symbols=frozen_cohort(records);cache=root/'backtest/runtime/swing-bars';cache.mkdir(parents=True,exist_ok=True)
-    if not symbols:raise ValueError('No independently discovered pre-period cohort')
+    symbols=frozen_cohort(records);long_symbols=broad_cohort(records);download_symbols=sorted(set(symbols)|set(long_symbols));cache=root/'backtest/runtime/swing-bars';cache.mkdir(parents=True,exist_ok=True)
+    if not symbols or not long_symbols:raise ValueError('No independently discovered pre-period cohort')
     sessions=[str(s.date()) for s in calendar(2025).sessions_in_range('2025-06-01',END)]
-    data,requests=download(symbols,'2025-06-01',END,cache)
+    data,requests=download(download_symbols,'2025-06-01',END,cache)
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
-        for hold in [1,3,5,7]:
-            result=simulate(data['raw'],data['split'],symbols,sessions,hold=hold,strategy=strategy)
+        for hold in [1,3,4,5,7]:
+            universe=long_symbols if strategy=='BREAKOUT_LONG' else symbols
+            result=simulate(data['raw'],data['split'],universe,sessions,hold=hold,strategy=strategy)
             (out/f'{strategy}-{hold}.json').write_text(json.dumps(result))
-            summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity'}})
-    report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,cohort_symbols=symbols,cohort_size=len(symbols),market_requests=requests,
-        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,
+            summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
+    stress=[]
+    for hold in [1,3,4,5,7]:
+        result=simulate(data['raw'],data['split'],symbols,sessions,hold=hold,cost_bps=100,borrow_rate=1.0)
+        stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
+    report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
+        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,
         assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
-          '30 basis points per side cost assumption; shorts assume 10% annual borrow; actual SMG fees not confirmed',
+          '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',
           'Raw price for $3 gate; split-adjusted price ratios for signals and returns; no current-symbol alias mapping',
           'Deterministic alphabetical tie-break; same-close position sizing assumes a dollar allocation filled in whole shares'],
         limitations=['Historical cap, halt, borrow availability, dividends and SMG security availability unverified; NOT executable profit',

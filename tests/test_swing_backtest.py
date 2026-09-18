@@ -17,7 +17,7 @@ def test_short_accounting_charges_both_sides_and_borrow():
     result=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[23],hold=1)
     assert result['closed_trades']==0  # No failure signal on constant prior prices.
     result=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[23],hold=1,strategy='FIRM_BASELINE_SHORT')
-    expected=2000-30-24-10000*.1/365
+    expected=2000-30-24-10-10000*.1/365
     assert result['net_profit']==pytest.approx(expected,abs=.01)
     assert result['trades'][0]['signal_date']==days[21]
     assert result['trades'][0]['entry_date']==days[22]

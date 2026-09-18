@@ -64,8 +64,18 @@ def seed_candidates(candidates,now,cfg,entities):
     return dict(version=1,generated_at=now.isoformat(),candidates=rows,omitted_for_capacity=max(0,len(selected)-30))
 
 def upload_seed(http,endpoint,webhook,candidates,now,cfg,entities):
-    return http.json(endpoint_url(endpoint)+'/seed',method='POST',headers={'Authorization':'Bearer '+dispatch_key(webhook)},
-                     body=seed_candidates(candidates,now,cfg,entities))
+    packet=seed_candidates(candidates,now,cfg,entities)
+    # Current borrow evidence is advisory and never substitutes for historical
+    # shortability or the game's security table.
+    try:
+        from .shortability import current_assets
+        borrow=current_assets(http,[row['ticker'] for row in packet['candidates']])
+        for row in packet['candidates']:
+            row['current_borrow']=borrow['assets'].get(row['ticker'],{'status':'UNAVAILABLE'})
+        packet['shortability']=borrow['limitation']
+    except Exception:
+        packet['shortability']='CURRENT_BORROW_UNAVAILABLE; historical status unknown'
+    return http.json(endpoint_url(endpoint)+'/seed',method='POST',headers={'Authorization':'Bearer '+dispatch_key(webhook)},body=packet)
 
 def clock_registration(response):
     clock=response.get('clock')
