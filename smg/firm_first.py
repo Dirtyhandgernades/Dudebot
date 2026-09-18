@@ -8,13 +8,14 @@ from datetime import timedelta
 
 from .models import Evaluation
 from .rules import structural
-from .game_rules import eligibility,APPROVED_EXCHANGES
+from .game_rules import eligibility,APPROVED_EXCHANGES,is_excluded_symbol
 
 
 def firm_structure(candidate,cfg,entities,now):
     strict = structural(candidate,cfg,entities,now)
     reasons = []
     hard = []
+    if is_excluded_symbol(candidate.ticker): hard.append('SMG_EXCLUDED_SYMBOL')
     if re.fullmatch('[A-Z]{5}',candidate.ticker.upper()):
         hard.append('FIVE_LETTER_TICKER')
     if candidate.is_acquisition_corp is True:

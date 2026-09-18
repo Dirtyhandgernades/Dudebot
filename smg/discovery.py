@@ -2,6 +2,7 @@
 from datetime import date,timedelta
 import re,json,hashlib,time
 from .models import Candidate
+from .game_rules import is_excluded_symbol
 from .rules import years_ago
 
 class Discovery:
@@ -95,6 +96,7 @@ class Discovery:
         result=[]
         for _,raw in self.store.items('candidate:'):
             c=Candidate.model_validate(raw)
+            if is_excluded_symbol(c.ticker): continue
             if c.pipeline=='DIRECT_OFFERING' and c.event_date<now.date()-timedelta(days=self.cfg.direct_offering_backfill_days):continue
             result.append(c)
         return result

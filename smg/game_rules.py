@@ -1,5 +1,14 @@
 """User's hard DECA research eligibility gates, separate from order execution."""
+from pathlib import Path
+import re
 APPROVED_EXCHANGES={'XNAS','NASDAQ','XNYS','NYSE'}
+_EXCLUDED_PATH = Path(__file__).resolve().parents[1] / 'config' / 'smg_excluded_symbols.txt'
+def _symbol_key(value): return re.sub(r'\s+', '', str(value).upper()).strip()
+try:
+    EXCLUDED_SYMBOLS=frozenset(_symbol_key(x) for x in _EXCLUDED_PATH.read_text(encoding='utf-8').splitlines() if x.strip() and not x.lstrip().startswith('#'))
+except OSError:
+    EXCLUDED_SYMBOLS=frozenset()
+def is_excluded_symbol(symbol): return _symbol_key(symbol) in EXCLUDED_SYMBOLS
 
 def eligibility(snapshot,cfg,now):
     if snapshot.price<=cfg.game_min_price_exclusive:return 'EXCLUDED',['GAME_PRICE_NOT_ABOVE_3']

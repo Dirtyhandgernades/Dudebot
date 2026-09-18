@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from .market import calendar
 from .transport import Http
+from .game_rules import is_excluded_symbol
 
 START='2025-09-08'
 END='2025-12-05'
@@ -26,14 +27,15 @@ def frozen_cohort(records, start=START):
         if key not in latest or row['decision_at']>latest[key]['decision_at']:latest[key]=row
     # No price outcome, current asset membership or reference label selects the cohort.
     return sorted({r['ticker'] for r in latest.values()
-        if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in r.get('reasons',[])})
+        if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in r.get('reasons',[]) and not is_excluded_symbol(r['ticker'])})
 
 def broad_cohort(records, start=START):
     """Independent long universe: every issuer-linked extracted symbol before start.
     It still excludes five-letter symbols and does not read reference labels.
     """
     return sorted({r['ticker'] for r in records if r.get('cik') and r['decision_at'][:10]<start
-                   and r.get('ticker') and not __import__('re').fullmatch('[A-Z]{5}',r['ticker'])})
+                   and r.get('ticker') and not is_excluded_symbol(r['ticker'])
+                   and not __import__('re').fullmatch('[A-Z]{5}',r['ticker'])})
 
 def download(symbols, start, end, cache):
     http=Http();headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
