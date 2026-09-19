@@ -18,9 +18,14 @@ Historical cap, halt, borrow, symbol interval and corporate-action certification
 remain unavailable. See backtest/COMBINED_REPLAY_RESULTS.md and
 backtest/combined_event_comparison.csv. Do not call conditional matches detections.
 
-A three-period walk-forward price-outcome backtest (fall 2023, 2024 and 2025) is
-implemented and points to replay artifact 35415517622. It must complete before
-claiming multi-period profitability. The report generator and all local tests pass.
+A three-period walk-forward price-outcome backtest completed in run 35453983958.
+The 4-, 5- and 7-session pump-failure short variants were positive in all three
+fall periods. Seven-session ending balances from separate $100k starts were
+$109868.16, $111389.68 and $124096.71; sequential compounding is about $151.9k,
+below the $160k-$170k objective. The long breakout rule was unstable and remains
+review-only. See backtest/WALK_FORWARD_RESULTS.md. These are not verified
+executable returns because historical cap, halt, borrow and SMG availability are
+still gaps. The report generator and 142 local tests pass.
 
 ## September 18: identity and strict replay follow-up
 
