@@ -18,6 +18,11 @@ from .game_rules import is_excluded_symbol
 
 START='2025-09-08'
 END='2025-12-05'
+PERIODS=[
+    ('2023-09-08','2023-12-05'),
+    ('2024-09-08','2024-12-05'),
+    (START,END),
+]
 
 def frozen_cohort(records, start=START):
     latest={}
@@ -142,23 +147,32 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--replay',default='backtest/runtime/corrected-replay/decisions.json')
     args=parser.parse_args();root=Path.cwd();records=json.loads(Path(args.replay).read_text())
-    symbols=frozen_cohort(records);long_symbols=broad_cohort(records);download_symbols=sorted(set(symbols)|set(long_symbols));cache=root/'backtest/runtime/swing-bars';cache.mkdir(parents=True,exist_ok=True)
+    cohorts={start:dict(short=frozen_cohort(records,start),long=broad_cohort(records,start)) for start,_ in PERIODS}
+    symbols=cohorts[START]['short'];long_symbols=cohorts[START]['long']
+    download_symbols=sorted({ticker for group in cohorts.values() for side in group.values() for ticker in side})
+    cache=root/'backtest/runtime/swing-bars';cache.mkdir(parents=True,exist_ok=True)
     if not symbols or not long_symbols:raise ValueError('No independently discovered pre-period cohort')
-    sessions=[str(s.date()) for s in calendar(2025).sessions_in_range('2025-06-01',END)]
-    data,requests=download(download_symbols,'2025-06-01',END,cache)
+    sessions=[]
+    for year in range(2023,2026):
+        sessions.extend(str(s.date()) for s in calendar(year).sessions_in_range(f'{year}-06-01',f'{year}-12-05'))
+    data,requests=download(download_symbols,'2023-06-01',END,cache)
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
-    for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
-        for hold in [1,3,4,5,7]:
-            universe=long_symbols if strategy=='BREAKOUT_LONG' else symbols
-            result=simulate(data['raw'],data['split'],universe,sessions,hold=hold,strategy=strategy)
-            (out/f'{strategy}-{hold}.json').write_text(json.dumps(result))
-            summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
+    for period_start,period_end in PERIODS:
+        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
+            for hold in [1,3,4,5,7]:
+                universe=cohorts[period_start]['long' if strategy=='BREAKOUT_LONG' else 'short']
+                result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy)
+                result['period_start']=period_start;result['period_end']=period_end
+                (out/f'{period_start}-{strategy}-{hold}.json').write_text(json.dumps(result))
+                summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
     stress=[]
     for hold in [1,3,4,5,7]:
-        result=simulate(data['raw'],data['split'],symbols,sessions,hold=hold,cost_bps=100,borrow_rate=1.0)
+        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0)
         stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
-    report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
+    report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,periods=[dict(start=s,end=e,
+        short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
+        cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
         data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,
         assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
@@ -169,7 +183,7 @@ def main():
           'Independent firm cohort frozen from sources through July 2025; later IPOs and updated filing context missing',
           'Long hypothesis evaluated in same firm cohort, not a broad-market long universe',
           'Daily bars can include extended sessions; close-fill model must be checked against game execution',
-          'No reference labels loaded; no parameter search; all preset horizons reported, not just the best',
+          'No reference labels loaded; no parameter search; all preset horizons and three preset fall periods reported',
           'Missing exit bars keep positions unresolved and ending balance null; observed drawdown can be understated where marks are missing'])
     (out/'summary.json').write_text(json.dumps(report,indent=2));print(json.dumps(report))
 

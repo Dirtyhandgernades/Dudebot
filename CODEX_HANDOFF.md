@@ -1,5 +1,27 @@
 # Dudebot continuation handoff
 
+## September 19: improved replay completed
+
+Run 35415517622 at commit 4474adb completed successfully. Artifact 10575693002
+(SHA-256 1b7d64e576731c862c1412e6278e6f4aec7d727afefb1771ead7f224002bd2cc)
+processed 2608/2608 sources. Common-equity/exchange parsing raised firm candidates
+from 788 to 961 and decisions from 133081 to 168689. The reference comparison did
+not improve: 41 conditional firm/price matches, 30 sampled nonmatches, 159
+uncovered. WETH was the only changed event and became a sampled nonmatch. There
+are still zero verified eligible detections.
+
+The separately reported strict pass extracted 274 transaction candidates and
+evaluated 73345/73345 decisions. All 230 reference events are NOT_EVALUABLE; no
+strict decision became QUALIFIED or MATCH_EXCEPT_UNKNOWN_HALT. Most records lack
+complete transaction terms, point-in-time context, or required structural facts.
+Historical cap, halt, borrow, symbol interval and corporate-action certification
+remain unavailable. See backtest/COMBINED_REPLAY_RESULTS.md and
+backtest/combined_event_comparison.csv. Do not call conditional matches detections.
+
+A three-period walk-forward price-outcome backtest (fall 2023, 2024 and 2025) is
+implemented and points to replay artifact 35415517622. It must complete before
+claiming multi-period profitability. The report generator and all local tests pass.
+
 ## September 18: identity and strict replay follow-up
 
 Completed source replay 35395039136 processed 2608/2608 sources and 133081/133081

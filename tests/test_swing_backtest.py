@@ -1,6 +1,9 @@
 from datetime import date,timedelta
 import pytest
-from smg.swing_backtest import frozen_cohort,signal,simulate
+from smg.swing_backtest import PERIODS,frozen_cohort,signal,simulate
+
+def test_walk_forward_periods_are_fixed_before_outcomes():
+    assert PERIODS == [('2023-09-08','2023-12-05'),('2024-09-08','2024-12-05'),('2025-09-08','2025-12-05')]
 
 def fixture():
     days=[str(date(2025,1,1)+timedelta(days=i)) for i in range(30)]
