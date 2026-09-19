@@ -55,3 +55,31 @@ def test_nyse_american_is_not_treated_as_nyse():
     raw='<table><tr><td>Trading Symbol(s)</td></tr><tr><td>Common stock</td><td>TEST</td><td>NYSE American</td></tr></table>'
     native=lhtml.document_fromstring(raw)
     assert source_identity(native,' '.join(native.itertext()))[:2]==(None,None)
+
+
+def test_unit_and_warrant_rows_do_not_override_common_equity():
+    raw = """<table><tr><td>Trading Symbol(s)</td></tr>
+    <tr><td>Units, each consisting of one common stock share</td><td>SWAGU</td><td>The NASDAQ Stock Market LLC</td></tr>
+    <tr><td>Common <span>Stock</span></td><td>SWAG</td><td>The NASDAQ Stock Market LLC</td></tr>
+    <tr><td>Warrants, each exercisable for common stock</td><td>SWAGW</td><td>The NASDAQ Stock Market LLC</td></tr></table>"""
+    for soup in (BeautifulSoup(raw,'html.parser'),lhtml.document_fromstring(raw)):
+        assert source_identity(soup,'')[:2]==('SWAG','XNAS')
+
+
+def test_full_inline_exchange_name_and_invisible_whitespace():
+    raw = '<ix:nonNumeric name="dei:TradingSymbol"> ABCD </ix:nonNumeric><ix:nonNumeric name="dei:SecurityExchangeName">The NASDAQ Stock Market LLC</ix:nonNumeric>'
+    assert source_identity(lhtml.document_fromstring(raw),'')[:2]==('ABCD','XNAS')
+    raw=raw.replace('The NASDAQ Stock Market LLC','NYSE American')
+    assert source_identity(lhtml.document_fromstring(raw),'')[:2]==(None,None)
+
+
+def test_strict_transactions_extracted_from_dated_source_without_labels():
+    from smg.source_replay import parse_source
+    from datetime import date
+    raw = '<p>This is an initial public offering. We are offering 1,000,000 ordinary shares at a price of $5 per share. Our ordinary shares are listed on Nasdaq under the symbol "ABCD".</p>'
+    strict=[]
+    parse_source('0000000001-24-000001:filing.htm',{'ciks':['1'],'file_date':'2024-06-01'},raw,{},strict)
+    assert len(strict)==1
+    assert strict[0].pipeline=='RECENT_IPO'
+    assert strict[0].ticker=='ABCD'
+    assert strict[0].reviewed_at.date()>date(2024,6,1)

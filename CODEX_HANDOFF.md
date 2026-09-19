@@ -1,5 +1,25 @@
 # Dudebot continuation handoff
 
+## September 18: identity and strict replay follow-up
+
+Completed source replay 35395039136 processed 2608/2608 sources and 133081/133081
+firm-watch decisions. See backtest/SOURCE_REPLAY_RESULTS.md and the per-event CSV:
+41 conditional events, 29 sampled nonmatches, 160 uncovered. All 230 message.txt
+rows matched the reference CSV. No verified eligible detections or verified misses.
+
+Next revision fixes common-equity identity ambiguity from unit/warrant rows and
+normalizes full Nasdaq exchange names and invisible table whitespace. It extracts
+IPO/direct-offering transactions using the existing LocalParser, runs original
+strict rules separately, and writes strict_decisions.json, strict_summary.json and
+strict_event_comparison.json. This is a PARTIAL_STRICT_REPLAY: historical provenance,
+cap, halt, corporate action/context evidence, monthly return and RVOL remain gaps.
+Do not describe this as a completed certified packet replay. Source availability
+uses filing public-at time, not extracted transaction event date. Holdout references
+are read after decisions. Cache keys retain per-run suffixes because checkpoints
+must grow even when code is unchanged. 140 tests pass on bundled Python; system
+Python 3.14 crashed while importing exchange_calendars. Use bundled Python.
+
+
 ## Continuation update, September 8, 2026
 
 September 9 UTC continuation: broader replay run 34303054242 at commit

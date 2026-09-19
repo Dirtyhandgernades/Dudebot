@@ -40,7 +40,7 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           path: backtest/runtime
-          key: historical-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}
+          key: historical-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             historical-v2-${{ github.ref_name }}-
             historical-v1-${{ github.ref_name }}-
@@ -63,7 +63,7 @@ jobs:
         if: always()
         with:
           path: backtest/runtime
-          key: historical-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}
+          key: historical-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}-${{ github.run_id }}-${{ github.run_attempt }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -35,7 +35,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: backtest/runtime/source-replay
-          key: source-replay-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}
+          key: source-replay-v2-${{ github.ref_name }}-${{ hashFiles('smg/**', 'config/**', 'backtest/reference_events.csv') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             source-replay-v2-${{ github.ref_name }}-
             source-replay-v1-

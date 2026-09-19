@@ -15,7 +15,8 @@ from .cli import settings
 from .live_firms import extract_watch
 from .models import Candidate,Snapshot,HaltCheck
 from .firm_first import firm_structure,evaluate_firm_first
-from .rules import EntityList
+from .rules import EntityList, evaluate
+from .extraction import LocalParser
 from .market import calendar
 from .transport import Http
 
@@ -51,15 +52,28 @@ def select_sources(db_path,per_quarter=None):
     return first+later
 
 
+def identity_text(value):
+    return ' '.join(value.replace('\u200b', '').replace('\ufeff', '').split())
+
+
+def identity_exchange(value):
+    value = identity_text(value)
+    if re.search(r'\bNasdaq\b|^XNAS$', value, re.I):return 'XNAS'
+    if re.search(r'(?:NYSE|New York Stock Exchange)\s*(?:American|Arca|National|Texas)', value, re.I):return None
+    if re.search(r'\bNYSE\b|New York Stock Exchange|^XNYS$', value, re.I):return 'XNYS'
+    return None
+
+
 def source_identity(soup,text):
     native=callable(getattr(soup,'xpath',None))
-    def content(node):return ' '.join(node.itertext()).strip() if native else node.get_text(' ',strip=True)
+    def content(node):return identity_text(' '.join(node.itertext()) if native else node.get_text(' ',strip=True))
     elements=soup.xpath('//*[@name]') if native else soup.find_all(attrs={'name':True})
     facts={e.get('name','').lower():[] for e in elements}
     for e in elements:facts[e.get('name').lower()].append(content(e))
     symbols={s.strip() for s in facts.get('dei:tradingsymbol',[]) if re.fullmatch('[A-Z]{1,6}',s.strip())}
     exchanges={s.upper().strip() for s in facts.get('dei:securityexchangename',[])}
-    exchange='XNYS' if exchanges & {'NYSE','XNYS'} else 'XNAS' if exchanges & {'NASDAQ','XNAS'} else None
+    venues={identity_exchange(v) for v in exchanges}-{None}
+    exchange=next(iter(venues)) if len(venues)==1 else None
     names=facts.get('dei:entityregistrantname',[])
     # The registration table is dated issuer evidence. Search-result display
     # names may contain today's ticker and must never supply historical symbols.
@@ -70,6 +84,8 @@ def source_identity(soup,text):
         for row in (table.xpath('.//tr') if native else table.find_all('tr')):
             cells=[content(c) for c in (row.xpath('./td|./th') if native else row.find_all(['td','th'],recursive=False))]
             if not cells:continue
+            title=next((cell for cell in cells if cell),'')
+            if re.match(r'(?:redeemable\s+)?(?:warrants?|units?|rights?|preferred)\b',title,re.I):continue
             joined=' '.join(cells)
             if not re.search(r'ordinary shares|common (?:stock|shares)|depositary shares',joined,re.I):continue
             other_nyse=re.search(r'(?:NYSE|New York Stock Exchange)\s*(?:American|Arca|National|Texas)',joined,re.I)
@@ -93,7 +109,7 @@ def source_identity(soup,text):
         if not symbols or symbols=={ticker}:return ticker,venue,names
     return None,None,names
 
-def parse_source(identifier,src,raw,entries):
+def parse_source(identifier,src,raw,entries,strict_out=None):
     accession,filename=identifier.split(':',1)
     url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
     soup=lhtml.document_fromstring(raw.encode('utf8'),parser=lhtml.HTMLParser(encoding='utf8',no_network=True))
@@ -105,6 +121,13 @@ def parse_source(identifier,src,raw,entries):
     if not symbol or exchange is None:return None,'SOURCE_SYMBOL_OR_EXCHANGE_UNRESOLVED'
     doc=dict(url=url,text=text,date=src['file_date'],sha256=hashlib.sha256(raw.encode()).hexdigest())
     known=public_at({'filed_at':src['file_date']})
+    if strict_out is not None:
+        parser=LocalParser(entries)
+        for pipeline in ('RECENT_IPO','DIRECT_OFFERING'):
+            transaction=parser.extract(dict(pipeline=pipeline,cik=src['ciks'][0],ticker=symbol,
+                name=names[0] if names else 'Issuer CIK '+src['ciks'][0],exchange=exchange,
+                date=src['file_date'],accession=accession),[doc],known)
+            if transaction is not None:strict_out.append(transaction)
     c=extract_watch(dict(cik=src['ciks'][0],ticker=symbol,name=names[0] if names else 'Issuer CIK '+src['ciks'][0],exchange=exchange),[doc],known,entries)
     return c,'FIRM_CANDIDATE_EXTRACTED' if c else 'NO_ATTACHED_LISTED_FIRM_ROLE_RECOGNIZED'
 
@@ -114,29 +137,33 @@ def main():
     if not indexes:raise ValueError('Independent SEC firm-search checkpoint is required')
     selected=select_sources(indexes[0]);http=Http();started=time.monotonic()
     cache=root/'backtest/runtime/source-replay';cache.mkdir(parents=True,exist_ok=True)
-    candidates=[];sources=[]
+    candidates=[];sources=[];strict_candidates=[]
     for identifier,src in selected:
         if time.monotonic()-started>1200:break
         accession,filename=identifier.split(':',1)
         if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession) or '..' in filename:continue
         url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
         path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.html')
-        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v4.json')
+        parsed_path=cache/(hashlib.sha256(url.encode()).hexdigest()+'.parsed-v5.json')
         try:
             if parsed_path.exists():
                 parsed=json.loads(parsed_path.read_text());status=parsed['status']
                 c=Candidate.model_validate(parsed['candidate']) if parsed['candidate'] else None
+                strict_candidates.extend(Candidate.model_validate(v) for v in parsed.get('strict_candidates',[]))
             else:
                 if not path.exists():path.write_text(http.text(url,headers={'User-Agent':os.environ['SEC_USER_AGENT']}),encoding='utf8')
-                c,status=parse_source(identifier,src,path.read_text(encoding='utf8'),entries)
-                write_json(parsed_path,dict(status=status,candidate=c.model_dump(mode='json') if c else None))
+                extracted=[]
+                c,status=parse_source(identifier,src,path.read_text(encoding='utf8'),entries,extracted)
+                strict_candidates.extend(extracted)
+                write_json(parsed_path,dict(status=status,candidate=c.model_dump(mode='json') if c else None,
+                    strict_candidates=[v.model_dump(mode='json') for v in extracted]))
             sources.append(dict(id=identifier,filed_at=src['file_date'],status=status,ticker=c.ticker if c else None,source_url=url))
             if c:candidates.append(c)
         except Exception as exc:sources.append(dict(id=identifier,status='SOURCE_ERROR',error_type=type(exc).__name__))
         if len(sources)%50==0:print(json.dumps(dict(stage='sources',processed=len(sources),selected=len(selected),candidates=len(candidates))),flush=True)
     jobs=defaultdict(list)
-    for c in candidates:
-        known=public_at({'filed_at':str(c.event_date)})
+    for c in candidates+strict_candidates:
+        known=c.reviewed_at
         if known.date()>END:continue
         days=calendar(END.year).sessions_in_range(str(max(START,known.date())),str(END))
         times=[decision_time(s.date(),cfg) for s in days]
@@ -146,9 +173,9 @@ def main():
     # filing already public for each issuer, while retaining the context gap.
     for now,group in jobs.items():
         latest={}
-        for c in sorted(group,key=lambda c:c.event_date):latest[c.cik]=c
+        for c in sorted(group,key=lambda c:c.event_date):latest[(c.cik,c.pipeline,c.event_id if c.pipeline!='FIRM_WATCH' else '')]=c
         jobs[now]=list(latest.values())
-    records=[];market_requests=0;headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
+    records=[];strict_records=[];market_requests=0;headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
     for now,group in sorted(jobs.items()):
         if time.monotonic()-started>1800:break
         effective=now-timedelta(minutes=16)
@@ -162,7 +189,7 @@ def main():
                 if data.get('next_page_token'):raise ValueError('UNEXPECTED_SAMPLE_PAGINATION')
                 write_json(path,data)
         except Exception as exc:
-            for c in group:records.append(dict(ticker=c.ticker,decision_at=now.isoformat(),status='DATA_GAP',reasons=['MARKET_PROVIDER_ERROR:'+type(exc).__name__],source_date=str(c.event_date)))
+            for c in group:(records if c.pipeline=='FIRM_WATCH' else strict_records).append(dict(ticker=c.ticker,decision_at=now.isoformat(),status='DATA_GAP',reasons=['MARKET_PROVIDER_ERROR:'+type(exc).__name__],source_date=str(c.event_date)))
             continue
         for original in group:
             # Re-evaluate known source facts; this does not certify later context coverage.
@@ -175,6 +202,17 @@ def main():
                         drawdown_pct=0,rvol=None,rvol20=None,baseline_sessions=0,cumulative_volume=0,baseline_volume=None,
                         source_url='https://data.alpaca.markets/v2/stocks/bars',feed='sip',declared_delay_minutes=16,flags=['CONTEXT_METRICS_NOT_CALCULATED'])
             h=HaltCheck(checked_at=now,status='UNKNOWN',reason='Historical halt archive unavailable',source_url='')
+            if c.pipeline!='FIRM_WATCH':
+                strict=evaluate(c,cfg,entities,now,s,h)
+                if c.pipeline=='DIRECT_OFFERING' and c.event_date<now.date()-timedelta(days=cfg.direct_offering_backfill_days):
+                    strict.status='EXCLUDED';strict.reasons.append('DIRECT_OFFERING_OUTSIDE_BACKFILL')
+                strict_records.append(dict(ticker=c.ticker,cik=c.cik,pipeline=c.pipeline,decision_at=now.isoformat(),
+                    status=strict.status,reasons=strict.reasons,source_date=str(c.event_date),
+                    provenance_status='INCOMPLETE',unresolved=['HISTORICAL_MARKET_CAP_NOT_VERIFIED',
+                    'HISTORICAL_HALT_NOT_VERIFIED','SYMBOL_INTERVAL_NOT_CERTIFIED',
+                    'INCOMPLETE_POINT_IN_TIME_FILING_REVIEW','CORPORATE_ACTION_REVIEW',
+                    'CONTEXT_METRICS_NOT_CALCULATED']))
+                continue
             result=evaluate_firm_first(c,cfg,entities,now,s,h)
             gaps=['HISTORICAL_MARKET_CAP_NOT_VERIFIED','HISTORICAL_HALT_NOT_VERIFIED','LATER_FILING_CONTEXT_NOT_CERTIFIED','SYMBOL_INTERVAL_NOT_CERTIFIED']
             firm_price=structure.status=='STRUCTURAL_MATCH' and s is not None and s.price>3 and 0<=(effective-s.price_time).total_seconds()<=300
@@ -195,11 +233,24 @@ def main():
             unresolved='Market cap, historical halts, later context and symbol intervals remain unverified'))
     out=root/'reports/source-replay';out.mkdir(parents=True,exist_ok=True)
     write_json(out/'sources.json',sources);write_json(out/'decisions.json',records)
+    write_json(out/'strict_decisions.json',strict_records)
+    from .backtest import compare
+    strict_comparison,_=compare(events,strict_records)
+    write_json(out/'strict_event_comparison.json',strict_comparison)
+    write_json(out/'strict_summary.json',dict(status='PARTIAL_STRICT_REPLAY',
+        start=str(START),end=str(END),transaction_candidates=len(strict_candidates),
+        evaluated_decisions=len(strict_records),
+        planned_decisions=sum(sum(c.pipeline!='FIRM_WATCH' for c in v) for v in jobs.values()),screening_counts=dict(Counter(r['status'] for r in strict_records)),
+        comparison_counts=dict(Counter(r['result'] for r in strict_comparison)),
+        verified_detections=0,verified_misses=None,universe_complete=False,
+        limitations=['Original production strict rules evaluated on independently extracted dated transaction records.',
+        'Incomplete provenance: not a certified replay_packet run. Missing context, mapping, cap, halts and corporate actions.',
+        'Sampled price only; monthly return and relative volume not computed. No executable-profit claim.']))
     with (out/'event_comparison.csv').open('w',newline='') as stream:
         writer=csv.DictWriter(stream,fieldnames=list(comparisons[0]));writer.writeheader();writer.writerows(comparisons)
     summary=dict(status='PARTIAL_DAILY_WATCH_REPLAY',start=str(START),end=str(END),source_selection='All primary filings in independent firm corpus, earliest filing per issuer first; includes 2022 pre-window baseline; no reference input',
         selected_sources=len(selected),sources_processed=len(sources),extracted_candidates=len(candidates),candidate_symbols=sorted({c.ticker for c in candidates}),
-        evaluated_decisions=len(records),planned_decisions=sum(len(v) for v in jobs.values()),market_requests=market_requests,
+        evaluated_decisions=len(records),planned_decisions=sum(sum(c.pipeline=='FIRM_WATCH' for c in v) for v in jobs.values()),market_requests=market_requests,
         screening_counts=dict(Counter(r['status'] for r in records)),comparison_counts=dict(Counter(r['result'] for r in comparisons)),
         conditional_reference_symbols=sorted({r['ticker'] for r in comparisons if r['result']=='CONDITIONAL_FIRM_AND_PRICE_MATCH'}),
         verified_detections=0,verified_misses=None,full_detection_rate=None,universe_complete=False,
