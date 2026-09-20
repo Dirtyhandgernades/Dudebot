@@ -23,6 +23,18 @@ def metric(value,suffix=''):
 
 def rationale(e):
     c=e.candidate;m=e.snapshot
+    if c.pipeline=='VOLATILITY_WATCH':
+        setup='pump failure' if 'PUMP_FAILURE_SHORT' in e.reasons else 'high-volatility breakdown'
+        firm='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches) or 'no listed high-priority firm match'
+        lines=[f'**VOLATILITY SHORT | {clean(c.ticker)} | {clean(c.name)}**',
+            f'Setup: {setup}; listed-firm context: {clean(firm)}.',
+            f'Price ${m.price:,.2f} | 21-session return {metric(m.monthly_return,"%")} | one-session {metric(m.one_day_return,"%")}.',
+            f'RVOL {metric(m.rvol,"×")} | drawdown from recent high {m.drawdown_pct:.2f}%.',
+            'Broad lane requires stronger market confirmation when no priority firm is present.',
+            f'Data: {m.feed}, delayed {m.declared_delay_minutes} minutes; price {m.price_time.isoformat()}.',
+            f'Halt check: {e.halt.checked_at.isoformat()}.','Sources:']
+        lines += [f'<{v.url}>' for v in c.evidence.values() if urlsplit(v.url).scheme=='https']
+        return '\n'.join(lines)
     if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons:
         entity='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches)
         phase='monthly history unavailable' if m.monthly_return is None else 'below preferred surge' if 'NOT_YET_PUMPED_OR_BELOW_PREFERRED_SURGE' in e.reasons else 'lower-priority surge' if 'LOW_PRIORITY_MONTHLY_SURGE' in e.reasons else 'pumped'
@@ -71,7 +83,7 @@ def digest(evaluations,now,cfg):
     for i,e in enumerate(items):
         c=e.candidate;m=e.snapshot
         firm_first='VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons
-        title='FIRM-FIRST WATCH' if firm_first else 'IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'
+        title='VOLATILITY SHORT' if c.pipeline=='VOLATILITY_WATCH' else 'FIRM-FIRST WATCH' if firm_first else 'IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'
         super_priority=any(x.get('category','').startswith('SUPER ') for x in e.matches)
         firms='\n'.join(f"**{clean(x['name'])}** · {clean(x['role'])} · {clean(x['category'])}" for x in e.matches)
         urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
@@ -86,7 +98,7 @@ def digest(evaluations,now,cfg):
         context+=f"Sentiment score: {metric(sentiment.get('score'))} (ranking context only)"
         embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
                'color':0xE7AF38 if super_priority else 0x39B9A8,
-               'fields':[{'name':'Matched firms','value':firms[:1000] or 'Unavailable','inline':False},
+               'fields':[{'name':'Matched firms','value':firms[:1000] or 'No listed high-priority firm match; stronger volatility confirmation required','inline':False},
                          {'name':'Price','value':'$'+metric(m.price),'inline':True},
                          {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
                          {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
@@ -200,8 +212,11 @@ class DiscordSender:
         """
         from .transport import ProviderError
         now=self.clock();new=[];claims=[]
-        for e in evaluations:
-            state_key='trade_alert_state:'+hashlib.sha256(e.candidate.key.encode()).hexdigest()
+        for e in sorted(evaluations,key=lambda x:(not bool(x.matches),x.rank,x.candidate.ticker)):
+            # A ticker/side/phase is one trade even when both discovery lanes
+            # found it. This prevents duplicate firm and volatility alerts.
+            identity=e.candidate.ticker+':'+str(e.signal_side or cfg.live_signal_side)
+            state_key='trade_alert_state:'+hashlib.sha256(identity.encode()).hexdigest()
             if not self._valid_trade(e,cfg,now):
                 definitive=e.status in {'EXCLUDED','MARKET_NOT_CONFIRMED'} or ('CURRENT_BORROW_NOT_EXECUTABLE' in e.reasons and (e.shortability or {}).get('status')=='CURRENT')
                 if definitive:self.store.delete(state_key)

@@ -27,6 +27,8 @@ class Store:
         self.db.commit()
     def delete(self,key):
         self.db.execute('DELETE FROM kv WHERE key=?',(key,));self.db.commit()
+    def delete_prefix(self,prefix):
+        self.db.execute('DELETE FROM kv WHERE key LIKE ?',(prefix+'%',));self.db.commit()
     def items(self,prefix):
         return [(key,json.loads(value)) for key,value in self.db.execute('SELECT key,value FROM kv WHERE key LIKE ?',(prefix+'%',)).fetchall()]
     def observe(self,kind,subject,observed_at,source,value):

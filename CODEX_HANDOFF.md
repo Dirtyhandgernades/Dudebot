@@ -1,5 +1,19 @@
 # Dudebot continuation handoff
 
+## September 20: bounded broad volatility lane
+
+The live universe is no longer limited to supplied firms. `smg.broad_discovery`
+runs two batched daily-bar passes over current SEC-mapped NASDAQ/NYSE stocks that
+already pass price, cap, symbol and obvious SPAC-name filters. It prefilters pump
+failures/high-volatility reversals, considers at most 3× the configured shortlist
+for SEC annual/registration filing enrichment, and persists at most eight positively
+classified common equities. `smg.volatility` requires stronger live confirmation
+when no listed firm matches. All halt, SPAC, five-letter, user-symbol, price, cap,
+freshness and Alpaca borrow gates remain hard. Firm matches receive a ranking bonus.
+Trade-alert deduplication is ticker/side/phase based, so discovery in both lanes
+cannot double-ping. This design adds roughly batched daily-universe requests twice
+per day and only eight names to the 15-minute intraday scan.
+
 ## September 20: event-driven alerts and evidence archive
 
 The user replaced fixed-noon stock delivery with alerts whenever a newly qualified

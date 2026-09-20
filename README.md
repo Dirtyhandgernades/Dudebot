@@ -23,6 +23,13 @@ are disclosed as preferences/data gaps. `screening_profile: strict` restores the
 original transaction screen documented below. Direct offerings keep their own
 relationships; an issuer-level historical underwriter is labeled in `FIRM_WATCH`.
 
+Live discovery has two bounded lanes. The firm lane searches the supplied auditor,
+underwriter and counsel list. The broad volatility lane batches daily bars across
+the eligible NASDAQ/NYSE universe twice per market day, then retains at most eight
+SEC-verified common equities for intraday confirmation. A listed-firm match gets a
+large ranking bonus. Without one, a stock must pass the stronger pump-failure or
+high-volume breakdown trigger. This avoids thousands of intraday symbol requests.
+
 Live deployment enables weekday discovery and 15-minute market/evidence scans by
 default. Repository variables `SMG_LIVE_ENABLED=false` or `DISCORD_ENABLED=false`
 stop the relevant GitHub jobs/uploads. To stop hosted delivery, run the
@@ -83,6 +90,15 @@ The demo uses fictional securities and an explicit demonstration-only 100% thres
 
 **Direct offerings:** A separate scan checks the past 30 days of prospectuses and `8-K`/`6-K` filings. A bounded current-filings Atom feed adds same-day leads; the nightly-updated index fills gaps from the bounded feed. Registered direct offerings must have their own offering terms. A shelf registration, ATM program, or direct exchange listing alone does not qualify. A historical IPO underwriter alone cannot qualify a later direct offering.
 
+**Broad volatility:** Two batched daily passes first enforce the exchange, price,
+capitalization, symbol and obvious acquisition-company exclusions. They calculate
+21-session return, five-session range, volume ratio and failure/reversal evidence.
+Only the highest-ranked 24 records are considered for SEC enrichment, and no more
+than eight positively classified common equities persist to the 15-minute scanner.
+The live trigger then requires either a 12% pump plus reversal and RVOL, or an
+exceptionally high-volume one-day breakdown. All normal halt, borrow and game gates
+still apply.
+
 **Local extraction:** Python patterns look for an identified transaction, share/ADS price, gross proceeds, operating geography, trading date, security type, and listed-firm role. The parser saves exact source passages, filing dates, and document fingerprints. Where it computes gross proceeds as shares × price, it records the calculation. Bundled warrants, conflicting proceeds, missing fields, or unrecognized wording remain review items. Recent annual and event filings supply context. This avoids model costs, but it is not an exhaustive understanding of every filing format: omissions and complicated transactions can produce missed matches. Reports expose the evidence for team review.
 
 Discovery is incremental, with per-run filing, parsing, and time budgets. Initial three-year backfill can take multiple runs. Pending jobs persist. This version is daily research, not continuous event monitoring.
@@ -126,6 +142,7 @@ Continuing candidates can appear again on the next eligible day. Direct-offering
 python -m smg.cli doctor       # Offline configuration presence check; never prints values.
 python -m smg.cli demo         # Offline fictional examples; cannot send.
 python -m smg.cli discover     # SEC discovery and local extraction; no Discord messages.
+python -m smg.cli broad-discover # Batched market-wide prefilter; persists at most eight names.
 python -m smg.cli scan         # Market confirmation and report; no Discord messages.
 python -m smg.cli alert --send # Send only newly qualified phases; durable duplicate suppression.
 python -m smg.cli archive      # Append point-in-time price, borrow, halt and research evidence.

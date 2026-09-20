@@ -43,7 +43,7 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','scan','alert','noon','demo','activate','practice','archive','archive-backfill'])
+    parser.add_argument('command',choices=['doctor','discover','broad-discover','scan','alert','noon','demo','activate','practice','archive','archive-backfill'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
     parser.add_argument('--send',action='store_true',help='Send newly qualified event alerts, or use the legacy manual noon sender')
     parser.add_argument('--max-days',type=int,default=10,help='Bounded public-history days per archive-backfill run')
@@ -64,6 +64,15 @@ def main():
     entities=EntityList(entries)
     now=datetime.now(UTC)
     try:
+        if args.command=='broad-discover':
+            from .broad_discovery import BroadVolatilityDiscovery
+            sec=Sec(http,required_env('SEC_USER_AGENT'),store)
+            broad=BroadVolatilityDiscovery(sec,store,cfg,entries,
+                {'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')})
+            candidates,result=broad.run(now)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'broad-discovery.json').write_text(json.dumps(result,indent=2))
+            print(json.dumps(result));return
         if args.command in {'archive','archive-backfill'}:
             from .evidence_archive import EvidenceArchiver
             candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
@@ -128,7 +137,7 @@ def main():
             print(json.dumps({'activation':receipt}));return
         market=Alpaca(http,required_env('ALPACA_API_KEY'),required_env('ALPACA_SECRET_KEY'),cfg.market_feed,cfg.market_data_delay_minutes)
         candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
-        candidates=[c for c in candidates if c.pipeline in {'RECENT_IPO','FIRM_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days)]
+        candidates=[c for c in candidates if c.pipeline in {'RECENT_IPO','FIRM_WATCH','VOLATILITY_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days)]
         scanner=Scanner(market,NasdaqHalts(http),cfg,entities,store)
         if args.command=='noon':
             local=local_time(now,cfg);target=local.replace(hour=12,minute=0,second=0,microsecond=0).astimezone(UTC)

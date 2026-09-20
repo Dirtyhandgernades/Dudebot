@@ -67,6 +67,14 @@ def test_event_delivery_sends_new_phase_once_without_noon_gate(tmp_path):
     assert sender.send_new(items,Config())=='NO_NEW_TRADES' and len(http.calls)==calls
     assert checkpoints and http.calls[0]['body']['content'].startswith('@everyone')
 
+def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
+    store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
+    duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'
+    duplicate.reasons=['NO_LISTED_FIRM_MATCH','PUMP_FAILURE_SHORT'];duplicate.matches=[];duplicate.rank=[1,9,0,-5,-10,-2,-30]
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:NOW)
+    result=sender.send_new(items+[duplicate],Config())
+    assert result['new_trades']==1 and len(http.calls)==1
+
 def test_late_claim_does_not_send(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();times=iter([NOW,NOW+timedelta(minutes=1)])
     sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:next(times))

@@ -46,6 +46,10 @@ class Config(Strict):
     live_short_hold_sessions_min: Literal[4] = 4
     live_short_hold_sessions_max: Literal[7] = 7
     long_alerts_enabled: Literal[False] = False
+    broad_shortlist_size: int = Field(default=8,ge=1,le=20)
+    broad_min_monthly_return_pct: float = Field(default=12,ge=0)
+    broad_min_daily_range_pct: float = Field(default=8,ge=0)
+    broad_min_volume_ratio: float = Field(default=1,ge=0)
 
 class Evidence(Strict):
     url: str
@@ -60,7 +64,7 @@ class EntityMatch(Strict):
     evidence: Evidence
 
 class Candidate(Strict):
-    pipeline: Literal['RECENT_IPO','DIRECT_OFFERING','FIRM_WATCH']
+    pipeline: Literal['RECENT_IPO','DIRECT_OFFERING','FIRM_WATCH','VOLATILITY_WATCH']
     cik: str
     ticker: str
     name: str

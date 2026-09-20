@@ -31,7 +31,7 @@ class EntityList:
             entry = self.entries.get((role, normalize_name(item.name)))
             if not entry:
                 continue
-            if candidate.pipeline == 'FIRM_WATCH':
+            if candidate.pipeline in {'FIRM_WATCH','VOLATILITY_WATCH'}:
                 valid = item.relationship in {'transaction','current'} or (role=='underwriter' and item.relationship=='historical')
             elif candidate.pipeline == 'DIRECT_OFFERING':
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})

@@ -25,9 +25,13 @@ class Scanner:
         return self.asset_cache[ticker]
     def scan(self,candidates,now):
         results=[]
-        structure=firm_structure if self.cfg.screening_profile=='firm_first' else structural
-        assess=evaluate_firm_first if self.cfg.screening_profile=='firm_first' else evaluate
         for c in candidates:
+            if c.pipeline=='VOLATILITY_WATCH':
+                from .volatility import volatility_structure,evaluate_volatility
+                structure,assess=volatility_structure,evaluate_volatility
+            else:
+                structure=firm_structure if self.cfg.screening_profile=='firm_first' else structural
+                assess=evaluate_firm_first if self.cfg.screening_profile=='firm_first' else evaluate
             r=structure(c,self.cfg,self.entities,now)
             if r.status!='STRUCTURAL_MATCH':results.append(r);continue
             halt=self.halts.check(c.ticker,now)
@@ -35,6 +39,16 @@ class Scanner:
             try:
                 effective_now=now-timedelta(minutes=self.cfg.market_data_delay_minutes)
                 if not snapshot_window(effective_now):raise ValueError('MARKET_CLOSED')
+                # Borrow is a cheap point-in-time asset lookup. Fail closed
+                # here so hard-to-borrow names never trigger the much larger
+                # 150-day minute-bar download.
+                borrow=None
+                if self.cfg.short_alerts_require_borrow:
+                    from .shortability import executable_short
+                    borrow=self._borrow(c.ticker)
+                    if not executable_short(borrow):
+                        r.status='REVIEW_REQUIRED';r.reasons.append('CURRENT_BORROW_NOT_EXECUTABLE');r.shortability=borrow
+                        self.store.put('evaluation:'+c.key,r.model_dump(mode='json'));results.append(r);continue
                 # No cached vendor minute bars across days: all adjustments are as of this run.
                 cache_key=(c.ticker,now.date())
                 if cache_key in self.bar_cache:
@@ -52,11 +66,7 @@ class Scanner:
                 if r.status=='QUALIFIED':
                     r.signal_side=self.cfg.live_signal_side
                     r.ranking_evidence=self._ranking_context(c.ticker,now)
-                    if self.cfg.short_alerts_require_borrow:
-                        from .shortability import executable_short
-                        r.shortability=self._borrow(c.ticker)
-                        if not executable_short(r.shortability):
-                            r.status='REVIEW_REQUIRED';r.reasons.append('CURRENT_BORROW_NOT_EXECUTABLE')
+                    if self.cfg.short_alerts_require_borrow:r.shortability=borrow
                     # Context changes ordering only. Missing context never creates
                     # or suppresses an otherwise eligible trade.
                     finra=(r.ranking_evidence.get('finra_short_volume') or {}).get('value',{})
