@@ -1,6 +1,6 @@
 import argparse,os,json,time,sys
 from pathlib import Path
-from datetime import datetime,timezone,timedelta
+from datetime import date,datetime,timezone,timedelta
 import yaml
 from .models import Config,Candidate,Evaluation
 from .rules import EntityList
@@ -43,17 +43,18 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','scan','noon','demo','activate','practice'])
+    parser.add_argument('command',choices=['doctor','discover','scan','alert','noon','demo','activate','practice','archive','archive-backfill'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
-    parser.add_argument('--send',action='store_true',help='Only noon mode can send, and only during the configured noon minute')
+    parser.add_argument('--send',action='store_true',help='Send newly qualified event alerts, or use the legacy manual noon sender')
+    parser.add_argument('--max-days',type=int,default=10,help='Bounded public-history days per archive-backfill run')
     args=parser.parse_args();root=args.root.resolve();cfg,entries=settings(root)
-    if args.send and args.command!='noon':parser.error('--send is available only for noon mode')
+    if args.send and args.command not in {'noon','alert'}:parser.error('--send is available only for alert or noon mode')
     if args.command=='demo':
         from .demo import run_demo
         results,now=run_demo(cfg,EntityList(entries));report(root,results,now,cfg,['SYNTHETIC FIXTURES: demo uses an explicit 100% threshold for demonstration only']);return
     if args.command=='doctor':
         checks={key:bool(os.environ.get(key)) for key in ['ALPACA_API_KEY','ALPACA_SECRET_KEY','SEC_USER_AGENT','DISCORD_WEBHOOK_URL']}
-        print(json.dumps({'secrets_present':checks,'hosted_ai_required':False,'market_feed':cfg.market_feed,'market_data_delay_minutes':cfg.market_data_delay_minutes,'surge_threshold_configured':cfg.surge_return_min_pct is not None,'time':cfg.notification_timezone+' 12:00','sending_enabled':os.environ.get('DISCORD_ENABLED')=='true'},indent=2));return
+        print(json.dumps({'secrets_present':checks,'hosted_ai_required':False,'market_feed':cfg.market_feed,'market_data_delay_minutes':cfg.market_data_delay_minutes,'surge_threshold_configured':cfg.surge_return_min_pct is not None,'delivery':'event-driven scan every 15 minutes during configured workflow hours','sending_enabled':os.environ.get('DISCORD_ENABLED')=='true'},indent=2));return
     http=Http();backend=None;path=root/'runtime/state.sqlite'
     if os.environ.get('GITHUB_ACTIONS')=='true':
         backend=GitHubState(http,required_env('GITHUB_REPOSITORY'),required_env('GITHUB_TOKEN'),cfg.state_branch)
@@ -63,6 +64,27 @@ def main():
     entities=EntityList(entries)
     now=datetime.now(UTC)
     try:
+        if args.command in {'archive','archive-backfill'}:
+            from .evidence_archive import EvidenceArchiver
+            candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
+            mapping={c.ticker:c.cik for c in candidates if c.ticker and c.cik}
+            archiver=EvidenceArchiver(http,store,
+                {'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')},
+                {'User-Agent':required_env('SEC_USER_AGENT'),'Accept-Encoding':'gzip, deflate'})
+            if args.command=='archive':result=archiver.collect(mapping,now)
+            else:
+                if not 1<=args.max_days<=31:raise ValueError('--max-days must be between 1 and 31')
+                cursor=store.get('public_backfill_cursor',str(now.date()-timedelta(days=1)))
+                end=date.fromisoformat(cursor);days=[];probe=end
+                while len(days)<args.max_days and probe>=now.date()-timedelta(days=365):
+                    if probe.weekday()<5:days.append(probe)
+                    probe-=timedelta(days=1)
+                result=archiver.backfill_public(set(mapping),days,now)
+                store.put('public_backfill_cursor',str(probe))
+                result['next_cursor']=str(probe)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/('evidence-'+args.command+'.json')).write_text(json.dumps(result,indent=2))
+            print(json.dumps(result));return
         if args.command=='practice':
             if os.environ.get('DISCORD_ENABLED')!='true':raise ValueError('Discord delivery is disabled')
             from .practice import practice_payload,practice_embed
@@ -97,7 +119,7 @@ def main():
             release=json.loads((root/'config/deployment.json').read_text())['release_id']
             content=('Dudebot is deployed with the firm-first screen. Underwriters, auditors and counsel lead the watchlist; stocks can qualify before a pump.\n'
                 'Hard exclusions: halted/suspended stocks, SPACs/acquisition corporations, and exactly-five-letter tickers. Unknown checks suppress stock alerts.\n'
-                'Stock alerts: weekdays at 12:00 Pacific / 2:00 Central, following daylight saving time, using free Alpaca SIP delayed 16 minutes. GitHub scheduling can run late.\n'
+                'Stock alerts: first newly qualified trade phase found by the weekday 15-minute scan, using free Alpaca SIP delayed 16 minutes and current Alpaca borrow status. GitHub scheduling can run late.\n'
                 f'Initial discovery reviewed {discovery["reviewed"]} source records; further work resumes on schedule. Coverage remains partial.\n'
                 'Historical screening replay is incomplete; no detection rate is established. This is an activation receipt, not a stock alert.')
             receipt=sender.activation(release,content)
@@ -118,6 +140,11 @@ def main():
             # Workflows start early. Prep data near noon, then refresh recent bars and halts at dispatch.
             while datetime.now(UTC)<target-timedelta(seconds=480):time.sleep(min(20,max(.1,(target-timedelta(seconds=480)-datetime.now(UTC)).total_seconds())))
         results=scanner.scan(candidates,datetime.now(UTC))
+        if args.command=='alert' and args.send:
+            if os.environ.get('DISCORD_ENABLED')=='true':
+                sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
+                print(json.dumps({'event_delivery':sender.send_new(results,cfg)}))
+            else:print('DISCORD_DISABLED; report generated without sending')
         if args.command=='noon':
             refresh_at=target-timedelta(seconds=90)
             while datetime.now(UTC)<refresh_at:time.sleep(min(5,max(.02,(refresh_at-datetime.now(UTC)).total_seconds())))

@@ -24,7 +24,7 @@ def practice_payload(store,root,now,cfg,entities):
         lines.append(f"• {clean(row['ticker'])}: {clean('; '.join(row['firms']))}; {row['firm_check']}; source {row['source_date']}.")
     lines+=['These are current filing matches, not historical detections or qualified stock alerts. Missing issuer classification, stale reviews, market data and halt checks still suppress real alerts.',
             'Historical replay is incomplete. No detection rate is claimed.',
-            'Schedule: 12:00 Pacific / 2:00 Central, following daylight saving time. Alpaca SIP remains deliberately 16 minutes delayed.']
+            'Delivery: first newly qualified phase found by the 15-minute weekday scan. Alpaca SIP remains deliberately 16 minutes delayed.']
     text='\n'.join(lines)
     if len(text)>1900:
         text='\n'.join(lines[:3]+['Full per-stock audit is in the workflow artifact.']+lines[-3:])
@@ -39,7 +39,7 @@ def practice_embed(text,audit,now):
         'title':'Dudebot · Practice research check','color':0x39B9A8,
         'description':f"**{audit['reference_events']} reference events · {audit['reference_symbols']} stocks**\nCurrent overlap: **{', '.join(audit['overlap_tickers']) or 'None'}**\n\n"
             'These are current filing matches, not historical detections or qualified stock alerts. Historical replay remains incomplete.',
-        'fields':fields[:6]+[{'name':'Delivery & data','value':'12:00 Pacific / 2:00 Central, following daylight saving time. Free Alpaca SIP is delayed 16 minutes.','inline':False},
+        'fields':fields[:6]+[{'name':'Delivery & data','value':'Newly qualified phases alert after the 15-minute weekday scan. Free Alpaca SIP is delayed 16 minutes.','inline':False},
             {'name':'Hard exclusions','value':'Halted/suspended stocks, SPACs/acquisition corporations, and exactly-five-letter tickers. Unknown checks suppress alerts.','inline':False}],
         'footer':{'text':'Practice only · No trade or detection claim'},'timestamp':now.isoformat()}],
         'allowed_mentions':{'parse':[]}}

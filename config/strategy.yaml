@@ -36,3 +36,10 @@ filings_max_downloads_per_run: 150
 market_feed: sip
 market_data_delay_minutes: 16  # Free consolidated data. Deliberate lag, labeled in alerts.
 state_branch: smg-state
+# Live Discord trade alerts are currently the validated 4-7 session short side.
+# Long hypotheses remain in backtest/review output and cannot be sent.
+short_alerts_require_borrow: true
+live_signal_side: SHORT
+live_short_hold_sessions_min: 4
+live_short_hold_sessions_max: 7
+long_alerts_enabled: false

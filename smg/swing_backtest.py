@@ -79,7 +79,23 @@ def signal(history):
         result.append('BREAKOUT_LONG')
     return result
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10):
+def borrow_metrics(signal_events,observations):
+    """Separate signal detection from whether archived borrow made it executable."""
+    by_symbol=defaultdict(list)
+    for row in observations or []:by_symbol[row['subject']].append(row)
+    counts=Counter(detected=len(signal_events));examples=[]
+    for event in signal_events:
+        candidates=[r for r in by_symbol[event['ticker']] if r['observed_at'][:10]==event['signal_date']]
+        if not candidates:status='unavailable'
+        else:
+            asset=max(candidates,key=lambda r:r['observed_at'])['value']
+            status='executable' if asset.get('tradable') and asset.get('shortable') and asset.get('borrow_status')=='easy_to_borrow' else 'rejected'
+        counts[status]+=1
+        if len(examples)<25:examples.append({**event,'borrow_result':status})
+    return {'detected':counts['detected'],'executable':counts['executable'],'unavailable':counts['unavailable'],
+        'rejected':counts['rejected'],'examples':examples}
+
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -87,7 +103,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     These are sensitivity assumptions, not certified SMG fees/borrow availability.
     """
     index={day:i for i,day in enumerate(sessions)};days=[d for d in sessions if start<=d<=end]
-    cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;peak=initial;drawdown=0
+    cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0
     side=1 if strategy.endswith('LONG') else -1
     fee=cost_bps/10000
     for day in days:
@@ -114,7 +130,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 raw_prior=raw.get(ticker,{}).get(prior[-1])
                 if not raw_prior or raw_prior['c']<=3:continue
                 if strategy not in signal([series[d] for d in prior]):continue
-                signals+=1
+                signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day})
                 if ticker in positions or len(positions)>=10:continue
                 entry=raw.get(ticker,{}).get(day);adj=series.get(day)
                 if not entry or not adj:
@@ -142,38 +158,47 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
         gross_20pct_winners=sum(t['gross_return_pct']>=20-1e-10 for t in trades),gross_30pct_winners=sum(t['gross_return_pct']>=30-1e-10 for t in trades),
-        signals=signals,gaps=dict(gaps),unresolved_positions=positions,trades=trades,daily_equity=curve)
+        signals=signals,borrow_execution=borrow_metrics(signal_events,borrow_observations),gaps=dict(gaps),
+        signal_events=signal_events,unresolved_positions=positions,trades=trades,daily_equity=curve)
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--replay',default='backtest/runtime/corrected-replay/decisions.json')
+    parser.add_argument('--evidence-db',default='backtest/runtime/evidence/runtime/state.sqlite')
     args=parser.parse_args();root=Path.cwd();records=json.loads(Path(args.replay).read_text())
     cohorts={start:dict(short=frozen_cohort(records,start),long=broad_cohort(records,start)) for start,_ in PERIODS}
     symbols=cohorts[START]['short'];long_symbols=cohorts[START]['long']
     download_symbols=sorted({ticker for group in cohorts.values() for side in group.values() for ticker in side})
     cache=root/'backtest/runtime/swing-bars';cache.mkdir(parents=True,exist_ok=True)
     if not symbols or not long_symbols:raise ValueError('No independently discovered pre-period cohort')
+    borrow_observations=[]
+    if Path(args.evidence_db).exists():
+        from .storage import Store
+        borrow_observations=Store(args.evidence_db).observations('market_borrow')
     sessions=[]
-    for year in range(2023,2026):
+    for year in range(2022,2026):
         sessions.extend(str(s.date()) for s in calendar(year).sessions_in_range(f'{year}-06-01',f'{year}-12-05'))
-    data,requests=download(download_symbols,'2023-06-01',END,cache)
+    data,requests=download(download_symbols,'2022-06-01',END,cache)
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for period_start,period_end in PERIODS:
         for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
             for hold in [1,3,4,5,7]:
                 universe=cohorts[period_start]['long' if strategy=='BREAKOUT_LONG' else 'short']
-                result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy)
+                result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy,borrow_observations=borrow_observations)
                 result['period_start']=period_start;result['period_end']=period_end
                 (out/f'{period_start}-{strategy}-{hold}.json').write_text(json.dumps(result))
-                summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
+                summaries.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     stress=[]
     for hold in [1,3,4,5,7]:
-        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0)
-        stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions'}})
+        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0,borrow_observations=borrow_observations)
+        stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
+    from .risk_model import walk_forward_report
+    ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)
+    (out/'ranking-model.json').write_text(json.dumps(ranking_model,indent=2))
     report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,periods=[dict(start=s,end=e,
         short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
         cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
-        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,
+        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,ranking_model=ranking_model,
         assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
           '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',
@@ -183,7 +208,7 @@ def main():
           'Independent firm cohort frozen from sources through July 2025; later IPOs and updated filing context missing',
           'Long hypothesis evaluated in same firm cohort, not a broad-market long universe',
           'Daily bars can include extended sessions; close-fill model must be checked against game execution',
-          'No reference labels loaded; no parameter search; all preset horizons and three preset fall periods reported',
+          'No reference labels loaded; fixed model splits are 2022-2023 train, 2024 validation and 2025 holdout',
           'Missing exit bars keep positions unresolved and ending balance null; observed drawdown can be understated where marks are missing'])
     (out/'summary.json').write_text(json.dumps(report,indent=2));print(json.dumps(report))
 

@@ -51,6 +51,22 @@ def test_uncertain_delivery_no_retry(tmp_path):
     assert sender.send(demo(),Config())=='DELIVERY_UNCERTAIN'
     assert sender.send(demo(),Config())=='ALREADY_CLAIMED' and len(http.calls)==1
 
+def test_event_delivery_sends_new_phase_once_without_noon_gate(tmp_path):
+    store=Store(tmp_path/'s.db');http=FakeHttp();checkpoints=[]
+    at=NOW-timedelta(minutes=30)  # 11:30 Pacific: old noon sender would reject it.
+    items=demo()
+    for e in items:
+        if e.snapshot:
+            e.snapshot.asof=at;e.snapshot.price_time=at-timedelta(minutes=1)
+            e.snapshot.market_cap_observed_at=at
+        if e.halt:e.halt.checked_at=at
+    sender=DiscordSender(http,URL,store,lambda s:checkpoints.append(True),clock=lambda:at)
+    first=sender.send_new(items,Config())
+    assert first['status']=='SENT' and first['new_trades']>=1
+    calls=len(http.calls)
+    assert sender.send_new(items,Config())=='NO_NEW_TRADES' and len(http.calls)==calls
+    assert checkpoints and http.calls[0]['body']['content'].startswith('@everyone')
+
 def test_late_claim_does_not_send(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();times=iter([NOW,NOW+timedelta(minutes=1)])
     sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:next(times))

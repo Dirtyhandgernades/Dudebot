@@ -1,7 +1,7 @@
 # Dudebot setup: exact secret names
 
 The user authorized live deployment on September 8, 2026. The firm-first profile
-is now the configured default. Discovery and noon Discord delivery default to
+is now the configured default. Discovery and event-driven Discord delivery default to
 enabled after deployment; repository variables `SMG_LIVE_ENABLED=false` and
 `DISCORD_ENABLED=false` stop the GitHub jobs/uploads. Hosted delivery must be paused
 separately using Actions -> Control hosted Dudebot delivery -> `pause`; `resume`
@@ -11,7 +11,7 @@ below describe the original release. All four secrets remain required.
 
 The activation workflow runs on a main-branch deployment change and sends one
 mention-free receipt after SEC discovery and an authenticated Alpaca check.
-Stock alerts still run only in the configured noon minute. The receipt does not
+Stock alerts run after the 15-minute market scan finds a newly qualified phase. The receipt does not
 claim a completed backtest, complete universe coverage, or a stock detection.
 
 Add these **four repository secrets** at [Settings → Secrets and variables → Actions → Secrets](https://github.com/Dirtyhandgernades/Dudebot/settings/secrets/actions), using **New repository secret** for each one.
@@ -34,7 +34,7 @@ Open the separate [Variables tab](https://github.com/Dirtyhandgernades/Dudebot/s
 | Exact variable name | Value |
 |---|---|
 | `SMG_LIVE_ENABLED` | Lowercase `true` to enable scheduled discovery and market research. Leave unset or `false` until the secrets are added. |
-| `DISCORD_ENABLED` | Lowercase `true` when ready to allow noon notifications. Leave `false` for report-only runs. |
+| `DISCORD_ENABLED` | Lowercase `true` when ready to allow new-trade notifications. Leave `false` for report-only runs. |
 | `SURGE_RETURN_MIN_PCT` | Optional positive numeric override of the configured 12% minimum for the trailing 21-session price gain, without a `%` sign. Leave unset to use 12%. |
 
 The user clarified that gains from 12% through 23% inclusive remain eligible at low priority, with gains above 23% at normal priority. The existing window is 21 trading sessions. Do not set an old demonstration threshold such as 100 unless intentionally overriding this rule. Direct offerings retain their separate criteria.
@@ -47,9 +47,9 @@ GitHub supplies `GITHUB_TOKEN`, `GITHUB_REPOSITORY`, and `GITHUB_ACTIONS` automa
 2. Run **Check setup (offline, no messages)** in [Actions](https://github.com/Dirtyhandgernades/Dudebot/actions). It reports which settings are present, without revealing values. This does not validate the keys against live providers.
 3. Add the variables. Set `SMG_LIVE_ENABLED=true`; choose the surge threshold when ready. Keep `DISCORD_ENABLED=false` while checking research.
 4. Run **Discover IPOs and direct offerings** manually. It reads public SEC filings and saves candidates without sending messages. Inspect its logs for source errors or a remaining backfill budget. Initial three-year discovery can require multiple runs.
-5. Set `DISCORD_ENABLED=true` when ready for the daily digest. The noon workflow refuses out-of-window sends even when manually started. Leave the Discord variable false to inspect reports first.
+5. Set `DISCORD_ENABLED=true` when ready for new-trade alerts. Each candidate/phase is durably claimed before sending and continuing signals stay silent. Leave the Discord variable false to inspect reports first.
 
-The target is **12:00 Pacific / 2:00 Central**, following local daylight-saving time (19:00 UTC in summer, 20:00 UTC in winter). Every alert clearly labels the **16-minute market-data delay**. For the independently hosted final delivery step, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and follow [Cloudflare setup](cloudflare/README.md). A separate Discord bot account is unnecessary.
+The market scan runs every 15 minutes on weekdays and every alert labels the **16-minute market-data delay**. The legacy Cloudflare noon alarm is paused; a separate Discord bot account is unnecessary.
 
 ## Cost and operating limits
 

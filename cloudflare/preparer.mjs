@@ -60,6 +60,14 @@ export class HostedPreparer {
     requireValue(Number.isFinite(headerTime) && haltTime-headerTime>=-60_000 && haltTime-headerTime<=300_000 && Number(haltResponse.headers.get('Age')||0)<=60,'Stale halt feed');
     const halted=haltedSymbols(await haltResponse.text(),haltTime);
     const effective=Math.floor(this.clock()/60_000)*60_000-16*60_000;
+    const assetHeaders={'APCA-API-KEY-ID':this.env.ALPACA_API_KEY,'APCA-API-SECRET-KEY':this.env.ALPACA_SECRET_KEY};
+    const assets={};
+    await Promise.all(candidates.map(async c=>{
+      try {
+        const response=await this.get('https://paper-api.alpaca.markets/v2/assets/'+encodeURIComponent(c.ticker),assetHeaders);
+        const a=await response.json();assets[c.ticker]={tradable:a.tradable===true,shortable:a.shortable===true,borrow_status:a.borrow_status??null};
+      } catch(e) {assets[c.ticker]={status:'UNAVAILABLE',error:e.message};}
+    }));
     let bars={};
     {
       // SPY is an API access probe only when the watch is empty; it is never added to candidates.
@@ -72,6 +80,7 @@ export class HostedPreparer {
     for(const c of candidates) {
       const rows=(bars[c.ticker]||[]).filter(r=>Date.parse(r.t)<=effective-60_000).sort((a,b)=>Date.parse(a.t)-Date.parse(b.t));
       const last=rows.at(-1),cap=capValues[c.ticker];
+      const asset=assets[c.ticker]||{status:'UNAVAILABLE'};
       const reasons=[];
       if(!last)reasons.push('NO_RECENT_BAR');
       else {
@@ -80,18 +89,22 @@ export class HostedPreparer {
       }
       if(!cap)reasons.push('MARKET_CAP_UNAVAILABLE');else if(cap<25_000_000)reasons.push('MARKET_CAP_BELOW_25M');
       if(halted.has(c.ticker))reasons.push('HALTED');
-      decisions.push({ticker:c.ticker,status:reasons.length?'WITHHELD':'QUALIFIED',reasons,price:last?.c??null,market_cap:cap??null});
+      if(asset.status==='UNAVAILABLE')reasons.push('CURRENT_BORROW_UNAVAILABLE');
+      else if(!asset.tradable || !asset.shortable || asset.borrow_status!=='easy_to_borrow')reasons.push('CURRENT_BORROW_NOT_EXECUTABLE');
+      decisions.push({ticker:c.ticker,status:reasons.length?'WITHHELD':'QUALIFIED',reasons,price:last?.c??null,market_cap:cap??null,shortability:asset});
       if(reasons.length)continue;
       const fields=[{name:'Listed firms',value:c.firms.map(f=>f.name+' ('+f.role+')').join('\n').slice(0,1024)},
         {name:'Price / game eligibility',value:'$'+last.c.toFixed(2)+' · Reported cap $'+(cap/1e6).toFixed(1)+'M\nMinimum 10 shares: $'+(last.c*10).toFixed(2)+' before fees'},
+        {name:'Short execution check',value:'Alpaca: tradable · shortable · '+asset.borrow_status+'\nResearch horizon: 4–7 sessions'},
         {name:'Filing evidence',value:c.source_url},{name:'Pump / volume context',value:'Monthly surge and relative volume unavailable in hosted refresh; these remain preferences.'}];
       const payload={content:items.length?'':'@everyone',allowed_mentions:{parse:items.length?[]:['everyone']},embeds:[{title:c.ticker+' · FIRM-FIRST WATCH',color:0x26a69a,
         description:'Listed-firm research watch. Fresh delayed price and required eligibility checks passed. Firm association does not establish misconduct or predict a fall.',
         fields,footer:{text:'Free SIP delayed 16 minutes · Cap is a current vendor report, without a published valuation timestamp'},timestamp:new Date(target).toISOString()}]};
       items.push({...c,status:'QUALIFIED',firm_matches:c.firms.length,price:last.c,market_cap:cap,market_cap_observed_at:capTime,market_cap_source:capSources[c.ticker],
+        signal_side:'SHORT',tradable:asset.tradable,shortable:asset.shortable,borrow_status:asset.borrow_status,
         halt_status:'CLEAR',halt_checked_at:new Date(haltTime).toISOString(),asof:new Date(effective).toISOString(),price_time:last.t,payload});
     }
-    const bundle={version:2,profile:'firm_first',feed:'sip',delay_minutes:16,generated_at:new Date(this.clock()).toISOString(),send_at:new Date(target).toISOString(),items};
+    const bundle={version:3,profile:'firm_first',feed:'sip',delay_minutes:16,generated_at:new Date(this.clock()).toISOString(),send_at:new Date(target).toISOString(),items};
     if(!verifyOnly)validateBundle(bundle,this.clock(),true);
     return {bundle,audit:{seed_candidates:seed.candidates.length,fresh_source_candidates:candidates.length,qualified:items.length,decisions,provider_check:'VERIFIED',at:new Date(this.clock()).toISOString()}};
   }

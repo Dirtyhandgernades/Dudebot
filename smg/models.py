@@ -41,6 +41,11 @@ class Config(Strict):
     market_feed: Literal['sip','iex'] = 'sip'
     market_data_delay_minutes: int = Field(default=16, ge=0, le=30)
     state_branch: str = 'smg-state'
+    short_alerts_require_borrow: Literal[True] = True
+    live_signal_side: Literal['SHORT'] = 'SHORT'
+    live_short_hold_sessions_min: Literal[4] = 4
+    live_short_hold_sessions_max: Literal[7] = 7
+    long_alerts_enabled: Literal[False] = False
 
 class Evidence(Strict):
     url: str
@@ -125,3 +130,6 @@ class Evaluation(Strict):
     halt: HaltCheck | None = None
     rank: list[float] = []
     matches: list[dict] = []
+    signal_side: Literal['SHORT','LONG','REVIEW'] | None = None
+    shortability: dict | None = None
+    ranking_evidence: dict = {}

@@ -9,6 +9,15 @@ class Store:
         self.db=sqlite3.connect(path)
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+        self.db.execute('''CREATE TABLE IF NOT EXISTS observations (
+            kind TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            observed_at TEXT NOT NULL,
+            source TEXT NOT NULL,
+            value TEXT NOT NULL,
+            PRIMARY KEY (kind, subject, observed_at)
+        )''')
+        self.db.execute('CREATE INDEX IF NOT EXISTS observations_lookup ON observations(kind,subject,observed_at DESC)')
         self.db.commit()
     def get(self,key,default=None):
         row=self.db.execute('SELECT value FROM kv WHERE key=?',(key,)).fetchone()
@@ -16,8 +25,31 @@ class Store:
     def put(self,key,value):
         self.db.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',(key,json.dumps(value,allow_nan=False)))
         self.db.commit()
+    def delete(self,key):
+        self.db.execute('DELETE FROM kv WHERE key=?',(key,));self.db.commit()
     def items(self,prefix):
         return [(key,json.loads(value)) for key,value in self.db.execute('SELECT key,value FROM kv WHERE key LIKE ?',(prefix+'%',)).fetchall()]
+    def observe(self,kind,subject,observed_at,source,value):
+        """Append an immutable, timestamped provider observation.
+
+        Replaying the same observation is idempotent. A provider correction must
+        carry a new observation time instead of silently rewriting history.
+        """
+        stamp=observed_at.isoformat() if hasattr(observed_at,'isoformat') else str(observed_at)
+        self.db.execute('INSERT OR IGNORE INTO observations VALUES (?,?,?,?,?)',
+            (kind,subject.upper(),stamp,source,json.dumps(value,allow_nan=False,sort_keys=True)))
+        self.db.commit()
+    def observations(self,kind,subject=None,start=None,end=None):
+        sql='SELECT subject,observed_at,source,value FROM observations WHERE kind=?';args=[kind]
+        if subject is not None:sql+=' AND subject=?';args.append(subject.upper())
+        if start is not None:sql+=' AND observed_at>=?';args.append(start.isoformat() if hasattr(start,'isoformat') else str(start))
+        if end is not None:sql+=' AND observed_at<=?';args.append(end.isoformat() if hasattr(end,'isoformat') else str(end))
+        sql+=' ORDER BY observed_at,subject'
+        return [dict(subject=s,observed_at=t,source=u,value=json.loads(v)) for s,t,u,v in self.db.execute(sql,args)]
+    def latest_observation(self,kind,subject):
+        row=self.db.execute('SELECT observed_at,source,value FROM observations WHERE kind=? AND subject=? ORDER BY observed_at DESC LIMIT 1',
+            (kind,subject.upper())).fetchone()
+        return dict(observed_at=row[0],source=row[1],value=json.loads(row[2])) if row else None
 
 class GitHubState:
     """GitHub contents API with SHA guards. Never catches a conflicting write and overwrites."""

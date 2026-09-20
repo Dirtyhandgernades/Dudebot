@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime,timedelta
 from .rules import structural,evaluate
 from .market import calculate,snapshot_window
 from .firm_first import firm_structure,evaluate_firm_first
@@ -8,6 +8,21 @@ class Scanner:
     def __init__(self,market,halts,cfg,entities,store,market_caps=None):
         self.market=market;self.halts=halts;self.cfg=cfg;self.entities=entities;self.store=store;self.bar_cache={}
         self.market_caps=market_caps or (NasdaqMarketCaps(market.http) if hasattr(market,'http') else None)
+        self.asset_cache={}
+    def _ranking_context(self,ticker,now):
+        context={}
+        for kind in ['finra_short_volume','sentiment']:
+            row=self.store.latest_observation(kind,ticker)
+            if row:
+                try:age=(now-datetime.fromisoformat(row['observed_at'])).total_seconds()
+                except (ValueError,TypeError):age=None
+                context[kind]={**row,'age_seconds':age}
+        return context
+    def _borrow(self,ticker):
+        if ticker not in self.asset_cache:
+            from .shortability import current_assets
+            self.asset_cache[ticker]=current_assets(self.market.http,[ticker],getattr(self.market,'headers',{}))['assets'][ticker]
+        return self.asset_cache[ticker]
     def scan(self,candidates,now):
         results=[]
         structure=firm_structure if self.cfg.screening_profile=='firm_first' else structural
@@ -34,6 +49,19 @@ class Scanner:
                 if self.cfg.market_data_delay_minutes:snapshot.flags.append('DELAYED_MARKET_DATA')
                 if any('ads ratio' in n.lower() or 'ticker change' in n.lower() for n in c.notes):snapshot.flags.append('CORPORATE_ACTION_REVIEW')
                 r=assess(c,self.cfg,self.entities,now,snapshot,halt)
+                if r.status=='QUALIFIED':
+                    r.signal_side=self.cfg.live_signal_side
+                    r.ranking_evidence=self._ranking_context(c.ticker,now)
+                    if self.cfg.short_alerts_require_borrow:
+                        from .shortability import executable_short
+                        r.shortability=self._borrow(c.ticker)
+                        if not executable_short(r.shortability):
+                            r.status='REVIEW_REQUIRED';r.reasons.append('CURRENT_BORROW_NOT_EXECUTABLE')
+                    # Context changes ordering only. Missing context never creates
+                    # or suppresses an otherwise eligible trade.
+                    finra=(r.ranking_evidence.get('finra_short_volume') or {}).get('value',{})
+                    sentiment=(r.ranking_evidence.get('sentiment') or {}).get('value',{})
+                    r.rank += [-float(finra.get('short_volume_ratio') or 0),float(sentiment.get('score') or 0)]
             except Exception as exc:
                 r.status='REVIEW_REQUIRED';r.reasons.append(str(exc) if isinstance(exc,(ValueError,RuntimeError)) else type(exc).__name__)
             self.store.put('evaluation:'+c.key,r.model_dump(mode='json'));results.append(r)

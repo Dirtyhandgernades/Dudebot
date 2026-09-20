@@ -26,6 +26,12 @@ jobs:
           run-id: 35415517622
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: backtest/runtime/corrected-replay
+      - name: Fetch point-in-time evidence archive when available
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: smg-state
+          path: backtest/runtime/evidence
       - uses: actions/cache@v4
         with:
           path: backtest/runtime/swing-bars
@@ -35,7 +41,7 @@ jobs:
         env:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-        run: python -m smg.swing_backtest
+        run: python -m smg.swing_backtest --evidence-db backtest/runtime/evidence/runtime/state.sqlite
       - uses: actions/upload-artifact@v4
         if: always()
         with:

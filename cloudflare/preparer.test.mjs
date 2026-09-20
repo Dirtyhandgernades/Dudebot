@@ -11,6 +11,7 @@ function provider({price=4,cap=25_000_000,rss=emptyRSS,stamp=now}={}) {
   return async(url,options)=>{
     if(url.includes('api.nasdaq.com'))return Response.json({data:{table:{rows:[{symbol:'TEST',marketCap:String(cap)}]}}});
     if(url.includes('nasdaqtrader'))return new Response(rss,{headers:{Date:new Date(stamp).toUTCString()}});
+    if(url.includes('api.alpaca.markets/v2/assets/'))return Response.json({symbol:'TEST',tradable:true,shortable:true,borrow_status:'easy_to_borrow'});
     assert.match(url,/feed=sip/);assert.equal(options.headers['APCA-API-KEY-ID'],'fake');
     return Response.json({bars:{TEST:[{t:new Date(now-17*60_000).toISOString(),c:price}]}});
   };
@@ -20,7 +21,8 @@ test('hosted refresh uses real provider fields and same hard bundle validation',
   const result=await new HostedPreparer(env,provider(),()=>now).prepare(seed(),target);
   assert.equal(result.bundle.items.length,1);assert.equal(result.bundle.items[0].price,4);
   assert.equal(result.bundle.items[0].market_cap,25_000_000);assert.equal(result.audit.provider_check,'VERIFIED');
-  assert.deepEqual(result.audit.decisions,[{ticker:'TEST',status:'QUALIFIED',reasons:[],price:4,market_cap:25_000_000}]);
+  assert.deepEqual(result.audit.decisions,[{ticker:'TEST',status:'QUALIFIED',reasons:[],price:4,market_cap:25_000_000,
+    shortability:{tradable:true,shortable:true,borrow_status:'easy_to_borrow'}}]);
 });
 test('price, capitalization and stale filing reviews cannot produce hosted stock picks',async()=>{
   for(const options of [{price:3},{cap:24_999_999}])assert.equal((await new HostedPreparer(env,provider(options),()=>now).prepare(seed(),target)).bundle.items.length,0);
@@ -33,6 +35,15 @@ test('preparation audit separates hard exclusions from unavailable data',async()
   assert.deepEqual(result.audit.decisions[0].reasons,['PRICE_NOT_ABOVE_3','MARKET_CAP_UNAVAILABLE']);
   const stale=seed();stale.candidates[0].reviewed_at=new Date(now-27*3600_000).toISOString();
   assert.deepEqual((await new HostedPreparer(env,provider(),()=>now).prepare(stale,target)).audit.decisions[0].reasons,['STALE_SOURCE_REVIEW']);
+});
+test('unknown or hard borrow is withheld',async()=>{
+  const request=async(url,options)=>{
+    if(url.includes('api.alpaca.markets/v2/assets/'))return Response.json({tradable:true,shortable:true,borrow_status:'hard_to_borrow'});
+    return provider()(url,options);
+  };
+  const result=await new HostedPreparer(env,request,()=>now).prepare(seed(),target);
+  assert.equal(result.bundle.items.length,0);
+  assert.deepEqual(result.audit.decisions[0].reasons,['CURRENT_BORROW_NOT_EXECUTABLE']);
 });
 test('unhealthy halt feed fails preparation and halted symbols are withheld',async()=>{
   await assert.rejects(new HostedPreparer(env,provider({stamp:now-3600_000}),()=>now).prepare(seed(),target),/Stale halt/);

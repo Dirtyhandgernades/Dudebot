@@ -1,10 +1,11 @@
 # Free hosted Discord delivery
 
-Cloudflare now performs the near-noon market refresh and sends the Discord report.
+Cloudflare remains deployed as a validated fallback, but its old noon alarm is paused.
+The serialized GitHub 15-minute evidence workflow now owns new-trade delivery.
 GitHub continues SEC filing discovery and uploads the source-reviewed candidate
 pool. No Discord bot user, paid feed, paid AI service or always-on PC is required.
 
-The persistent hosted clock refreshes at 11:58 a.m. Pacific and dispatches at noon
+The former persistent hosted clock refreshed at 11:58 a.m. Pacific and dispatched at noon
 Pacific / 2 p.m. Central on weekdays, following daylight-saving time. Each day it
 schedules the next wake-up before attempting delivery. Late alarms beyond the noon
 minute are suppressed; network/provider outages can still prevent delivery.
@@ -24,7 +25,7 @@ exclusions, source freshness and market-data freshness. Cards show matched firms
 filing evidence, price, cap and the minimum 10-share cost before fees. They make no
 orders. Unknown required checks never become stock picks.
 
-A missing, invalid or empty prepared report produces a clearly labeled noon status
+A missing, invalid or empty prepared report formerly produced a clearly labeled noon status
 embed without mentions. Stock digests allow one @everyone mention. The daily
 Durable Object atomically claims the receipt before Discord POST, so competing
 alarms cannot duplicate a report. Uncertain delivery and rate-limit rejections are

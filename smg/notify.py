@@ -79,6 +79,11 @@ def digest(evaluations,now,cfg):
         details=rationale(e).split('\n')[2:]
         # One card per stock stays below Discord's 6,000-character aggregate embed limit.
         description='\n'.join(x for x in details if x!='Sources:' and not x.startswith('<https://'))[:2500]
+        borrow=e.shortability or {};finra=(e.ranking_evidence.get('finra_short_volume') or {}).get('value',{})
+        sentiment=(e.ranking_evidence.get('sentiment') or {}).get('value',{})
+        context=f"Alpaca borrow: {borrow.get('borrow_status','unavailable')} · tradable {borrow.get('tradable','?')} · shortable {borrow.get('shortable','?')}\n"
+        context+=f"FINRA prior-day short-volume ratio: {metric((finra.get('short_volume_ratio')*100) if finra.get('short_volume_ratio') is not None else None,'%')}\n"
+        context+=f"Sentiment score: {metric(sentiment.get('score'))} (ranking context only)"
         embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
                'color':0xE7AF38 if super_priority else 0x39B9A8,
                'fields':[{'name':'Matched firms','value':firms[:1000] or 'Unavailable','inline':False},
@@ -86,10 +91,11 @@ def digest(evaluations,now,cfg):
                          {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
                          {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
                          {'name':'DECA eligibility','value':f'Reported market cap: ${metric(m.market_cap)}\nNasdaq/NYSE · price > $3 · cap ≥ $25M\nMinimum opening order: 10 shares (~${metric(m.price*10)} before fees)','inline':False},
+                         {'name':'4–7 session short evidence','value':context[:1024],'inline':False},
                          {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
                'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
                'timestamp':m.price_time.isoformat()}
-        payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**Daily research watchlist** · '+local_time(now,cfg).strftime('%b %d, %Y · %H:%M %Z'),
+        payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**New qualified trade** · '+local_time(now,cfg).strftime('%b %d, %Y · %H:%M %Z'),
                          'embeds':[embed],'allowed_mentions':{'parse':['everyone'] if i==0 else []}})
     return payloads
 
@@ -138,6 +144,8 @@ class DiscordSender:
         for e in evaluations:
             if e.status!='QUALIFIED' or not e.halt or e.halt.status!='CLEAR' or not e.snapshot:continue
             if eligibility(e.snapshot,cfg,now)[0]:continue
+            from .shortability import executable_short
+            if cfg.short_alerts_require_borrow and (e.signal_side!='SHORT' or not executable_short(e.shortability)):continue
             effective_now=now-timedelta(minutes=e.snapshot.declared_delay_minutes)
             feed_ok=e.snapshot.feed=='synthetic' or (e.snapshot.feed==cfg.market_feed and e.snapshot.declared_delay_minutes==cfg.market_data_delay_minutes)
             if feed_ok and 0<=(now-e.halt.checked_at).total_seconds()<=cfg.max_snapshot_age_seconds and all(0<=(effective_now-t).total_seconds()<=cfg.max_snapshot_age_seconds for t in [e.snapshot.price_time,e.snapshot.asof]):good.append(e)
@@ -163,3 +171,53 @@ class DiscordSender:
                 self.store.put(key,claim);self.checkpoint(self.store)
         self.store.put(key,claim);self.checkpoint(self.store)
         return claim['status']
+
+    def _valid_trade(self,e,cfg,now):
+        if e.status!='QUALIFIED' or not e.halt or e.halt.status!='CLEAR' or not e.snapshot:return False
+        if eligibility(e.snapshot,cfg,now)[0]:return False
+        from .shortability import executable_short
+        if cfg.short_alerts_require_borrow and (e.signal_side!='SHORT' or not executable_short(e.shortability)):return False
+        effective=now-timedelta(minutes=e.snapshot.declared_delay_minutes)
+        if not snapshot_window(effective):return False
+        feed_ok=e.snapshot.feed=='synthetic' or (e.snapshot.feed==cfg.market_feed and e.snapshot.declared_delay_minutes==cfg.market_data_delay_minutes)
+        return bool(feed_ok and 0<=(now-e.halt.checked_at).total_seconds()<=cfg.max_snapshot_age_seconds and
+            all(0<=(effective-t).total_seconds()<=cfg.max_snapshot_age_seconds for t in [e.snapshot.price_time,e.snapshot.asof]))
+
+    @staticmethod
+    def _phase(e,cfg):
+        m=e.snapshot
+        if m.drawdown_pct<=-20:return 'FALLEN_20'
+        if m.monthly_return is None:return 'HISTORY_UNKNOWN'
+        if m.monthly_return<(cfg.surge_return_min_pct or 0):return 'PRE_PUMP'
+        if cfg.ipo_low_priority_surge_max_pct is not None and m.monthly_return<=cfg.ipo_low_priority_surge_max_pct:return 'LOW_SURGE'
+        return 'PUMPED'
+
+    def send_new(self,evaluations,cfg):
+        """Send only newly qualified trade phases; no wall-clock delivery gate.
+
+        Claims are checkpointed before Discord. An uncertain request is never
+        retried, and a continuing signal does not ping again every 15 minutes.
+        """
+        from .transport import ProviderError
+        now=self.clock();new=[];claims=[]
+        for e in evaluations:
+            state_key='trade_alert_state:'+hashlib.sha256(e.candidate.key.encode()).hexdigest()
+            if not self._valid_trade(e,cfg,now):
+                definitive=e.status in {'EXCLUDED','MARKET_NOT_CONFIRMED'} or ('CURRENT_BORROW_NOT_EXECUTABLE' in e.reasons and (e.shortability or {}).get('status')=='CURRENT')
+                if definitive:self.store.delete(state_key)
+                continue
+            phase=self._phase(e,cfg);prior=self.store.get(state_key)
+            if prior and prior.get('phase')==phase:continue
+            claim={'status':'CLAIMED','claimed_at':now.isoformat(),'phase':phase,'candidate_key':e.candidate.key,'ticker':e.candidate.ticker,'side':e.signal_side}
+            self.store.put(state_key,claim);claims.append((state_key,claim));new.append(e)
+        if not new:return 'NO_NEW_TRADES'
+        self.checkpoint(self.store)
+        payloads=digest(new,now,cfg)
+        for (key,claim),payload in zip(claims,payloads):
+            try:
+                data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
+                claim.update(status='SENT',message_id=data['id'],sent_at=self.clock().isoformat())
+            except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
+            self.store.put(key,claim);self.checkpoint(self.store)
+        return {'status':'SENT' if all(c['status']=='SENT' for _,c in claims) else 'DELIVERY_UNCERTAIN',
+            'new_trades':len(new),'tickers':[e.candidate.ticker for e in new]}

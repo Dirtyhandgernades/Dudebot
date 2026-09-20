@@ -83,13 +83,14 @@ export function validateBundle(b, now, preparing=false) {
   check(preparing ? target-now>0 && target-now<=5*60_000 : now>=target && now<target+60_000,'Outside delivery window');
   const generated=stamp(b.generated_at);
   check(now>=generated && now-generated<=5*60_000,'Stale bundle');
-  check(b.version===2 && b.profile==='firm_first' && b.feed==='sip' && b.delay_minutes===16,'Unsupported screen/data mode');
+  check(b.version===3 && b.profile==='firm_first' && b.feed==='sip' && b.delay_minutes===16,'Unsupported screen/data mode');
   check(Array.isArray(b.items) && b.items.length<=30,'Invalid item count');
   b.items.forEach((item,i)=>{
     check(item.status==='QUALIFIED' && item.halt_status==='CLEAR','Unqualified item');
     check(typeof item.ticker==='string' && /^[A-Z][A-Z0-9.-]*$/.test(item.ticker) && !/^[A-Z]{5}$/.test(item.ticker),'Excluded ticker');
     check(item.is_acquisition_corp===false && item.classification_evidence===true && ['XNAS','NASDAQ','XNYS','NYSE'].includes(item.exchange),'Excluded/unknown issuer');
     check(Number.isFinite(item.price) && item.price>3 && Number.isFinite(item.market_cap) && item.market_cap>=25_000_000,'Game price/capitalization exclusion');
+    check(item.signal_side==='SHORT' && item.tradable===true && item.shortable===true && item.borrow_status==='easy_to_borrow','Borrow unavailable');
     const capAge=now-stamp(item.market_cap_observed_at);
     check(capAge>=0 && capAge<=26*3600_000 && typeof item.market_cap_source==='string' && item.market_cap_source.startsWith('https://'),'Unknown market cap source');
     check(['CS','ADRC','ADS','COMMON_STOCK'].includes(item.security_type) && item.firm_matches>0 && item.corporate_action_review===false,'Unreviewed security/firm');

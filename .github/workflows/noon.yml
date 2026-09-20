@@ -1,7 +1,5 @@
-name: Noon Discord notifier
+name: Legacy noon Discord notifier (manual only)
 on:
-  schedule:
-    - cron: '17 18,19 * * 1-5' # Prestart before noon PDT/PST; local-time gate chooses the applicable run.
   workflow_dispatch:
 permissions:
   contents: write

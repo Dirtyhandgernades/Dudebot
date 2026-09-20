@@ -1,0 +1,55 @@
+name: Point-in-time evidence archive
+on:
+  schedule:
+    # Covers the U.S. session in both daylight and standard time. The collector
+    # timestamps every observation and labels periods without a delayed bar.
+    - cron: '*/15 13-21 * * 1-5'
+    - cron: '35 23 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Collect current evidence or backfill bounded public history
+        type: choice
+        options: [current, backfill]
+        default: current
+permissions:
+  contents: write
+concurrency:
+  group: smg-state-writer
+  cancel-in-progress: false
+jobs:
+  archive:
+    if: vars.SMG_LIVE_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - name: Archive current market and evidence snapshot
+        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.cli archive
+      - name: Alert once when a new trade phase qualifies
+        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.cli alert --send
+      - name: Backfill ten public halt and FINRA sessions
+        if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
+        run: python -m smg.cli archive-backfill --max-days 10
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence-archive-${{ github.run_id }}
+          path: reports/evidence-*.json
+          if-no-files-found: ignore
+          retention-days: 30

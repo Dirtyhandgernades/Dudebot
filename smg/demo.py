@@ -24,5 +24,9 @@ def run_demo(cfg,entities):
         market=snapshot();halt=clear
         if c.ticker=='HALT':halt=clear.model_copy(update={'status':'HALTED'})
         if c.ticker=='RVOL':market.rvol=.8
-        results.append(evaluate(c,demo_cfg,entities,NOW,market,halt))
+        result=evaluate(c,demo_cfg,entities,NOW,market,halt)
+        if result.status=='QUALIFIED':
+            result.signal_side='SHORT'
+            result.shortability={'status':'CURRENT','tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'}
+        results.append(result)
     return results,NOW

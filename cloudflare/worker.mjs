@@ -13,7 +13,7 @@ async function authorized(request,env) {
 export default {
   async fetch(request,env) {
     const path=new URL(request.url).pathname;
-    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:5,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
+    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:6,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
     if(['/pause','/resume'].includes(path) && request.method==='POST')return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(['/clock','/seed','/preparation-check'].includes(path) && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);

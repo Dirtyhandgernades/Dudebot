@@ -1,6 +1,6 @@
 # Dudebot · DECA SMG notifier
 
-A rules-based stock research notifier using GitHub for filing discovery and Cloudflare for hosted noon market refresh and Discord delivery. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
+A rules-based stock research notifier using GitHub for filing discovery, 15-minute market scans, and event-driven Discord delivery. The live default is the firm-first screen: listed underwriters, auditors and counsel lead the watchlist, including stocks that have not pumped and older IPOs. It uses public SEC filings, free delayed Alpaca data, and Discord source links. It never places orders.
 
 The user's DECA gates apply to both profiles: **Nasdaq or NYSE common equity,
 current price strictly above $3, and market cap at least $25 million**. Unknown
@@ -23,14 +23,14 @@ are disclosed as preferences/data gaps. `screening_profile: strict` restores the
 original transaction screen documented below. Direct offerings keep their own
 relationships; an issuer-level historical underwriter is labeled in `FIRM_WATCH`.
 
-Live deployment enables the existing weekday discovery and noon schedules by
+Live deployment enables weekday discovery and 15-minute market/evidence scans by
 default. Repository variables `SMG_LIVE_ENABLED=false` or `DISCORD_ENABLED=false`
 stop the relevant GitHub jobs/uploads. To stop hosted delivery, run the
 **Control hosted Dudebot delivery** workflow with `pause`; use `resume` to restart.
-Pause cancels alarms and pending picks and survives deployments. A deployment sends one durable,
-mention-free activation receipt; stock alerts retain the noon gate and one
-`@everyone` mention. A missing or unqualified report produces a status embed without
-a mention. The full historical replay remains incomplete.
+The legacy Cloudflare noon clock is paused. A deployment sends one durable,
+mention-free activation receipt. Each newly qualified candidate/market phase is
+claimed in durable state before one `@everyone` Discord alert. Continuing signals
+do not repeat every 15 minutes, and no-match scans remain silent. The full historical replay remains incomplete.
 
 **No Anthropic, OpenAI, Massive, or other paid AI service is required.** Filing extraction runs locally in Python. Alpaca's free historical consolidated SIP feed is used with a deliberate **16-minute delay**; every alert states the feed, timestamp, and delay. See [SETUP.md](SETUP.md) for the exact four secrets and activation steps.
 
@@ -54,7 +54,7 @@ The bot checks the filing criteria first, then obtains market confirmation. Miss
 | RVOL | At least 1.0 against comparable same-time historical volume |
 | IPO surge | At least 12% over 21 trading sessions; 12%–23% inclusive is low priority, above 23% normal priority |
 | Direct offerings | Separate research pipeline; no mandatory monthly surge by default |
-| Notification | One digest per eligible trading day, only during the configured noon minute, with one `@everyone` mention |
+| Notification | One durable alert when a candidate first enters a new qualified market phase; scans run every 15 minutes |
 
 The source firm's category names are the user's screening labels. A list match does not establish fraud, manipulation, or a future price decline. Trading and reversal decisions remain the team's case-by-case decisions.
 
@@ -100,21 +100,21 @@ An optional `iex` feed with zero delay can be configured in the strategy file. I
 - Alpaca split adjustment applies to price and volume. ADS-ratio or unresolved unit changes require review. Corporate-action changes not identified by available filings can still require human investigation.
 - Nasdaq's current-day halt RSS is checked before confirmation. A quote-resumption time alone does not establish trading resumption. Unknown status, feed failure, or stale prices suppress qualification. Older suspensions absent from the current-day feed ordinarily fail the price-freshness gate; this public feed is not an exchange status guarantee.
 
-## Noon Pacific / 2 p.m. Central
+## Event-driven delivery
 
-The user confirmed local daylight-saving time: **12:00 Pacific / 2:00 Central**, using `America/Los_Angeles`. This is 19:00 UTC during daylight time and 20:00 UTC during standard time. The workflow prestarts at 18:17 and 19:17 UTC; the applicable run has a 43-minute startup buffer and the other exits. Early-close days and holidays do not send.
+The evidence workflow runs every 15 minutes across U.S. market hours in both daylight and standard time. It archives point-in-time market and borrow evidence, scans the stored SEC candidate pool, and sends immediately when a candidate enters a newly qualified phase. Holidays and closed sessions cannot qualify because the delayed market snapshot must be inside a valid exchange session.
 
 Alerts use Discord embeds: one card per stock, matched firms, market context, timestamps and filing links. The first message requests `@everyone`; later cards do not repeat the mention. Practice checks have no mentions and are explicitly labeled as research checks.
 
-The optional [free Cloudflare dispatcher](cloudflare/README.md) owns the final timed send after verified deployment. Python refreshes data before noon, uploads the prepared cards, and Cloudflare stores an alarm for local noon. It rejects stale data and persists a claim before contacting Discord. GitHub still prepares the data; late or missing preparation cannot produce a reliable alert. Neither this architecture nor a separate Discord bot can guarantee zero network delay.
+The legacy [Cloudflare dispatcher](cloudflare/README.md) remains deployed for validation but its noon alarm is paused. GitHub owns event-driven scans and persists each signal claim on the `smg-state` branch before contacting Discord. GitHub schedules can start late, so “immediate” means the first successful scheduled scan after qualification rather than guaranteed wall-clock delivery.
 
-Before Cloudflare activation, GitHub sends through the same webhook and noon gate. After activation, a shared delivery claim prevents both senders from pinging. GitHub can delay or drop scheduled jobs, and public repository schedules may be disabled after 60 days without activity. [Schedule behavior](https://docs.github.com/actions/using-workflows/events-that-trigger-workflows#schedule), [enabling workflows](https://docs.github.com/actions/managing-workflow-runs/disabling-and-enabling-a-workflow)
+The old noon workflow is manual-only. GitHub can delay or drop scheduled jobs, and public repository schedules may be disabled after 60 days without activity. [Schedule behavior](https://docs.github.com/actions/using-workflows/events-that-trigger-workflows#schedule), [enabling workflows](https://docs.github.com/actions/managing-workflow-runs/disabling-and-enabling-a-workflow)
 
 ## Sending, reports, and state
 
-Scheduled live jobs remain disabled until `SMG_LIVE_ENABLED=true`. Discord additionally requires `DISCORD_ENABLED=true`. Without Discord enabled, the noon worker generates a report only. No-match runs stay silent.
+Scheduled live jobs require `SMG_LIVE_ENABLED` not to be `false`. Discord additionally requires `DISCORD_ENABLED=true`. Without Discord enabled, scans generate reports only. No-match runs stay silent.
 
-`reports/latest.json` contains evaluation results, reasons, and source evidence. `reports/discord-preview.txt` shows eligible alert text. The noon workflow uploads these as an Actions artifact, retained for 30 days. Data access failures are recorded separately from market criteria that did not pass.
+`reports/latest.json` contains evaluation results, reasons, and source evidence. `reports/discord-preview.txt` shows eligible alert text. Data access failures are recorded separately from market criteria that did not pass.
 
 The `smg-state` branch stores a SQLite record through GitHub's Contents API with SHA-guarded writes. Workflows serialize state updates. The daily digest is durably claimed before its first Discord request. Uncertain or failed sends do not blindly retry the ping; delivery can be missed after an ambiguous failure. Source text cannot inject extra mentions. The first chunk explicitly allows `@everyone`, while later chunks do not. Discord permissions and recipient settings still govern notifications.
 
@@ -127,7 +127,8 @@ python -m smg.cli doctor       # Offline configuration presence check; never pri
 python -m smg.cli demo         # Offline fictional examples; cannot send.
 python -m smg.cli discover     # SEC discovery and local extraction; no Discord messages.
 python -m smg.cli scan         # Market confirmation and report; no Discord messages.
-python -m smg.cli noon --send  # Prepare, revalidate, then time-gated delivery when enabled.
+python -m smg.cli alert --send # Send only newly qualified phases; durable duplicate suppression.
+python -m smg.cli archive      # Append point-in-time price, borrow, halt and research evidence.
 ```
 
 `.env` files are not automatically loaded. Use shell environment variables locally or the provided Actions workflows. Keep actual credentials out of the repository.

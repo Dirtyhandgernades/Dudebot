@@ -1,4 +1,4 @@
-"""Prepare real evaluated alerts for the free Cloudflare noon dispatcher."""
+"""Legacy Cloudflare dispatcher validation and explicit noon-clock shutdown."""
 import hashlib,json,os,time
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
@@ -32,14 +32,17 @@ def bundle(results,now,target,cfg):
     payloads=digest(good,target,cfg);items=[]
     for e,payload in zip(good,payloads):
         c=e.candidate;s=e.snapshot
+        asset=e.shortability or {}
+        if e.signal_side!='SHORT' or not asset.get('tradable') or not asset.get('shortable') or asset.get('borrow_status')!='easy_to_borrow':continue
         items.append(dict(status=e.status,ticker=c.ticker,is_acquisition_corp=c.is_acquisition_corp,
             classification_evidence='is_acquisition_corp' in c.evidence,exchange=c.exchange,security_type=c.security_type,
             firm_matches=len(e.matches),corporate_action_review='CORPORATE_ACTION_REVIEW' in s.flags,
             halt_status=e.halt.status,halt_checked_at=e.halt.checked_at.isoformat(),reviewed_at=c.reviewed_at.isoformat(),
             asof=s.asof.isoformat(),price_time=s.price_time.isoformat(),price=s.price,market_cap=s.market_cap,
-            market_cap_observed_at=s.market_cap_observed_at.isoformat(),market_cap_source=s.market_cap_source,payload=payload))
+            market_cap_observed_at=s.market_cap_observed_at.isoformat(),market_cap_source=s.market_cap_source,
+            signal_side='SHORT',tradable=True,shortable=True,borrow_status=asset['borrow_status'],payload=payload))
     if len(items)>30:raise ValueError('More than 30 qualified stocks: dispatcher capacity review required')
-    return dict(version=2,profile='firm_first',feed='sip',delay_minutes=16,generated_at=now.isoformat(),send_at=target.isoformat(),items=items)
+    return dict(version=3,profile='firm_first',feed='sip',delay_minutes=16,generated_at=now.isoformat(),send_at=target.isoformat(),items=items)
 
 def prepare(http,endpoint,webhook,results,now,target,cfg):
     body=bundle(results,now,target,cfg)
@@ -69,7 +72,8 @@ def upload_seed(http,endpoint,webhook,candidates,now,cfg,entities):
     # shortability or the game's security table.
     try:
         from .shortability import current_assets
-        borrow=current_assets(http,[row['ticker'] for row in packet['candidates']])
+        headers={'APCA-API-KEY-ID':os.environ.get('ALPACA_API_KEY',''),'APCA-API-SECRET-KEY':os.environ.get('ALPACA_SECRET_KEY','')}
+        borrow=current_assets(http,[row['ticker'] for row in packet['candidates']],headers)
         for row in packet['candidates']:
             row['current_borrow']=borrow['assets'].get(row['ticker'],{'status':'UNAVAILABLE'})
         packet['shortability']=borrow['limitation']
@@ -99,7 +103,7 @@ def register():
     for attempt in range(12):
         try:
             health=http.json(endpoint+'/health',timeout=10)
-            if health.get('version')==5 and health.get('configured') is True:
+            if health.get('version')==6 and health.get('configured') is True:
                 controller=http.json(endpoint+'/clock',headers=headers,timeout=10)
                 if isinstance(controller.get('control',{}).get('paused'),bool):break
         except ProviderError:pass
@@ -126,12 +130,14 @@ def register():
     seed=upload_seed(http,endpoint,webhook,candidates,now,cfg,EntityList(entries))
     provider_check=http.json(endpoint+'/preparation-check',method='POST',headers=headers,body={},timeout=55)
     if provider_check.get('provider_check')!='VERIFIED':raise ValueError('Cloudflare market preparation check failed: '+str(provider_check))
-    clock,paused=clock_registration(http.json(endpoint+'/clock',method='POST',headers=headers,body={}))
-    # enabled selects the delivery owner; a paused Worker must not enable a direct GitHub fallback.
-    record=dict(enabled=True,paused=paused,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=clock,seed=seed,provider_check=provider_check,
+    # Event-driven GitHub scans now own delivery. Explicitly stop the legacy
+    # hosted noon alarm so it cannot create a duplicate or noon status message.
+    stopped=http.json(endpoint+'/pause',method='POST',headers=headers,body={})
+    if stopped.get('status')!='PAUSED':raise ValueError('Legacy hosted noon clock did not pause')
+    record=dict(enabled=False,delivery_mode='EVENT_DRIVEN_15_MINUTE_SCAN',paused=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=stopped.get('clock'),seed=seed,provider_check=provider_check,
                 previous_clock_result=previous.get('last'),previous_preparation=previous.get('preparation'),today_receipt=daily_receipt.get('receipt'),
                 today_delivery=daily_receipt,
-                limitation='Hosted price/cap/halt refresh and clock verified; inspect today_receipt for actual delivery. GitHub refreshes the source-reviewed candidate pool; stale sources are withheld. Explicit pause survives deployment.')
+                limitation='Legacy hosted noon delivery is paused. The serialized 15-minute evidence workflow owns new-trade delivery; GitHub schedule startup can still be delayed.')
     store.put('cloud_dispatch',record);backend.checkpoint(store)
     folder=root/'reports';folder.mkdir(exist_ok=True)
     (folder/'cloudflare-deployment.json').write_text(json.dumps(record,indent=2));print(json.dumps(record))

@@ -1,5 +1,23 @@
 # Dudebot continuation handoff
 
+## September 20: event-driven alerts and evidence archive
+
+The user replaced fixed-noon stock delivery with alerts whenever a newly qualified
+trade is found. `.github/workflows/evidence-archive.yml` runs every 15 minutes
+across U.S. market hours, archives timestamped price/volume/asset/borrow/halt
+evidence, then runs `smg.cli alert --send`. Delivery state is keyed by candidate
+and market phase, checkpointed before Discord, and prevents the same continuing
+signal from pinging every scan. The old noon workflow is manual-only and Cloudflare
+deployment registration explicitly pauses the legacy noon alarm.
+
+Live shorts now fail closed unless Alpaca reports tradable, shortable and
+`borrow_status=easy_to_borrow`. The archive begins prospectively; historical
+borrow before collection remains unavailable. SEC identity/share facts, market-cap
+proxies, FINRA short volume, Nasdaq halt events, and timestamped optional sentiment
+are archived separately. A 2022-2023/2024/2025 train-validation-holdout ranking
+experiment was added but is not a live eligibility gate. Re-run the hosted
+walk-forward workflow and inspect actual artifacts before reporting model results.
+
 ## September 19: improved replay completed
 
 Run 35415517622 at commit 4474adb completed successfully. Artifact 10575693002
