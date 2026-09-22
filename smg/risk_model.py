@@ -1,4 +1,4 @@
-"""Small deterministic ranking model for 20% declines within 3–7 sessions.
+"""Small deterministic ranking model for 20% declines within 1–3 sessions.
 
 The holdout labels are never used for fitting or threshold selection. This is a
 ranking experiment over independently discovered firm-linked issuers, not a
@@ -46,11 +46,12 @@ def samples(records,raw,adjusted,sessions):
             # The existing 12% pump and RVOL preference defines the candidate
             # population. The model ranks candidates; it does not weaken gates.
             if x is None or x[0]<.12 or x[4]<1:continue
-            future=[series.get(d) for d in sessions[i+4:i+9]]
+            # Entry is the next close (i+1); label the following 1–3 closes.
+            future=[series.get(d) for d in sessions[i+2:i+5]]
             if any(v is None for v in future):continue
             decline=min(v['c'] for v in future)/entry['c']-1
             rows.append({'ticker':ticker,'signal_date':day,'entry_date':sessions[i+1],
-                'x':x,'label':int(decline<=-.20),'max_decline_3_7':decline})
+                'x':x,'label':int(decline<=-.20),'max_decline_1_3':decline})
     return rows
 
 def _sigmoid(values):
@@ -98,7 +99,7 @@ def walk_forward_report(records,raw,adjusted,sessions):
     validation_metrics=metrics(validation,validation_scores)
     threshold=validation_metrics['threshold']
     holdout_scores=predict(model,holdout)
-    return {'status':'TRAINED' if model else 'INSUFFICIENT_TRAINING_DATA','target':'at least 20% close decline 3-7 sessions after next-close entry',
+    return {'status':'TRAINED' if model else 'INSUFFICIENT_TRAINING_DATA','target':'at least 20% close decline 1-3 sessions after next-close entry',
         'candidate_gate':'independently discovered firm relationship; price > $3; trailing-21 return >=12%; volume ratio >=1',
         'splits':{'train':'2022-2023','validation':'2024','holdout':'2025'},'model':model,
         'train':metrics(train,train_scores,threshold),'validation':validation_metrics,
