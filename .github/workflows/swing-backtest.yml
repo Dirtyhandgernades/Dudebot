@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [smg/swing_backtest.py, .github/workflows/swing-backtest.yml]
+    paths: [smg/swing_backtest.py, smg/risk_model.py, .github/workflows/swing-backtest.yml]
 permissions:
   contents: read
   actions: read
