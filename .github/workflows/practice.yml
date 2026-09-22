@@ -17,6 +17,8 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
+      # One durable, mention-free end-to-end receipt for the repaired live path.
+      PRACTICE_RECEIPT_ID: practice-live-repair-2026-09-22
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -93,7 +93,8 @@ def digest(evaluations,now,cfg):
         description='\n'.join(x for x in details if x!='Sources:' and not x.startswith('<https://'))[:2500]
         borrow=e.shortability or {};finra=(e.ranking_evidence.get('finra_short_volume') or {}).get('value',{})
         sentiment=(e.ranking_evidence.get('sentiment') or {}).get('value',{})
-        context=f"Alpaca borrow: {borrow.get('borrow_status','unavailable')} · tradable {borrow.get('tradable','?')} · shortable {borrow.get('shortable','?')}\n"
+        context=f"Target hold: {cfg.live_short_hold_sessions_min}–{cfg.live_short_hold_sessions_max} sessions; reassess daily\n"
+        context+=f"Alpaca borrow: {borrow.get('borrow_status','unavailable')} · tradable {borrow.get('tradable','?')} · shortable {borrow.get('shortable','?')}\n"
         context+=f"FINRA prior-day short-volume ratio: {metric((finra.get('short_volume_ratio')*100) if finra.get('short_volume_ratio') is not None else None,'%')}\n"
         context+=f"Sentiment score: {metric(sentiment.get('score'))} (ranking context only)"
         embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
@@ -103,7 +104,8 @@ def digest(evaluations,now,cfg):
                          {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
                          {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
                          {'name':'DECA eligibility','value':f'Reported market cap: ${metric(m.market_cap)}\nNasdaq/NYSE · price > $3 · cap ≥ $25M\nMinimum opening order: 10 shares (~${metric(m.price*10)} before fees)','inline':False},
-                         {'name':'4–7 session short evidence','value':context[:1024],'inline':False},
+                         {'name':f'{cfg.live_short_hold_sessions_min}–{cfg.live_short_hold_sessions_max} session short plan','value':context[:1024],'inline':False},
+                         {'name':'SMG position guide','value':'$15k review size · up to $30k only for the highest-ranked setup · $150k maximum gross exposure · minimum 10 shares','inline':False},
                          {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
                'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
                'timestamp':m.price_time.isoformat()}

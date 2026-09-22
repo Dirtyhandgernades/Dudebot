@@ -43,8 +43,8 @@ class Config(Strict):
     state_branch: str = 'smg-state'
     short_alerts_require_borrow: Literal[True] = True
     live_signal_side: Literal['SHORT'] = 'SHORT'
-    live_short_hold_sessions_min: Literal[4] = 4
-    live_short_hold_sessions_max: Literal[7] = 7
+    live_short_hold_sessions_min: Literal[1] = 1
+    live_short_hold_sessions_max: Literal[3] = 3
     long_alerts_enabled: Literal[False] = False
     broad_shortlist_size: int = Field(default=8,ge=1,le=20)
     broad_min_monthly_return_pct: float = Field(default=12,ge=0)
