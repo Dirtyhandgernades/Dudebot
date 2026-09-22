@@ -236,3 +236,42 @@ class DiscordSender:
             self.store.put(key,claim);self.checkpoint(self.store)
         return {'status':'SENT' if all(c['status']=='SENT' for _,c in claims) else 'DELIVERY_UNCERTAIN',
             'new_trades':len(new),'tickers':[e.candidate.ticker for e in new]}
+
+    def send_daily_no_trade(self,evaluations,cfg):
+        """Send one mention-free close-of-day summary when no trade was sent.
+
+        This is deliberately separate from trade qualification: near misses are
+        useful review context, but are never promoted into actionable alerts.
+        """
+        from .transport import ProviderError
+        now=self.clock();local=local_time(now,cfg);day=str(local.date())
+        if local.weekday()>=5 or local.hour<13:return 'BEFORE_DAILY_SUMMARY'
+        for _,value in self.store.items('trade_alert_state:'):
+            sent=value.get('sent_at')
+            if sent and str(local_time(datetime.fromisoformat(sent),cfg).date())==day:
+                return 'TRADE_SENT_TODAY'
+        key='daily_no_trade:'+day
+        if self.store.get(key):return 'ALREADY_CLAIMED'
+        ranked=sorted(evaluations,key=lambda e:(e.snapshot is None,e.status in {'EXCLUDED','REVIEW_REQUIRED'},not bool(e.matches),e.rank,e.candidate.ticker))[:5]
+        lines=[]
+        for e in ranked:
+            m=e.snapshot
+            market='' if not m else f' · ${m.price:.2f} · 21d {metric(m.monthly_return,"%")} · RVOL {metric(m.rvol,"×")}'
+            reasons=', '.join(e.reasons[:3]) or e.status
+            lines.append(f'**{clean(e.candidate.ticker)}** · {clean(e.status)}{market}\n{clean(reasons)[:300]}')
+        embed={'title':'Daily scan complete · no qualified trade',
+            'description':'Dudebot completed today’s scans. No setup passed every live execution rule. The strongest reviewed names are shown as near-misses only.',
+            'color':0x6B7280,
+            'fields':[{'name':'Strongest near-misses','value':'\n\n'.join(lines)[:1024] if lines else 'No eligible candidates had complete market data.','inline':False},
+                      {'name':'Rules kept active','value':'Nasdaq/NYSE · price > $3 · market cap ≥ $25M · exclusions · current halt check · current Alpaca borrow for shorts','inline':False}],
+            'footer':{'text':'Dudebot · no trade was forced · research watchlist'},'timestamp':now.isoformat()}
+        payload={'username':'Dudebot','content':'**Daily Dudebot status** · '+local.strftime('%b %d, %Y'),
+            'embeds':[embed],'allowed_mentions':{'parse':[]}}
+        claim={'status':'CLAIMED','claimed_at':now.isoformat(),'candidate_count':len(evaluations)}
+        self.store.put(key,claim);self.checkpoint(self.store)
+        try:
+            data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
+            claim.update(status='SENT',message_id=data['id'],sent_at=self.clock().isoformat())
+        except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
+        self.store.put(key,claim);self.checkpoint(self.store)
+        return claim

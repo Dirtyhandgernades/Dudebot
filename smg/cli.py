@@ -164,7 +164,9 @@ def main():
         if args.command=='alert' and args.send:
             if os.environ.get('DISCORD_ENABLED')=='true':
                 sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
-                print(json.dumps({'event_delivery':sender.send_new(results,cfg)}))
+                event=sender.send_new(results,cfg)
+                daily=sender.send_daily_no_trade(results,cfg)
+                print(json.dumps({'event_delivery':event,'daily_status':daily}))
             else:print('DISCORD_DISABLED; report generated without sending')
         if args.command=='noon':
             refresh_at=target-timedelta(seconds=90)

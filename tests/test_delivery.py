@@ -67,6 +67,24 @@ def test_event_delivery_sends_new_phase_once_without_noon_gate(tmp_path):
     assert sender.send_new(items,Config())=='NO_NEW_TRADES' and len(http.calls)==calls
     assert checkpoints and http.calls[0]['body']['content'].startswith('@everyone')
 
+def test_daily_no_trade_embed_sends_once_after_close_without_mention(tmp_path):
+    store=Store(tmp_path/'s.db');http=FakeHttp();at=NOW+timedelta(hours=1)
+    items=demo()
+    for e in items:e.status='MARKET_NOT_CONFIRMED'
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
+    first=sender.send_daily_no_trade(items,Config())
+    assert first['status']=='SENT' and len(http.calls)==1
+    body=http.calls[0]['body']
+    assert body['embeds'][0]['title'].startswith('Daily scan complete')
+    assert body['allowed_mentions']=={'parse':[]} and '@everyone' not in body['content']
+    assert sender.send_daily_no_trade(items,Config())=='ALREADY_CLAIMED' and len(http.calls)==1
+
+def test_daily_no_trade_suppressed_when_trade_was_sent(tmp_path):
+    store=Store(tmp_path/'s.db');http=FakeHttp();at=NOW+timedelta(hours=1)
+    store.put('trade_alert_state:x',{'status':'SENT','sent_at':at.isoformat()})
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
+    assert sender.send_daily_no_trade(demo(),Config())=='TRADE_SENT_TODAY' and not http.calls
+
 def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
     duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'
