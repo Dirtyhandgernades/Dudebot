@@ -28,11 +28,20 @@ def market_features(rows):
     if len(rows)<22:return None
     last=rows[-1];prior=rows[-21:-1];base=mean(float(r['v']) for r in prior)
     if base<=0 or any(float(r['c'])<=0 for r in rows[-22:]):return None
-    return {'price':float(last['c']),'return_21_pct':100*(last['c']/rows[-22]['c']-1),
+    span=max(float(last['h'])-float(last['l']),1e-12)
+    close_location=(float(last['c'])-float(last['l']))/span
+    features={'price':float(last['c']),'return_21_pct':100*(last['c']/rows[-22]['c']-1),
         'return_5_pct':100*(last['c']/rows[-6]['c']-1),'return_1_pct':100*(last['c']/rows[-2]['c']-1),
         'drawdown_21_pct':100*(last['c']/max(r['h'] for r in rows[-22:])-1),
         'volume_ratio_20':float(last['v'])/base,'average_range_5_pct':100*mean((r['h']-r['l'])/r['c'] for r in rows[-5:]),
-        'failed_previous_low':bool(last['c']<rows[-2]['l']),'bar_time':last['t']}
+        'failed_previous_low':bool(last['c']<rows[-2]['l']),'lower_high':bool(last['h']<rows[-2]['h']),
+        'close_location':close_location,'bar_time':last['t']}
+    score=(25*features['failed_previous_low']+20*(features['return_1_pct']<=-5)+
+        15*(features['drawdown_21_pct']<=-8)+15*(features['volume_ratio_20']>=1.5)+
+        10*(features['average_range_5_pct']>=8)+10*(close_location<=.35)+5*features['lower_high'])
+    features['fast_dump_score']=score
+    features['chart_setup']='PUMP_FAILURE_BREAKDOWN' if features['failed_previous_low'] and features['return_21_pct']>=12 else 'VOLATILITY_BREAKDOWN'
+    return features
 
 def shortlist(features,cfg,limit=None):
     rows=[]
@@ -43,7 +52,7 @@ def shortlist(features,cfg,limit=None):
         failure=f['failed_previous_low'] or f['return_1_pct']<=-5 or f['drawdown_21_pct']<=-8
         if f['volume_ratio_20']<cfg.broad_min_volume_ratio or not failure or not (pumped or volatile):continue
         firm_bonus=20 if item.get('known_firm') else 0
-        score=firm_bonus+25*int(f['failed_previous_low'])+max(f['return_21_pct'],0)+5*f['volume_ratio_20']+2*f['average_range_5_pct']
+        score=firm_bonus+f['fast_dump_score']+max(f['return_21_pct'],0)+5*f['volume_ratio_20']+2*f['average_range_5_pct']
         rows.append((score,symbol,item))
     return [item for _,_,item in sorted(rows,key=lambda x:(-x[0],x[1]))[:limit or cfg.broad_shortlist_size]]
 

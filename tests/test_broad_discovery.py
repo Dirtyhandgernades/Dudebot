@@ -15,6 +15,7 @@ def cfg(size=8):
 def test_daily_prefilter_requires_failure_and_volume_after_pump_or_volatility():
     f=market_features(bars())
     assert f['failed_previous_low'] and f['volume_ratio_20']==2 and f['average_range_5_pct']>8
+    assert f['fast_dump_score']>=60 and f['chart_setup']=='PUMP_FAILURE_BREAKDOWN'
     item={'ticker':'ABC','features':f,'known_firm':False}
     assert shortlist({'ABC':item},cfg())==[item]
     quiet={**f,'failed_previous_low':False,'return_1_pct':0,'drawdown_21_pct':-1}
