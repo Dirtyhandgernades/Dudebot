@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from smg.broad_discovery import market_features,shortlist
+from smg.broad_discovery import firm_shortlist,market_features,shortlist
 
 def bars(close=10,volume=100):
     rows=[]
@@ -9,7 +9,8 @@ def bars(close=10,volume=100):
     return rows
 
 def cfg(size=8):
-    return SimpleNamespace(broad_min_monthly_return_pct=12,broad_min_daily_range_pct=8,broad_min_volume_ratio=1,broad_shortlist_size=size)
+    return SimpleNamespace(broad_min_monthly_return_pct=12,broad_min_daily_range_pct=8,broad_min_volume_ratio=1,
+        broad_shortlist_size=size,firm_live_shortlist_size=size)
 
 def test_daily_prefilter_requires_failure_and_volume_after_pump_or_volatility():
     f=market_features(bars())
@@ -24,3 +25,8 @@ def test_shortlist_is_bounded_and_known_firm_is_only_a_bonus():
     rows={f'S{i}':{'ticker':f'S{i}','features':dict(base),'known_firm':i==3} for i in range(5)}
     selected=shortlist(rows,cfg(2))
     assert len(selected)==2 and selected[0]['ticker']=='S3'
+
+def test_firm_live_shortlist_is_bounded_by_current_market_activity():
+    base=market_features(bars())
+    rows={f'S{i}':{'ticker':f'S{i}','features':dict(base,volume_ratio_20=i+1),'known_firm':True} for i in range(5)}
+    assert firm_shortlist(rows,set(rows),cfg(2))==['S4','S3']

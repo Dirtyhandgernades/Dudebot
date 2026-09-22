@@ -128,12 +128,26 @@ class EvidenceArchiver:
             summary['failures'].append('HALTS:'+type(exc).__name__)
             for symbol in symbols:self._record_failure('halt_status',symbol,now,HALT_URL,exc)
 
-        daily_key='evidence_daily:'+str(now.date())
-        if not self.store.get(daily_key):
-            self._daily(symbol_to_cik,market,now,summary)
-            self.store.put(daily_key,{'completed_at':now.isoformat()})
         self.store.put('evidence_archive:last',summary)
         return {**summary,'status':'ARCHIVED','market_rows':len(market),'asset_rows':len(assets)}
+
+    def collect_daily(self,symbol_to_cik,now=None,max_symbols=8):
+        """Incrementally collect slow fundamentals and sentiment evidence."""
+        now=now or datetime.now(UTC);prefix='evidence_daily:'+str(now.date())+':'
+        pending={s:c for s,c in sorted(symbol_to_cik.items()) if not self.store.get(prefix+s)}
+        batch=dict(list(pending.items())[:max_symbols]);summary={'observed_at':now.isoformat(),'eligible_symbols':len(symbol_to_cik),
+            'pending_before':len(pending),'processed_symbols':list(batch),'failures':[]}
+        if batch:
+            market={}
+            for symbol in batch:
+                observed=self.store.latest_observation('market_borrow',symbol)
+                value=(observed or {}).get('value',{})
+                if value.get('price') is not None:market[symbol]={'price':value['price']}
+            self._daily(batch,market,now,summary)
+            for symbol in batch:self.store.put(prefix+symbol,{'completed_at':now.isoformat()})
+        summary['pending_after']=len(pending)-len(batch)
+        self.store.put('evidence_enrichment:last',summary)
+        return {**summary,'status':'ENRICHED' if batch else 'CURRENT_DAY_COMPLETE'}
 
     def _daily(self,symbol_to_cik,market,now,summary):
         symbols=sorted(symbol_to_cik)

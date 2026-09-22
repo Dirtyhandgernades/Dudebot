@@ -43,7 +43,7 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','broad-discover','scan','alert','noon','demo','activate','practice','archive','archive-backfill'])
+    parser.add_argument('command',choices=['doctor','discover','broad-discover','scan','alert','noon','demo','activate','practice','archive','archive-enrich','archive-backfill'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
     parser.add_argument('--send',action='store_true',help='Send newly qualified event alerts, or use the legacy manual noon sender')
     parser.add_argument('--max-days',type=int,default=10,help='Bounded public-history days per archive-backfill run')
@@ -73,14 +73,16 @@ def main():
             folder=root/'reports';folder.mkdir(exist_ok=True)
             (folder/'broad-discovery.json').write_text(json.dumps(result,indent=2))
             print(json.dumps(result));return
-        if args.command in {'archive','archive-backfill'}:
+        if args.command in {'archive','archive-enrich','archive-backfill'}:
             from .evidence_archive import EvidenceArchiver
             candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
+            candidates=[c for c in candidates if 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
             mapping={c.ticker:c.cik for c in candidates if c.ticker and c.cik}
             archiver=EvidenceArchiver(http,store,
                 {'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')},
                 {'User-Agent':required_env('SEC_USER_AGENT'),'Accept-Encoding':'gzip, deflate'})
             if args.command=='archive':result=archiver.collect(mapping,now)
+            elif args.command=='archive-enrich':result=archiver.collect_daily(mapping,now,cfg.archive_enrichment_batch_size)
             else:
                 if not 1<=args.max_days<=31:raise ValueError('--max-days must be between 1 and 31')
                 cursor=store.get('public_backfill_cursor',str(now.date()-timedelta(days=1)))
@@ -137,7 +139,17 @@ def main():
             print(json.dumps({'activation':receipt}));return
         market=Alpaca(http,required_env('ALPACA_API_KEY'),required_env('ALPACA_SECRET_KEY'),cfg.market_feed,cfg.market_data_delay_minutes)
         candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
-        candidates=[c for c in candidates if c.pipeline in {'RECENT_IPO','FIRM_WATCH','VOLATILITY_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days)]
+        candidates=[c for c in candidates if (c.pipeline in {'RECENT_IPO','FIRM_WATCH','VOLATILITY_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days))
+                    and 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
+        firm=[c for c in candidates if c.pipeline=='FIRM_WATCH'];broad=[c for c in candidates if c.pipeline=='VOLATILITY_WATCH']
+        strict=[c for c in candidates if c.pipeline not in {'FIRM_WATCH','VOLATILITY_WATCH'}]
+        preferred=(store.get('broad_discovery',{}) or {}).get('firm_shortlist_symbols') or []
+        position={symbol:i for i,symbol in enumerate(preferred)}
+        firm=sorted(firm,key=lambda c:(position.get(c.ticker,len(position)), -c.reviewed_at.timestamp(),c.ticker))[:cfg.firm_live_shortlist_size]
+        strict=sorted(strict,key=lambda c:(-c.reviewed_at.timestamp(),c.ticker))[:cfg.strict_live_shortlist_size]
+        candidates=broad+firm+strict
+        store.put('live_scan_selection',{'at':now.isoformat(),'volatility':len(broad),'firm':len(firm),'strict':len(strict),'symbols':[c.ticker for c in candidates]})
+        checkpoint(store)
         scanner=Scanner(market,NasdaqHalts(http),cfg,entities,store)
         if args.command=='noon':
             local=local_time(now,cfg);target=local.replace(hour=12,minute=0,second=0,microsecond=0).astimezone(UTC)

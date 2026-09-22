@@ -29,6 +29,9 @@ the eligible NASDAQ/NYSE universe twice per market day, then retains at most eig
 SEC-verified common equities for intraday confirmation. A listed-firm match gets a
 large ranking bonus. Without one, a stock must pass the stronger pump-failure or
 high-volume breakdown trigger. This avoids thousands of intraday symbol requests.
+The same daily pass ranks at most 16 firm candidates by current price/volume
+activity, so the live minute-bar scan evaluates no more than 24 names plus eight
+recent strict-profile events. Current borrow is checked before minute history.
 
 Live deployment enables weekday discovery and 15-minute market/evidence scans by
 default. Repository variables `SMG_LIVE_ENABLED=false` or `DISCORD_ENABLED=false`
@@ -146,6 +149,7 @@ python -m smg.cli broad-discover # Batched market-wide prefilter; persists at mo
 python -m smg.cli scan         # Market confirmation and report; no Discord messages.
 python -m smg.cli alert --send # Send only newly qualified phases; durable duplicate suppression.
 python -m smg.cli archive      # Append point-in-time price, borrow, halt and research evidence.
+python -m smg.cli archive-enrich # Resume eight slow sentiment/fundamental records per run.
 ```
 
 `.env` files are not automatically loaded. Use shell environment variables locally or the provided Actions workflows. Keep actual credentials out of the repository.

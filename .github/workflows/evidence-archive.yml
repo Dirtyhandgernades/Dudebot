@@ -3,7 +3,8 @@ on:
   schedule:
     # Covers the U.S. session in both daylight and standard time. The collector
     # timestamps every observation and labels periods without a delayed bar.
-    - cron: '*/15 13-21 * * 1-5'
+    # Offset from the top of the hour to reduce GitHub schedule congestion.
+    - cron: '7,22,37,52 13-21 * * 1-5'
     - cron: '35 23 * * 1-5'
   workflow_dispatch:
     inputs:
@@ -21,7 +22,7 @@ jobs:
   archive:
     if: vars.SMG_LIVE_ENABLED != 'false'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
@@ -37,12 +38,15 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-tested.txt
       - run: python -m pip install -e . -c requirements-tested.txt
-      - name: Archive current market and evidence snapshot
-        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
-        run: python -m smg.cli archive
       - name: Alert once when a new trade phase qualifies
         if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli alert --send
+      - name: Archive current market and borrow snapshot
+        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.cli archive
+      - name: Enrich eight pending symbols with daily fundamentals and sentiment
+        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.cli archive-enrich
       - name: Backfill ten public halt and FINRA sessions
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
         run: python -m smg.cli archive-backfill --max-days 10

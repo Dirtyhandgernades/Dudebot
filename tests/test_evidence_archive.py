@@ -30,3 +30,21 @@ def test_observation_archive_is_append_only_and_queryable(tmp_path):
     store.observe('market_borrow','abc',NOW,'https://example.com',{'price':999})
     assert store.latest_observation('market_borrow','ABC')['value']['price']==4
     assert len(store.observations('market_borrow','ABC'))==1
+
+def test_daily_enrichment_is_bounded_and_resumable(tmp_path):
+    from smg.evidence_archive import EvidenceArchiver
+    class Http:
+        def json(self,url,**kwargs):
+            if 'company_tickers' in url:return {'fields':['cik','name','ticker','exchange'],'data':[[1,'A','AAA','Nasdaq'],[2,'B','BBB','NYSE']]}
+            if 'companyfacts' in url:return {'facts':{}}
+            return {'messages':[]}
+        def text(self,url,**kwargs):
+            if 'CNMSshvol' in url:return 'Date|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market\n20250905|AAA|4|0|10|Q\n'
+            if 'news.google' in url:return '<rss><channel/></rss>'
+            return ''
+    store=Store(tmp_path/'state.sqlite');archiver=EvidenceArchiver(Http(),store,{}, {})
+    first=archiver.collect_daily({'AAA':'1','BBB':'2'},NOW,max_symbols=1)
+    second=archiver.collect_daily({'AAA':'1','BBB':'2'},NOW,max_symbols=1)
+    third=archiver.collect_daily({'AAA':'1','BBB':'2'},NOW,max_symbols=1)
+    assert first['processed_symbols']==['AAA'] and second['processed_symbols']==['BBB']
+    assert third['status']=='CURRENT_DAY_COMPLETE' and third['pending_after']==0

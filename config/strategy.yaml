@@ -49,3 +49,6 @@ broad_shortlist_size: 8
 broad_min_monthly_return_pct: 12
 broad_min_daily_range_pct: 8
 broad_min_volume_ratio: 1.0
+firm_live_shortlist_size: 16
+strict_live_shortlist_size: 8
+archive_enrichment_batch_size: 8

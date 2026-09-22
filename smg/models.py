@@ -50,6 +50,9 @@ class Config(Strict):
     broad_min_monthly_return_pct: float = Field(default=12,ge=0)
     broad_min_daily_range_pct: float = Field(default=8,ge=0)
     broad_min_volume_ratio: float = Field(default=1,ge=0)
+    firm_live_shortlist_size: int = Field(default=16,ge=1,le=40)
+    strict_live_shortlist_size: int = Field(default=8,ge=0,le=20)
+    archive_enrichment_batch_size: int = Field(default=8,ge=1,le=20)
 
 class Evidence(Strict):
     url: str

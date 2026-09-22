@@ -47,6 +47,18 @@ def shortlist(features,cfg,limit=None):
         rows.append((score,symbol,item))
     return [item for _,_,item in sorted(rows,key=lambda x:(-x[0],x[1]))[:limit or cfg.broad_shortlist_size]]
 
+def firm_shortlist(features,firm_tickers,cfg):
+    """Rank known-firm names by current movement without making it a gate."""
+    rows=[]
+    for symbol in firm_tickers:
+        item=features.get(symbol)
+        if not item:continue
+        f=item['features']
+        score=(max(f['return_21_pct'],0)+10*f['volume_ratio_20']+2*f['average_range_5_pct']+
+               15*int(f['failed_previous_low'])+max(-f['return_1_pct'],0)+max(-f['drawdown_21_pct'],0))
+        rows.append((score,symbol))
+    return [symbol for _,symbol in sorted(rows,key=lambda x:(-x[0],x[1]))[:cfg.firm_live_shortlist_size]]
+
 class BroadVolatilityDiscovery:
     def __init__(self,sec,store,cfg,entries,alpaca_headers):
         self.sec=sec;self.store=store;self.cfg=cfg;self.entries=entries;self.headers=alpaca_headers;self.issues=[];self.requests=0
@@ -119,6 +131,7 @@ class BroadVolatilityDiscovery:
         for symbol,item in universe.items():
             f=market_features(bars.get(symbol,[]))
             if f:features[symbol]={**item,'features':f,'known_firm':symbol in firm_tickers}
+        active_firms=firm_shortlist(features,firm_tickers,self.cfg)
         selected=shortlist(features,self.cfg,self.cfg.broad_shortlist_size*3);candidates=[]
         for item in selected:
             candidate=self._enrich(item,now)
@@ -134,6 +147,7 @@ class BroadVolatilityDiscovery:
             self.issues.append('SHORTLIST_PRESERVED_AFTER_INCOMPLETE_SOURCE')
         summary={'at':now.isoformat(),'eligible_universe':len(universe),'feature_rows':len(features),'prefiltered':len(selected),
             'verified_shortlist':len(candidates),'symbols':[c.ticker for c in candidates],'shortlist_replaced':replaced,
+            'firm_shortlist_symbols':active_firms,
             'alpaca_requests':self.requests,'issues':self.issues}
         self.store.put('broad_discovery',summary)
         return candidates,summary

@@ -1,5 +1,20 @@
 # Dudebot continuation handoff
 
+## September 22: live timeout repair
+
+The first production market-day runs exposed a real ordering/runtime bug. Two
+`Point-in-time evidence archive` runs exhausted the 12-minute job timeout while
+performing fundamentals and three sentiment-source requests across the full stored
+watchlist. Because alerting followed archiving, Discord never ran; durable state
+confirmed zero evaluations and zero trade claims. The repaired workflow alerts
+first, offsets cron minutes away from the top of the hour, and allows 15 minutes.
+Live scanning is bounded to eight volatility candidates, 16 market-ranked firm
+candidates, and eight recent strict-profile events. Current borrow rejects
+unexecutable shorts before expensive minute history. Market/borrow/halt archiving
+remains fast; slow SEC-cap, Finviz, Stocktwits, news and FINRA enrichment resumes in
+eight-symbol batches with per-day completion keys. A source outage cannot erase the
+last valid broad shortlist.
+
 ## September 20: bounded broad volatility lane
 
 The live universe is no longer limited to supplied firms. `smg.broad_discovery`
