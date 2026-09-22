@@ -1,6 +1,6 @@
 from datetime import date,timedelta
 import pytest
-from smg.swing_backtest import PERIODS,borrow_metrics,frozen_cohort,signal,simulate
+from smg.swing_backtest import PERIODS,borrow_metrics,dump_structure_score,frozen_cohort,signal,simulate
 
 def test_walk_forward_periods_are_fixed_before_outcomes():
     assert PERIODS == [('2023-09-08','2023-12-05'),('2024-09-08','2024-12-05'),('2025-09-08','2025-12-05')]
@@ -54,6 +54,11 @@ def test_breakout_needs_price_and_volume_confirmation():
     assert signal(history)==['FIRM_BASELINE_SHORT']
     history[-1]={**history[-1],'c':11,'h':11,'v':250}
     assert 'BREAKOUT_LONG' in signal(history)
+
+def test_fast_dump_score_uses_only_signal_history():
+    _,bars=fixture();history=list(bars.values())[:22]
+    history[-1]={**history[-1],'c':8,'h':9,'l':7,'v':200}
+    assert dump_structure_score(history)>=80
 
 def test_borrow_execution_is_reported_separately_from_detection():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'},

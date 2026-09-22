@@ -79,6 +79,17 @@ def signal(history):
         result.append('BREAKOUT_LONG')
     return result
 
+def dump_structure_score(history):
+    """The live chart-structure rank, computed only from bars known at signal time."""
+    if len(history)<22:return 0
+    last=history[-1];previous=history[-21:-1];base=sum(b['v'] for b in previous)/20
+    if base<=0:return 0
+    span=max(last['h']-last['l'],1e-12);close_location=(last['c']-last['l'])/span
+    return (25*(last['c']<history[-2]['l'])+20*(last['c']/history[-2]['c']-1<=-.05)+
+        15*(last['c']/max(b['h'] for b in history[-22:])-1<=-.08)+15*(last['v']/base>=1.5)+
+        10*(sum((b['h']-b['l'])/b['c'] for b in history[-5:])/5>=.08)+
+        10*(close_location<=.35)+5*(last['h']<history[-2]['h']))
+
 def borrow_metrics(signal_events,observations):
     """Separate signal detection from whether archived borrow made it executable."""
     by_symbol=defaultdict(list)
@@ -95,7 +106,7 @@ def borrow_metrics(signal_events,observations):
     return {'detected':counts['detected'],'executable':counts['executable'],'unavailable':counts['unavailable'],
         'rejected':counts['rejected'],'examples':examples}
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -104,6 +115,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     """
     index={day:i for i,day in enumerate(sessions)};days=[d for d in sessions if start<=d<=end]
     cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0
+    position_target=position_target or initial*.10;buying_power=buying_power or initial
     side=1 if strategy.endswith('LONG') else -1
     fee=cost_bps/10000
     for day in days:
@@ -122,6 +134,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             del positions[ticker]
         # Signal is formed at prior close, never using today's fill/outcome bar.
         if day!=days[-1] and i>=22:
+            opportunities=[]
             for ticker in symbols:
                 prior=sessions[i-22:i]
                 series=adjusted.get(ticker,{})
@@ -129,20 +142,29 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['INCOMPLETE_SIGNAL_HISTORY']+=1;continue
                 raw_prior=raw.get(ticker,{}).get(prior[-1])
                 if not raw_prior or raw_prior['c']<=3:continue
-                if strategy not in signal([series[d] for d in prior]):continue
-                signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day})
+                history=[series[d] for d in prior]
+                if strategy not in signal(history):continue
+                structure_score=dump_structure_score(history)
+                signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day,'dump_structure_score':structure_score})
                 if ticker in positions or len(positions)>=10:continue
                 entry=raw.get(ticker,{}).get(day);adj=series.get(day)
                 if not entry or not adj:
                     gaps['MISSING_ENTRY_BAR']+=1;continue
                 if entry['c']<=3:
                     gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                shares=math.floor(min(initial*.10,(cash-commission)/(1+fee))/entry['c'])
+                opportunities.append((structure_score,ticker,entry,adj,prior[-1]))
+            key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
+            for structure_score,ticker,entry,adj,signal_day in sorted(opportunities,key=key):
+                if ticker in positions or len(positions)>=10:continue
+                room=buying_power-sum(p['notional'] for p in positions.values())
+                budget=min(position_target,room)
+                if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
+                shares=math.floor(budget/entry['c'])
                 if shares<10:continue
                 notional=shares*entry['c'];entry_fee=notional*fee+commission
                 cash-=notional+entry_fee
                 planned=sessions[min(i+hold,index[days[-1]])]
-                positions[ticker]=dict(signal_date=prior[-1],entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee)
+                positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score)
         equity=cash;valuation_complete=True
         for ticker,p in positions.items():
             mark=adjusted.get(ticker,{}).get(day)
@@ -153,7 +175,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         curve.append(dict(date=day,equity=equity if valuation_complete else None,open_positions=len(positions)))
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
-    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,
+    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,position_target=position_target,buying_power=buying_power,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
@@ -192,13 +214,20 @@ def main():
     for hold in [1,3,4,5,7]:
         result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0,borrow_observations=borrow_observations)
         stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
+    aggressive=[]
+    for hold in [1,3]:
+        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,
+            position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
+        result['period_start']=START;result['period_end']=END
+        (out/f'{START}-PUMP_FAILURE_SHORT-{hold}-aggressive.json').write_text(json.dumps(result))
+        aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     from .risk_model import walk_forward_report
     ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)
     (out/'ranking-model.json').write_text(json.dumps(ranking_model,indent=2))
     report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,periods=[dict(start=s,end=e,
         short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
         cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
-        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,ranking_model=ranking_model,
+        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,
         assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
           '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',
