@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from smg.broad_discovery import firm_shortlist,market_features,shortlist
+from smg.broad_discovery import BroadVolatilityDiscovery,firm_shortlist,market_features,shortlist
 
 def bars(close=10,volume=100):
     rows=[]
@@ -33,6 +33,18 @@ def test_current_borrow_prioritizes_executable_names_without_creating_a_signal()
           'EASY':{'ticker':'EASY','features':dict(base),'known_firm':False}}
     borrow={'HARD':{'borrow_available':False},'EASY':{'borrow_available':True}}
     assert shortlist(rows,cfg(1),borrow=borrow)[0]['ticker']=='EASY'
+
+def test_borrow_universe_reads_one_current_asset_snapshot():
+    class Http:
+        calls=0
+        def json(self,url,**kwargs):
+            self.calls+=1
+            return [{'symbol':'EASY','tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'},
+                    {'symbol':'HARD','tradable':True,'shortable':True,'borrow_status':'hard_to_borrow'}]
+    http=Http();discovery=BroadVolatilityDiscovery(SimpleNamespace(http=http),None,cfg(),{}, {})
+    from datetime import datetime,timezone
+    assets=discovery._borrow_universe(datetime.now(timezone.utc))
+    assert http.calls==1 and assets['EASY']['borrow_available'] and not assets['HARD']['borrow_available']
 
 def test_firm_live_shortlist_is_bounded_by_current_market_activity():
     base=market_features(bars())
