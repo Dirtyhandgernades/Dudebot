@@ -1,6 +1,7 @@
 import {DurableObject} from 'cloudflare:workers';
 import {ClockControl,DispatchService,dateKey,pacificParts,nextPacificNoon,validatePayload,webhookURL} from './core.mjs';
 import {HostedPreparer,validateSeed} from './preparer.mjs';
+import {dispatchScan} from './cron.mjs';
 
 async function authorized(request,env) {
   if(!env.DISPATCH_KEY || env.DISPATCH_KEY.length!==64)return false;
@@ -11,9 +12,13 @@ async function authorized(request,env) {
   let delta=0;for(let i=0;i<a.length;i++)delta|=a[i]^b[i];return delta===0;
 }
 export default {
+  async scheduled(controller,env) {
+    const result=await dispatchScan(env);
+    if(result.status!=='DISPATCHED')console.warn('GitHub cron dispatch:',result.status);
+  },
   async fetch(request,env) {
     const path=new URL(request.url).pathname;
-    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:6,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL});
+    if(path==='/health' && request.method==='GET')return Response.json({service:'dudebot-dispatch',version:6,configured:!!env.DISPATCH_KEY && !!env.DISCORD_WEBHOOK_URL,github_cron_configured:!!env.GITHUB_WORKFLOW_TOKEN});
     if(!await authorized(request,env))return Response.json({error:'Unauthorized'},{status:401});
     if(['/pause','/resume'].includes(path) && request.method==='POST')return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);
     if(['/clock','/seed','/preparation-check'].includes(path) && ['GET','POST'].includes(request.method))return env.DISPATCH.getByName('persistent-noon-clock').fetch(request);

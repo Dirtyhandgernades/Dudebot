@@ -1,9 +1,22 @@
 # Free hosted Discord delivery
 
-Cloudflare remains deployed as a validated fallback, but its old noon alarm is paused.
-The serialized GitHub 15-minute evidence workflow now owns new-trade delivery.
-GitHub continues SEC filing discovery and uploads the source-reviewed candidate
-pool. No Discord bot user, paid feed, paid AI service or always-on PC is required.
+Cloudflare remains deployed, but its old noon alarm is paused. A lightweight
+Cloudflare cron can now dispatch the existing GitHub evidence workflow every
+15 minutes on weekdays. GitHub still performs the data-heavy scan and owns
+deduplicated new-trade delivery. Without `GITHUB_WORKFLOW_TOKEN`, the Cloudflare
+cron is inert and GitHub's original schedule remains active.
+To enable the hosted trigger, create a fine-grained GitHub personal access token
+restricted to this repository with **Actions: Read and write**, add it as the
+`GITHUB_WORKFLOW_TOKEN` repository Actions secret, and rerun **Deploy free
+Cloudflare dispatcher**. Check `/health` for `github_cron_configured: true`.
+After verifying a Cloudflare-triggered run, set the repository Actions variable
+`CLOUDFLARE_CRON_ENABLED` to `true`: this turns off the duplicate GitHub
+quarter-hour schedule but retains two daily GitHub fallback runs. Cloudflare
+cron and GitHub workflow startup are best-effort; neither guarantees an exact
+minute. Never paste the token in a chat or commit it.
+GitHub continues SEC filing discovery and maintains the source-reviewed candidate
+pool in its state branch. No Discord bot user, paid feed, paid AI service or
+always-on PC is required.
 
 The former persistent hosted clock refreshed at 11:58 a.m. Pacific and dispatched at noon
 Pacific / 2 p.m. Central on weekdays, following daylight-saving time. Each day it

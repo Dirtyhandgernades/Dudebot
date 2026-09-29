@@ -1,5 +1,24 @@
 # Historical replay status
 
+## Borrow evidence boundary
+
+The game-period outcome simulator now counts a short as borrow-indicated only
+when a timestamped Alpaca asset observation exists on its planned entry day,
+no later than that exchange session's close, with `tradable`, `shortable`, and
+`borrow_status: easy_to_borrow`. Provider failures, absent fields, observations
+after entry, and missing historical dates are **unavailable**, not executable.
+Known hard-to-borrow or unshortable observations are **rejected**. The archived
+asset indication still does not establish an SMG borrow, locate, or fill.
+
+Alpaca's asset API exposes current `borrow_status` but no documented historical
+asset-status endpoint. Future 15-minute evidence runs archive watched names;
+the broad daily pass also archives its top chart candidates from one asset-list
+response. These archives cannot reconstruct the missing 2025 observations.
+An authenticated broker with historical inventory, such as IBKR's historical
+`Inventory` and `FeeRate` data, could provide a separate indicative 2025
+dataset, but it would not prove Alpaca or SMG execution. FINRA short-sale volume
+is not a substitute for stock-borrow availability.
+
 September 8 continuation: `smg.source_replay` now runs real, independently
 selected issuer samples through historical noon price checks and the firm-first
 engine. The first 78-filing batch produced 17 distinct tickers, eight overlapping

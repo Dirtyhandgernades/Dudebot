@@ -5,6 +5,8 @@ on:
     # timestamps every observation and labels periods without a delayed bar.
     # Offset from the top of the hour to reduce GitHub schedule congestion.
     - cron: '7,22,37,52 13-21 * * 1-5'
+    # Two fallback checks when the Cloudflare dispatcher owns quarter-hour runs.
+    - cron: '17 16,19 * * 1-5'
     - cron: '35 23 * * 1-5'
   workflow_dispatch:
     inputs:
@@ -20,7 +22,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   archive:
-    if: vars.SMG_LIVE_ENABLED != 'false'
+    if: >-
+      vars.SMG_LIVE_ENABLED != 'false' &&
+      (github.event_name != 'schedule' ||
+       github.event.schedule == '35 23 * * 1-5' ||
+       (github.event.schedule == '17 16,19 * * 1-5' && vars.CLOUDFLARE_CRON_ENABLED == 'true') ||
+       (github.event.schedule == '7,22,37,52 13-21 * * 1-5' && vars.CLOUDFLARE_CRON_ENABLED != 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

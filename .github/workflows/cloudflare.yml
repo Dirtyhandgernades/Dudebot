@@ -21,6 +21,7 @@ jobs:
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_WORKFLOW_TOKEN: ${{ secrets.GITHUB_WORKFLOW_TOKEN }}
     steps:
       - name: Check account connection
         id: connection
@@ -48,7 +49,7 @@ jobs:
         run: |
           python -m pip install -e '.[test]' -c requirements-tested.txt
           python -m pytest -q
-          node --test cloudflare/core.test.mjs cloudflare/preparer.test.mjs
+          node --test cloudflare/core.test.mjs cloudflare/preparer.test.mjs cloudflare/cron.test.mjs
       - name: Ensure free workers.dev address
         if: steps.connection.outputs.ready == 'true'
         run: python cloudflare/bootstrap.py
@@ -71,8 +72,10 @@ jobs:
           from smg.cloud_dispatch import dispatch_key
           webhook=os.environ['DISCORD_WEBHOOK_URL']
           if not webhook:raise SystemExit('DISCORD_WEBHOOK_URL is missing')
-          payload=json.dumps({'DISCORD_WEBHOOK_URL':webhook,'DISPATCH_KEY':dispatch_key(webhook),
-              'ALPACA_API_KEY':os.environ['ALPACA_API_KEY'],'ALPACA_SECRET_KEY':os.environ['ALPACA_SECRET_KEY']})
+          payload={'DISCORD_WEBHOOK_URL':webhook,'DISPATCH_KEY':dispatch_key(webhook),
+              'ALPACA_API_KEY':os.environ['ALPACA_API_KEY'],'ALPACA_SECRET_KEY':os.environ['ALPACA_SECRET_KEY']}
+          if os.environ.get('GITHUB_WORKFLOW_TOKEN'):payload['GITHUB_WORKFLOW_TOKEN']=os.environ['GITHUB_WORKFLOW_TOKEN']
+          payload=json.dumps(payload)
           subprocess.run(['npx','--yes','wrangler@4.129.1','secret','bulk','--config','wrangler.jsonc'],input=payload,text=True,check=True,cwd='cloudflare')
           PY
       - name: Verify hosted Discord access and select Cloudflare delivery

@@ -105,7 +105,8 @@ def register():
             health=http.json(endpoint+'/health',timeout=10)
             if health.get('version')==6 and health.get('configured') is True:
                 controller=http.json(endpoint+'/clock',headers=headers,timeout=10)
-                if isinstance(controller.get('control',{}).get('paused'),bool):break
+                cron_ready=not os.environ.get('GITHUB_WORKFLOW_TOKEN') or health.get('github_cron_configured') is True
+                if isinstance(controller.get('control',{}).get('paused'),bool) and cron_ready:break
         except ProviderError:pass
         if attempt==11:raise ValueError('Cloudflare HTTPS/route is not ready; rerun deployment after propagation')
         if attempt==0:print('Waiting briefly for the new Cloudflare HTTPS endpoint to become ready')
@@ -135,6 +136,7 @@ def register():
     stopped=http.json(endpoint+'/pause',method='POST',headers=headers,body={})
     if stopped.get('status')!='PAUSED':raise ValueError('Legacy hosted noon clock did not pause')
     record=dict(enabled=False,delivery_mode='EVENT_DRIVEN_15_MINUTE_SCAN',paused=True,endpoint=endpoint,verified_at=now.isoformat(),practice_edit=formatted,clock=stopped.get('clock'),seed=seed,provider_check=provider_check,
+                github_cron_configured=health.get('github_cron_configured',False),
                 previous_clock_result=previous.get('last'),previous_preparation=previous.get('preparation'),today_receipt=daily_receipt.get('receipt'),
                 today_delivery=daily_receipt,
                 limitation='Legacy hosted noon delivery is paused. The serialized 15-minute evidence workflow owns new-trade delivery; GitHub schedule startup can still be delayed.')

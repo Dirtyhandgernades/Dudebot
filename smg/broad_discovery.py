@@ -165,8 +165,8 @@ class BroadVolatilityDiscovery:
         selected=shortlist(features,self.cfg,self.cfg.broad_shortlist_size*10,assets);candidates=[]
         for item in selected:
             asset=(assets or {}).get(item['ticker'])
-            if assets is not None and not (asset or {}).get('borrow_available'):continue
             if asset:self.store.observe('market_borrow',item['ticker'],now,asset['source'],asset)
+            if assets is not None and not (asset or {}).get('borrow_available'):continue
             candidate=self._enrich(item,now)
             if candidate:candidates.append(candidate)
             if len(candidates)>=self.cfg.broad_shortlist_size:break
