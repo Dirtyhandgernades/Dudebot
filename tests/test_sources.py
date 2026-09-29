@@ -1,5 +1,5 @@
 import pytest
-from smg.providers import parse_halts
+from smg.providers import parse_halts,NasdaqHalts
 from smg.demo import NOW
 from smg.extraction import LocalParser
 from smg.rules import structural,EntityList
@@ -18,6 +18,18 @@ def test_halt_resume_and_quote_only():
 
 def test_malformed_halt_schema_fails_closed():
     with pytest.raises(ValueError):parse_halts('<rss><channel><item><title>unknown</title></item></channel></rss>',NOW)
+
+def test_live_halt_feed_uses_response_bytes_with_utf8_bom():
+    from email.utils import format_datetime
+    class Response:
+        content=b'\xef\xbb\xbf'+XML.format(resume='').encode()
+        text=content.decode('latin-1')
+        headers={'Date':format_datetime(NOW),'Age':'0'}
+    class Http:
+        def response(self,url):return Response()
+    halts=NasdaqHalts(Http())
+    assert halts.check('ABCD',NOW).status=='HALTED'
+    assert halts.check('WXYZ',NOW).status=='CLEAR'
 
 ENTITIES=yaml.safe_load(Path('config/entities.yaml').read_text())
 IPO_TEXT="""This is our initial public offering. We are offering 4,000,000 ordinary shares.

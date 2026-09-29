@@ -121,7 +121,7 @@ class EvidenceArchiver:
             self.store.observe('market_borrow',symbol,now,'https://paper-api.alpaca.markets/v2/assets/'+quote(symbol),value)
 
         try:
-            xml=self.http.text(HALT_URL);events=halt_events(xml);halted={e['symbol'] for e in events if not e.get('resumption_trade_time')}
+            xml=self.http.response(HALT_URL).content;events=halt_events(xml);halted={e['symbol'] for e in events if not e.get('resumption_trade_time')}
             for event in events:self.store.observe('halt_event',event['symbol'],now,HALT_URL,event)
             for symbol in symbols:self.store.observe('halt_status',symbol,now,HALT_URL,{'status':'HALTED' if symbol in halted else 'CLEAR'})
         except Exception as exc:
@@ -191,7 +191,7 @@ class EvidenceArchiver:
         for day in days:
             halt_url=HALT_URL+'&haltdate='+day.strftime('%m%d%Y')
             try:
-                for event in halt_events(self.http.text(halt_url)):
+                for event in halt_events(self.http.response(halt_url).content):
                     if not symbols or event['symbol'] in symbols:self.store.observe('halt_event',event['symbol'],now,halt_url,event)
             except Exception as exc:failures.append({'day':str(day),'source':'NASDAQ_HALT','error_type':type(exc).__name__})
             finra_url=FINRA_DAILY.format(day=day.strftime('%Y%m%d'))

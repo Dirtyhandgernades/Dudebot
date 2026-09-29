@@ -261,8 +261,9 @@ class DiscordSender:
             market='' if not m else f' · ${m.price:.2f} · 21d {metric(m.monthly_return,"%")} · RVOL {metric(m.rvol,"×")}'
             reasons=', '.join(e.reasons[:3]) or e.status
             lines.append(f'**{clean(e.candidate.ticker)}** · {clean(e.status)}{market}\n{clean(reasons)[:300]}')
-        embed={'title':'Daily scan complete · no qualified trade',
-            'description':'Dudebot completed today’s scans. No setup passed every live execution rule. The strongest reviewed names are shown as near-misses only.',
+        complete=bool(evaluations) and any(e.snapshot is not None for e in evaluations)
+        embed={'title':'Daily scan complete · no qualified trade' if complete else 'Daily scan incomplete · data gap',
+            'description':'No setup passed every live execution rule. The strongest reviewed names are shown as near-misses only.' if complete else 'Dudebot could not complete a market-verified scan today. No trade was confirmed; check the scan and provider status.',
             'color':0x6B7280,
             'fields':[{'name':'Strongest near-misses','value':'\n\n'.join(lines)[:1024] if lines else 'No eligible candidates had complete market data.','inline':False},
                       {'name':'Rules kept active','value':'Nasdaq/NYSE · price > $3 · market cap ≥ $25M · exclusions · current halt check · current Alpaca borrow for shorts','inline':False}],

@@ -137,7 +137,7 @@ class NasdaqHalts:
             r=self.http.response(HALT_URL)
             stamp=parsedate_to_datetime(r.headers['Date'])
             if not -60<=(now-stamp).total_seconds()<=300 or int(r.headers.get('Age','0'))>60:return
-            self.halted=parse_halts(r.text,now);self.healthy=True
+            self.halted=parse_halts(r.content,now);self.healthy=True
         except (ProviderError,ValueError,KeyError,ET.ParseError):return
     def check(self,ticker,now):
         self.refresh(now)

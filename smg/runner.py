@@ -33,9 +33,12 @@ class Scanner:
                 structure=firm_structure if self.cfg.screening_profile=='firm_first' else structural
                 assess=evaluate_firm_first if self.cfg.screening_profile=='firm_first' else evaluate
             r=structure(c,self.cfg,self.entities,now)
-            if r.status!='STRUCTURAL_MATCH':results.append(r);continue
+            if r.status!='STRUCTURAL_MATCH':
+                self.store.put('evaluation:'+c.key,r.model_dump(mode='json'));results.append(r);continue
             halt=self.halts.check(c.ticker,now)
-            if halt.status!='CLEAR':results.append(assess(c,self.cfg,self.entities,now,halt=halt));continue
+            if halt.status!='CLEAR':
+                r=assess(c,self.cfg,self.entities,now,halt=halt)
+                self.store.put('evaluation:'+c.key,r.model_dump(mode='json'));results.append(r);continue
             try:
                 effective_now=now-timedelta(minutes=self.cfg.market_data_delay_minutes)
                 if not snapshot_window(effective_now):raise ValueError('MARKET_CLOSED')
