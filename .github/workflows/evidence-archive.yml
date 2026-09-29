@@ -26,8 +26,8 @@ jobs:
       vars.SMG_LIVE_ENABLED != 'false' &&
       (github.event_name != 'schedule' ||
        github.event.schedule == '35 23 * * 1-5' ||
-       (github.event.schedule == '17 16,19 * * 1-5' && vars.CLOUDFLARE_CRON_ENABLED == 'true') ||
-       (github.event.schedule == '7,22,37,52 13-21 * * 1-5' && vars.CLOUDFLARE_CRON_ENABLED != 'true'))
+       github.event.schedule == '17 16,19 * * 1-5' ||
+       github.event.schedule == '7,22,37,52 13-21 * * 1-5')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
