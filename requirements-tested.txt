@@ -1,4 +1,6 @@
 # Direct dependencies used for the verified offline test run.
+# The supported test runtime is Python 3.12; Python 3.14 currently causes
+# native import crashes in the exchange-calendars dependency on Windows.
 requests==2.34.2
 pydantic==2.13.4
 PyYAML==6.0.3
