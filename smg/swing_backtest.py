@@ -248,12 +248,13 @@ def main():
         result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0,borrow_observations=borrow_observations)
         stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     aggressive=[]
-    for hold in [1,3]:
-        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,
-            strategy='RAPID_PUMP_FAILURE_SHORT',position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
-        result['period_start']=START;result['period_end']=END
-        (out/f'{START}-RAPID_PUMP_FAILURE_SHORT-{hold}-aggressive.json').write_text(json.dumps(result))
-        aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
+    for strategy in ['PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT','RAPID_PUMP_FAILURE_SHORT']:
+        for hold in [1,3]:
+            result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,
+                strategy=strategy,position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
+            result['period_start']=START;result['period_end']=END
+            (out/f'{START}-{strategy}-{hold}-aggressive.json').write_text(json.dumps(result))
+            aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     from .risk_model import walk_forward_report
     ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)
     (out/'ranking-model.json').write_text(json.dumps(ranking_model,indent=2))
