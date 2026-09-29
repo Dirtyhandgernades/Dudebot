@@ -77,6 +77,11 @@ def signal(history):
         result.append('PUMP_FAILURE_SHORT')
     if last['c']>max(b['h'] for b in previous) and last['v']/baseline>=2:
         result.append('BREAKOUT_LONG')
+    # Strict daily proxy for a rapid pump failure. This is deliberately a
+    # separate hypothesis: a >=25% 21-session run, high volume, and a close
+    # below the prior low. It does not change the live 12% screen.
+    if surge>=.25 and last['c']<history[-2]['l'] and last['v']/baseline>=1.5:
+        result.append('RAPID_PUMP_FAILURE_SHORT')
     return result
 
 def dump_structure_score(history):
@@ -218,7 +223,7 @@ def main():
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for period_start,period_end in PERIODS:
-        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
+        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','RAPID_PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
             for hold in [1,3,4,5,7]:
                 universe=cohorts[period_start]['long' if strategy=='BREAKOUT_LONG' else 'short']
                 result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy,borrow_observations=borrow_observations)
@@ -232,9 +237,9 @@ def main():
     aggressive=[]
     for hold in [1,3]:
         result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,
-            position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
+            strategy='RAPID_PUMP_FAILURE_SHORT',position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
         result['period_start']=START;result['period_end']=END
-        (out/f'{START}-PUMP_FAILURE_SHORT-{hold}-aggressive.json').write_text(json.dumps(result))
+        (out/f'{START}-RAPID_PUMP_FAILURE_SHORT-{hold}-aggressive.json').write_text(json.dumps(result))
         aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     from .risk_model import walk_forward_report
     ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)

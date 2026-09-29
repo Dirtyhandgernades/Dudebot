@@ -55,6 +55,14 @@ def test_breakout_needs_price_and_volume_confirmation():
     history[-1]={**history[-1],'c':11,'h':11,'v':250}
     assert 'BREAKOUT_LONG' in signal(history)
 
+def test_rapid_pump_failure_requires_stronger_pump_and_breakdown():
+    _,bars=fixture();history=list(bars.values())[:22]
+    history[-1]={**history[-1],'c':8,'h':9,'l':7,'v':200}
+    assert 'RAPID_PUMP_FAILURE_SHORT' not in signal(history)
+    for i,b in enumerate(history[:-1]):b['c']=6+i*.25;b['h']=b['c']+.1;b['l']=b['c']-.1
+    history[-1]={**history[-1],'c':8,'h':8.5,'l':7,'v':200}
+    assert 'RAPID_PUMP_FAILURE_SHORT' in signal(history)
+
 def test_fast_dump_score_uses_only_signal_history():
     _,bars=fixture();history=list(bars.values())[:22]
     history[-1]={**history[-1],'c':8,'h':9,'l':7,'v':200}
