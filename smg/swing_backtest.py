@@ -10,9 +10,9 @@ import json
 import math
 import os
 from collections import Counter, defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from .market import calendar
+from .market import calendar,session_bounds
 from .transport import Http
 from .game_rules import is_excluded_symbol
 
@@ -91,16 +91,31 @@ def dump_structure_score(history):
         10*(close_location<=.35)+5*(last['h']<history[-2]['h']))
 
 def borrow_metrics(signal_events,observations):
-    """Separate signal detection from whether archived borrow made it executable."""
+    """Use only borrow evidence known by the planned entry close.
+
+    A missing or failed provider observation cannot establish execution. The
+    daily asset flag is a broker indication, not a reserved locate or SMG fill.
+    """
     by_symbol=defaultdict(list)
-    for row in observations or []:by_symbol[row['subject']].append(row)
+    for row in observations or []:
+        try:stamp=datetime.fromisoformat(row['observed_at'].replace('Z','+00:00'))
+        except (KeyError,ValueError,AttributeError):continue
+        if stamp.tzinfo is None:continue
+        by_symbol[row['subject'].upper()].append((stamp.astimezone(timezone.utc),row))
     counts=Counter(detected=len(signal_events));examples=[]
     for event in signal_events:
-        candidates=[r for r in by_symbol[event['ticker']] if r['observed_at'][:10]==event['signal_date']]
+        entry_day=date.fromisoformat(event['planned_entry_date'])
+        bounds=session_bounds(entry_day)
+        cutoff=bounds[1] if bounds else None
+        candidates=[(stamp,row) for stamp,row in by_symbol[event['ticker'].upper()]
+                    if cutoff and stamp.date()==cutoff.date() and stamp<=cutoff]
         if not candidates:status='unavailable'
         else:
-            asset=max(candidates,key=lambda r:r['observed_at'])['value']
-            status='executable' if asset.get('tradable') and asset.get('shortable') and asset.get('borrow_status')=='easy_to_borrow' else 'rejected'
+            stamp,row=max(candidates,key=lambda pair:pair[0]);asset=row['value']
+            if asset.get('status')=='UNAVAILABLE' or not all(k in asset for k in ('tradable','shortable','borrow_status')) or asset['borrow_status'] is None:
+                status='unavailable'
+            else:
+                status='executable' if asset['tradable'] is True and asset['shortable'] is True and asset['borrow_status']=='easy_to_borrow' else 'rejected'
         counts[status]+=1
         if len(examples)<25:examples.append({**event,'borrow_result':status})
     return {'detected':counts['detected'],'executable':counts['executable'],'unavailable':counts['unavailable'],

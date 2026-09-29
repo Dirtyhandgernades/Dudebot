@@ -43,7 +43,7 @@ def market_features(rows):
     features['chart_setup']='PUMP_FAILURE_BREAKDOWN' if features['failed_previous_low'] and features['return_21_pct']>=12 else 'VOLATILITY_BREAKDOWN'
     return features
 
-def shortlist(features,cfg,limit=None):
+def shortlist(features,cfg,limit=None,borrow=None):
     rows=[]
     for symbol,item in features.items():
         f=item['features']
@@ -53,8 +53,9 @@ def shortlist(features,cfg,limit=None):
         if f['volume_ratio_20']<cfg.broad_min_volume_ratio or not failure or not (pumped or volatile):continue
         firm_bonus=20 if item.get('known_firm') else 0
         score=firm_bonus+f['fast_dump_score']+max(f['return_21_pct'],0)+5*f['volume_ratio_20']+2*f['average_range_5_pct']
-        rows.append((score,symbol,item))
-    return [item for _,_,item in sorted(rows,key=lambda x:(-x[0],x[1]))[:limit or cfg.broad_shortlist_size]]
+        executable=borrow is None or bool((borrow.get(symbol) or {}).get('borrow_available'))
+        rows.append((executable,score,symbol,item))
+    return [item for _,_,_,item in sorted(rows,key=lambda x:(-x[0],-x[1],x[2]))[:limit or cfg.broad_shortlist_size]]
 
 def firm_shortlist(features,firm_tickers,cfg):
     """Rank known-firm names by current movement without making it a gate."""
@@ -107,6 +108,25 @@ class BroadVolatilityDiscovery:
                 seen.add(token);params['page_token']=token
         return output
 
+    def _borrow_universe(self,now):
+        """One current asset-list call prioritizes candidates that can be shorted."""
+        url='https://paper-api.alpaca.markets/v2/assets'
+        try:
+            rows=self.sec.http.json(url,params={'status':'active','asset_class':'us_equity'},headers=self.headers,timeout=20)
+            if not isinstance(rows,list) or not rows:raise ValueError('EMPTY_ASSET_LIST')
+        except Exception as exc:
+            self.issues.append('ALPACA_BORROW_UNIVERSE:'+type(exc).__name__)
+            return None
+        from .shortability import executable_short
+        assets={}
+        for row in rows:
+            symbol=row.get('symbol')
+            if not symbol:continue
+            value={k:row.get(k) for k in ('symbol','name','exchange','asset_class','tradable','shortable','borrow_status')}
+            value.update(status='CURRENT',source=url,borrow_available=executable_short({**value,'status':'CURRENT'}))
+            assets[symbol]=value
+        return assets
+
     def _enrich(self,item,now):
         try:filings=self.sec.submissions(item['cik'],now.date()-timedelta(days=3*365))
         except Exception as exc:self.issues.append(item['ticker']+':SUBMISSIONS:'+type(exc).__name__);return None
@@ -141,8 +161,12 @@ class BroadVolatilityDiscovery:
             f=market_features(bars.get(symbol,[]))
             if f:features[symbol]={**item,'features':f,'known_firm':symbol in firm_tickers}
         active_firms=firm_shortlist(features,firm_tickers,self.cfg)
-        selected=shortlist(features,self.cfg,self.cfg.broad_shortlist_size*3);candidates=[]
+        assets=self._borrow_universe(now)
+        selected=shortlist(features,self.cfg,self.cfg.broad_shortlist_size*10,assets);candidates=[]
         for item in selected:
+            asset=(assets or {}).get(item['ticker'])
+            if assets is not None and not (asset or {}).get('borrow_available'):continue
+            if asset:self.store.observe('market_borrow',item['ticker'],now,asset['source'],asset)
             candidate=self._enrich(item,now)
             if candidate:candidates.append(candidate)
             if len(candidates)>=self.cfg.broad_shortlist_size:break
@@ -157,6 +181,8 @@ class BroadVolatilityDiscovery:
         summary={'at':now.isoformat(),'eligible_universe':len(universe),'feature_rows':len(features),'prefiltered':len(selected),
             'verified_shortlist':len(candidates),'symbols':[c.ticker for c in candidates],'shortlist_replaced':replaced,
             'firm_shortlist_symbols':active_firms,
-            'alpaca_requests':self.requests,'issues':self.issues}
+            'alpaca_requests':self.requests,'borrow_list_available':assets is not None,
+            'prefiltered_borrowable':sum(bool((assets.get(item['ticker']) or {}).get('borrow_available')) for item in selected) if assets is not None else None,
+            'issues':self.issues}
         self.store.put('broad_discovery',summary)
         return candidates,summary

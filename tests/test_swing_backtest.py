@@ -63,7 +63,18 @@ def test_fast_dump_score_uses_only_signal_history():
 def test_borrow_execution_is_reported_separately_from_detection():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'},
             {'ticker':'XYZ','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'}]
-    observations=[{'subject':'ABC','observed_at':'2025-01-02T19:00:00+00:00','value':
+    observations=[{'subject':'ABC','observed_at':'2025-01-03T19:00:00+00:00','value':
         {'tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'}}]
     result=borrow_metrics(events,observations)
     assert result['detected']==2 and result['executable']==1 and result['unavailable']==1 and result['rejected']==0
+
+def test_borrow_evidence_after_entry_close_and_provider_errors_are_unavailable():
+    events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'}]
+    late={'subject':'ABC','observed_at':'2025-01-03T22:00:00+00:00','value':
+          {'tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'}}
+    failed={'subject':'ABC','observed_at':'2025-01-03T19:00:00+00:00','value':
+            {'status':'UNAVAILABLE','error_type':'ProviderError'}}
+    assert borrow_metrics(events,[late])['unavailable']==1
+    assert borrow_metrics(events,[failed])['unavailable']==1
+    hard={**failed,'value':{'status':'CURRENT','tradable':True,'shortable':True,'borrow_status':'hard_to_borrow'}}
+    assert borrow_metrics(events,[hard])['rejected']==1

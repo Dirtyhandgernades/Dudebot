@@ -27,6 +27,13 @@ def test_shortlist_is_bounded_and_known_firm_is_only_a_bonus():
     selected=shortlist(rows,cfg(2))
     assert len(selected)==2 and selected[0]['ticker']=='S3'
 
+def test_current_borrow_prioritizes_executable_names_without_creating_a_signal():
+    base=market_features(bars())
+    rows={'HARD':{'ticker':'HARD','features':dict(base,return_21_pct=100),'known_firm':True},
+          'EASY':{'ticker':'EASY','features':dict(base),'known_firm':False}}
+    borrow={'HARD':{'borrow_available':False},'EASY':{'borrow_available':True}}
+    assert shortlist(rows,cfg(1),borrow=borrow)[0]['ticker']=='EASY'
+
 def test_firm_live_shortlist_is_bounded_by_current_market_activity():
     base=market_features(bars())
     rows={f'S{i}':{'ticker':f'S{i}','features':dict(base,volume_ratio_20=i+1),'known_firm':True} for i in range(5)}
