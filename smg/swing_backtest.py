@@ -176,7 +176,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 raw_prior=raw.get(ticker,{}).get(prior[-1])
                 if not raw_prior or raw_prior['c']<=3:continue
                 history=[series[d] for d in prior]
-                if strategy not in signal(history):continue
+                signal_names=signal(history)
+                if strategy=='ADAPTIVE_COLLAPSE_SHORT':
+                    if not ({'PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT'} & set(signal_names)):continue
+                elif strategy not in signal_names:continue
                 structure_score=dump_structure_score(history)
                 signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day,'dump_structure_score':structure_score})
                 if ticker in positions or len(positions)>=10:continue
@@ -196,7 +199,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 if shares<10:continue
                 notional=shares*entry['c'];entry_fee=notional*fee+commission
                 cash-=notional+entry_fee
-                planned=sessions[min(i+hold,index[days[-1]])]
+                selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
+                planned=sessions[min(i+selected_hold,index[days[-1]])]
                 positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score)
         equity=cash;valuation_complete=True
         for ticker,p in positions.items():
@@ -248,7 +252,7 @@ def main():
         result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,cost_bps=100,borrow_rate=1.0,borrow_observations=borrow_observations)
         stress.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
     aggressive=[]
-    for strategy in ['PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT','RAPID_PUMP_FAILURE_SHORT']:
+    for strategy in ['PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT','RAPID_PUMP_FAILURE_SHORT','ADAPTIVE_COLLAPSE_SHORT']:
         for hold in [1,3]:
             result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,hold=hold,
                 strategy=strategy,position_target=30000,buying_power=150000,borrow_observations=borrow_observations)
