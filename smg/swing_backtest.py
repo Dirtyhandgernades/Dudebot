@@ -82,6 +82,19 @@ def signal(history):
     # below the prior low. It does not change the live 12% screen.
     if surge>=.25 and last['c']<history[-2]['l'] and last['v']/baseline>=1.5:
         result.append('RAPID_PUMP_FAILURE_SHORT')
+    # Composite research lane: require the ordinary pump-failure setup plus
+    # at least two independent collapse confirmations. This combines trend,
+    # volume and failed-support evidence without changing the live screen.
+    if surge>=.12 and last['c']<history[-2]['l'] and last['v']/baseline>=1:
+        confirmations=sum((
+            last['v']/baseline>=1.5,
+            last['c']/history[-2]['c']-1<=-.05,
+            last['c']/max(b['h'] for b in history[-22:])-1<=-.08,
+            (last['c']-last['l'])/max(last['h']-last['l'],1e-12)<=.35,
+            last['h']<history[-2]['h'],
+        ))
+        if confirmations>=2:
+            result.append('COMBINED_COLLAPSE_SHORT')
     return result
 
 def dump_structure_score(history):
@@ -223,7 +236,7 @@ def main():
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for period_start,period_end in PERIODS:
-        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','RAPID_PUMP_FAILURE_SHORT','BREAKOUT_LONG']:
+        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','RAPID_PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT','BREAKOUT_LONG']:
             for hold in [1,3,4,5,7]:
                 universe=cohorts[period_start]['long' if strategy=='BREAKOUT_LONG' else 'short']
                 result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy,borrow_observations=borrow_observations)

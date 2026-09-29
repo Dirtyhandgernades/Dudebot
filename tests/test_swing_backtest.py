@@ -63,6 +63,10 @@ def test_rapid_pump_failure_requires_stronger_pump_and_breakdown():
     history[-1]={**history[-1],'c':8,'h':8.5,'l':7,'v':200}
     assert 'RAPID_PUMP_FAILURE_SHORT' in signal(history)
 
+def test_combined_collapse_requires_multiple_confirmations():
+    history = _history(surge=.20, breakdown=True, volume_ratio=1.6)
+    assert 'COMBINED_COLLAPSE_SHORT' in signal(history)
+
 def test_fast_dump_score_uses_only_signal_history():
     _,bars=fixture();history=list(bars.values())[:22]
     history[-1]={**history[-1],'c':8,'h':9,'l':7,'v':200}
