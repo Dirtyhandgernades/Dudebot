@@ -121,6 +121,27 @@ def daily_firm_trigger(history,cfg):
         drawdown_pct=100*(last['c']/max(b['h'] for b in history[-22:])-1),rvol=last['v']/base)
     return firm_short_trigger(snapshot,cfg)
 
+def stitch_rename(data,change):
+    """Same-security rename, never a merger or an inferred current alias."""
+    old=change['old_symbol'];new=change['new_symbol'];effective=change['effective_date']
+    if change['action']!='rename_only' or change['published_at'][:10]>effective:
+        raise ValueError('Rename must have dated public same-security evidence')
+    old_raw=data['raw'].get(old,{});old_split=data['split'].get(old,{})
+    new_raw=data['raw'].get(new,{});new_split=data['split'].get(new,{})
+    before=sorted(d for d in old_raw if d<effective and d in old_split)
+    after=sorted(d for d in new_raw if d>=effective and d in new_split)
+    if not before or not after:return {'status':'RENAME_BARS_UNAVAILABLE',**change}
+    # Separate provider symbol series can use different split-adjusted units.
+    # A documented pure rename preserves share units, so align adjustment
+    # factors using raw/split ratios on either side without smoothing returns.
+    prior=before[-1];first=after[0]
+    scale=(new_raw[first]['c']/new_split[first]['c'])/(old_raw[prior]['c']/old_split[prior]['c'])
+    for day in after:
+        old_raw[day]=dict(new_raw[day])
+        old_split[day]={**new_split[day],**{k:new_split[day][k]*scale for k in ('o','h','l','c') if k in new_split[day]}}
+    data['raw'][old]=old_raw;data['split'][old]=old_split
+    return {'status':'STITCHED_RENAME','mapped_sessions':len(after),'adjusted_scale':scale,**change}
+
 def borrow_metrics(signal_events,observations):
     """Use only borrow evidence known by the planned entry close.
 
@@ -151,6 +172,14 @@ def borrow_metrics(signal_events,observations):
         if len(examples)<25:examples.append({**event,'borrow_result':status})
     return {'detected':counts['detected'],'executable':counts['executable'],'unavailable':counts['unavailable'],
         'rejected':counts['rejected'],'examples':examples}
+
+def marked_equity(cash,positions,adjusted,day,side):
+    total=cash
+    for ticker,p in positions.items():
+        mark=adjusted.get(ticker,{}).get(day)
+        if not mark:return None
+        total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
+    return total
 
 def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
@@ -212,7 +241,17 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
             for structure_score,ticker,entry,adj,signal_day,trigger in sorted(opportunities,key=key):
                 if ticker in positions or len(positions)>=10:continue
-                room=buying_power-sum(p['notional'] for p in positions.values())
+                marked=marked_equity(cash,positions,adjusted,day,side)
+                if marked is None:
+                    gaps['NEW_ENTRY_BLOCKED_UNVALUED_CAPITAL']+=1;continue
+                if marked<=0:
+                    gaps['NEW_ENTRY_BLOCKED_NONPOSITIVE_EQUITY']+=1;continue
+                # Buying power is not a permanent credit line after losses.
+                # Unknown marks cannot finance new hypothetical positions.
+                limit=min(buying_power,marked*buying_power/initial)
+                exposure=sum(p['notional']*adjusted[t][day]['c']/p['adjusted_entry']
+                             for t,p in positions.items())
+                room=limit-exposure
                 budget=min(position_target,room)
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
                 shares=math.floor(budget/entry['c'])
@@ -222,14 +261,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]])]
                 positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger)
-        equity=cash;valuation_complete=True
-        for ticker,p in positions.items():
-            mark=adjusted.get(ticker,{}).get(day)
-            if not mark:valuation_complete=False;continue
-            equity+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
-        if valuation_complete:
+        equity=marked_equity(cash,positions,adjusted,day,side)
+        if equity is not None:
             peak=max(peak,equity);drawdown=max(drawdown,(peak-equity)/peak)
-        curve.append(dict(date=day,equity=equity if valuation_complete else None,open_positions=len(positions)))
+        curve.append(dict(date=day,equity=equity,open_positions=len(positions)))
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,position_target=position_target,buying_power=buying_power,
@@ -257,6 +292,14 @@ def main():
     for year in range(2022,2026):
         sessions.extend(str(s.date()) for s in calendar(year).sessions_in_range(f'{year}-06-01',f'{year}-12-05'))
     data,requests=download(download_symbols,'2022-06-01',END,cache)
+    alias_audit=[]
+    with (root/'config/historical_symbol_changes.csv').open(newline='') as handle:
+        changes=list(csv.DictReader(handle))
+    for change in changes:
+        if change['old_symbol'] not in download_symbols or change['effective_date']>END:continue
+        extra,count=download([change['new_symbol']],change['effective_date'],END,cache);requests+=count
+        for mode in ('raw','split'):data[mode].update(extra[mode])
+        alias_audit.append(stitch_rename(data,change))
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for period_start,period_end in PERIODS:
@@ -315,7 +358,7 @@ def main():
     report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,periods=[dict(start=s,end=e,
         short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
         cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
-        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,firm_watch_lead=firm_lead,
+        data_symbols=len(data['raw']),historical_symbol_change_audit=alias_audit,verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,firm_watch_lead=firm_lead,
         revised_live_policy={'status':'CONDITIONAL_DAILY_PROXY','hold_sessions':firm_cfg.live_short_hold_sessions_max,
             'profit_target':70000,'initial_balance':100000,'position_target':30000,'buying_power_assumption':150000,
             'periods':live_policy,'sensitivity':sensitivity,
@@ -325,9 +368,10 @@ def main():
                 '2025 has been inspected repeatedly and is no longer an untouched holdout']},
         assumptions=['Baseline: $100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Revised policy and aggressive cases: $100,000 equity with $150,000 gross buying-power assumption; fixed dollar targets, not calibrated confidence sizing',
+          'New entries require complete current portfolio marks; modeled buying power scales down with marked equity and current gross exposure',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
           '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',
-          'Raw price for $3 gate; split-adjusted price ratios for signals and returns; no current-symbol alias mapping',
+          'Raw price for $3 gate; split-adjusted ratios for signals and returns; only explicitly sourced dated same-security renames are stitched',
           'Deterministic alphabetical tie-break; same-close position sizing assumes a dollar allocation filled in whole shares'],
         limitations=['Historical cap, halt, borrow availability, dividends and SMG security availability unverified; NOT executable profit',
           'Independent firm cohort frozen from sources through July 2025; later IPOs and updated filing context missing',

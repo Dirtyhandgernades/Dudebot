@@ -101,6 +101,35 @@ def test_live_policy_cannot_run_without_public_firm_evidence():
     with pytest.raises(ValueError):
         simulate({'ABC':bars},{'ABC':bars},['ABC'],days,strategy='LIVE_FIRM_TIMING_SHORT')
 
+def test_documented_rename_preserves_true_return_across_adjustment_units():
+    from smg.swing_backtest import stitch_rename
+    change=dict(old_symbol='OLD',new_symbol='NEW',effective_date='2025-10-10',
+                published_at='2025-10-09T12:00:00Z',action='rename_only')
+    data={'raw':{'OLD':{'2025-10-09':dict(c=10)},'NEW':{'2025-10-10':dict(c=8)}},
+          'split':{'OLD':{'2025-10-09':dict(c=10)},'NEW':{'2025-10-10':dict(c=1)}}}
+    assert stitch_rename(data,change)['status']=='STITCHED_RENAME'
+    assert data['split']['OLD']['2025-10-10']['c']==8
+    assert data['raw']['OLD']['2025-10-10']['c']==8
+    assert '2025-10-09' not in data['raw']['NEW']
+    with pytest.raises(ValueError):stitch_rename(data,{**change,'action':'merger'})
+
+@pytest.mark.parametrize('missing',[True,False])
+def test_missing_marks_or_insolvency_cannot_finance_new_entries(missing):
+    from smg.models import Config
+    days,a=fixture();b={d:dict(v) for d,v in a.items()}
+    for day in days[21:]:a[day]=dict(c=8,h=8.1,l=7.9,v=200)
+    for day in days[22:]:b[day]=dict(c=8,h=8.1,l=7.9,v=200)
+    if missing:del a[days[23]]
+    else:
+        for day in days[23:]:a[day]=dict(c=80,h=80.1,l=79.9,v=200)
+    result=simulate({'ABC':a,'XYZ':b},{'ABC':a,'XYZ':b},['ABC','XYZ'],days,
+        start=days[22],end=days[25],hold=3,strategy='LIVE_FIRM_TIMING_SHORT',
+        position_target=30000,buying_power=150000,firm_cfg=Config(surge_return_min_pct=12),
+        firm_dates={'ABC':days[21],'XYZ':days[22]})
+    assert {t['ticker'] for t in result['trades']}=={'ABC'}
+    reason='NEW_ENTRY_BLOCKED_UNVALUED_CAPITAL' if missing else 'NEW_ENTRY_BLOCKED_NONPOSITIVE_EQUITY'
+    assert result['gaps'][reason]>=1
+
 def test_borrow_execution_is_reported_separately_from_detection():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'},
             {'ticker':'XYZ','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'}]
