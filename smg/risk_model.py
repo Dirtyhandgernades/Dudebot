@@ -154,13 +154,16 @@ def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
                 if not drop:in_drop=False;continue
                 if in_drop:continue
                 in_drop=True
-                watch=[];timing=[];eligible_evidence=eligible_price=0
+                watch=[];timing=[];eligible_evidence=eligible_price=raw_missing=price_below_gate=0
                 for j in range(max(21,i-5),i):
                     signal_day=sessions[j]
                     if signal_day<first_dates.get(ticker,'9999-99-99'):continue
                     eligible_evidence+=1
                     price=raw_series.get(signal_day)
-                    if not price or price.get('c',0)<=3:continue
+                    if not price:
+                        raw_missing+=1;continue
+                    if price.get('c',0)<=3:
+                        price_below_gate+=1;continue
                     eligible_price+=1
                     history_days=sessions[j-21:j+1]
                     if any(d not in series for d in history_days):continue
@@ -171,7 +174,9 @@ def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
                     'prior_firm_watch_date':watch[0] if watch else None,
                     'prior_timing_trigger_date':timing[0] if timing else None,
                     'watch_gap_reason':None if watch else ('FIRM_EVIDENCE_NOT_YET_PUBLIC' if not eligible_evidence else
-                        'PRICE_GATE_OR_RAW_BAR_MISSING' if not eligible_price else 'INCOMPLETE_22_SESSION_HISTORY'),
+                        ('RAW_BAR_MISSING' if raw_missing and not price_below_gate else
+                         'PRICE_BELOW_3' if price_below_gate and not raw_missing else 'RAW_BAR_MISSING_AND_PRICE_BELOW_3')
+                        if not eligible_price else 'INCOMPLETE_22_SESSION_HISTORY'),
                     'firm_watch_lead_sessions':i-index[watch[0]] if watch else None,
                     'timing_lead_sessions':i-index[timing[0]] if timing else None})
         output.append({'start':start,'end':end,'firm_watch_days':total,
