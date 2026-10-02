@@ -240,7 +240,8 @@ def main():
     out=root/'reports/swing-backtest';out.mkdir(parents=True,exist_ok=True)
     summaries=[]
     for period_start,period_end in PERIODS:
-        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','RAPID_PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT','BREAKOUT_LONG']:
+        for strategy in ['FIRM_BASELINE_SHORT','PUMP_FAILURE_SHORT','RAPID_PUMP_FAILURE_SHORT',
+                         'COMBINED_COLLAPSE_SHORT','ADAPTIVE_COLLAPSE_SHORT','BREAKOUT_LONG']:
             for hold in [1,3,4,5,7]:
                 universe=cohorts[period_start]['long' if strategy=='BREAKOUT_LONG' else 'short']
                 result=simulate(data['raw'],data['split'],universe,sessions,start=period_start,end=period_end,hold=hold,strategy=strategy,borrow_observations=borrow_observations)
