@@ -154,20 +154,24 @@ def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
                 if not drop:in_drop=False;continue
                 if in_drop:continue
                 in_drop=True
-                watch=[];timing=[]
+                watch=[];timing=[];eligible_evidence=eligible_price=0
                 for j in range(max(21,i-5),i):
                     signal_day=sessions[j]
                     if signal_day<first_dates.get(ticker,'9999-99-99'):continue
-                    history_days=sessions[j-21:j+1]
-                    if any(d not in series for d in history_days):continue
+                    eligible_evidence+=1
                     price=raw_series.get(signal_day)
                     if not price or price.get('c',0)<=3:continue
+                    eligible_price+=1
+                    history_days=sessions[j-21:j+1]
+                    if any(d not in series for d in history_days):continue
                     watch.append(signal_day)
                     if 'PUMP_FAILURE_SHORT' in signal([series[d] for d in history_days]):timing.append(signal_day)
                 events.append({'ticker':ticker,'drop_date':day,'five_session_peak_close':round(peak,4),
                     'drop_close':round(series[day]['c'],4),'drop_pct':round(100*(series[day]['c']/peak-1),2),
                     'prior_firm_watch_date':watch[0] if watch else None,
                     'prior_timing_trigger_date':timing[0] if timing else None,
+                    'watch_gap_reason':None if watch else ('FIRM_EVIDENCE_NOT_YET_PUBLIC' if not eligible_evidence else
+                        'PRICE_GATE_OR_RAW_BAR_MISSING' if not eligible_price else 'INCOMPLETE_22_SESSION_HISTORY'),
                     'firm_watch_lead_sessions':i-index[watch[0]] if watch else None,
                     'timing_lead_sessions':i-index[timing[0]] if timing else None})
         output.append({'start':start,'end':end,'firm_watch_days':total,
