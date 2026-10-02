@@ -37,6 +37,19 @@ def test_sent_alert_is_not_counted_as_miss(tmp_path):
     assert outcome_rows(store,bars,'2026-09-21','2026-09-22')[0]['outcome']=='FLAGGED_20PCT_CLOSE_DROP'
 
 
+def test_firm_reason_wins_when_both_lanes_watched_same_ticker(tmp_path):
+    store=Store(tmp_path/'two-lanes.sqlite')
+    store.put('watch_census:2026-09-21',{'firm_symbols':['ABC']})
+    for lane,reason in [('FIRM_WATCH','UNKNOWN_ISSUER_CLASSIFICATION'),
+                        ('VOLATILITY_WATCH','VOLATILITY_REVERSAL_NOT_CONFIRMED')]:
+        store.put('scan_day:2026-09-21:'+lane+':ABC',{'ticker':'ABC','pipeline':lane,
+            'status':'REVIEW_REQUIRED','reasons':[reason]})
+    bars={'ABC':{'2026-09-21':{'c':10},'2026-09-22':{'c':7}}}
+    row=outcome_rows(store,bars,'2026-09-21','2026-09-22')[0]
+    assert row['pipeline']=='FIRM_WATCH'
+    assert row['scan_reasons']==['UNKNOWN_ISSUER_CLASSIFICATION']
+
+
 def test_annual_filing_can_supply_missing_issuer_classification(tmp_path):
     from smg.live_firms import LiveFirmDiscovery
     class Sec:

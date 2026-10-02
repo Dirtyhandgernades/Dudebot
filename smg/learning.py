@@ -18,7 +18,10 @@ def record_scan(store,all_candidates,evaluations,now):
 def outcome_rows(store,bars,day,today):
     census=store.get('watch_census:'+day,{})
     evaluations=[v for _,v in store.items('scan_day:'+day+':')]
-    by_symbol={v['ticker']:v for v in evaluations}
+    by_symbol={}
+    for value in evaluations:
+        if value['ticker'] not in by_symbol or value['pipeline']=='FIRM_WATCH':
+            by_symbol[value['ticker']]=value
     symbols=set(census.get('firm_symbols',[]))|set(by_symbol)
     sent={v.get('ticker') for _,v in store.items('trade_alert_history:'+day+':') if v.get('status')=='SENT'}
     sent.update(v.get('ticker') for _,v in store.items('trade_alert_state:')
@@ -53,12 +56,15 @@ def review(store,http,headers,now):
             'start':str(now.date()-timedelta(days=11))+'T00:00:00Z',
             'end':(now-timedelta(minutes=16)).isoformat(),
             'feed':'sip','adjustment':'split','limit':10000,'sort':'asc'}
+        seen=set()
         while True:
             data=http.json(URL,params=params,headers=headers);requests+=1
             for symbol,series in (data.get('bars') or {}).items():
                 bars.setdefault(symbol,{}).update({bar['t'][:10]:bar for bar in series})
             token=data.get('next_page_token')
             if not token:break
+            if token in seen:raise ValueError('Repeated Alpaca outcome-review page token')
+            seen.add(token)
             params['page_token']=token
     output=[]
     for day in days:
