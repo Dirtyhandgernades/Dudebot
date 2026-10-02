@@ -107,3 +107,7 @@ def test_firm_watch_lead_report_starts_after_public_firm_evidence():
     assert result['firm_watch_days']==2
     assert result['five_session_drop_windows']==1
     assert result['timing_trigger_days']==0
+    assert result['distinct_drop_events']==1
+    assert result['events_previously_on_firm_watch']==1
+    assert result['events_with_prior_timing_trigger']==0
+    assert result['event_rows'][0]['firm_watch_lead_sessions']==1

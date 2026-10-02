@@ -140,6 +140,36 @@ def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
                 if timing:
                     timed+=1;timed_symbols.add(ticker)
                     if fall:timed_positive+=1
+        events=[]
+        for ticker in cohorts[start]['short']:
+            series=adjusted.get(ticker,{});raw_series=raw.get(ticker,{})
+            in_drop=False
+            for i,day in enumerate(sessions):
+                if day<start or day>end or i<5:continue
+                prior=sessions[i-5:i]
+                if day not in series or any(d not in series for d in prior):
+                    in_drop=False;continue
+                peak=max(series[d]['c'] for d in prior)
+                drop=peak>0 and series[day]['c']/peak-1<=-.20
+                if not drop:in_drop=False;continue
+                if in_drop:continue
+                in_drop=True
+                watch=[];timing=[]
+                for j in range(max(21,i-5),i):
+                    signal_day=sessions[j]
+                    if signal_day<first_dates.get(ticker,'9999-99-99'):continue
+                    history_days=sessions[j-21:j+1]
+                    if any(d not in series for d in history_days):continue
+                    price=raw_series.get(signal_day)
+                    if not price or price.get('c',0)<=3:continue
+                    watch.append(signal_day)
+                    if 'PUMP_FAILURE_SHORT' in signal([series[d] for d in history_days]):timing.append(signal_day)
+                events.append({'ticker':ticker,'drop_date':day,'five_session_peak_close':round(peak,4),
+                    'drop_close':round(series[day]['c'],4),'drop_pct':round(100*(series[day]['c']/peak-1),2),
+                    'prior_firm_watch_date':watch[0] if watch else None,
+                    'prior_timing_trigger_date':timing[0] if timing else None,
+                    'firm_watch_lead_sessions':i-index[watch[0]] if watch else None,
+                    'timing_lead_sessions':i-index[timing[0]] if timing else None})
         output.append({'start':start,'end':end,'firm_watch_days':total,
             'watch_symbols':len(watched_symbols),'five_session_drop_windows':positive,
             'drop_window_symbols':len(positive_symbols),'watch_day_drop_rate':positive/total if total else None,
@@ -147,7 +177,11 @@ def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
             'timing_trigger_drop_windows':timed_positive,
             'timing_trigger_precision':timed_positive/timed if timed else None,
             'timing_trigger_window_recall':timed_positive/positive if positive else None,
-            'missing_five_session_windows':gaps})
+            'missing_five_session_windows':gaps,
+            'distinct_drop_events':len(events),
+            'events_previously_on_firm_watch':sum(e['prior_firm_watch_date'] is not None for e in events),
+            'events_with_prior_timing_trigger':sum(e['prior_timing_trigger_date'] is not None for e in events),
+            'event_rows':events})
     return {'target':'At least 20% lower close within the next five sessions from the watch-day close',
         'periods':output,'limitations':['Daily windows overlap; these are not independent trade events',
         'A continuous firm watch is research coverage, not a profitable entry or calibrated probability',
