@@ -2,6 +2,13 @@
 
 ## October 2: firm timing policy failed; research-only gate
 
+The follow-up Cloudflare verification rejected a seed with HTTP 400: its JS
+firm-role schema still omitted `placement_agent`, which Python now preserves.
+The schema is aligned without relabeling placement agents as underwriters.
+The legacy hosted refresh also now withholds all otherwise eligible names
+because it lacks validated entry-timing history; eligibility alone cannot
+qualify a firm trade if the paused legacy noon clock is accidentally resumed.
+
 Run 37054630140 completed the September 8–December 5, 2025 price-proxy
 replay, with SWIN/AXG exit coverage repaired and buying power declining with
 marked equity. The revised live firm timing proxy lost $189,510.63 on 85

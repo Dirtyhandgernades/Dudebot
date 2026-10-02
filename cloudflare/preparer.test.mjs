@@ -17,12 +17,17 @@ function provider({price=4,cap=25_000_000,rss=emptyRSS,stamp=now}={}) {
   };
 }
 const env={ALPACA_API_KEY:'fake',ALPACA_SECRET_KEY:'fake'};
-test('hosted refresh uses real provider fields and same hard bundle validation',async()=>{
+test('hosted refresh verifies providers but cannot qualify a firm without timing',async()=>{
   const result=await new HostedPreparer(env,provider(),()=>now).prepare(seed(),target);
-  assert.equal(result.bundle.items.length,1);assert.equal(result.bundle.items[0].price,4);
-  assert.equal(result.bundle.items[0].market_cap,25_000_000);assert.equal(result.audit.provider_check,'VERIFIED');
-  assert.deepEqual(result.audit.decisions,[{ticker:'TEST',status:'QUALIFIED',reasons:[],price:4,market_cap:25_000_000,
+  assert.equal(result.bundle.items.length,0);assert.equal(result.audit.provider_check,'VERIFIED');
+  assert.deepEqual(result.audit.decisions,[{ticker:'TEST',status:'WITHHELD',reasons:['HOSTED_REFRESH_NO_VALIDATED_TIMING_SIGNAL'],price:4,market_cap:25_000_000,
     shortability:{tradable:true,shortable:true,borrow_status:'easy_to_borrow'}}]);
+});
+test('seed preserves placement agents and rejects invented firm roles',()=>{
+  const packet=seed();packet.candidates[0].firms[0].role='placement_agent';
+  assert.equal(validateSeed(packet,now).candidates[0].firms[0].role,'placement_agent');
+  packet.candidates[0].firms[0].role='promoter';
+  assert.throws(()=>validateSeed(packet,now),/Invalid firms/);
 });
 test('price, capitalization and stale filing reviews cannot produce hosted stock picks',async()=>{
   for(const options of [{price:3},{cap:24_999_999}])assert.equal((await new HostedPreparer(env,provider(options),()=>now).prepare(seed(),target)).bundle.items.length,0);

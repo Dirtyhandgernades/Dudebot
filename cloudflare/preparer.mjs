@@ -9,7 +9,7 @@ export function validateSeed(seed,now) {
     requireValue(c.is_acquisition_corp===false && c.classification_evidence===true && c.corporate_action_review===false,'Unverified issuer');
     requireValue(['CS','ADRC','ADS','COMMON_STOCK'].includes(c.security_type) && ['XNAS','XNYS','NASDAQ','NYSE'].includes(c.exchange),'Invalid security');
     requireValue(Number.isFinite(Date.parse(c.reviewed_at)) && Date.parse(c.reviewed_at)<=now,'Invalid source review');
-    requireValue(Array.isArray(c.firms) && c.firms.length>0 && c.firms.every(f=>typeof f.name==='string' && f.name.length<=200 && ['auditor','underwriter','counsel'].includes(f.role)),'Invalid firms');
+    requireValue(Array.isArray(c.firms) && c.firms.length>0 && c.firms.every(f=>typeof f.name==='string' && f.name.length<=200 && ['auditor','underwriter','placement_agent','counsel'].includes(f.role)),'Invalid firms');
     requireValue(typeof c.source_url==='string' && c.source_url.startsWith('https://www.sec.gov/Archives/edgar/'),'Invalid source');
   }
   return seed;
@@ -91,6 +91,9 @@ export class HostedPreparer {
       if(halted.has(c.ticker))reasons.push('HALTED');
       if(asset.status==='UNAVAILABLE')reasons.push('CURRENT_BORROW_UNAVAILABLE');
       else if(!asset.tradable || !asset.shortable || asset.borrow_status!=='easy_to_borrow')reasons.push('CURRENT_BORROW_NOT_EXECUTABLE');
+      // This legacy refresh has no entry-timing history. Eligibility and a
+      // listed firm alone must never qualify a trade, even if re-armed.
+      if(!reasons.length)reasons.push('HOSTED_REFRESH_NO_VALIDATED_TIMING_SIGNAL');
       decisions.push({ticker:c.ticker,status:reasons.length?'WITHHELD':'QUALIFIED',reasons,price:last?.c??null,market_cap:cap??null,shortability:asset});
       if(reasons.length)continue;
       const fields=[{name:'Listed firms',value:c.firms.map(f=>f.name+' ('+f.role+')').join('\n').slice(0,1024)},
