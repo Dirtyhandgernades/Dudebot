@@ -120,6 +120,31 @@ def test_stale_firm_outside_current_listed_universe_is_reported(tmp_path):
     gap=store.get('firm_refresh_gaps')['rows'][0]
     assert (gap['ticker'],gap['reason'])==('XHLD','NOT_IN_CURRENT_SEC_LISTED_UNIVERSE')
 
+
+def test_refreshed_firm_is_not_reported_stale(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    from smg.firm_search import query_text
+    import hashlib
+    class HTTP:
+        def json(self,url,**kw):
+            return {'hits':{'total':{'value':0,'relation':'eq'},'hits':[]}}
+    class Sec:
+        http=HTTP();headers={}
+        def universe(self):return [{'cik':1,'ticker':'TEST','name':'Operating Company','exchange':'Nasdaq'}]
+        def document(self,url):return dict(url=url,sha256='fixture',text='We are a manufacturer of consumer products. Our ordinary shares trade on Nasdaq. Wei, Wei & Co. LLP is our auditor.')
+        def submissions(self,*a):return []
+    store=Store(tmp_path/'refresh.db')
+    c=watch();c.reviewed_at=NOW-timedelta(days=4)
+    store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    job_key='firm_job:0000000001-26-000001:annual.htm'
+    store.put(job_key,dict(cik='1',ticker='TEST',name='Operating Company',date=str(NOW.date()-timedelta(days=5)),url='https://example.com/annual'))
+    store.put('firm_checked:'+job_key,str(NOW.date()-timedelta(days=4)))
+    store.put('firm_cursor',dict(version=hashlib.sha256(query_text(ENTRIES).encode()).hexdigest(),
+        start=str(NOW.date()),end=str(NOW.date()),offset=0,done=False))
+    LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).run(NOW)
+    assert store.get('firm_refresh_gaps')['count']==0
+
 def test_practice_uses_real_store_overlap_without_claiming_detection(tmp_path):
     from smg.practice import practice_payload
     c=watch();c.ticker='WCT';store=Store(tmp_path/'practice.db')

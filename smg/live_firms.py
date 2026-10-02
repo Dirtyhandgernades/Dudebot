@@ -217,7 +217,10 @@ class LiveFirmDiscovery:
                     self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'));reviewed.add(job['cik'])
             except Exception as exc:self.issues.append(job['ticker']+': '+type(exc).__name__)
         gaps=[]
-        for cik,raw in candidate_by_cik.items():
+        # Read the post-run candidates: a source refreshed above must not be
+        # reported stale merely because the input snapshot was old.
+        current_candidates={raw['cik']:raw for _,raw in self.store.items('candidate:FIRM_WATCH:')}
+        for cik,raw in current_candidates.items():
             if (now.date()-date.fromisoformat(raw['reviewed_at'][:10])).days<2:continue
             choices=universe.get(cik,[])
             reason=('NOT_IN_CURRENT_SEC_LISTED_UNIVERSE' if not choices else
