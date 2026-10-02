@@ -77,8 +77,9 @@ def rationale(e):
     lines+=['Sources:']+[f'<{u}>' for u in urls]
     return '\n'.join(lines)
 
-def digest(evaluations,now,cfg):
-    items=sorted([e for e in evaluations if e.status=='QUALIFIED'],key=lambda e:e.rank)
+def digest(evaluations,now,cfg,presorted=False):
+    items=[e for e in evaluations if e.status=='QUALIFIED']
+    if not presorted:items.sort(key=lambda e:e.rank)
     payloads=[]
     for i,e in enumerate(items):
         c=e.candidate;m=e.snapshot
@@ -229,11 +230,12 @@ class DiscordSender:
             self.store.put(state_key,claim);claims.append((state_key,claim));new.append(e)
         if not new:return 'NO_NEW_TRADES'
         self.checkpoint(self.store)
-        payloads=digest(new,now,cfg)
+        payloads=digest(new,now,cfg,presorted=True)
         for (key,claim),payload in zip(claims,payloads):
             try:
                 data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
                 claim.update(status='SENT',message_id=data['id'],sent_at=self.clock().isoformat())
+                self.store.put('trade_alert_history:'+claim['sent_at'][:10]+':'+claim['ticker'],claim)
             except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
             self.store.put(key,claim);self.checkpoint(self.store)
         return {'status':'SENT' if all(c['status']=='SENT' for _,c in claims) else 'DELIVERY_UNCERTAIN',
@@ -271,6 +273,43 @@ class DiscordSender:
         payload={'username':'Dudebot','content':'**Daily Dudebot status** · '+local.strftime('%b %d, %Y'),
             'embeds':[embed],'allowed_mentions':{'parse':[]}}
         claim={'status':'CLAIMED','claimed_at':now.isoformat(),'candidate_count':len(evaluations)}
+        self.store.put(key,claim);self.checkpoint(self.store)
+        try:
+            data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
+            claim.update(status='SENT',message_id=data['id'],sent_at=self.clock().isoformat())
+        except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
+        self.store.put(key,claim);self.checkpoint(self.store)
+        return claim
+
+    def send_firm_watch(self,evaluations,cfg):
+        """One mention-free daily status for the primary firm research lane."""
+        from .transport import ProviderError
+        now=self.clock();local=local_time(now,cfg)
+        if local.weekday()>=5 or local.hour<13:return 'BEFORE_FIRM_SUMMARY'
+        firms=[e for e in evaluations if e.candidate.pipeline=='FIRM_WATCH'
+               and e.status!='EXCLUDED']
+        if not firms:return 'NO_FIRM_WATCHES_SCANNED'
+        key='firm_watch_digest:'+str(local.date())
+        if self.store.get(key):return 'ALREADY_CLAIMED'
+        lines=[]
+        for e in firms[:8]:
+            names=', '.join(m['name'] for m in e.matches[:2]) or 'relationship under review'
+            blockers=[r for r in e.reasons if not r.startswith('PREFERENCE_GAP:')
+                      and r!='VERIFIED_LISTED_FIRM_RELATIONSHIP']
+            if e.status=='QUALIFIED':
+                state='Qualified; current execution checks passed'
+            else:state='Review only: '+(', '.join(blockers[:2]) or e.status)
+            lines.append(f"**{clean(e.candidate.ticker)}** · {clean(names)}\n{clean(state)}")
+        payload={'username':'Dudebot','content':'**Daily firm-watch research** · '+local.strftime('%b %d, %Y'),
+            'embeds':[{'title':'Firm watches · research status',
+                'description':'Listed underwriters, auditors and counsel lead this watchlist. A review item is not a trade alert.',
+                'color':0xE7AF38,
+                'fields':[{'name':'Reviewed firm names','value':'\n\n'.join(lines)[:1024],'inline':False},
+                          {'name':'Coverage','value':f'{len(firms)} firm candidates scanned in this run; {len(evaluations)} total candidates scanned.','inline':False}],
+                'footer':{'text':'Dudebot · verified short alerts still require current borrow and game eligibility'},
+                'timestamp':now.isoformat()}],
+            'allowed_mentions':{'parse':[]}}
+        claim={'status':'CLAIMED','claimed_at':now.isoformat(),'firm_count':len(firms)}
         self.store.put(key,claim);self.checkpoint(self.store)
         try:
             data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)

@@ -43,7 +43,7 @@ def required_env(name):
 
 def main():
     parser=argparse.ArgumentParser(description='DECA SMG notifier (no order execution)')
-    parser.add_argument('command',choices=['doctor','discover','broad-discover','scan','alert','noon','demo','activate','practice','archive','archive-enrich','archive-backfill'])
+    parser.add_argument('command',choices=['doctor','discover','broad-discover','scan','alert','noon','demo','activate','practice','archive','archive-enrich','archive-backfill','review'])
     parser.add_argument('--root',type=Path,default=Path.cwd())
     parser.add_argument('--send',action='store_true',help='Send newly qualified event alerts, or use the legacy manual noon sender')
     parser.add_argument('--max-days',type=int,default=10,help='Bounded public-history days per archive-backfill run')
@@ -64,6 +64,15 @@ def main():
     entities=EntityList(entries)
     now=datetime.now(UTC)
     try:
+        if args.command=='review':
+            from .learning import review
+            headers={'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')}
+            result=review(store,http,headers,now)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'daily-outcome-review.json').write_text(json.dumps(result,indent=2))
+            print(json.dumps({'scan_days':result['scan_days'],'symbols':result['symbols'],
+                'misses':sum(len(x['misses']) for x in result['reviews']),'data_gaps':sum(len(x['data_gaps']) for x in result['reviews'])}))
+            return
         if args.command=='broad-discover':
             from .broad_discovery import BroadVolatilityDiscovery
             sec=Sec(http,required_env('SEC_USER_AGENT'),store)
@@ -142,14 +151,12 @@ def main():
         candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
         candidates=[c for c in candidates if (c.pipeline in {'RECENT_IPO','FIRM_WATCH','VOLATILITY_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days))
                     and 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
-        firm=[c for c in candidates if c.pipeline=='FIRM_WATCH'];broad=[c for c in candidates if c.pipeline=='VOLATILITY_WATCH']
-        strict=[c for c in candidates if c.pipeline not in {'FIRM_WATCH','VOLATILITY_WATCH'}]
-        preferred=(store.get('broad_discovery',{}) or {}).get('firm_shortlist_symbols') or []
-        position={symbol:i for i,symbol in enumerate(preferred)}
-        firm=sorted(firm,key=lambda c:(position.get(c.ticker,len(position)), -c.reviewed_at.timestamp(),c.ticker))[:cfg.firm_live_shortlist_size]
-        strict=sorted(strict,key=lambda c:(-c.reviewed_at.timestamp(),c.ticker))[:cfg.strict_live_shortlist_size]
-        candidates=broad+firm+strict
-        store.put('live_scan_selection',{'at':now.isoformat(),'volatility':len(broad),'firm':len(firm),'strict':len(strict),'symbols':[c.ticker for c in candidates]})
+        all_candidates=candidates[:]
+        learning=(store.get('learning_priority',{}) or {}).get('firm_symbols') or []
+        preferred=list(dict.fromkeys(learning+((store.get('broad_discovery',{}) or {}).get('firm_shortlist_symbols') or [])))
+        from .live_selection import select
+        candidates,counts=select(candidates,preferred,cfg)
+        store.put('live_scan_selection',{'at':now.isoformat(),**counts,'symbols':[c.ticker for c in candidates]})
         checkpoint(store)
         scanner=Scanner(market,NasdaqHalts(http),cfg,entities,store)
         if args.command=='noon':
@@ -162,12 +169,15 @@ def main():
             # Workflows start early. Prep data near noon, then refresh recent bars and halts at dispatch.
             while datetime.now(UTC)<target-timedelta(seconds=480):time.sleep(min(20,max(.1,(target-timedelta(seconds=480)-datetime.now(UTC)).total_seconds())))
         results=scanner.scan(candidates,datetime.now(UTC))
+        from .learning import record_scan
+        record_scan(store,all_candidates,results,datetime.now(UTC))
         if args.command=='alert' and args.send:
             if os.environ.get('DISCORD_ENABLED')=='true':
                 sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
                 event=sender.send_new(results,cfg)
+                firm_watch=sender.send_firm_watch(results,cfg)
                 daily=sender.send_daily_no_trade(results,cfg)
-                print(json.dumps({'event_delivery':event,'daily_status':daily}))
+                print(json.dumps({'event_delivery':event,'firm_watch':firm_watch,'daily_status':daily}))
             else:print('DISCORD_DISABLED; report generated without sending')
         if args.command=='noon':
             refresh_at=target-timedelta(seconds=90)

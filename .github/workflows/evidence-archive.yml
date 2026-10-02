@@ -54,6 +54,9 @@ jobs:
       - name: Enrich eight pending symbols with daily fundamentals and sentiment
         if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli archive-enrich
+      - name: Review prior scans against subsequent closes
+        if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
+        run: python -m smg.cli review
       - name: Backfill ten public halt and FINRA sessions
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
         run: python -m smg.cli archive-backfill --max-days 10
@@ -61,6 +64,8 @@ jobs:
         if: always()
         with:
           name: evidence-archive-${{ github.run_id }}
-          path: reports/evidence-*.json
+          path: |
+            reports/evidence-*.json
+            reports/daily-outcome-review.json
           if-no-files-found: ignore
           retention-days: 30

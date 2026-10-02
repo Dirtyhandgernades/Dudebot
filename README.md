@@ -25,13 +25,16 @@ relationships; an issuer-level historical underwriter is labeled in `FIRM_WATCH`
 
 Live discovery has two bounded lanes. The firm lane searches the supplied auditor,
 underwriter and counsel list. The broad volatility lane batches daily bars across
-the eligible NASDAQ/NYSE universe twice per market day, then retains at most eight
+the eligible NASDAQ/NYSE universe twice per market day, then retains at most four
 SEC-verified common equities for intraday confirmation. A listed-firm match gets a
 large ranking bonus. Without one, a stock must pass the stronger pump-failure or
 high-volume breakdown trigger. This avoids thousands of intraday symbol requests.
-The same daily pass ranks at most 16 firm candidates by current price/volume
-activity, so the live minute-bar scan evaluates no more than 24 names plus eight
+The same daily pass ranks at most 24 firm candidates by current price/volume
+activity, so the live minute-bar scan evaluates no more than 28 names plus eight
 recent strict-profile events. Current borrow is checked before minute history.
+Firm discovery refreshes active and stale watches before lower-priority backlog,
+and uses an annual filing to resolve issuer classification when the deal filing
+does not establish it. Unknown classification still blocks a trade alert.
 
 Live deployment enables weekday discovery and 15-minute market/evidence scans by
 default. Repository variables `SMG_LIVE_ENABLED=false` or `DISCORD_ENABLED=false`
@@ -96,8 +99,8 @@ The demo uses fictional securities and an explicit demonstration-only 100% thres
 **Broad volatility:** Two batched daily passes first enforce the exchange, price,
 capitalization, symbol and obvious acquisition-company exclusions. They calculate
 21-session return, five-session range, volume ratio and failure/reversal evidence.
-Only the highest-ranked 24 records are considered for SEC enrichment, and no more
-than eight positively classified common equities persist to the 15-minute scanner.
+Only the highest-ranked 12 records are considered for SEC enrichment, and no more
+than four positively classified common equities persist to the 15-minute scanner.
 The live trigger then requires either a 12% pump plus reversal and RVOL, or an
 exceptionally high-volume one-day breakdown. All normal halt, borrow and game gates
 still apply.
@@ -124,6 +127,8 @@ An optional `iex` feed with zero delay can be configured in the strategy file. I
 The evidence workflow runs every 15 minutes across U.S. market hours in both daylight and standard time. It archives point-in-time market and borrow evidence, scans the stored SEC candidate pool, and sends immediately when a candidate enters a newly qualified phase. Holidays and closed sessions cannot qualify because the delayed market snapshot must be inside a valid exchange session.
 
 Alerts use Discord embeds: one card per stock, matched firms, market context, timestamps and filing links. The first message requests `@everyone`; later cards do not repeat the mention. Practice checks have no mentions and are explicitly labeled as research checks.
+After the close, a separate mention-free firm-watch embed lists the strongest
+reviewed firm names and their blockers even when a volatility trade was sent.
 
 The legacy [Cloudflare dispatcher](cloudflare/README.md) remains deployed for validation but its noon alarm is paused. GitHub owns event-driven scans and persists each signal claim on the `smg-state` branch before contacting Discord. GitHub schedules can start late, so “immediate” means the first successful scheduled scan after qualification rather than guaranteed wall-clock delivery.
 
@@ -135,6 +140,14 @@ Scheduled live jobs require `SMG_LIVE_ENABLED` not to be `false`. Discord additi
 
 `reports/latest.json` contains evaluation results, reasons, and source evidence. `reports/discord-preview.txt` shows eligible alert text. Data access failures are recorded separately from market criteria that did not pass.
 
+Each market-day scan stores a dated firm census and the decisions it made. The
+nightly `review` command compares those decisions with the next one to three
+daily closes, labels missed 20% declines and missing data, and saves
+`reports/daily-outcome-review.json`. Recent missed firm names move earlier in
+the next research queue; the feedback does not change trade eligibility or
+automatically fit new model weights. The audit covers the watched universe,
+not every stock in the market, and historical borrow remains unverified.
+
 The `smg-state` branch stores a SQLite record through GitHub's Contents API with SHA-guarded writes. Workflows serialize state updates. The daily digest is durably claimed before its first Discord request. Uncertain or failed sends do not blindly retry the ping; delivery can be missed after an ambiguous failure. Source text cannot inject extra mentions. The first chunk explicitly allows `@everyone`, while later chunks do not. Discord permissions and recipient settings still govern notifications.
 
 Continuing candidates can appear again on the next eligible day. Direct-offering agreement dates help group related filings; unresolved amendments may remain separate review records. Pending discovery work and normalized facts persist, while full downloaded filings are cached only within a run. A very large history may eventually need a different storage backend; that migration is not included.
@@ -145,11 +158,12 @@ Continuing candidates can appear again on the next eligible day. Direct-offering
 python -m smg.cli doctor       # Offline configuration presence check; never prints values.
 python -m smg.cli demo         # Offline fictional examples; cannot send.
 python -m smg.cli discover     # SEC discovery and local extraction; no Discord messages.
-python -m smg.cli broad-discover # Batched market-wide prefilter; persists at most eight names.
+python -m smg.cli broad-discover # Batched market-wide prefilter; persists at most four names.
 python -m smg.cli scan         # Market confirmation and report; no Discord messages.
 python -m smg.cli alert --send # Send only newly qualified phases; durable duplicate suppression.
 python -m smg.cli archive      # Append point-in-time price, borrow, halt and research evidence.
 python -m smg.cli archive-enrich # Resume eight slow sentiment/fundamental records per run.
+python -m smg.cli review       # Audit dated signals and misses after subsequent closes.
 ```
 
 `.env` files are not automatically loaded. Use shell environment variables locally or the provided Actions workflows. Keep actual credentials out of the repository.

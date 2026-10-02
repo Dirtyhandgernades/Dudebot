@@ -1,5 +1,24 @@
 # Dudebot continuation handoff
 
+## October 1: firm coverage and prospective miss audit
+
+Live state showed 126 stored firm watches, but only 16 selected per scan. The
+latest evaluated set had no qualified firm watch, four qualified volatility
+names, WCT blocked on unknown issuer classification, and XHLD stale with
+non-executable current borrow. Firm discovery now prioritizes active/stale
+issuers, reuses verified historical underwriter evidence when a newer filing
+does not repeat it, and checks a recent annual filing for missing issuer
+classification. Live selection scans up to 24 firms and four broad names.
+Nothing bypasses current borrow, halt, exchange, price or market-cap gates.
+
+The scanner now stores a dated watch census and decisions. A nightly review
+compares subsequent daily closes, reports flagged/missed 20% declines and
+data gaps, and prioritizes recent missed firm names for research only. This is
+prospective diagnostic feedback, not online training of trade thresholds.
+The daily firm-watch Discord embed is a mention-free research status even
+when a volatility alert was sent. Validate GitHub CI and a live scheduled run
+after deployment before claiming successful production delivery.
+
 ## September 22: live timeout repair
 
 The first production market-day runs exposed a real ordering/runtime bug. Two

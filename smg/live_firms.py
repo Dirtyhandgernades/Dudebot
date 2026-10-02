@@ -91,6 +91,24 @@ class LiveFirmDiscovery:
             if checked['acquisition_evidence']:acquisition=checked['acquisition_evidence']
         return list(dict.fromkeys(notes)),acquisition
 
+    def issuer_classification(self,filings):
+        """Use an annual filing to resolve an issuer type missing from a deal filing."""
+        annual=next((f for f in filings if f['form'] in {'10-K','20-F'}),None)
+        if not annual:return None,None
+        key='firm_issuer:'+hashlib.sha256(annual['url'].encode()).hexdigest()
+        result=self.store.get(key)
+        if result is None:
+            if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
+            raw=self.sec.document(annual['url']);self.downloads+=1
+            doc=dict(raw,date=annual['date'])
+            spac=search([doc],r'\b(?:we are|we were|the company is|the company was)\s+(?:a |an )?(?:blank.check company|special purpose acquisition company)\b')
+            business=search([doc],r'\b(?:we|the company)\s+(?:(?:are|is)\s+(?:(?:a|an|the)\s+)?(?:[\w,-]+\s+){0,10}(?:company|provider|manufacturer|operator|developer|supplier|distributor)|(?:manufacture|manufactures|develop|develops|operate|operates|provide|provides|sell|sells)\s+[^.]{10,180})',re.I)
+            hit=spac or business
+            result={'is_acquisition_corp':True if spac else False if business else None,
+                    'evidence':hit[2].model_dump(mode='json') if hit else None}
+            self.store.put(key,result)
+        return result['is_acquisition_corp'],result['evidence']
+
     def run(self,now):
         started=time.monotonic();universe={}
         for u in self.sec.universe():
@@ -142,6 +160,20 @@ class LiveFirmDiscovery:
         # Existing candidates are the live trading universe. Refresh most of
         # them first so a growing historical backlog cannot silently age out
         # every alert. Keep ten slots for genuinely new filings each run.
+        learning=(self.store.get('learning_priority',{}) or {}).get('firm_symbols') or []
+        preferred=list(dict.fromkeys(learning+((self.store.get('broad_discovery',{}) or {}).get('firm_shortlist_symbols') or [])))
+        preferred_order={ticker:i for i,ticker in enumerate(preferred)}
+        candidate_by_cik={raw['cik']:raw for _,raw in self.store.items('candidate:FIRM_WATCH:')}
+        refresh.sort(key=lambda pair:(preferred_order.get(pair[1]['ticker'],len(preferred_order)),
+            (candidate_by_cik.get(pair[1]['cik']) or {}).get('reviewed_at',''),-date.fromisoformat(pair[1]['date']).toordinal()))
+        def one_job_per_issuer(rows):
+            seen=set();unique=[]
+            for pair in rows:
+                cik=pair[1]['cik']
+                if cik in seen:continue
+                seen.add(cik);unique.append(pair)
+            return unique
+        refresh=one_job_per_issuer(refresh);fresh=one_job_per_issuer(fresh)
         jobs=refresh[:50]+fresh[:10]+refresh[50:]+fresh[10:]
         reviewed=set();count=0
         for key,job in jobs:
@@ -154,16 +186,33 @@ class LiveFirmDiscovery:
                 # Refresh current symbol from today's exchange universe; never
                 # reset listing age or invent an IPO date after a rename.
                 current=universe[job['cik']][0];job=dict(job,ticker=current['ticker'],name=current['name'],exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS')
-                filings=self.sec.submissions(job['cik'],max(date.fromisoformat(job['date']),now.date()-timedelta(days=450)))
+                filings=self.sec.submissions(job['cik'],now.date()-timedelta(days=450))
                 changes=[f for f in filings if f['date']>job['date'] and f['form'] in {'8-K','6-K','20-F','10-K'}]
                 context_notes,acquisition=self.review_context(changes)
                 candidate=extract_watch(job,docs,now,self.entries);count+=1
+                if candidate is None:
+                    prior=candidate_by_cik.get(job['cik'])
+                    # A historical underwriter remains historical evidence even
+                    # when a newer filing does not repeat the offering section.
+                    # Never carry forward current auditor/counsel assertions.
+                    if prior and prior.get('matches') and all(
+                        m.get('relationship')=='historical' and m.get('role') in {'underwriter','placement_agent'}
+                        for m in prior['matches']):
+                        candidate=Candidate.model_validate(prior).model_copy(deep=True)
+                        candidate.ticker=job['ticker'];candidate.name=job['name'];candidate.exchange=job['exchange']
+                        candidate.reviewed_at=now
+                        candidate.notes.append('Historical underwriter retained; later issuer context reviewed.')
                 self.store.put('firm_checked:'+key,str(now.date()))
                 if candidate:
-                    candidate.notes+=context_notes
+                    candidate.notes=list(dict.fromkeys(candidate.notes+context_notes))
                     if acquisition:
                         candidate.is_acquisition_corp=True
                         candidate.evidence['is_acquisition_corp']=Evidence.model_validate(acquisition)
+                    if candidate.is_acquisition_corp is None:
+                        classification,proof=self.issuer_classification(filings)
+                        if classification is not None and proof:
+                            candidate.is_acquisition_corp=classification
+                            candidate.evidence['is_acquisition_corp']=Evidence.model_validate(proof)
                     self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'));reviewed.add(job['cik'])
             except Exception as exc:self.issues.append(job['ticker']+': '+type(exc).__name__)
         self.store.put('discovery_issues',self.issues)

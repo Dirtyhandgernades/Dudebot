@@ -85,6 +85,19 @@ def test_daily_no_trade_suppressed_when_trade_was_sent(tmp_path):
     sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
     assert sender.send_daily_no_trade(demo(),Config())=='TRADE_SENT_TODAY' and not http.calls
 
+def test_firm_watch_digest_reports_blocker_once_without_trade_mention(tmp_path):
+    store=Store(tmp_path/'firm.db');http=FakeHttp();at=NOW+timedelta(hours=1)
+    item=demo()[0].model_copy(deep=True)
+    item.candidate.pipeline='FIRM_WATCH';item.candidate.ticker='WCT'
+    item.status='REVIEW_REQUIRED';item.reasons=['UNKNOWN_ISSUER_CLASSIFICATION']
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
+    receipt=sender.send_firm_watch([item],Config())
+    assert receipt['status']=='SENT'
+    assert 'WCT' in http.calls[0]['body']['embeds'][0]['fields'][0]['value']
+    assert 'UNKNOWN_ISSUER_CLASSIFICATION' in http.calls[0]['body']['embeds'][0]['fields'][0]['value']
+    assert http.calls[0]['body']['allowed_mentions']=={'parse':[]}
+    assert sender.send_firm_watch([item],Config())=='ALREADY_CLAIMED'
+
 def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
     duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'
