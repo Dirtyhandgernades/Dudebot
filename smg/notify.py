@@ -98,18 +98,24 @@ def digest(evaluations,now,cfg,presorted=False):
         context+=f"Alpaca borrow: {borrow.get('borrow_status','unavailable')} · tradable {borrow.get('tradable','?')} · shortable {borrow.get('shortable','?')}\n"
         context+=f"FINRA prior-day short-volume ratio: {metric((finra.get('short_volume_ratio')*100) if finra.get('short_volume_ratio') is not None else None,'%')}\n"
         context+=f"Sentiment score: {metric(sentiment.get('score'))} (ranking context only)"
+        trigger=('Firm pump failure' if 'FIRM_PUMP_FAILURE_SHORT' in e.reasons else
+                 'Firm breakdown' if 'FIRM_BREAKDOWN_SHORT' in e.reasons else
+                 'High-volatility breakdown' if 'HIGH_VOLATILITY_BREAKDOWN_SHORT' in e.reasons else
+                 'Pump failure' if 'PUMP_FAILURE_SHORT' in e.reasons else 'Other verified setup')
         embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
                'color':0xE7AF38 if super_priority else 0x39B9A8,
                'fields':[{'name':'Matched firms','value':firms[:1000] or 'No listed high-priority firm match; stronger volatility confirmation required','inline':False},
                          {'name':'Price','value':'$'+metric(m.price),'inline':True},
                          {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
+                         {'name':'1-session change','value':metric(m.one_day_return,'%'),'inline':True},
                          {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
+                         {'name':'Short setup','value':trigger,'inline':True},
                          {'name':'DECA eligibility','value':f'Reported market cap: ${metric(m.market_cap)}\nNasdaq/NYSE · price > $3 · cap ≥ $25M\nMinimum opening order: 10 shares (~${metric(m.price*10)} before fees)','inline':False},
                          {'name':f'{cfg.live_short_hold_sessions_min}–{cfg.live_short_hold_sessions_max} session short plan','value':context[:1024],'inline':False},
                          {'name':'SMG position guide','value':'$15k review size · up to $30k only for the highest-ranked setup · $150k maximum gross exposure · minimum 10 shares','inline':False},
                          {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
                'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
-               'timestamp':m.price_time.isoformat()}
+               'timestamp':now.isoformat()}
         payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**New qualified trade** · '+local_time(now,cfg).strftime('%b %d, %Y · %H:%M %Z'),
                          'embeds':[embed],'allowed_mentions':{'parse':['everyone'] if i==0 else []}})
     return payloads

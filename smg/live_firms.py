@@ -33,7 +33,10 @@ def extract_watch(job,docs,now,entries):
                 if not hit:continue
                 passage=hit[0].group()
                 if re.search(r'\b(?:not|terminated|dismissed|former|no longer)\b',passage,re.I):continue
-                matches.append(EntityMatch(name=name,role=role,relationship='historical' if role=='underwriter' else 'current',evidence=hit[2]))
+                source_role=('placement_agent' if role=='underwriter' and
+                             re.search(r'placement agent',passage,re.I) else role)
+                matches.append(EntityMatch(name=name,role=source_role,
+                    relationship='historical' if role=='underwriter' else 'current',evidence=hit[2]))
     if not matches:return None
     acquisition=search(docs,r'\b(?:we are|we were|the company is|the company was)\s+(?:a |an )?(?:blank.check company|special purpose acquisition company)\b')
     business=search(docs,r'\b(?:we|the company)\s+(?:(?:are|is)\s+(?:(?:a|an|the)\s+)?(?:[\w,-]+\s+){0,6}(?:provider|manufacturer|operator|developer|supplier|distributor)|(?:manufacture|manufactures|develop|develops|operate|operates|provide|provides|sell|sells)\s+[^.]{10,180})',re.I)

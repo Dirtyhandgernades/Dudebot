@@ -34,6 +34,9 @@ def test_one_ping_and_payload_limits():
     assert '@everyone' not in clean('@everyone <@123>')
     for message in p:
         e=message['embeds'][0]
+        assert e['timestamp']==NOW.isoformat()
+        assert any(f['name']=='1-session change' for f in e['fields'])
+        assert any(f['name']=='Short setup' for f in e['fields'])
         assert len(e['title'])<=256 and len(e['description'])<=4096
         assert all(len(f['value'])<=1024 for f in e['fields'])
         assert len(e['title'])+len(e['description'])+len(e['footer']['text'])+sum(len(f['name'])+len(f['value']) for f in e['fields'])<=6000

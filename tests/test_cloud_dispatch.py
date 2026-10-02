@@ -12,7 +12,7 @@ def test_deployment_accepts_persistent_pause_without_treating_broken_clock_as_pa
     with pytest.raises(ValueError):clock_registration({'control':{'paused':True}})
 
 def test_bundle_preserves_checks_and_embed_from_real_evaluation():
-    e=run();cfg=CFG.model_copy(update={'screening_profile':'firm_first'})
+    e=run(daily=-6,rvol=1.4);cfg=CFG.model_copy(update={'screening_profile':'firm_first'})
     e.signal_side='SHORT';e.shortability={'status':'CURRENT','tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'}
     result=bundle([e],NOW,NOW+timedelta(seconds=90),cfg)
     item=result['items'][0]
@@ -23,7 +23,7 @@ def test_bundle_preserves_checks_and_embed_from_real_evaluation():
     assert bundle([e],NOW,NOW+timedelta(seconds=90),cfg)['items']==[]
 
 def test_stale_at_target_is_not_uploaded_as_qualified():
-    e=run();e.snapshot.price_time-=timedelta(minutes=4)
+    e=run(daily=-6,rvol=1.4);e.snapshot.price_time-=timedelta(minutes=4)
     e.signal_side='SHORT';e.shortability={'status':'CURRENT','tradable':True,'shortable':True,'borrow_status':'easy_to_borrow'}
     cfg=CFG.model_copy(update={'screening_profile':'firm_first'})
     assert bundle([e],NOW,NOW+timedelta(seconds=90),cfg)['items']==[]

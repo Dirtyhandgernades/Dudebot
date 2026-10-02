@@ -11,20 +11,20 @@ ENTITIES=EntityList(yaml.safe_load(Path('config/entities.yaml').read_text()))
 CFG=Config(surge_return_min_pct=12,ipo_low_priority_surge_max_pct=23)
 
 
-def run(c=None,halt_status='CLEAR',monthly=-10):
+def run(c=None,halt_status='CLEAR',monthly=-10,daily=0,rvol=.2):
     c=c or candidate()
     s=snapshot();s.feed='sip';s.declared_delay_minutes=16
     s.asof-=timedelta(minutes=16);s.price_time-=timedelta(minutes=16)
-    s.monthly_return=monthly;s.rvol=.2
+    s.monthly_return=monthly;s.one_day_return=daily;s.rvol=rvol;s.drawdown_pct=-20
     h=HaltCheck(checked_at=NOW,status=halt_status,reason='test',source_url='https://example.com')
     return evaluate_firm_first(c,CFG,ENTITIES,NOW,s,h)
 
 
-def test_unpumped_old_ipo_outside_terms_and_geography_stays_firm_match():
+def test_unpumped_old_ipo_outside_terms_and_geography_stays_watch_only():
     c=candidate();c.offer_price=1;c.offer_gross=100_000_000;c.operations_country='US';c.ipo_date=date(2010,1,1)
     r=run(c)
-    assert r.status=='QUALIFIED'
-    assert 'NOT_YET_PUMPED_OR_BELOW_PREFERRED_SURGE' in r.reasons
+    assert r.status=='MARKET_NOT_CONFIRMED'
+    assert 'FIRM_WATCH_NO_SHORT_TIMING_TRIGGER' in r.reasons
     assert 'PREFERENCE_GAP:IPO_TOO_OLD' in r.reasons
     assert evaluate(c,CFG,ENTITIES,NOW).status=='EXCLUDED'
 
@@ -49,13 +49,23 @@ def test_unknown_halt_separate_from_verified_alert():
 
 
 def test_no_monthly_history_allowed_as_context():
-    assert run(monthly=None).status=='QUALIFIED'
+    assert run(monthly=None).status=='MARKET_NOT_CONFIRMED'
+
+
+def test_firm_watch_requires_independent_short_timing_before_trade_alert():
+    assert run(monthly=-22,daily=-6,rvol=.7).status=='MARKET_NOT_CONFIRMED'
+    result=run(monthly=-22,daily=-6,rvol=1.4)
+    assert result.status=='QUALIFIED'
+    assert 'FIRM_BREAKDOWN_SHORT' in result.reasons
+    result=run(monthly=24,daily=-3.5,rvol=1.1)
+    assert result.status=='QUALIFIED'
+    assert 'FIRM_PUMP_FAILURE_SHORT' in result.reasons
 
 
 def test_wei_wei_is_highest_entity_priority():
     c=candidate();c.matches[0].name='Wei, Wei & Co. LLP';c.matches[0].role='auditor'
-    assert run(c).rank[0]==-1
-    assert run(candidate()).rank[0]==0
+    assert run(c,daily=-6,rvol=1.4).rank[0]==-1
+    assert run(candidate(),daily=-6,rvol=1.4).rank[0]==0
 
 
 def test_old_ipo_underwriter_does_not_establish_direct_transaction():

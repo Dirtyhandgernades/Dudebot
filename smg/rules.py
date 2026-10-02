@@ -38,7 +38,8 @@ class EntityList:
             else:
                 valid = item.relationship == 'transaction' or (item.relationship == 'current' and role in {'auditor','counsel'})
             if valid:
-                found[(entry['name'],role)] = dict(entry, evidence=item.evidence.model_dump(mode='json'), relationship=item.relationship)
+                found[(entry['name'],role)] = dict(entry, role=item.role,
+                    evidence=item.evidence.model_dump(mode='json'), relationship=item.relationship)
         return list(found.values())
 
 def structural(c: Candidate, cfg: Config, entities: EntityList, now: datetime) -> Evaluation:

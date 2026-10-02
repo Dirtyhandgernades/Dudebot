@@ -18,22 +18,27 @@ def watch(text=None):
     doc=dict(text=text,url='https://example.com/annual',date=str(NOW.date()),sha256='fixture')
     return extract_watch(dict(cik='1',ticker='TEST',name='Operating Company'),[doc],NOW,ENTRIES)
 
-def test_firm_watch_unknown_terms_can_reach_live_digest():
+def test_firm_watch_unknown_terms_stays_research_without_short_timing():
     c=watch();assert c and c.is_acquisition_corp is False
     s=snapshot();s.asof-=timedelta(minutes=16);s.price_time-=timedelta(minutes=16)
     s.feed='sip';s.declared_delay_minutes=16;s.monthly_return=-5;s.rvol=.3
     h=HaltCheck(checked_at=NOW,status='CLEAR',reason='fixture',source_url='https://example.com/halts')
     e=evaluate_firm_first(c,CFG,EntityList(ENTRIES),NOW,s,h)
-    assert e.status=='QUALIFIED' and e.rank[0]==-1
-    payload=digest([e],NOW,CFG)
-    embed=payload[0]['embeds'][0]
-    assert 'FIRM-FIRST WATCH' in embed['title']
-    assert 'surge and RVOL floor passed' not in embed['description']
-    assert 'unavailable' in embed['description']
+    assert e.status=='MARKET_NOT_CONFIRMED'
+    assert 'FIRM_WATCH_NO_SHORT_TIMING_TRIGGER' in e.reasons
+    assert digest([e],NOW,CFG)==[]
 
 def test_name_alone_and_denied_role_do_not_become_live_matches():
     assert watch('Wei, Wei & Co. LLP appears in a list.') is None
     assert watch('Wei, Wei & Co. LLP is not our auditor.') is None
+
+def test_placement_agent_is_not_displayed_as_underwriter():
+    from smg.firm_first import firm_structure
+    c=watch('We are a manufacturer of products. Our ordinary shares trade on Nasdaq. '
+            'Dominari Securities LLC served as placement agent for our 2025 offering.')
+    assert c and c.matches[0].role=='placement_agent'
+    e=firm_structure(c,CFG,EntityList(ENTRIES),NOW)
+    assert e.matches[0]['role']=='placement_agent'
 
 def test_explicit_spac_description_excluded_even_with_business_language():
     c=watch('We are a special purpose acquisition company. We provide services for transactions. Our ordinary shares trade here. Wei, Wei & Co. LLP is our auditor.')

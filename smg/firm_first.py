@@ -48,6 +48,21 @@ def firm_structure(candidate,cfg,entities,now):
     return result
 
 
+def firm_short_trigger(snapshot,cfg):
+    """A firm match is a watch; a short alert also needs a current breakdown."""
+    if snapshot.one_day_return is None or snapshot.rvol is None:
+        return None
+    if (cfg.surge_return_min_pct is not None and snapshot.monthly_return is not None and
+            snapshot.monthly_return>=cfg.surge_return_min_pct and
+            snapshot.one_day_return<=-3 and snapshot.drawdown_pct<=-8 and
+            snapshot.rvol>=1):
+        return 'FIRM_PUMP_FAILURE_SHORT'
+    if (snapshot.one_day_return<=-5 and snapshot.drawdown_pct<=-12 and
+            snapshot.rvol>=1.2):
+        return 'FIRM_BREAKDOWN_SHORT'
+    return None
+
+
 def evaluate_firm_first(candidate,cfg,entities,now,snapshot=None,halt=None):
     result=firm_structure(candidate,cfg,entities,now)
     result.halt=halt
@@ -72,7 +87,13 @@ def evaluate_firm_first(candidate,cfg,entities,now,snapshot=None,halt=None):
         result.status=game_status;result.reasons+=game_reasons;return result
     if not halt or halt.status!='CLEAR' or not 0 <= (now-halt.checked_at).total_seconds() <= cfg.max_snapshot_age_seconds:
         result.status='MATCH_EXCEPT_UNKNOWN_HALT';result.reasons.append('UNKNOWN_OR_STALE_HALT_STATUS');return result
+    trigger=firm_short_trigger(snapshot,cfg)
+    if not trigger:
+        result.status='MARKET_NOT_CONFIRMED'
+        result.reasons.append('FIRM_WATCH_NO_SHORT_TIMING_TRIGGER')
+        return result
     result.status='QUALIFIED'
+    result.reasons.append(trigger)
     if snapshot.rvol is None or snapshot.rvol<cfg.rvol_min:
         result.reasons.append('PREFERENCE_GAP:RVOL')
     if snapshot.monthly_return is None:
