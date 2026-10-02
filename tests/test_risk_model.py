@@ -1,5 +1,5 @@
 from datetime import date,timedelta
-from smg.risk_model import feature_row,fit,predict,walk_forward_report
+from smg.risk_model import feature_row,fit,predict,walk_forward_report,earliest_firm_dates
 
 def bars(n=22,start=10,volume=100):
     return [dict(c=start*(1+i*.01),h=start*(1+i*.01)*1.01,l=start*(1+i*.01)*.99,v=volume) for i in range(n)]
@@ -23,3 +23,10 @@ def test_walk_forward_never_uses_reference_labels_and_keeps_holdout_separate():
     assert report['status']=='INSUFFICIENT_TRAINING_DATA'
     assert report['splits']=={'train':'2022-2023','validation':'2024','holdout':'2025'}
     assert report['holdout']['samples']==0
+
+def test_firm_evidence_after_close_is_not_available_for_same_close():
+    rows=[{'ticker':'ABC','decision_at':'2025-09-08T21:00:00Z',
+           'reasons':['VERIFIED_LISTED_FIRM_RELATIONSHIP']}]
+    assert earliest_firm_dates(rows)=={'ABC':'2025-09-09'}
+    rows[0]['decision_at']='2025-09-08T18:00:00Z'
+    assert earliest_firm_dates(rows)=={'ABC':'2025-09-08'}

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
+from datetime import date, datetime, timedelta, timezone
 import numpy as np
 
 FEATURES=('return_21','return_5','return_1','drawdown_21','volume_ratio_20','failed_prev_low','range_pct')
@@ -24,10 +25,22 @@ def feature_row(history):
     return values
 
 def earliest_firm_dates(records):
+    from .market import session_bounds
     found={}
     for row in records:
         if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' not in row.get('reasons',[]):continue
-        ticker=row.get('ticker');day=row.get('decision_at','')[:10]
+        ticker=row.get('ticker');stamp=row.get('decision_at','')
+        try:
+            observed=datetime.fromisoformat(stamp.replace('Z','+00:00'))
+            if observed.tzinfo is None:continue
+            observed=observed.astimezone(timezone.utc)
+            day=observed.date()
+            bounds=session_bounds(day)
+            # A firm match discovered after the close cannot have informed a
+            # signal at that close. Non-session discoveries start next session.
+            if bounds is None or observed>bounds[1]:day+=timedelta(days=1)
+            day=day.isoformat()
+        except (ValueError,AttributeError,TypeError):continue
         if ticker and day and day<found.get(ticker,'9999-99-99'):found[ticker]=day
     return found
 
