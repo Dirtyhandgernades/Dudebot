@@ -304,6 +304,8 @@ class DiscordSender:
                       and r!='VERIFIED_LISTED_FIRM_RELATIONSHIP']
             if e.status=='QUALIFIED':
                 state='Qualified; current execution checks passed'
+            elif 'FIRM_TIMING_POLICY_RESEARCH_ONLY_FAILED_VALIDATION' in e.reasons:
+                state='Research only: timing policy failed backtest validation'
             else:state='Review only: '+(', '.join(blockers[:2]) or e.status)
             market=(' · '+f'${e.snapshot.price:.2f}, 21d {metric(e.snapshot.monthly_return,"%")}, RVOL {metric(e.snapshot.rvol,"×")}'
                     if e.snapshot else '')

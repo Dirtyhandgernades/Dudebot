@@ -105,4 +105,7 @@ def evaluate_firm_first(candidate,cfg,entities,now,snapshot=None,halt=None):
     result.reasons.extend('MARKET_CONTEXT:'+flag for flag in snapshot.flags)
     result.rank=[min(m['priority'] for m in result.matches),-len(result.matches),
                  sum(r.startswith('PREFERENCE_GAP:') for r in result.reasons),-(snapshot.monthly_return or 0)]
+    if not cfg.firm_timing_trade_alerts_enabled:
+        result.status='REVIEW_REQUIRED'
+        result.reasons.append('FIRM_TIMING_POLICY_RESEARCH_ONLY_FAILED_VALIDATION')
     return result

@@ -1,5 +1,34 @@
 # Dudebot continuation handoff
 
+## October 2: firm timing policy failed; research-only gate
+
+Run 37054630140 completed the September 8–December 5, 2025 price-proxy
+replay, with SWIN/AXG exit coverage repaired and buying power declining with
+marked equity. The revised live firm timing proxy lost $189,510.63 on 85
+closed trades at $30k targets / three-session holds: account insolvency,
+not a verified executable game balance. SMX was a $167,915.33 short loss.
+The one-session diagnostic lost $21,117.41; the older adaptive comparison
+gained $10,337.14 but also lost in 2024. The profit target is unmet.
+
+Production config disables qualification by the failed firm timing policy;
+verified firm research/watch embeds continue. Do not present these scores as
+probabilities or promote trades from firm association alone. Broad alerts
+are separate and not validated by this firm-policy report; longs stay review.
+Historical borrow is unavailable for all 155 firm symbol-day signals.
+Point-in-time cap/halt/game availability and margin liquidation are still
+unverified. 2025 is repeatedly inspected and no longer a clean holdout.
+
+Final outputs: `outputs/backtest/firm-validation-final`, with an 85-trade
+CSV ledger and nine cached simulations. Comparison after selection finds
+four friend-short ticker overlaps (ASST, MFH, MTEN, NUKK); 52 of 60 friend
+short tickers are outside the 248-symbol frozen cohort, and four in-cohort
+tickers have no timing trigger on the friend's entry dates. All 230 reference
+event dates are outside this game, so ticker overlap is not event recall.
+See `backtest/FIRM_TIMING_VALIDATION.md`; `smg.offline_firm_validation`
+reproduces the results without market/API downloads. Next priorities are
+independent date-indexed firm coverage and validated entry/exit/squeeze risk,
+not larger sizing or optimizing repeatedly inspected 2025 to the target.
+
 ## October 1: firm coverage and prospective miss audit
 
 Live state showed 126 stored firm watches, but only 16 selected per scan. The

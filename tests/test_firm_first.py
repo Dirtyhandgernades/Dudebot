@@ -8,7 +8,7 @@ from smg.rules import EntityList,evaluate
 from smg.firm_first import evaluate_firm_first
 
 ENTITIES=EntityList(yaml.safe_load(Path('config/entities.yaml').read_text()))
-CFG=Config(surge_return_min_pct=12,ipo_low_priority_surge_max_pct=23)
+CFG=Config(surge_return_min_pct=12,ipo_low_priority_surge_max_pct=23,firm_timing_trade_alerts_enabled=True)
 
 
 def run(c=None,halt_status='CLEAR',monthly=-10,daily=0,rvol=.2):
@@ -60,6 +60,13 @@ def test_firm_watch_requires_independent_short_timing_before_trade_alert():
     result=run(monthly=24,daily=-3.5,rvol=1.1)
     assert result.status=='QUALIFIED'
     assert 'FIRM_PUMP_FAILURE_SHORT' in result.reasons
+
+def test_failed_policy_stays_research_only_in_production(monkeypatch):
+    monkeypatch.setattr(CFG,'firm_timing_trade_alerts_enabled',False)
+    result=run(monthly=24,daily=-3.5,rvol=1.1)
+    assert result.status=='REVIEW_REQUIRED'
+    assert 'FIRM_PUMP_FAILURE_SHORT' in result.reasons
+    assert 'FIRM_TIMING_POLICY_RESEARCH_ONLY_FAILED_VALIDATION' in result.reasons
 
 
 def test_wei_wei_is_highest_entity_priority():

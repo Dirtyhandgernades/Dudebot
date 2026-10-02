@@ -129,6 +129,9 @@ def test_missing_marks_or_insolvency_cannot_finance_new_entries(missing):
     assert {t['ticker'] for t in result['trades']}=={'ABC'}
     reason='NEW_ENTRY_BLOCKED_UNVALUED_CAPITAL' if missing else 'NEW_ENTRY_BLOCKED_NONPOSITIVE_EQUITY'
     assert result['gaps'][reason]>=1
+    assert result['account_insolvent'] is (not missing)
+    if not missing:
+        assert result['financial_status']=='ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED'
 
 def test_borrow_execution_is_reported_separately_from_detection():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'},

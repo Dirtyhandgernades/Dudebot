@@ -267,7 +267,11 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         curve.append(dict(date=day,equity=equity,open_positions=len(positions)))
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
+    insolvent=any(row['equity'] is not None and row['equity']<=0 for row in curve)
+    financial_status=('ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED' if insolvent else
+                      'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,position_target=position_target,buying_power=buying_power,
+        account_insolvent=insolvent,financial_status=financial_status,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),

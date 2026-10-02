@@ -1,5 +1,8 @@
 # User clarification: keep 12%-23% gains eligible at low priority.
 screening_profile: firm_first
+# Daily-proxy validation lost money in 2024 and 2025. Preserve firm research
+# coverage, but do not promote this experimental timing policy to trade alerts.
+firm_timing_trade_alerts_enabled: false
 game_min_price_exclusive: 3.0
 game_min_market_cap: 25000000
 game_min_order_shares: 10

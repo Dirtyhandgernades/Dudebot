@@ -11,6 +11,7 @@ class Config(Strict):
     game_min_market_cap: Literal[25000000] = 25000000
     game_min_order_shares: Literal[10] = 10
     screening_profile: Literal['strict','firm_first'] = 'strict'
+    firm_timing_trade_alerts_enabled: bool = False
     surge_return_min_pct: float | None = Field(default=None, gt=0)
     ipo_low_priority_surge_max_pct: float | None = Field(default=None, gt=0)
     ipo_max_age_years: int = Field(default=3, ge=1)
