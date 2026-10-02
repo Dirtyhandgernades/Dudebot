@@ -105,3 +105,51 @@ def walk_forward_report(records,raw,adjusted,sessions):
         'train':metrics(train,train_scores,threshold),'validation':validation_metrics,
         'holdout':metrics(holdout,holdout_scores,threshold),
         'limitations':['Historical borrow, market cap, halts and SMG availability are not imputed','Overlapping daily samples are correlated','Model ranking cannot establish fraud or guarantee a decline']}
+
+def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):
+    """Measure a firm-first watch versus its timing trigger without winner seeding.
+
+    A watch is visible only after its independently discovered firm evidence.
+    Each label uses the *future* five closes for evaluation, never selection.
+    """
+    from .swing_backtest import signal
+    first_dates=earliest_firm_dates(records);index={day:i for i,day in enumerate(sessions)}
+    output=[]
+    for start,end in periods:
+        total=positive=timed=timed_positive=gaps=0
+        watched_symbols=set();positive_symbols=set();timed_symbols=set()
+        for ticker in cohorts[start]['short']:
+            first=first_dates.get(ticker,'9999-99-99')
+            series=adjusted.get(ticker,{});raw_series=raw.get(ticker,{})
+            for day in sessions:
+                if day<start or day>end or day<first:continue
+                i=index[day]
+                if i<21 or i+5>=len(sessions):continue
+                current=raw_series.get(day)
+                if not current or current.get('c',0)<=3:continue
+                span=sessions[i-21:i+6]
+                if any(d not in series for d in span):gaps+=1;continue
+                history=[series[d] for d in span[:22]]
+                base=history[-1]['c']
+                if base<=0:gaps+=1;continue
+                future=[series[d]['c'] for d in span[22:]]
+                fall=min(future)/base-1<=-.20
+                timing='PUMP_FAILURE_SHORT' in signal(history)
+                total+=1;watched_symbols.add(ticker)
+                if fall:positive+=1;positive_symbols.add(ticker)
+                if timing:
+                    timed+=1;timed_symbols.add(ticker)
+                    if fall:timed_positive+=1
+        output.append({'start':start,'end':end,'firm_watch_days':total,
+            'watch_symbols':len(watched_symbols),'five_session_drop_windows':positive,
+            'drop_window_symbols':len(positive_symbols),'watch_day_drop_rate':positive/total if total else None,
+            'timing_trigger_days':timed,'timing_trigger_symbols':len(timed_symbols),
+            'timing_trigger_drop_windows':timed_positive,
+            'timing_trigger_precision':timed_positive/timed if timed else None,
+            'timing_trigger_window_recall':timed_positive/positive if positive else None,
+            'missing_five_session_windows':gaps})
+    return {'target':'At least 20% lower close within the next five sessions from the watch-day close',
+        'periods':output,'limitations':['Daily windows overlap; these are not independent trade events',
+        'A continuous firm watch is research coverage, not a profitable entry or calibrated probability',
+        'Only independently discovered firm issuers with complete bars and a raw price above $3 are counted',
+        'Historical borrow, market cap, halts and SMG availability remain unverified']}

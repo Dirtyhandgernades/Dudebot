@@ -96,3 +96,14 @@ def test_borrow_evidence_after_entry_close_and_provider_errors_are_unavailable()
     assert borrow_metrics(events,[failed])['unavailable']==1
     hard={**failed,'value':{'status':'CURRENT','tradable':True,'shortable':True,'borrow_status':'hard_to_borrow'}}
     assert borrow_metrics(events,[hard])['rejected']==1
+
+def test_firm_watch_lead_report_starts_after_public_firm_evidence():
+    from smg.risk_model import firm_watch_lead_report
+    days,bars=fixture();bars[days[24]]={**bars[days[24]],'c':7}
+    records=[{'ticker':'ABC','decision_at':days[23]+'T12:00:00Z',
+              'reasons':['VERIFIED_LISTED_FIRM_RELATIONSHIP']}]
+    result=firm_watch_lead_report(records,{'ABC':bars},{'ABC':bars},days,
+        [(days[22],days[24])],{days[22]:{'short':['ABC']}})['periods'][0]
+    assert result['firm_watch_days']==2
+    assert result['five_session_drop_windows']==1
+    assert result['timing_trigger_days']==0

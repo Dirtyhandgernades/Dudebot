@@ -260,13 +260,15 @@ def main():
             result['period_start']=START;result['period_end']=END
             (out/f'{START}-{strategy}-{hold}-aggressive.json').write_text(json.dumps(result))
             aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
-    from .risk_model import walk_forward_report
+    from .risk_model import walk_forward_report,firm_watch_lead_report
     ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)
     (out/'ranking-model.json').write_text(json.dumps(ranking_model,indent=2))
+    firm_lead=firm_watch_lead_report(records,data['raw'],data['split'],sessions,PERIODS,cohorts)
+    (out/'firm-watch-lead.json').write_text(json.dumps(firm_lead,indent=2))
     report=dict(status='CONDITIONAL_RESEARCH_ONLY',start=START,end=END,periods=[dict(start=s,end=e,
         short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
         cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
-        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,
+        data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,firm_watch_lead=firm_lead,
         assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
           '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',

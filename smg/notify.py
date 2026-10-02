@@ -285,27 +285,32 @@ class DiscordSender:
         """One mention-free daily status for the primary firm research lane."""
         from .transport import ProviderError
         now=self.clock();local=local_time(now,cfg)
-        if local.weekday()>=5 or local.hour<13:return 'BEFORE_FIRM_SUMMARY'
+        if local.weekday()>=5 or local.hour<10:return 'BEFORE_FIRM_SUMMARY'
         firms=[e for e in evaluations if e.candidate.pipeline=='FIRM_WATCH'
                and e.status!='EXCLUDED']
         if not firms:return 'NO_FIRM_WATCHES_SCANNED'
         key='firm_watch_digest:'+str(local.date())
         if self.store.get(key):return 'ALREADY_CLAIMED'
         lines=[]
-        for e in firms[:8]:
+        for e in firms[:cfg.firm_live_shortlist_size]:
             names=', '.join(m['name'] for m in e.matches[:2]) or 'relationship under review'
             blockers=[r for r in e.reasons if not r.startswith('PREFERENCE_GAP:')
                       and r!='VERIFIED_LISTED_FIRM_RELATIONSHIP']
             if e.status=='QUALIFIED':
                 state='Qualified; current execution checks passed'
             else:state='Review only: '+(', '.join(blockers[:2]) or e.status)
-            lines.append(f"**{clean(e.candidate.ticker)}** · {clean(names)}\n{clean(state)}")
+            market=(' · '+f'${e.snapshot.price:.2f}, 21d {metric(e.snapshot.monthly_return,"%")}, RVOL {metric(e.snapshot.rvol,"×")}'
+                    if e.snapshot else '')
+            lines.append(f"**{clean(e.candidate.ticker)}** · {clean(names)}{market}\n{clean(state)}")
+        groups=['\n\n'.join(lines[i:i+4])[:850] for i in range(0,len(lines),4)]
+        fields=[{'name':f'Firm watches {i*4+1}–{min(i*4+4,len(lines))}',
+                 'value':group,'inline':False} for i,group in enumerate(groups)]
+        fields.append({'name':'Coverage','value':f'{len(firms)} firm candidates scanned in this run; {len(evaluations)} total candidates scanned.','inline':False})
         payload={'username':'Dudebot','content':'**Daily firm-watch research** · '+local.strftime('%b %d, %Y'),
             'embeds':[{'title':'Firm watches · research status',
                 'description':'Listed underwriters, auditors and counsel lead this watchlist. A review item is not a trade alert.',
                 'color':0xE7AF38,
-                'fields':[{'name':'Reviewed firm names','value':'\n\n'.join(lines)[:1024],'inline':False},
-                          {'name':'Coverage','value':f'{len(firms)} firm candidates scanned in this run; {len(evaluations)} total candidates scanned.','inline':False}],
+                'fields':fields,
                 'footer':{'text':'Dudebot · verified short alerts still require current borrow and game eligibility'},
                 'timestamp':now.isoformat()}],
             'allowed_mentions':{'parse':[]}}

@@ -98,6 +98,22 @@ def test_firm_watch_digest_reports_blocker_once_without_trade_mention(tmp_path):
     assert http.calls[0]['body']['allowed_mentions']=={'parse':[]}
     assert sender.send_firm_watch([item],Config())=='ALREADY_CLAIMED'
 
+
+def test_firm_watch_digest_shows_more_than_first_eight_names(tmp_path):
+    store=Store(tmp_path/'many-firms.db');http=FakeHttp();at=NOW+timedelta(hours=1)
+    items=[]
+    for index in range(12):
+        item=demo()[0].model_copy(deep=True)
+        item.candidate.pipeline='FIRM_WATCH';item.candidate.ticker=f'F{index:03}'
+        item.status='REVIEW_REQUIRED';item.reasons=['BORROW_UNAVAILABLE']
+        items.append(item)
+    cfg=Config(firm_live_shortlist_size=24)
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
+    assert sender.send_firm_watch(items,cfg)['status']=='SENT'
+    fields=http.calls[0]['body']['embeds'][0]['fields']
+    assert 'F011' in '\n'.join(field['value'] for field in fields)
+    assert all(len(field['value'])<=1024 for field in fields)
+
 def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
     duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'
