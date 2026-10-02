@@ -78,6 +78,29 @@ def test_fast_dump_score_uses_only_signal_history():
     history[-1]={**history[-1],'c':8,'h':9,'l':7,'v':200}
     assert dump_structure_score(history)>=80
 
+def test_revised_live_policy_uses_prior_signal_and_dated_firm_evidence():
+    from smg.models import Config
+    days,bars=fixture()
+    for day in days[21:]:bars[day]=dict(c=8,h=8.1,l=7.9,v=200)
+    bars[days[25]]=dict(c=6,h=6.1,l=5.9,v=200)
+    args=dict(start=days[22],end=days[25],hold=3,strategy='LIVE_FIRM_TIMING_SHORT',
+              firm_cfg=Config(surge_return_min_pct=12),firm_dates={'ABC':days[21]})
+    result=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args)
+    assert result['closed_trades']==1
+    assert result['trades'][0]['entry_date']==days[22]
+    assert result['trades'][0]['exit_date']==days[25]
+    assert result['trades'][0]['timing_trigger']=='FIRM_BREAKDOWN_SHORT'
+    assert result['borrow_execution']['unavailable']==1
+    args['firm_dates']={'ABC':days[23]}
+    assert simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args)['closed_trades']==0
+    args['firm_dates']={'ABC':days[21]};bars[days[21]]['v']=70
+    assert simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args)['closed_trades']==0
+
+def test_live_policy_cannot_run_without_public_firm_evidence():
+    days,bars=fixture()
+    with pytest.raises(ValueError):
+        simulate({'ABC':bars},{'ABC':bars},['ABC'],days,strategy='LIVE_FIRM_TIMING_SHORT')
+
 def test_borrow_execution_is_reported_separately_from_detection():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'},
             {'ticker':'XYZ','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'}]

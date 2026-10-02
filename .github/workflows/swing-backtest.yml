@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [smg/swing_backtest.py, smg/risk_model.py, tests/test_swing_backtest.py, .github/workflows/swing-backtest.yml]
+    paths: [smg/swing_backtest.py, smg/risk_model.py, smg/firm_first.py, config/strategy.yaml, tests/test_swing_backtest.py, .github/workflows/swing-backtest.yml]
 permissions:
   contents: read
   actions: read
@@ -19,7 +19,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-tested.txt
       - run: python -m pip install -e '.[test]' -c requirements-tested.txt
-      - run: python -m pytest -q tests/test_swing_backtest.py
+      - run: python -m pytest -q tests/test_swing_backtest.py tests/test_firm_first.py
       - uses: actions/download-artifact@v4
         with:
           name: independent-source-replay-35415517622

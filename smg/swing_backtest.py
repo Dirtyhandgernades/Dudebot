@@ -9,9 +9,11 @@ import hashlib
 import json
 import math
 import os
+import gzip
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from .market import calendar,session_bounds
 from .transport import Http
 from .game_rules import is_excluded_symbol
@@ -108,6 +110,17 @@ def dump_structure_score(history):
         10*(sum((b['h']-b['l'])/b['c'] for b in history[-5:])/5>=.08)+
         10*(close_location<=.35)+5*(last['h']<history[-2]['h']))
 
+def daily_firm_trigger(history,cfg):
+    """Reuse the live price trigger; daily RVOL is a disclosed intraday proxy."""
+    from .firm_first import firm_short_trigger
+    if len(history)<22:return None
+    last=history[-1];base=sum(b['v'] for b in history[-21:-1])/20
+    if base<=0 or any(b['c']<=0 for b in history[-22:]):return None
+    snapshot=SimpleNamespace(monthly_return=100*(last['c']/history[-22]['c']-1),
+        one_day_return=100*(last['c']/history[-2]['c']-1),
+        drawdown_pct=100*(last['c']/max(b['h'] for b in history[-22:])-1),rvol=last['v']/base)
+    return firm_short_trigger(snapshot,cfg)
+
 def borrow_metrics(signal_events,observations):
     """Use only borrow evidence known by the planned entry close.
 
@@ -139,7 +152,7 @@ def borrow_metrics(signal_events,observations):
     return {'detected':counts['detected'],'executable':counts['executable'],'unavailable':counts['unavailable'],
         'rejected':counts['rejected'],'examples':examples}
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -150,6 +163,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0
     position_target=position_target or initial*.10;buying_power=buying_power or initial
     side=1 if strategy.endswith('LONG') else -1
+    if strategy=='LIVE_FIRM_TIMING_SHORT' and (firm_dates is None or firm_cfg is None):
+        raise ValueError('Live firm proxy requires dated public firm evidence and configured timing rules')
     fee=cost_bps/10000
     for day in days:
         i=index[day]
@@ -177,20 +192,25 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 if not raw_prior or raw_prior['c']<=3:continue
                 history=[series[d] for d in prior]
                 signal_names=signal(history)
-                if strategy=='ADAPTIVE_COLLAPSE_SHORT':
+                trigger=strategy
+                if strategy=='LIVE_FIRM_TIMING_SHORT':
+                    if prior[-1]<firm_dates.get(ticker,'9999-99-99'):continue
+                    trigger=daily_firm_trigger(history,firm_cfg)
+                    if not trigger:continue
+                elif strategy=='ADAPTIVE_COLLAPSE_SHORT':
                     if not ({'PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT'} & set(signal_names)):continue
                 elif strategy not in signal_names:continue
                 structure_score=dump_structure_score(history)
-                signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day,'dump_structure_score':structure_score})
+                signals+=1;signal_events.append({'ticker':ticker,'signal_date':prior[-1],'planned_entry_date':day,'dump_structure_score':structure_score,'timing_trigger':trigger})
                 if ticker in positions or len(positions)>=10:continue
                 entry=raw.get(ticker,{}).get(day);adj=series.get(day)
                 if not entry or not adj:
                     gaps['MISSING_ENTRY_BAR']+=1;continue
                 if entry['c']<=3:
                     gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                opportunities.append((structure_score,ticker,entry,adj,prior[-1]))
+                opportunities.append((structure_score,ticker,entry,adj,prior[-1],trigger))
             key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
-            for structure_score,ticker,entry,adj,signal_day in sorted(opportunities,key=key):
+            for structure_score,ticker,entry,adj,signal_day,trigger in sorted(opportunities,key=key):
                 if ticker in positions or len(positions)>=10:continue
                 room=buying_power-sum(p['notional'] for p in positions.values())
                 budget=min(position_target,room)
@@ -201,7 +221,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 cash-=notional+entry_fee
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]])]
-                positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score)
+                positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger)
         equity=cash;valuation_complete=True
         for ticker,p in positions.items():
             mark=adjusted.get(ticker,{}).get(day)
@@ -260,7 +280,34 @@ def main():
             result['period_start']=START;result['period_end']=END
             (out/f'{START}-{strategy}-{hold}-aggressive.json').write_text(json.dumps(result))
             aggressive.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
-    from .risk_model import walk_forward_report,firm_watch_lead_report
+    from .risk_model import walk_forward_report,firm_watch_lead_report,earliest_firm_dates
+    from .cli import settings
+    firm_cfg,_=settings(root);firm_dates=earliest_firm_dates(records)
+    live_policy=[]
+    for period_start,period_end in PERIODS:
+        for strategy in ['LIVE_FIRM_TIMING_SHORT','ADAPTIVE_COLLAPSE_SHORT']:
+            result=simulate(data['raw'],data['split'],cohorts[period_start]['short'],sessions,
+                start=period_start,end=period_end,hold=firm_cfg.live_short_hold_sessions_max,
+                strategy=strategy,position_target=30000,buying_power=150000,
+                borrow_observations=borrow_observations,firm_dates=firm_dates,firm_cfg=firm_cfg)
+            result.update(period_start=period_start,period_end=period_end)
+            (out/f'{period_start}-{strategy}-primary.json').write_text(json.dumps(result))
+            live_policy.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
+    sensitivity=[]
+    for target,cost,rate in [(15000,30,.10),(50000,30,.10),(30000,100,1.0)]:
+        result=simulate(data['raw'],data['split'],symbols,sessions,start=START,end=END,
+            hold=firm_cfg.live_short_hold_sessions_max,strategy='LIVE_FIRM_TIMING_SHORT',
+            position_target=target,buying_power=150000,cost_bps=cost,borrow_rate=rate,
+            borrow_observations=borrow_observations,firm_dates=firm_dates,firm_cfg=firm_cfg)
+        (out/f'{START}-LIVE_FIRM_TIMING_SHORT-size-{target}-cost-{cost}.json').write_text(json.dumps(result))
+        sensitivity.append({k:v for k,v in result.items() if k not in {'trades','daily_equity','unresolved_positions','signal_events'}})
+    # Cache the research inputs for efficient offline checks; no credentials or
+    # reference tickers are included, and the selection evidence stays dated.
+    short_symbols=sorted({t for c in cohorts.values() for t in c['short']})
+    packet={'sessions':sessions,'cohorts':cohorts,'firm_dates':firm_dates,
+        'config':firm_cfg.model_dump(),'raw':{t:data['raw'].get(t,{}) for t in short_symbols},
+        'split':{t:data['split'].get(t,{}) for t in short_symbols}}
+    with gzip.open(out/'firm-timing-inputs.json.gz','wt',encoding='utf-8') as handle:json.dump(packet,handle)
     ranking_model=walk_forward_report(records,data['raw'],data['split'],sessions)
     (out/'ranking-model.json').write_text(json.dumps(ranking_model,indent=2))
     firm_lead=firm_watch_lead_report(records,data['raw'],data['split'],sessions,PERIODS,cohorts)
@@ -269,7 +316,15 @@ def main():
         short_cohort_size=len(cohorts[s]['short']),long_cohort_size=len(cohorts[s]['long'])) for s,e in PERIODS],
         cohort_symbols=symbols,cohort_size=len(symbols),long_universe_size=len(long_symbols),market_requests=requests,
         data_symbols=len(data['raw']),verified_executable_profit=None,results=summaries,short_cost_stress=stress,aggressive_fast_dump=aggressive,ranking_model=ranking_model,firm_watch_lead=firm_lead,
-        assumptions=['$100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
+        revised_live_policy={'status':'CONDITIONAL_DAILY_PROXY','hold_sessions':firm_cfg.live_short_hold_sessions_max,
+            'profit_target':70000,'initial_balance':100000,'position_target':30000,'buying_power_assumption':150000,
+            'periods':live_policy,'sensitivity':sensitivity,
+            'limitations':['Daily volume / previous 20 complete sessions proxies live same-minute 60-session RVOL',
+                'Price and timing thresholds reuse the deployed helper; intraday signal timing is not reproduced',
+                'Position sizes are predetermined sensitivity cases, not selected to maximize 2025 return',
+                '2025 has been inspected repeatedly and is no longer an untouched holdout']},
+        assumptions=['Baseline: $100,000 cash; no leverage; ten positions maximum; 10% starting capital per position; minimum ten shares',
+          'Revised policy and aggressive cases: $100,000 equity with $150,000 gross buying-power assumption; fixed dollar targets, not calibrated confidence sizing',
           'Signals at prior close; next-session close entry; closes only; terminal liquidation on December 5',
           '$5 commission per order plus 30 basis points each side slippage assumption; shorts assume 10% annual borrow; stress uses 100 bps and 100% borrow',
           'Raw price for $3 gate; split-adjusted price ratios for signals and returns; no current-symbol alias mapping',
