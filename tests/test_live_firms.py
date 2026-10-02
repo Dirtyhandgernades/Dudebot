@@ -99,6 +99,27 @@ def test_new_filings_are_processed_while_backfill_cursor_is_older(tmp_path):
     results=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).run(NOW)
     assert len(results)==1 and results[0].ticker=='ACTV'
 
+
+def test_stale_firm_outside_current_listed_universe_is_reported(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    from smg.firm_search import query_text
+    import hashlib
+    class HTTP:
+        def json(self,url,**kw):
+            return {'hits':{'total':{'value':0,'relation':'eq'},'hits':[]}}
+    class Sec:
+        http=HTTP();headers={}
+        def universe(self):return []
+    store=Store(tmp_path/'missing.db')
+    c=watch();c.ticker='XHLD';c.cik='2030954';c.reviewed_at=NOW-timedelta(days=4)
+    store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    store.put('firm_cursor',dict(version=hashlib.sha256(query_text(ENTRIES).encode()).hexdigest(),
+        start=str(NOW.date()),end=str(NOW.date()),offset=0,done=False))
+    assert LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).run(NOW)==[]
+    gap=store.get('firm_refresh_gaps')['rows'][0]
+    assert (gap['ticker'],gap['reason'])==('XHLD','NOT_IN_CURRENT_SEC_LISTED_UNIVERSE')
+
 def test_practice_uses_real_store_overlap_without_claiming_detection(tmp_path):
     from smg.practice import practice_payload
     c=watch();c.ticker='WCT';store=Store(tmp_path/'practice.db')

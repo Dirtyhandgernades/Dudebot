@@ -156,7 +156,8 @@ class LiveFirmDiscovery:
         # Prefer current issuers already watched; then the newest unseen sources.
         jobs=sorted(self.store.items('firm_job:'),key=lambda x:x[1]['date'],reverse=True)
         fresh=[j for j in jobs if not self.store.get('firm_checked:'+j[0])]
-        refresh=[j for j in jobs if self.store.get('firm_checked:'+j[0]) and self.store.get('candidate:FIRM_WATCH:'+j[1]['cik']+':FIRMS')]
+        refresh=[j for j in jobs if self.store.get('firm_checked:'+j[0]) not in (None,str(now.date()))
+            and self.store.get('candidate:FIRM_WATCH:'+j[1]['cik']+':FIRMS')]
         # Existing candidates are the live trading universe. Refresh most of
         # them first so a growing historical backlog cannot silently age out
         # every alert. Keep ten slots for genuinely new filings each run.
@@ -215,7 +216,16 @@ class LiveFirmDiscovery:
                             candidate.evidence['is_acquisition_corp']=Evidence.model_validate(proof)
                     self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'));reviewed.add(job['cik'])
             except Exception as exc:self.issues.append(job['ticker']+': '+type(exc).__name__)
+        gaps=[]
+        for cik,raw in candidate_by_cik.items():
+            if (now.date()-date.fromisoformat(raw['reviewed_at'][:10])).days<2:continue
+            choices=universe.get(cik,[])
+            reason=('NOT_IN_CURRENT_SEC_LISTED_UNIVERSE' if not choices else
+                'AMBIGUOUS_CURRENT_LISTING' if len(choices)!=1 else 'NOT_REFRESHED_WITHIN_RUN_BUDGET')
+            gaps.append({'ticker':raw['ticker'],'cik':cik,'last_reviewed_at':raw['reviewed_at'],'reason':reason})
+        gaps.sort(key=lambda x:(x['reason'],x['last_reviewed_at'],x['ticker']))
+        self.store.put('firm_refresh_gaps',{'at':now.isoformat(),'count':len(gaps),'rows':gaps})
         self.store.put('discovery_issues',self.issues)
         self.store.put('live_discovery',dict(at=now.isoformat(),profile='firm_first',reviewed=count,source_downloads=self.downloads,
-            search_cursor=cursor,queued_jobs=len(jobs),coverage_complete=False))
+            search_cursor=cursor,queued_jobs=len(jobs),stale_firm_candidates=len(gaps),coverage_complete=False))
         return [Candidate.model_validate(raw) for _,raw in self.store.items('candidate:FIRM_WATCH:') if raw['cik'] in universe]
