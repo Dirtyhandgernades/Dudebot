@@ -121,6 +121,26 @@ def daily_firm_trigger(history,cfg):
         drawdown_pct=100*(last['c']/max(b['h'] for b in history[-22:])-1),rvol=last['v']/base)
     return firm_short_trigger(snapshot,cfg)
 
+
+def firm_exhaustion_trigger(history,cfg):
+    """Predeclared research hypothesis near a pumped high; no future bars.
+
+    These chart thresholds are not calibrated probabilities or live alerts.
+    """
+    if len(history)<22:return None
+    last=history[-1];base=sum(b['v'] for b in history[-21:-1])/20
+    if base<=0 or any(b['c']<=0 for b in history[-22:]):return None
+    span=last['h']-last['l']
+    if span<=0:return None
+    monthly=100*(last['c']/history[-22]['c']-1)
+    drawdown=last['c']/max(b['h'] for b in history[-22:])-1
+    upper_wick=(last['h']-max(last.get('o',last['c']),last['c']))/span
+    daily=last['c']/history[-2]['c']-1
+    if (monthly>=(cfg.surge_return_min_pct or 12) and drawdown>=-.20 and
+            daily>-.10 and last['v']/base>=1.5 and span/last['c']>=.08 and upper_wick>=.35):
+        return 'FIRM_EXHAUSTION_RESEARCH'
+    return None
+
 def stitch_rename(data,change):
     """Same-security rename, never a merger or an inferred current alias."""
     old=change['old_symbol'];new=change['new_symbol'];effective=change['effective_date']
@@ -181,7 +201,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -192,13 +212,27 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0
     position_target=position_target or initial*.10;buying_power=buying_power or initial
     side=1 if strategy.endswith('LONG') else -1
-    if strategy=='LIVE_FIRM_TIMING_SHORT' and (firm_dates is None or firm_cfg is None):
+    if strategy in {'LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH'} and (firm_dates is None or firm_cfg is None):
         raise ValueError('Live firm proxy requires dated public firm evidence and configured timing rules')
     fee=cost_bps/10000
     for day in days:
         i=index[day]
+        # Share orders must be sized before today's fills/exits are known.
+        decision_equity=marked_equity(cash,positions,adjusted,sessions[i-1],side) if i else None
+        decision_room=0
+        if decision_equity is not None and decision_equity>0:
+            previous_exposure=sum(p['notional']*adjusted[t][sessions[i-1]]['c']/p['adjusted_entry']
+                                  for t,p in positions.items())
+            decision_room=max(0,min(buying_power,decision_equity*buying_power/initial)-previous_exposure)
         for ticker,p in list(positions.items()):
-            if day<p['planned_exit'] and day!=days[-1]:continue
+            exit_reason='TIME_LIMIT'
+            prior_mark=adjusted.get(ticker,{}).get(sessions[i-1]) if i else None
+            if risk_controls and prior_mark and sessions[i-1]>=p['entry_date']:
+                previous_return=side*(prior_mark['c']/p['adjusted_entry']-1)
+                if previous_return<=-.12:exit_reason='STOP_SIGNAL_PREVIOUS_CLOSE'
+                elif previous_return>=.20:exit_reason='TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE'
+            if day<p['planned_exit'] and day!=days[-1] and exit_reason=='TIME_LIMIT':continue
+            if day==days[-1] and exit_reason=='TIME_LIMIT':exit_reason='GAME_END'
             bar=adjusted.get(ticker,{}).get(day)
             if not bar:
                 gaps['MISSING_EXIT_BAR']+=1;continue
@@ -207,7 +241,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             borrow=p['notional']*borrow_rate*(date.fromisoformat(day)-date.fromisoformat(p['entry_date'])).days/365 if side<0 else 0
             pnl=gross-p['entry_fee']-exit_fee-borrow
             cash+=p['notional']+gross-exit_fee-borrow
-            trades.append({**p,'exit_date':day,'ticker':ticker,'side':'LONG' if side>0 else 'SHORT','pnl':pnl,'return_pct':100*pnl/p['notional'],'gross_return_pct':100*side*(ratio-1)})
+            trades.append({**p,'exit_date':day,'exit_reason':exit_reason,'ticker':ticker,'side':'LONG' if side>0 else 'SHORT','pnl':pnl,'return_pct':100*pnl/p['notional'],'gross_return_pct':100*side*(ratio-1)})
             del positions[ticker]
         # Signal is formed at prior close, never using today's fill/outcome bar.
         if day!=days[-1] and i>=22:
@@ -222,9 +256,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 history=[series[d] for d in prior]
                 signal_names=signal(history)
                 trigger=strategy
-                if strategy=='LIVE_FIRM_TIMING_SHORT':
+                if firm_dates is not None and prior[-1]<firm_dates.get(ticker,'9999-99-99'):continue
+                if strategy in {'LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH'}:
                     if prior[-1]<firm_dates.get(ticker,'9999-99-99'):continue
-                    trigger=daily_firm_trigger(history,firm_cfg)
+                    trigger=(firm_exhaustion_trigger if strategy=='FIRM_EXHAUSTION_RESEARCH' else daily_firm_trigger)(history,firm_cfg)
                     if not trigger:continue
                 elif strategy=='ADAPTIVE_COLLAPSE_SHORT':
                     if not ({'PUMP_FAILURE_SHORT','COMBINED_COLLAPSE_SHORT'} & set(signal_names)):continue
@@ -253,10 +288,19 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                              for t,p in positions.items())
                 room=limit-exposure
                 budget=min(position_target,room)
+                if signal_share_sizing:
+                    budget=min(position_target,decision_room)
+                    if decision_equity is None:budget=0
+                if risk_controls:budget=min(budget,(decision_equity or 0)*.25 if signal_share_sizing else marked*.25)
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
-                shares=math.floor(budget/entry['c'])
+                sizing_price=raw[ticker][signal_day]['c'] if signal_share_sizing else entry['c']
+                shares=math.floor(budget/sizing_price)
                 if shares<10:continue
+                if signal_share_sizing:decision_room=max(0,decision_room-shares*sizing_price*(1+fee)-commission)
                 notional=shares*entry['c'];entry_fee=notional*fee+commission
+                if signal_share_sizing and (notional+entry_fee>room or
+                        (buying_power<=initial and notional+entry_fee>cash)):
+                    gaps['ORDER_REJECTED_BUYING_POWER_AT_FILL']+=1;continue
                 cash-=notional+entry_fee
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]])]
@@ -271,6 +315,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     financial_status=('ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED' if insolvent else
                       'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,position_target=position_target,buying_power=buying_power,
+        risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,
         account_insolvent=insolvent,financial_status=financial_status,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),

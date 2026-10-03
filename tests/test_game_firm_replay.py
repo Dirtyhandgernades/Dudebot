@@ -1,0 +1,20 @@
+from smg.game_firm_replay import lead_metrics
+
+
+def test_prior_alert_and_prior_position_are_not_same_day_detections():
+    sessions=['2025-09-08','2025-09-09','2025-09-10','2025-09-11']
+    bars={s:dict(c=c) for s,c in zip(sessions,[10,10,7,7])}
+    result={'signal_events':[{'ticker':'ABC','signal_date':sessions[1]}],
+            'trades':[{'ticker':'ABC','entry_date':sessions[2],'exit_date':sessions[3]}]}
+    report=lead_metrics(result,{'ABC':bars},{'ABC':bars},sessions,sessions[0],sessions[-1])
+    assert report['events']==1 and report['events_with_prior_signal']==1
+    assert report['events_with_position_open_before_drop']==0
+    result['signal_events'][0]['signal_date']=sessions[2]
+    assert lead_metrics(result,{'ABC':bars},{'ABC':bars},sessions,sessions[0],sessions[-1])['events_with_prior_signal']==0
+
+
+def test_below_three_dollar_events_do_not_inflate_eligible_recall():
+    sessions=['2025-09-08','2025-09-09']
+    bars={sessions[0]:dict(c=2),sessions[1]:dict(c=1)}
+    report=lead_metrics({'signal_events':[],'trades':[]},{'ABC':bars},{'ABC':bars},sessions,*sessions)
+    assert report['events']==0 and report['event_recall'] is None

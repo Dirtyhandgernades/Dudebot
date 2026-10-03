@@ -1,0 +1,65 @@
+name: Game firm coverage and risk replay
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py, .github/workflows/game-firm-replay.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: game-firm-replay
+  cancel-in-progress: false
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: historical-checkpoint-34191049268-1
+          run-id: 34191049268
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/independent-checkpoint
+      - uses: actions/download-artifact@v4
+        with:
+          name: independent-source-replay-35415517622
+          run-id: 35415517622
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/corrected-replay
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/source-replay
+          key: game-sources-v1-${{ github.run_id }}
+          restore-keys: |
+            game-sources-v1-
+            source-replay-v2-main-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/game-firm-search
+          key: game-firm-search-v1-${{ github.run_id }}
+          restore-keys: game-firm-search-v1-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/swing-bars
+          key: swing-bars-v1-${{ github.run_id }}
+          restore-keys: swing-bars-v1-
+      - name: Independently discover dated firms and test fixed research policies
+        run: python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: game-firm-coverage-${{ github.run_id }}
+          path: reports/game-firm-replay/

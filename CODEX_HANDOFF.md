@@ -1,5 +1,32 @@
 # Dudebot continuation handoff
 
+## October 2: coverage/risk repair in progress
+
+The game replay's firm source search ended July 28, 2025. A new bounded
+`game-firm-replay.yml` extends independent SEC name searches through December
+5 and admits discoveries after their dated source evidence instead of freezing
+the whole game at its opening. Name queries include and/& and punctuation
+variants; common prospectus issuer-counsel and auditor language is recognized
+with evidence, without accepting counsel for the underwriters as issuer counsel.
+Caches/checkpoints resume; sources not visited and unclassified issuers stay gaps.
+Legacy July-ending source replay is manual-only to avoid a duplicate 36-minute job.
+
+Research risk controls size share orders using prior-close prices and equity,
+cap intended positions at 25% prior equity, and request exits after a prior-close
+12% loss / 20% gain, filled at the NEXT close. They cannot guarantee the stop
+price or prevent gap losses. Original ungated comparison modes remain available.
+The first cached old-cohort risk run: 2025 firm timing -$46,048.66; a predeclared
+near-high upper-wick exhaustion hypothesis +$34,570.77. Exhaustion lost
+$17,060.68 in 2024, so it is research-only and not validated for live alerts.
+Cached diagnostics are in `outputs/backtest/risk-repair`.
+
+The new hosted game replay exports dated source audit, raw/split cached inputs,
+full trade ledgers, and separate pre-drop alert versus pre-drop-position recall
+for >=20% one-session close declines. Friend/reference labels are never opened
+by discovery or simulation. Compare those lists only AFTER outputs finish.
+196 Python tests pass before the hosted run. The 70% friend-ticker/pre-drop
+execution target is not established; 2025 remains repeatedly inspected.
+
 ## October 2: firm timing policy failed; research-only gate
 
 The follow-up Cloudflare verification rejected a seed with HTTP 400: its JS

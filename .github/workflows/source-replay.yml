@@ -1,9 +1,8 @@
 name: Independent historical source replay
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: [smg/source_replay.py, .github/workflows/source-replay.yml]
+# The legacy July-ending replay stays available manually. Game-period source
+# changes now run game-firm-replay.yml, avoiding a duplicate 36-minute job.
 permissions:
   contents: read
   actions: read

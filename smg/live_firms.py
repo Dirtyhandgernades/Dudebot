@@ -29,6 +29,11 @@ def extract_watch(job,docs,now,entries):
                 expressions=[pattern+r'[^;\n]{0,120}?(?:\b(?:acted|acting|serves|served|is|are|was|were|as)\b)[^;\n]{0,60}?'+role_rx,
                              role_rx+r'\s*[,(:-]?\s*(?:is|was|are|were|of)?\s*'+pattern,
                              pattern+r'\s*[,(:-]\s*(?:our\s+)?'+role_rx]
+                if role=='counsel':
+                    expressions.append(r'\b(?:validity|legality)\b[^;]{0,180}?(?:passed upon|opined)[^;]{0,60}?(?:for us|on our behalf)[^;]{0,40}?'+pattern)
+                if role=='auditor':
+                    expressions.append(pattern+r'[\s,.]*(?:an|our)\s+independent registered public accounting firm')
+                    expressions.append(r'\bour\s+(?:consolidated\s+)?financial statements[^;]{0,200}?audited\s+by\s+'+pattern)
                 hit=next((h for rx in expressions if (h:=search([primary],rx))),None)
                 if not hit:continue
                 passage=hit[0].group()

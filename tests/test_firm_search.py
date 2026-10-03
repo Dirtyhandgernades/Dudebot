@@ -9,6 +9,20 @@ def test_firm_query_is_independent_of_reference_labels():
     q=query_text(entries)
     assert 'Wei, Wei & Co. LLP' in q and 'Loeb and Loeb LLP' in q
     assert ' OR ' in q and 'reported_drop_pct' not in q
+    assert 'Loeb & Loeb LLP' in q
+
+
+def test_search_covers_game_end_and_respects_requested_start(tmp_path,monkeypatch):
+    monkeypatch.setenv('SEC_USER_AGENT','test test@example.com')
+    calls=[]
+    def response(*args,**kw):
+        calls.append(kw['params'])
+        return {'hits':{'total':{'value':0,'relation':'eq'},'hits':[]}}
+    monkeypatch.setattr('smg.firm_search.Http.json',response)
+    result=collect_firm_search(tmp_path,date(2025,12,5),{'auditor':{'Listed':['UHY']}},
+                               start=date(2025,7,29))
+    assert calls[0]['startdt']=='2025-07-29' and calls[0]['enddt']=='2025-12-05'
+    assert result['status']=='SEARCH_INDEX_COMPLETE'
 
 
 def test_search_resumes_next_query_without_repeating_completed_page(tmp_path,monkeypatch):

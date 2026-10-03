@@ -22,10 +22,15 @@ FORMS={'424B3','424B4','424B5','20-F','10-K','6-K','8-K','F-1','S-1'}
 
 def query_text(entries):
     names=sorted({name for groups in entries.values() for group in groups.values() for name in group})
-    return ' OR '.join('"'+name.replace('"','')+'"' for name in names)
+    variants=set(names)
+    for name in names:
+        variants.add(re.sub(r'\band\b','&',name,flags=re.I))
+        variants.add(name.replace('&','and'))
+        variants.add(name.replace('.',''))
+    return ' OR '.join('"'+name.replace('"','')+'"' for name in sorted(variants))
 
 
-def collect_firm_search(state,end,entries,max_pages=200):
+def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1)):
     from .backtest import fingerprint
     agent=os.environ.get('SEC_USER_AGENT','')
     if '@' not in agent:return {'status':'NOT_RUN','reason':'SEC_USER_AGENT_MISSING'}
@@ -33,10 +38,11 @@ def collect_firm_search(state,end,entries,max_pages=200):
     db=sqlite3.connect(state/'firm-search.sqlite')
     db.execute('CREATE TABLE IF NOT EXISTS queries (key TEXT PRIMARY KEY, start TEXT, end TEXT, offset INTEGER, total INTEGER, status TEXT)')
     db.execute('CREATE TABLE IF NOT EXISTS hits (query_set TEXT, id TEXT, source TEXT, PRIMARY KEY(query_set,id))')
-    query=query_text(entries); version=fingerprint({'q':query,'forms':sorted(FORMS),'end':str(end)})
+    if start>end:raise ValueError('Search start must precede end')
+    query=query_text(entries); version=fingerprint({'q':query,'forms':sorted(FORMS),'start':str(start),'end':str(end)})
     # Search recent years first, then historical firm associations back to 2001.
-    for year in range(end.year,2000,-1):
-        first=date(year,1,1);last=min(end,date(year,12,31));key=version+':'+str(first)+':'+str(last)
+    for year in range(end.year,start.year-1,-1):
+        first=max(start,date(year,1,1));last=min(end,date(year,12,31));key=version+':'+str(first)+':'+str(last)
         db.execute('INSERT OR IGNORE INTO queries VALUES (?,?,?,?,?,?)',(key,str(first),str(last),0,None,'PENDING'))
     db.commit();http=Http();pages=0;errors=[];started=time.monotonic()
     try:
@@ -92,7 +98,7 @@ def collect_firm_search(state,end,entries,max_pages=200):
                 break
         counts=dict(db.execute('SELECT status,count(*) FROM queries WHERE key LIKE ? GROUP BY status',(version+':%',)).fetchall())
         return {'status':'SEARCH_INDEX_COMPLETE' if not counts.get('PENDING') and not counts.get('TRUNCATED') and not errors else 'PARTIAL_FIRM_SEARCH',
-                'query_set':version,'date_start':'2001-01-01','date_end':str(end),'pages_this_run':pages,'query_counts':counts,
+                'query_set':version,'date_start':str(start),'date_end':str(end),'pages_this_run':pages,'query_counts':counts,
                 'document_hits':db.execute('SELECT count(*) FROM hits WHERE query_set=?',(version,)).fetchone()[0],
                 'errors':errors,'universe_complete':False,
                 'limitations':['Exact configured-name search can miss aliases and OCR/text variants','Search hits require source and role review; metadata display names are not historical ticker mappings']}

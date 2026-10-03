@@ -40,6 +40,16 @@ def test_placement_agent_is_not_displayed_as_underwriter():
     e=firm_structure(c,CFG,EntityList(ENTRIES),NOW)
     assert e.matches[0]['role']=='placement_agent'
 
+
+def test_standard_prospectus_legal_and_audit_language_is_recognized():
+    c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
+            'The validity of the shares offered hereby will be passed upon for us by Loeb & Loeb LLP.')
+    assert c.matches[0].role=='counsel'
+    c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
+            'WWC, P.C., an independent registered public accounting firm, audited the statements.')
+    assert c.matches[0].role=='auditor'
+    assert watch('The validity of the shares will be passed upon for the underwriters by Loeb & Loeb LLP.') is None
+
 def test_explicit_spac_description_excluded_even_with_business_language():
     c=watch('We are a special purpose acquisition company. We provide services for transactions. Our ordinary shares trade here. Wei, Wei & Co. LLP is our auditor.')
     assert c.is_acquisition_corp is True

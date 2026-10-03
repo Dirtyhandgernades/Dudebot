@@ -22,6 +22,16 @@ def test_primary_documents_and_pre_window_baseline_are_selected(tmp_path):
     assert [i for i,_ in select_sources(path)]==['main']
 
 
+def test_game_sources_include_later_offerings_without_reference_tickers(tmp_path):
+    from datetime import date
+    path=tmp_path/'sources.sqlite';db=sqlite3.connect(path)
+    db.execute('CREATE TABLE hits (id TEXT, source TEXT)')
+    for key,day,form in [('july','2025-07-20','20-F'),('new','2025-10-01','424B5'),('future','2025-12-06','8-K')]:
+        db.execute('INSERT INTO hits VALUES (?,?)',(key,json.dumps(dict(ciks=['1'],form=form,file_date=day))))
+    db.commit();db.close()
+    assert [i for i,_ in select_sources(path,end=date(2025,12,5))]==['july','new']
+
+
 def test_registered_symbol_overrides_historical_prose_symbol():
     raw='''<ix:nonNumeric name="dei:TradingSymbol">NEW</ix:nonNumeric>
     <ix:nonNumeric name="dei:SecurityExchangeName">NASDAQ</ix:nonNumeric>

@@ -141,6 +141,39 @@ def test_borrow_execution_is_reported_separately_from_detection():
     result=borrow_metrics(events,observations)
     assert result['detected']==2 and result['executable']==1 and result['unavailable']==1 and result['rejected']==0
 
+
+def test_stop_is_next_close_and_does_not_fabricate_a_stop_price():
+    days,bars=fixture()
+    bars[days[23]]={**bars[days[23]],'c':12}
+    bars[days[24]]={**bars[days[24]],'c':20}
+    result=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[25],hold=3,
+                    strategy='FIRM_BASELINE_SHORT',risk_controls=True,signal_share_sizing=True)
+    trade=result['trades'][0]
+    assert trade['exit_date']==days[24]
+    assert trade['exit_reason']=='STOP_SIGNAL_PREVIOUS_CLOSE'
+    assert trade['gross_return_pct']==-100
+
+
+def test_share_quantity_does_not_know_the_future_fill_price():
+    days,bars=fixture();raw={d:dict(b) for d,b in bars.items()}
+    args=dict(start=days[22],end=days[23],hold=1,strategy='FIRM_BASELINE_SHORT',
+              position_target=15000,buying_power=150000,signal_share_sizing=True)
+    first=simulate({'ABC':raw},{'ABC':raw},['ABC'],days,**args)['trades'][0]
+    raw[days[22]]['c']=15
+    second=simulate({'ABC':raw},{'ABC':raw},['ABC'],days,**args)['trades'][0]
+    assert first['shares']==second['shares']==1500
+    assert second['notional']==22500
+
+
+def test_exhaustion_research_requires_a_pump_and_upper_wick():
+    from smg.swing_backtest import firm_exhaustion_trigger
+    from smg.models import Config
+    _,bars=fixture();history=list(bars.values())[:22]
+    history[-1]=dict(o=12,c=12,h=13,l=11,v=200)
+    assert firm_exhaustion_trigger(history,Config(surge_return_min_pct=12))=='FIRM_EXHAUSTION_RESEARCH'
+    history[-1]['o']=13
+    assert firm_exhaustion_trigger(history,Config(surge_return_min_pct=12)) is None
+
 def test_borrow_evidence_after_entry_close_and_provider_errors_are_unavailable():
     events=[{'ticker':'ABC','signal_date':'2025-01-02','planned_entry_date':'2025-01-03'}]
     late={'subject':'ABC','observed_at':'2025-01-03T22:00:00+00:00','value':

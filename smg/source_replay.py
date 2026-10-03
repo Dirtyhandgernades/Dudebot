@@ -22,17 +22,18 @@ from .transport import Http
 
 UTC=timezone.utc
 
-def select_sources(db_path,per_quarter=None):
+def select_sources(db_path,per_quarter=None,*,start=None,end=None):
     """Selection uses only dated firm-search hits; no ticker/reference input."""
     db=sqlite3.connect(db_path)
-    rows=[(i,json.loads(s)) for i,s in db.execute('SELECT id,source FROM hits')];db.close()
+    rows=list({i:(i,json.loads(s)) for i,s in db.execute('SELECT id,source FROM hits')}.values());db.close()
     buckets=defaultdict(list)
-    priority={'20-F':0,'10-K':1,'424B4':2,'6-K':3,'8-K':4}
+    first_day=start or date(START.year,1,1);last_day=end or END
+    priority={'20-F':0,'10-K':1,'424B4':2,'424B3':3,'424B5':4,'6-K':5,'8-K':6,'F-1':7,'S-1':8}
     for identifier,s in rows:
         day=date.fromisoformat(s['file_date'])
         # A hit may be an auditor-consent exhibit rather than the annual report.
         # Select primary filings, and include the corpus's pre-window baseline.
-        if not date(START.year,1,1)<=day<=END or len(s.get('ciks',[]))!=1 or s['form'] not in priority:continue
+        if not first_day<=day<=last_day or len(s.get('ciks',[]))!=1 or s['form'] not in priority:continue
         if s.get('file_type',s['form'])!=s['form']:continue
         buckets[(day.year,(day.month-1)//3)].append((identifier,s))
     selected=[]
