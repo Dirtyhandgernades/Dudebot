@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 
-def compare(folder, transactions, records=None):
+def compare(folder, transactions, records=None, strategies=None):
     folder=Path(folder)
     data=json.loads(gzip.decompress((folder/'firm-timing-inputs.json.gz').read_bytes()))
     sessions=data['sessions'];index={d:i for i,d in enumerate(sessions)}
@@ -16,7 +16,7 @@ def compare(folder, transactions, records=None):
     evidence=list(records or [])
     discovery=folder/'discovery-decisions.json'
     if discovery.exists():evidence+=json.loads(discovery.read_text(encoding='utf-8'))
-    for strategy in ['LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH']:
+    for strategy in strategies or ['LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH']:
         result=json.loads((folder/f'2025-{strategy}.json').read_text())
         trades=result['trades'];signals=result['signal_events'];rows=[]
         for ticker in sorted(friends):
@@ -78,10 +78,10 @@ def compare(folder, transactions, records=None):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--report-folder',required=True)
     parser.add_argument('--friend-transactions',required=True)
-    parser.add_argument('--baseline-decisions');args=parser.parse_args()
+    parser.add_argument('--baseline-decisions');parser.add_argument('--strategies');args=parser.parse_args()
     with Path(args.friend_transactions).open(newline='',encoding='utf-8-sig') as handle:transactions=list(csv.DictReader(handle))
     records=json.loads(Path(args.baseline_decisions).read_text(encoding='utf-8')) if args.baseline_decisions else None
-    reports=compare(args.report_folder,transactions,records)
+    reports=compare(args.report_folder,transactions,records,args.strategies.split(',') if args.strategies else None)
     print(json.dumps({k:{n:v for n,v in r.items() if n not in ('rows','limitations')} for k,r in reports.items()},indent=2))
 
 

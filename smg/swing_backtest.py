@@ -214,7 +214,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -227,6 +227,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     side=1 if strategy.endswith('LONG') else -1
     if strategy in {'LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH'} and (firm_dates is None or firm_cfg is None):
         raise ValueError('Live firm proxy requires dated public firm evidence and configured timing rules')
+    if strategy=='FIRM_INTRADAY_EXHAUSTION_RESEARCH' and (intraday_signals is None or firm_dates is None or not signal_share_sizing):
+        raise ValueError('Intraday research requires dated signals, firm evidence and decision-price share sizing')
+    if intraday_signals is not None and strategy!='FIRM_INTRADAY_EXHAUSTION_RESEARCH':raise ValueError('Unexpected intraday signals')
     fee=cost_bps/10000
     for day in days:
         i=index[day]
@@ -260,8 +263,27 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         if day!=days[-1] and i>=22:
             opportunities=[]
             for ticker in symbols:
+                event=next((e for e in intraday_signals.get(day,[]) if e['ticker']==ticker),None) if intraday_signals is not None else None
                 prior=sessions[i-22:i]
                 series=adjusted.get(ticker,{})
+                if intraday_signals is not None:
+                    if event is None:continue
+                    decision=datetime.fromisoformat(event['decision_at']);cutoff=datetime.fromisoformat(event['data_cutoff'])
+                    if decision.tzinfo is None or cutoff.tzinfo is None or decision-cutoff<timedelta(minutes=16) or decision.date().isoformat()!=day:
+                        raise ValueError('Intraday signal timestamps must precede the entry close')
+                    bounds=session_bounds(date.fromisoformat(day))
+                    if not bounds or not bounds[0]<=decision<bounds[1]:raise ValueError('Intraday decision outside session')
+                    if day<firm_dates.get(ticker,'9999-99-99'):continue
+                    trigger=event['timing_trigger'];signal_day=day;sizing_price=event['decision_price']
+                    structure_score=event['dump_structure_score']
+                    if sizing_price<=3:continue
+                    signals+=1;signal_events.append({**event,'signal_date':signal_day,'planned_entry_date':day})
+                    if ticker in positions or len(positions)>=10:continue
+                    entry=raw.get(ticker,{}).get(day);adj=series.get(day)
+                    if not entry or not adj:gaps['MISSING_ENTRY_BAR']+=1;continue
+                    if entry['c']<=3:gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
+                    opportunities.append((structure_score,ticker,entry,adj,signal_day,trigger,sizing_price))
+                    continue
                 if any(d not in series for d in prior):
                     gaps['INCOMPLETE_SIGNAL_HISTORY']+=1;continue
                 raw_prior=raw.get(ticker,{}).get(prior[-1])
@@ -285,9 +307,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['MISSING_ENTRY_BAR']+=1;continue
                 if entry['c']<=3:
                     gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                opportunities.append((structure_score,ticker,entry,adj,prior[-1],trigger))
+                opportunities.append((structure_score,ticker,entry,adj,prior[-1],trigger,raw_prior['c']))
             key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
-            for structure_score,ticker,entry,adj,signal_day,trigger in sorted(opportunities,key=key):
+            for structure_score,ticker,entry,adj,signal_day,trigger,decision_price in sorted(opportunities,key=key):
                 if ticker in positions or len(positions)>=10:continue
                 marked=marked_equity(cash,positions,adjusted,day,side)
                 if marked is None:
@@ -306,7 +328,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     if decision_equity is None:budget=0
                 if risk_controls:budget=min(budget,(decision_equity or 0)*.25 if signal_share_sizing else marked*.25)
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
-                sizing_price=raw[ticker][signal_day]['c'] if signal_share_sizing else entry['c']
+                sizing_price=decision_price if signal_share_sizing else entry['c']
                 shares=math.floor(budget/sizing_price)
                 if shares<10:continue
                 if signal_share_sizing:decision_room=max(0,decision_room-shares*sizing_price*(1+fee)-commission)

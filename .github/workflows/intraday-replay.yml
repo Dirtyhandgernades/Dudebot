@@ -1,0 +1,57 @@
+name: Pre-close firm timing research
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [smg/intraday_replay.py, tests/test_intraday_replay.py, .github/workflows/intraday-replay.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: firm-intraday-research
+  cancel-in-progress: false
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-firm-coverage-37081288053
+          run-id: 37081288053
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/intraday-inputs
+      - uses: actions/cache/restore@v4
+        with:
+          path: backtest/runtime/intraday-bars
+          key: intraday-bars-v1-${{ github.run_id }}
+          restore-keys: intraday-bars-v1-
+      - name: Test fixed earlier decisions without friend ticker selection
+        run: python -u -m smg.intraday_replay --packet backtest/runtime/intraday-inputs/firm-timing-inputs.json.gz
+      - name: Preserve independent inputs for offline comparison after selection
+        if: always()
+        run: |
+          mkdir -p reports/intraday-replay
+          cp backtest/runtime/intraday-inputs/firm-timing-inputs.json.gz reports/intraday-replay/
+          cp backtest/runtime/intraday-inputs/discovery-decisions.json reports/intraday-replay/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pre-close-firm-${{ github.run_id }}
+          path: reports/intraday-replay/
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/intraday-bars
+          key: intraday-bars-v1-${{ github.run_id }}
