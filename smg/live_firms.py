@@ -42,7 +42,10 @@ def extract_watch(job,docs,now,entries):
                 hit=next((h for rx in expressions if (h:=search([primary],rx))),None)
                 if not hit:continue
                 passage=hit[0].group()
-                if re.search(r'\b(?:not|terminated|dismissed|former|no longer)\b',passage,re.I):continue
+                signed_audit=role=='auditor' and '/s/' in passage and re.search(r'Independent.*(?:Accounting Firm|Auditor)',passage,re.I)
+                # Standard audit opinions say an internal-control audit was
+                # "not required". That is not a denial of the signed audit role.
+                if not signed_audit and re.search(r'\b(?:not|terminated|dismissed|former|no longer)\b',passage,re.I):continue
                 source_role=('placement_agent' if role=='underwriter' and
                              re.search(r'placement agent',passage,re.I) else role)
                 matches.append(EntityMatch(name=name,role=source_role,

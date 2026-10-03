@@ -96,12 +96,32 @@ def auc(labels,scores):
 
 def metrics(rows,scores,threshold=None):
     if not rows:return {'samples':0,'positives':0,'auc':None,'threshold':threshold,'selected':0,'precision':None,'recall':None}
+    if not scores:
+        return {'samples':len(rows),'positives':sum(r['label'] for r in rows),'auc':None,
+                'threshold':None,'selected':0,'precision':None,'recall':None,'brier':None,
+                'status':'PREDICTIONS_UNAVAILABLE'}
+    if len(scores)!=len(rows):raise ValueError('Prediction count must match evaluation samples')
     labels=[r['label'] for r in rows]
     if threshold is None:threshold=float(np.quantile(scores,.90)) if scores else 1
     selected=[i for i,s in enumerate(scores) if s>=threshold];tp=sum(labels[i] for i in selected);positives=sum(labels)
     return {'samples':len(rows),'positives':positives,'prevalence':positives/len(rows),'auc':auc(labels,scores),
         'threshold':threshold,'selected':len(selected),'precision':tp/len(selected) if selected else None,
         'recall':tp/positives if positives else None,'brier':sum((s-y)**2 for s,y in zip(scores,labels))/len(rows)}
+
+
+def score_reliability(rows,scores):
+    """Report empirical outcomes, without relabeling balanced ranks as confidence."""
+    bins=[]
+    for low,high in [(0,.2),(.2,.4),(.4,.6),(.6,.8),(.8,1.000001)]:
+        chosen=[(r,s) for r,s in zip(rows,scores) if low<=s<high]
+        if not chosen:continue
+        n=len(chosen);positives=sum(r['label'] for r,s in chosen)
+        bins.append({'score_min':low,'score_max':min(high,1),'samples':n,
+                     'distinct_tickers':len({r.get('ticker') for r,s in chosen if r.get('ticker')}),
+                     'mean_rank_score':sum(s for r,s in chosen)/n,
+                     'empirical_target_rate':positives/n,'positive_outcomes':positives})
+    return {'score_is_calibrated_probability':False,'bins':bins,
+            'limitation':'Class-balanced scores are ranks; samples overlap and are correlated. Bin hit rates are diagnostics, not certified trade confidence.'}
 
 def walk_forward_report(records,raw,adjusted,sessions):
     rows=samples(records,raw,adjusted,sessions)
@@ -117,6 +137,9 @@ def walk_forward_report(records,raw,adjusted,sessions):
         'splits':{'train':'2022-2023','validation':'2024','holdout':'2025'},'model':model,
         'train':metrics(train,train_scores,threshold),'validation':validation_metrics,
         'holdout':metrics(holdout,holdout_scores,threshold),
+        'score_semantics':'UNCALIBRATED_CLASS_BALANCED_RANK',
+        'score_reliability':{'validation':score_reliability(validation,validation_scores),
+                             'reused_2025_diagnostic':score_reliability(holdout,holdout_scores)},
         'limitations':['Historical borrow, market cap, halts and SMG availability are not imputed','Overlapping daily samples are correlated','Model ranking cannot establish fraud or guarantee a decline']}
 
 def firm_watch_lead_report(records,raw,adjusted,sessions,periods,cohorts):

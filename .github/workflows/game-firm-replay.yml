@@ -1,6 +1,11 @@
 name: Game firm coverage and risk replay
 on:
   workflow_dispatch:
+    inputs:
+      max_documents:
+        description: Maximum new SEC documents; 0 validates cached sources only
+        type: number
+        default: 1200
   push:
     branches: [main]
     paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py, .github/workflows/game-firm-replay.yml]
@@ -18,6 +23,8 @@ jobs:
       SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      # Code pushes validate caches without launching another large gather.
+      MAX_SOURCE_DOWNLOADS: ${{ inputs.max_documents || 0 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -58,7 +65,7 @@ jobs:
           key: swing-bars-v1-${{ github.run_id }}
           restore-keys: swing-bars-v1-
       - name: Independently discover dated firms and test fixed research policies
-        run: python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json
+        run: python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json --max-documents "$MAX_SOURCE_DOWNLOADS"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

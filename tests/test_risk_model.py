@@ -17,6 +17,20 @@ def test_balanced_logistic_ranker_learns_direction_deterministically():
     model=fit(rows);scores=predict(model,[rows[0],rows[-1]])
     assert model and scores[1]>scores[0]
 
+
+def test_high_rank_scores_are_not_reported_as_high_trade_confidence():
+    from smg.risk_model import score_reliability
+    report=score_reliability([{'ticker':'ABC','label':1},{'ticker':'XYZ','label':0}],[.95,.95])
+    assert report['score_is_calibrated_probability'] is False
+    assert report['bins'][0]['mean_rank_score']==.95
+    assert report['bins'][0]['empirical_target_rate']==.5
+
+
+def test_missing_predictions_cannot_report_a_perfect_brier_score():
+    from smg.risk_model import metrics
+    result=metrics([{'label':1}],[])
+    assert result['status']=='PREDICTIONS_UNAVAILABLE' and result['brier'] is None
+
 def test_walk_forward_never_uses_reference_labels_and_keeps_holdout_separate():
     # Sparse fixture intentionally cannot train; the split contract still holds.
     report=walk_forward_report([],{}, {}, [])

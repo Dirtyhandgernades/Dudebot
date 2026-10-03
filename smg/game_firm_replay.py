@@ -86,13 +86,13 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600):
         if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession) or '..' in filename:continue
         url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
         digest=hashlib.sha256(url.encode()).hexdigest()
-        raw_path=cache/(digest+'.html');parsed_path=cache/(digest+'.game-v2.json')
+        raw_path=cache/(digest+'.html');parsed_path=cache/(digest+'.game-v3.json')
         try:
             legacy=cache/(digest+'.parsed-v5.json')
             if not legacy.exists():legacy=cache/(digest+'.game-v1.json')
             # Positive cached evidence is immutable and already reviewed by the
             # same structural gates. Retry negatives with the improved parser.
-            if not parsed_path.exists() and legacy.exists():
+            if not parsed_path.exists() and legacy.exists() and not raw_path.exists():
                 saved=json.loads(legacy.read_text(encoding='utf-8'))
                 if saved.get('candidate'):write_json(parsed_path,saved)
             if parsed_path.exists():

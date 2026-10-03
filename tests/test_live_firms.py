@@ -55,6 +55,7 @@ def test_signed_auditor_report_and_underwriting_table_attach_roles():
     c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
             'Report of Independent Registered Public Accounting Firm To the board of directors: '
             'We have audited the consolidated financial statements. Opinion and Basis for Opinion. '
+            'The Company is not required to have an audit of internal control. '
             '/s/ WWC, P.C. Singapore, April 30, 2025.')
     assert c.matches[0].role=='auditor'
     c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
