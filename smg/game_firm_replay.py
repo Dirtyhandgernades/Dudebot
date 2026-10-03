@@ -27,7 +27,26 @@ from .market import calendar
 from .transport import Http
 
 
-def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
+def dated_records(candidates,cfg,entities):
+    """Reuse only earlier issuer-classification evidence for the same CIK."""
+    classification={};records=[]
+    for original in sorted(candidates,key=lambda c:c.reviewed_at):
+        c=original;prior=classification.get(c.cik)
+        if prior and (prior[0] is True or (c.is_acquisition_corp is None and
+                0<=(c.reviewed_at.date()-prior[1].filed_at).days<=450)):
+            c=c.model_copy(update={'is_acquisition_corp':prior[0],
+                                  'evidence':{**c.evidence,'is_acquisition_corp':prior[1]}})
+        proof=c.evidence.get('is_acquisition_corp')
+        if proof is not None and c.is_acquisition_corp is not None:
+            classification[c.cik]=(c.is_acquisition_corp,proof)
+        result=firm_structure(c,cfg,entities,c.reviewed_at)
+        records.append({'ticker':c.ticker,'cik':c.cik,'decision_at':c.reviewed_at.isoformat(),
+                        'status':result.status,'reasons':result.reasons,'source_url':c.matches[0].evidence.url,
+                        'firm_matches':result.matches})
+    return records
+
+
+def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600):
     state=root/'backtest/runtime/game-firm-search'
     state.mkdir(parents=True,exist_ok=True)
     db=state/'firm-search.sqlite'
@@ -53,7 +72,12 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
         else:bucket=5
         return bucket,src['file_date'],identifier
     selected.sort(key=source_order)
-    http=Http();started=time.monotonic();downloaded=0;records=[];sources=[]
+    first=[];later=[];seen=set()
+    for item in selected:
+        cik=item[1]['ciks'][0]
+        (later if cik in seen else first).append(item);seen.add(cik)
+    selected=first+later
+    http=Http();started=time.monotonic();downloaded=0;candidates=[];sources=[]
     entities=EntityList(entries)
     for identifier,src in selected:
         if time.monotonic()-started>=max_seconds:break
@@ -86,14 +110,12 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
             sources.append({'id':identifier,'status':status,'filed_at':src['file_date'],'source_url':url,
                             'ticker':c.ticker if c else None})
             if c:
-                result=firm_structure(c,cfg,entities,c.reviewed_at)
-                records.append({'ticker':c.ticker,'cik':c.cik,'decision_at':c.reviewed_at.isoformat(),
-                                'status':result.status,'reasons':result.reasons,'source_url':url,
-                                'firm_matches':result.matches})
+                candidates.append(c)
         except Exception as exc:
             sources.append({'id':identifier,'status':'SOURCE_ERROR','error_type':type(exc).__name__,
                             'http_status':getattr(exc,'status',None)})
             if getattr(exc,'status',None) in {401,403,429}:break
+    records=dated_records(candidates,cfg,entities)
     out=root/'reports/game-firm-replay';out.mkdir(parents=True,exist_ok=True)
     write_json(out/'discovery-decisions.json',records);write_json(out/'source-audit.json',sources)
     summary={'search':search,'selected_sources':len(selected),'sources_visited':len(sources),
@@ -101,7 +123,7 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
              'source_status_counts':dict(Counter(s['status'] for s in sources)),
              'unvisited_sources':len(selected)-len(sources),'downloads_this_run':downloaded,
              'source_seconds':round(time.monotonic()-started,2),'universe_complete':False,
-             'budget_priority':'Cached evidence, post-July offering documents, cached negatives, other dated game filings, earlier sources'}
+             'budget_priority':'One source per issuer first; cached evidence, post-July offerings, cached negatives, other dated game filings, earlier sources'}
     write_json(out/'discovery-summary.json',summary)
     return records,summary
 
@@ -142,8 +164,8 @@ def lead_metrics(result,raw,adjusted,sessions,start,end):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--baseline',required=True)
-    parser.add_argument('--max-documents',type=int,default=160)
-    parser.add_argument('--max-seconds',type=int,default=360)
+    parser.add_argument('--max-documents',type=int,default=1200)
+    parser.add_argument('--max-seconds',type=int,default=600)
     args=parser.parse_args();root=Path.cwd();cfg,entries=settings(root)
     additions,discovery=discover(root,cfg,entries,max_documents=args.max_documents,max_seconds=args.max_seconds)
     records=json.loads(Path(args.baseline).read_text())+additions

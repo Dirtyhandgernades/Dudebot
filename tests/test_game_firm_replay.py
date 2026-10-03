@@ -25,3 +25,20 @@ def test_symbol_without_any_provider_bars_is_a_gap_not_a_crash():
     result=lead_metrics({'signal_events':[],'trades':[]},{'GONE':{}},{'GONE':{}},sessions,*sessions)
     assert result['missing_symbol_day_outcomes']==1
     assert result['event_recall'] is None
+
+
+def test_classification_context_is_dated_and_never_clears_known_spacs():
+    from smg.game_firm_replay import dated_records
+    from smg.rules import EntityList
+    from test_live_firms import watch,ENTRIES,CFG
+    from datetime import timedelta
+    past=watch();later=past.model_copy(deep=True)
+    later.reviewed_at+=timedelta(days=10)
+    later.is_acquisition_corp=None;later.evidence.pop('is_acquisition_corp')
+    rows=dated_records([later,past],CFG,EntityList(ENTRIES))
+    assert rows[-1]['status']=='STRUCTURAL_MATCH'
+    future=past.model_copy(deep=True);future.reviewed_at+=timedelta(days=20)
+    assert dated_records([later,future],CFG,EntityList(ENTRIES))[0]['status']=='REVIEW_REQUIRED'
+    past.is_acquisition_corp=True
+    later.is_acquisition_corp=False
+    assert dated_records([past,later],CFG,EntityList(ENTRIES))[-1]['status']=='EXCLUDED'
