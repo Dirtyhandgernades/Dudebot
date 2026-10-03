@@ -6,13 +6,16 @@ import json
 from pathlib import Path
 
 
-def compare(folder, transactions):
+def compare(folder, transactions, records=None):
     folder=Path(folder)
     data=json.loads(gzip.decompress((folder/'firm-timing-inputs.json.gz').read_bytes()))
     sessions=data['sessions'];index={d:i for i,d in enumerate(sessions)}
     orders=[r for r in transactions if r['transaction_type']=='SHORT SELL' and
             '2025-09-08'<=r['date']<='2025-12-05']
     friends={r['ticker'] for r in orders};reports={}
+    evidence=list(records or [])
+    discovery=folder/'discovery-decisions.json'
+    if discovery.exists():evidence+=json.loads(discovery.read_text(encoding='utf-8'))
     for strategy in ['LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH']:
         result=json.loads((folder/f'2025-{strategy}.json').read_text())
         trades=result['trades'];signals=result['signal_events'];rows=[]
@@ -20,6 +23,9 @@ def compare(folder, transactions):
             own=[r for r in orders if r['ticker']==ticker]
             first=data['firm_dates'].get(ticker)
             known=bool(first and any(first<=r['date'] for r in own))
+            prior_evidence=[e for e in evidence if e.get('ticker')==ticker and
+                            any(e.get('decision_at','9999')[:10]<=o['date'] for o in own)]
+            latest=max(prior_evidence,key=lambda e:e.get('decision_at',''),default={})
             ticker_trades=[t for t in trades if t['ticker']==ticker]
             aligned=[]
             for trade in ticker_trades:
@@ -30,13 +36,18 @@ def compare(folder, transactions):
             signal_near=any(s['ticker']==ticker and s['signal_date'] in index and
                             any(o['date'] in index and 1<=index[o['date']]-index[s['signal_date']]<=5 for o in own)
                             for s in signals)
-            reason=('FIRM_DISCOVERY_ABSENT' if first is None else
+            absent_reason=('HARD_EXCLUDED_BY_DATED_SOURCE' if latest.get('status')=='EXCLUDED' else
+                           'FIRM_FOUND_ISSUER_CLASSIFICATION_UNRESOLVED' if 'UNKNOWN_ISSUER_CLASSIFICATION' in latest.get('reasons',[]) else
+                           'FIRM_FOUND_OTHER_REVIEW_REQUIRED' if latest else 'FIRM_DISCOVERY_ABSENT')
+            reason=(absent_reason if first is None else
                     'FIRM_SOURCE_TOO_LATE' if not known else
                     'ENTRY_ALIGNED_WITH_FRIEND' if aligned else
                     'TRADED_OTHER_DATES' if ticker_trades else
                     'NO_CLOSED_TRADE_DESPITE_PRIOR_FIRM_SOURCE')
             rows.append({'ticker':ticker,'friend_first_entry':min(r['date'] for r in own),
                          'first_independent_firm_date':first,'watched_before_friend_entry':known,
+                         'dated_source_status':latest.get('status'),
+                         'dated_source_reasons':'|'.join(latest.get('reasons',[])),
                          'has_signal_1_to_5_sessions_before_friend_entry':signal_near,
                          'bot_closed_trades':len(ticker_trades),'bot_entry_same_or_1_2_sessions_before_friend':bool(aligned),
                          'conditional_pnl_all_bot_trades':round(sum(t['pnl'] for t in ticker_trades),2),
@@ -66,9 +77,11 @@ def compare(folder, transactions):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--report-folder',required=True)
-    parser.add_argument('--friend-transactions',required=True);args=parser.parse_args()
+    parser.add_argument('--friend-transactions',required=True)
+    parser.add_argument('--baseline-decisions');args=parser.parse_args()
     with Path(args.friend_transactions).open(newline='',encoding='utf-8-sig') as handle:transactions=list(csv.DictReader(handle))
-    reports=compare(args.report_folder,transactions)
+    records=json.loads(Path(args.baseline_decisions).read_text(encoding='utf-8')) if args.baseline_decisions else None
+    reports=compare(args.report_folder,transactions,records)
     print(json.dumps({k:{n:v for n,v in r.items() if n not in ('rows','limitations')} for k,r in reports.items()},indent=2))
 
 

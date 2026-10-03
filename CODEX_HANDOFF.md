@@ -1,31 +1,37 @@
 # Dudebot continuation handoff
 
-## October 2: coverage/risk repair in progress
+## October 2: completed bounded coverage/risk repair
 
-The game replay's firm source search ended July 28, 2025. A new bounded
-`game-firm-replay.yml` extends independent SEC name searches through December
-5 and admits discoveries after their dated source evidence instead of freezing
-the whole game at its opening. Name queries include and/& and punctuation
-variants; common prospectus issuer-counsel and auditor language is recognized
-with evidence, without accepting counsel for the underwriters as issuer counsel.
-Caches/checkpoints resume; sources not visited and unclassified issuers stay gaps.
-Legacy July-ending source replay is manual-only to avoid a duplicate 36-minute job.
+See `backtest/GAME_COVERAGE_REPAIR.md` and final successful run 37081288053.
+Outputs: `outputs/backtest/game-firm-37081288053`. Independent discovery now
+extends through game end, admits sources after their dated evidence, and reviews
+one issuer before repeated context. The 1,200-new-document gather and cache-only
+corrected-parser check reviewed 1,520 sources; 415 eligible firm symbols are
+independently selected. No friend/reference tickers feed discovery/simulation.
+882 documents have unresolved identity; 3,759 selected documents remain unread.
+Verified corporate former-name aliases remain a separate unresolved coverage gap.
 
-Research risk controls size share orders using prior-close prices and equity,
-cap intended positions at 25% prior equity, and request exits after a prior-close
-12% loss / 20% gain, filled at the NEXT close. They cannot guarantee the stop
-price or prevent gap losses. Original ungated comparison modes remain available.
-The first cached old-cohort risk run: 2025 firm timing -$46,048.66; a predeclared
-near-high upper-wick exhaustion hypothesis +$34,570.77. Exhaustion lost
-$17,060.68 in 2024, so it is research-only and not validated for live alerts.
-Cached diagnostics are in `outputs/backtest/risk-repair`.
+2025 breakdown timing with risk controls: -$9,337.67, 111 trades, 52.248% drawdown.
+Predeclared exhaustion research: +$49,504.00, 49 trades, ending $149,504;
+2024 exhaustion loses $17,707.11. Cost stress reduces 2025 profit to $15,718.20.
+Both remain unvalidated; do not enable firm timing alerts. Friend coverage is
+13/60 before entries (target 42), exhaustion ticker overlap 3/60 and aligned
+entry 1/60. Exhaustion has prior signals for 7/92 large drops, positions open
+before 3/92. Friend source audit separates 42 absent, 3 classification gaps,
+2 dated hard exclusions. Zero reference-event dates fall inside this game.
 
-The new hosted game replay exports dated source audit, raw/split cached inputs,
-full trade ledgers, and separate pre-drop alert versus pre-drop-position recall
-for >=20% one-session close declines. Friend/reference labels are never opened
-by discovery or simulation. Compare those lists only AFTER outputs finish.
-196 Python tests pass before the hosted run. The 70% friend-ticker/pre-drop
-execution target is not established; 2025 remains repeatedly inspected.
+XHLD/WCT are below $3 throughout this 2025 game, despite prior firm evidence.
+Do not confuse their 2026 examples with this period. DTCK signals November 6
+but the November 7 closing fill is $1.41, so it is correctly rejected. Next
+priority is a pre-close intraday/delayed-data timing validation, plus dated
+issuer identification/classification, not hindsight fills or larger sizing.
+
+Historical borrow/cap/halts/SMG availability/fees/margin remain unverified.
+Ranking scores are explicitly uncalibrated; threshold precision is 18.5% in
+2024 and 30.5% in reused 2025. The updated cache reuses complete per-symbol
+market histories when the universe expands; failed pagination never commits
+complete coverage. 206 local Python tests pass. Final hosted parser run used
+zero SEC downloads and 46 market requests under the older batch cache.
 
 ## October 2: firm timing policy failed; research-only gate
 

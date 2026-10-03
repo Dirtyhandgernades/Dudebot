@@ -49,8 +49,18 @@ def download(symbols, start, end, cache):
     output={};requests=0
     for adjustment in ['raw','split']:
         result=defaultdict(dict)
-        for offset in range(0,len(symbols),100):
-            query=dict(symbols=','.join(symbols[offset:offset+100]),timeframe='1Day',start=start,end=end+'T23:59:59Z',feed='sip',adjustment=adjustment,asof='-',limit=10000)
+        contract=dict(timeframe='1Day',start=start,end=end+'T23:59:59Z',feed='sip',adjustment=adjustment,asof='-')
+        paths={symbol:cache/('symbol-v1-'+hashlib.sha256(json.dumps({**contract,'symbol':symbol},sort_keys=True).encode()).hexdigest()+'.json') for symbol in set(symbols)}
+        missing=[]
+        for symbol in sorted(paths):
+            path=paths[symbol]
+            if path.exists():
+                bars=json.loads(path.read_text())
+                if bars:result[symbol].update(bars)
+            else:missing.append(symbol)
+        for offset in range(0,len(missing),100):
+            group=missing[offset:offset+100]
+            query=dict(symbols=','.join(group),**contract,limit=10000)
             seen=set()
             while True:
                 path=cache/(hashlib.sha256(json.dumps(query,sort_keys=True).encode()).hexdigest()+'.json')
@@ -64,6 +74,9 @@ def download(symbols, start, end, cache):
                 if not token:break
                 if token in seen:raise ValueError('Repeated provider page token')
                 seen.add(token);query['page_token']=token
+            # Commit symbol coverage only after every provider page completes.
+            # Growing a universe must not invalidate already downloaded symbols.
+            for symbol in group:paths[symbol].write_text(json.dumps(result.get(symbol,{})))
         output[adjustment]=dict(result)
     return output,requests
 
