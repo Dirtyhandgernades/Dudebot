@@ -63,3 +63,18 @@ jobs:
         with:
           name: game-firm-coverage-${{ github.run_id }}
           path: reports/game-firm-replay/
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/source-replay
+          key: game-sources-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/game-firm-search
+          key: game-firm-search-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/swing-bars
+          key: swing-bars-v1-${{ github.run_id }}

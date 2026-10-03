@@ -18,3 +18,10 @@ def test_below_three_dollar_events_do_not_inflate_eligible_recall():
     bars={sessions[0]:dict(c=2),sessions[1]:dict(c=1)}
     report=lead_metrics({'signal_events':[],'trades':[]},{'ABC':bars},{'ABC':bars},sessions,*sessions)
     assert report['events']==0 and report['event_recall'] is None
+
+
+def test_symbol_without_any_provider_bars_is_a_gap_not_a_crash():
+    sessions=['2025-09-08','2025-09-09']
+    result=lead_metrics({'signal_events':[],'trades':[]},{'GONE':{}},{'GONE':{}},sessions,*sessions)
+    assert result['missing_symbol_day_outcomes']==1
+    assert result['event_recall'] is None

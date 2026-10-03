@@ -159,11 +159,11 @@ def main():
             write_json(out/f'{year}-{strategy}.json',result)
             if year==2025:
                 write_json(out/f'{strategy}-lead.json',lead_metrics(result,
-                    {t:data['raw'][t] for t in universe},{t:data['split'][t] for t in universe},sessions,start,end))
+                    {t:data['raw'].get(t,{}) for t in universe},{t:data['split'].get(t,{}) for t in universe},sessions,start,end))
             results.append({k:v for k,v in result.items() if k not in {'trades','signal_events','daily_equity','unresolved_positions'}})
     packet={'sessions':sessions,'config':cfg.model_dump(),'firm_dates':first,
             'cohorts':{f'{y}-09-08':{'short':[t for t in symbols if first[t]<=f'{y}-12-05']} for y in [2023,2024,2025]},
-            'raw':{t:data['raw'][t] for t in symbols},'split':{t:data['split'][t] for t in symbols}}
+            'raw':{t:data['raw'].get(t,{}) for t in symbols},'split':{t:data['split'].get(t,{}) for t in symbols}}
     with gzip.open(out/'firm-timing-inputs.json.gz','wt',encoding='utf-8') as handle:json.dump(packet,handle)
     summary={'status':'PARTIAL_INDEPENDENT_GAME_RESEARCH','discovery':discovery,'dynamic_firm_symbols':len(symbols),
              'new_game_firm_symbols':sorted(t for t in symbols if '2025-07-28'<first[t]<='2025-12-05'),
