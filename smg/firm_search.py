@@ -45,6 +45,9 @@ def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1)):
         first=max(start,date(year,1,1));last=min(end,date(year,12,31));key=version+':'+str(first)+':'+str(last)
         db.execute('INSERT OR IGNORE INTO queries VALUES (?,?,?,?,?,?)',(key,str(first),str(last),0,None,'PENDING'))
     db.commit();http=Http();pages=0;errors=[];started=time.monotonic()
+    # Retry failed single-day slices once per invocation, then let earlier
+    # pending ranges progress. One server outage must not pin the whole cursor.
+    with db:db.execute("UPDATE queries SET status='PENDING' WHERE key LIKE ? AND status='ERROR'",(version+':%',))
     try:
         while pages<max_pages and time.monotonic()-started<360:
             item=db.execute("SELECT key,start,end,offset FROM queries WHERE key LIKE ? AND status='PENDING' ORDER BY start DESC LIMIT 1",(version+':%',)).fetchone()
@@ -95,9 +98,13 @@ def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1)):
                             db.execute('INSERT OR IGNORE INTO queries VALUES (?,?,?,?,?,?)',(child,str(a),str(b),0,None,'PENDING'))
                     pages+=1
                     if len(errors)<8:continue
+                elif getattr(exc,'status',None) in {500,502,503,504}:
+                    with db:db.execute("UPDATE queries SET status='ERROR' WHERE key=?",(key,))
+                    pages+=1
+                    if len(errors)<8:continue
                 break
         counts=dict(db.execute('SELECT status,count(*) FROM queries WHERE key LIKE ? GROUP BY status',(version+':%',)).fetchall())
-        return {'status':'SEARCH_INDEX_COMPLETE' if not counts.get('PENDING') and not counts.get('TRUNCATED') and not errors else 'PARTIAL_FIRM_SEARCH',
+        return {'status':'SEARCH_INDEX_COMPLETE' if not any(counts.get(s) for s in ['PENDING','TRUNCATED','ERROR']) and not errors else 'PARTIAL_FIRM_SEARCH',
                 'query_set':version,'date_start':str(start),'date_end':str(end),'pages_this_run':pages,'query_counts':counts,
                 'document_hits':db.execute('SELECT count(*) FROM hits WHERE query_set=?',(version,)).fetchone()[0],
                 'errors':errors,'universe_complete':False,

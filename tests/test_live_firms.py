@@ -50,6 +50,17 @@ def test_standard_prospectus_legal_and_audit_language_is_recognized():
     assert c.matches[0].role=='auditor'
     assert watch('The validity of the shares will be passed upon for the underwriters by Loeb & Loeb LLP.') is None
 
+
+def test_signed_auditor_report_and_underwriting_table_attach_roles():
+    c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
+            'Report of Independent Registered Public Accounting Firm To the board of directors: '
+            'We have audited the consolidated financial statements. Opinion and Basis for Opinion. '
+            '/s/ WWC, P.C. Singapore, April 30, 2025.')
+    assert c.matches[0].role=='auditor'
+    c=watch('We provide logistics services for customers. Our ordinary shares trade on Nasdaq. '
+            'Underwriters Number of ordinary shares Cathay Securities 1,000,000 Total 1,000,000.')
+    assert c.matches[0].role=='underwriter'
+
 def test_explicit_spac_description_excluded_even_with_business_language():
     c=watch('We are a special purpose acquisition company. We provide services for transactions. Our ordinary shares trade here. Wei, Wei & Co. LLP is our auditor.')
     assert c.is_acquisition_corp is True

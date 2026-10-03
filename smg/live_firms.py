@@ -34,6 +34,11 @@ def extract_watch(job,docs,now,entries):
                 if role=='auditor':
                     expressions.append(pattern+r'[\s,.]*(?:an|our)\s+independent registered public accounting firm')
                     expressions.append(r'\bour\s+(?:consolidated\s+)?financial statements[^;]{0,200}?audited\s+by\s+'+pattern)
+                    report=r'(?:Report of Independent Registered Public Accounting Firm|Independent Auditor[’\']?s? Report)'
+                    expressions.append(report+r'(?:(?!'+report+r').){0,12000}?/s/\s*'+pattern)
+                if role=='underwriter':
+                    expressions.append(r'\bunderwriters?\s+(?:named|listed|set forth)[^;]{0,150}?(?:below|following)[^;]{0,350}?'+pattern)
+                    expressions.append(r'\bUnderwriters?\s+(?:Number|Name)[^;]{0,200}?'+pattern)
                 hit=next((h for rx in expressions if (h:=search([primary],rx))),None)
                 if not hit:continue
                 passage=hit[0].group()

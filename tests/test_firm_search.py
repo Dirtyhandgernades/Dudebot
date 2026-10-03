@@ -72,3 +72,16 @@ def test_server_error_splits_range_and_preserves_resume(tmp_path,monkeypatch):
     two=collect_firm_search(tmp_path,date(2025,7,28),entries,max_pages=1)
     assert calls[0]['startdt']>'2025-01-01'
     assert two['query_counts']['DONE']==1
+
+
+def test_failing_single_day_does_not_pin_the_cursor_or_claim_completion(tmp_path,monkeypatch):
+    from smg.transport import ProviderError
+    monkeypatch.setenv('SEC_USER_AGENT','test test@example.com')
+    def fail(*a,**k):raise ProviderError('efts.sec.gov',500)
+    monkeypatch.setattr('smg.firm_search.Http.json',fail)
+    result=collect_firm_search(tmp_path,date(2025,12,5),{'auditor':{'Listed':['UHY']}},
+                               start=date(2025,12,5),max_pages=2)
+    assert result['query_counts']['ERROR']==1 and result['status']=='PARTIAL_FIRM_SEARCH'
+    monkeypatch.setattr('smg.firm_search.Http.json',lambda *a,**k:{'hits':{'total':{'value':0,'relation':'eq'},'hits':[]}})
+    result=collect_firm_search(tmp_path,date(2025,12,5),{'auditor':{'Listed':['UHY']}},start=date(2025,12,5))
+    assert result['query_counts']['DONE']==1 and result['status']=='SEARCH_INDEX_COMPLETE'

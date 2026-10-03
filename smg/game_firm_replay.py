@@ -38,6 +38,21 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
     if not db.exists():return [],{'search':search,'status':'SEARCH_NOT_RUN'}
     selected=select_sources(db,start=date(2022,1,1),end=date(2025,12,5))
     cache=root/'backtest/runtime/source-replay';cache.mkdir(parents=True,exist_ok=True)
+    def source_order(item):
+        identifier,src=item;accession,filename=identifier.split(':',1)
+        url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
+        digest=hashlib.sha256(url.encode()).hexdigest()
+        parsed=cache/(digest+'.parsed-v5.json')
+        warm=cache/(digest+'.html')
+        # Budget priority uses dates/forms/cache only, never winner tickers.
+        if parsed.exists():bucket=0
+        elif src['file_date']>'2025-07-28' and src['form'].startswith('424B'):bucket=1
+        elif warm.exists():bucket=2
+        elif src['file_date']>'2025-07-28':bucket=3
+        elif src['file_date']>='2025-01-01':bucket=4
+        else:bucket=5
+        return bucket,src['file_date'],identifier
+    selected.sort(key=source_order)
     http=Http();started=time.monotonic();downloaded=0;records=[];sources=[]
     entities=EntityList(entries)
     for identifier,src in selected:
@@ -47,9 +62,10 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
         if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession) or '..' in filename:continue
         url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{accession.replace('-','')}/{filename}"
         digest=hashlib.sha256(url.encode()).hexdigest()
-        raw_path=cache/(digest+'.html');parsed_path=cache/(digest+'.game-v1.json')
+        raw_path=cache/(digest+'.html');parsed_path=cache/(digest+'.game-v2.json')
         try:
             legacy=cache/(digest+'.parsed-v5.json')
+            if not legacy.exists():legacy=cache/(digest+'.game-v1.json')
             # Positive cached evidence is immutable and already reviewed by the
             # same structural gates. Retry negatives with the improved parser.
             if not parsed_path.exists() and legacy.exists():
@@ -81,9 +97,11 @@ def discover(root, cfg, entries, *, max_documents=160, max_seconds=360):
     out=root/'reports/game-firm-replay';out.mkdir(parents=True,exist_ok=True)
     write_json(out/'discovery-decisions.json',records);write_json(out/'source-audit.json',sources)
     summary={'search':search,'selected_sources':len(selected),'sources_visited':len(sources),
+             'source_documents_reviewed':sum(s['status'] in {'FIRM_CANDIDATE_EXTRACTED','NO_ATTACHED_LISTED_FIRM_ROLE_RECOGNIZED','SOURCE_SYMBOL_OR_EXCHANGE_UNRESOLVED'} for s in sources),
              'source_status_counts':dict(Counter(s['status'] for s in sources)),
              'unvisited_sources':len(selected)-len(sources),'downloads_this_run':downloaded,
-             'source_seconds':round(time.monotonic()-started,2),'universe_complete':False}
+             'source_seconds':round(time.monotonic()-started,2),'universe_complete':False,
+             'budget_priority':'Cached evidence, post-July offering documents, cached negatives, other dated game filings, earlier sources'}
     write_json(out/'discovery-summary.json',summary)
     return records,summary
 

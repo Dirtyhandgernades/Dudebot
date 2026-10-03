@@ -46,6 +46,7 @@ jobs:
           restore-keys: |
             game-sources-v1-
             source-replay-v2-main-
+            source-replay-v2-
       - uses: actions/cache@v4
         with:
           path: backtest/runtime/game-firm-search
