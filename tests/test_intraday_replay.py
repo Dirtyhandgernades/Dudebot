@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime,timedelta
 from types import SimpleNamespace
-from smg.intraday_replay import decision_window,partial_bar,candidates,signal_event,STRATEGY
+from smg.intraday_replay import decision_window,partial_bar,candidates,signal_event,hybrid_event,STRATEGY
 from smg.market import calendar
 from smg.swing_backtest import simulate
 
@@ -58,3 +58,17 @@ def test_same_day_share_order_uses_observed_price_not_unknown_closing_price():
     with pytest.raises(ValueError):
         simulate(d['raw'],d['split'],['ABC'],d['sessions'],start=day,end=end,
                  strategy=STRATEGY,firm_dates=d['firm_dates'],intraday_signals={day:[event]},signal_share_sizing=True)
+
+
+def test_hybrid_prior_pattern_is_rejected_after_dump_or_resumed_squeeze():
+    d=packet();day='2025-11-06';cfg=SimpleNamespace(surge_return_min_pct=12)
+    prior=d['sessions'][d['sessions'].index(day)-1]
+    d['split']['ABC'][prior].update(o=14,c=14,h=17,l=13,v=400)
+    _,_,_,cutoff=decision_window(day)
+    partial={'o':14,'h':14.1,'l':13.9,'c':14,'v':100,'last_complete_at':cutoff.replace(minute=20).isoformat()}
+    event=hybrid_event(d,'ABC',day,partial,partial,cfg)
+    assert event['source_policy']=='PRIOR_CLOSE_EXHAUSTION_REVALIDATED_PRICE'
+    assert event['pattern_date']==prior
+    for price in [12,18]:
+        changed={**partial,'c':price,'o':price,'h':price+.1,'l':price-.1}
+        assert hybrid_event(d,'ABC',day,changed,changed,cfg) is None

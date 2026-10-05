@@ -21,6 +21,7 @@ from .swing_backtest import simulate,firm_exhaustion_trigger,dump_structure_scor
 from .transport import Http,ProviderError
 
 STRATEGY='FIRM_INTRADAY_EXHAUSTION_RESEARCH'
+HYBRID='FIRM_HYBRID_EXHAUSTION_RESEARCH'
 
 
 def decision_window(day,delay=16):
@@ -110,11 +111,35 @@ def signal_event(packet,ticker,day,adjusted_partial,raw_partial,cfg):
             'observed_volume':adjusted_partial['v'],'session_fraction':fraction}
 
 
+def hybrid_event(packet,ticker,day,partial,raw_partial,cfg):
+    """Prefer a current chart; otherwise revalidate a prior-close pattern.
+
+    The fixed price band rejects a >10% already-fallen move or >20% resumed
+    squeeze. It is an experimental invalidation rule, not a loss guarantee.
+    """
+    event=signal_event(packet,ticker,day,partial,raw_partial,cfg)
+    if event:return {**event,'timing_trigger':HYBRID,'pattern_date':day,'source_policy':STRATEGY}
+    if not partial or not raw_partial or raw_partial['c']<=3:return None
+    if partial['last_complete_at']!=raw_partial['last_complete_at']:return None
+    i=packet['sessions'].index(day);prior=packet['sessions'][i-22:i]
+    history=[packet['split'][ticker][d] for d in prior]
+    if not firm_exhaustion_trigger(history,cfg):return None
+    change=partial['c']/history[-1]['c']-1
+    if not -.10<change<=.20:return None
+    _,_,decision,cutoff=decision_window(day)
+    return {'ticker':ticker,'signal_date':day,'pattern_date':prior[-1],
+            'source_policy':'PRIOR_CLOSE_EXHAUSTION_REVALIDATED_PRICE',
+            'decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat(),
+            'last_complete_at':partial['last_complete_at'],'decision_price':raw_partial['c'],
+            'timing_trigger':HYBRID,'dump_structure_score':dump_structure_score(history),
+            'observed_change_from_prior_close':change}
+
+
 def run(packet,cfg,client,years,out,max_seconds=600):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);summary=[]
     started=time.monotonic()
     for year in years:
-        events={};audit=[];gaps=Counter()
+        events={};hybrid={};audit=[];gaps=Counter()
         days=[d for d in packet['sessions'] if f'{year}-09-08'<=d<f'{year}-12-05']
         for day in days:
             if time.monotonic()-started>max_seconds:
@@ -122,24 +147,34 @@ def run(packet,cfg,client,years,out,max_seconds=600):
             names=candidates(packet,day);opened,closed,decision,cutoff=decision_window(day)
             try:
                 adjusted=client.get(names,opened,cutoff,'split')
-                preliminary={}
+                preliminary={};partials={}
                 for ticker in names:
                     partial=partial_bar(adjusted.get(ticker,[]),opened,cutoff)
                     if not partial:gaps['MISSING_OR_STALE_SPLIT_WINDOW']+=1;continue
+                    partials[ticker]=partial
                     # Fetch raw quotes only after a chart match. There is no
                     # guessed raw price or trade event at this stage.
                     history,_,_=projected_history(packet,ticker,day,partial)
                     if firm_exhaustion_trigger(history,cfg):preliminary[ticker]=partial
-                raw=client.get(list(preliminary),opened,cutoff,'raw')
-                selected=[]
-                for ticker,partial in preliminary.items():
+                prior_names=[]
+                i=packet['sessions'].index(day)
+                for ticker in partials:
+                    prior=[packet['split'][ticker][d] for d in packet['sessions'][i-22:i]]
+                    if firm_exhaustion_trigger(prior,cfg):prior_names.append(ticker)
+                raw=client.get(sorted(set(preliminary)|set(prior_names)),opened,cutoff,'raw')
+                selected=[];combined=[]
+                for ticker in sorted(set(preliminary)|set(prior_names)):
+                    partial=partials[ticker]
                     raw_partial=partial_bar(raw.get(ticker,[]),opened,cutoff)
                     if not raw_partial:gaps['MISSING_OR_STALE_RAW_WINDOW']+=1;continue
                     event=signal_event(packet,ticker,day,partial,raw_partial,cfg)
                     if event:selected.append(event)
+                    event=hybrid_event(packet,ticker,day,partial,raw_partial,cfg)
+                    if event:combined.append(event)
                 events[day]=selected
+                hybrid[day]=combined
                 audit.append({'day':day,'candidates':len(names),'chart_matches':len(preliminary),
-                              'signals':len(selected),'decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat()})
+                              'signals':len(selected),'hybrid_signals':len(combined),'decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat()})
             except (ProviderError,RuntimeError) as exc:
                 gaps['PROVIDER_OR_BUDGET_FAILURE']+=1
                 audit.append({'day':day,'status':'UNAVAILABLE','error_type':type(exc).__name__,
@@ -147,19 +182,20 @@ def run(packet,cfg,client,years,out,max_seconds=600):
                 if getattr(exc,'status',None) in {401,403,429} or str(exc)=='REQUEST_BUDGET':
                     gaps['UNREVIEWED_SESSIONS']+=len(days)-days.index(day)-1;break
         write_json(out/f'{year}-intraday-signals.json',events)
+        write_json(out/f'{year}-hybrid-signals.json',hybrid)
         write_json(out/f'{year}-intraday-audit.json',{'sessions':audit,'gaps':dict(gaps)})
-        for bps,borrow,label in [(30,.1,'base'),(100,1.,'stress')]:
+        for strategy,event_set,bps,borrow,label in [(st,es,b,bw,l) for st,es in [(STRATEGY,events),(HYBRID,hybrid)] for b,bw,l in [(30,.1,'base'),(100,1.,'stress')]]:
             result=simulate(packet['raw'],packet['split'],packet['cohorts'][f'{year}-09-08']['short'],packet['sessions'],
-                            start=f'{year}-09-08',end=f'{year}-12-05',hold=3,strategy=STRATEGY,
+                            start=f'{year}-09-08',end=f'{year}-12-05',hold=3,strategy=strategy,
                             cost_bps=bps,borrow_rate=borrow,position_target=30000,buying_power=150000,
                             firm_dates=packet['firm_dates'],firm_cfg=cfg,risk_controls=True,signal_share_sizing=True,
-                            intraday_signals=events)
-            write_json(out/(f'{year}-{STRATEGY}.json' if label=='base' else f'{year}-{STRATEGY}-stress.json'),result)
-            if label=='base':write_json(out/f'{year}-lead.json',lead_metrics(result,packet['raw'],packet['split'],packet['sessions'],f'{year}-09-08',f'{year}-12-05'))
-            summary.append({'year':year,'cost_case':label,**{k:result[k] for k in ['net_profit','ending_balance','closed_trades','max_observed_drawdown_pct','signals','account_insolvent']},'data_gaps':dict(gaps),
+                            intraday_signals=event_set)
+            write_json(out/(f'{year}-{strategy}.json' if label=='base' else f'{year}-{strategy}-stress.json'),result)
+            if label=='base':write_json(out/f'{year}-{strategy}-lead.json',lead_metrics(result,packet['raw'],packet['split'],packet['sessions'],f'{year}-09-08',f'{year}-12-05'))
+            summary.append({'year':year,'strategy':strategy,'cost_case':label,**{k:result[k] for k in ['net_profit','ending_balance','closed_trades','max_observed_drawdown_pct','signals','account_insolvent']},'data_gaps':dict(gaps),
                             'scan_complete':not any(gaps[k] for k in ['TIME_BUDGET','UNREVIEWED_SESSIONS','PROVIDER_OR_BUDGET_FAILURE'])})
-        print(json.dumps(summary[-2:]),flush=True)
-    write_json(out/'summary.json',{'strategy':STRATEGY,'results':summary,'market_requests':client.requests,
+        print(json.dumps(summary[-4:]),flush=True)
+    write_json(out/'summary.json',{'strategies':[STRATEGY,HYBRID],'results':summary,'market_requests':client.requests,
                'live_enabled':False,'universe_uses_reference_inputs':False,
                'limitations':['Previously inspected 2025 is not a fresh holdout','Firm corpus is partial; prior-close price >$3 and nonnegative prior 21-session return restrict minute requests',
                               'Five-minute aggregates and uniform-time volume projection are research proxies',

@@ -227,9 +227,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     side=1 if strategy.endswith('LONG') else -1
     if strategy in {'LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH'} and (firm_dates is None or firm_cfg is None):
         raise ValueError('Live firm proxy requires dated public firm evidence and configured timing rules')
-    if strategy=='FIRM_INTRADAY_EXHAUSTION_RESEARCH' and (intraday_signals is None or firm_dates is None or not signal_share_sizing):
+    preclose_strategies={'FIRM_INTRADAY_EXHAUSTION_RESEARCH','FIRM_HYBRID_EXHAUSTION_RESEARCH'}
+    if strategy in preclose_strategies and (intraday_signals is None or firm_dates is None or not signal_share_sizing):
         raise ValueError('Intraday research requires dated signals, firm evidence and decision-price share sizing')
-    if intraday_signals is not None and strategy!='FIRM_INTRADAY_EXHAUSTION_RESEARCH':raise ValueError('Unexpected intraday signals')
+    if intraday_signals is not None and strategy not in preclose_strategies:raise ValueError('Unexpected intraday signals')
     fee=cost_bps/10000
     for day in days:
         i=index[day]
