@@ -7,7 +7,7 @@ deduplicated new-trade delivery. Without `GITHUB_WORKFLOW_TOKEN`, the Cloudflare
 cron is inert and GitHub's original schedule remains active.
 To enable the hosted trigger, create a fine-grained GitHub personal access token
 restricted to this repository with **Actions: Read and write**, add it as the
-`GITHUB_WORKFLOW_TOKEN` repository Actions secret, and rerun **Deploy free
+`WORKFLOW_TOKEN` repository Actions secret (installed as `GITHUB_WORKFLOW_TOKEN` in the Worker), and rerun **Deploy free
 Cloudflare dispatcher**. Check `/health` for `github_cron_configured: true`.
 After verifying a Cloudflare-triggered run, set the repository Actions variable
 `CLOUDFLARE_CRON_ENABLED` to `true`: this turns off the duplicate GitHub

@@ -151,7 +151,7 @@ class EvidenceArchiver:
             for symbol in completed:self.store.put(prefix+symbol,{'completed_at':now.isoformat()})
         summary['pending_after']=len(pending)-len(summary['processed_symbols'])
         self.store.put('evidence_enrichment:last',summary)
-        return {**summary,'status':'ENRICHED' if batch else 'CURRENT_DAY_COMPLETE'}
+        return {**summary,'status':'ENRICHED' if summary['processed_symbols'] else 'ENRICHMENT_DEFERRED' if batch else 'CURRENT_DAY_COMPLETE'}
 
     def _daily(self,symbol_to_cik,market,now,summary,deadline=None):
         symbols=sorted(symbol_to_cik)

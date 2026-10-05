@@ -21,7 +21,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: smg-state-writer
+  group: smg-state-writer-v2
   queue: max
   cancel-in-progress: false
 jobs:
@@ -31,7 +31,7 @@ jobs:
       (github.event_name != 'schedule' ||
        github.event.schedule == '35 23 * * 1-5' ||
        github.event.schedule == '17 16,19 * * 1-5' ||
-       github.event.schedule == '7,22,37,52 13-21 * * 1-5')
+       (github.event.schedule == '7,22,37,52 13-21 * * 1-5' && vars.CLOUDFLARE_CRON_ENABLED != 'true'))
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
