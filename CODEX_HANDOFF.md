@@ -1,5 +1,32 @@
 # Dudebot continuation handoff
 
+## October 5: consistency candidate and timing audit
+
+See `backtest/CONFIRMATION_RESULTS.md`. Added a research-only observed-price
+confirmation filter: decision quote <=102% of prior raw close. Baseline firm
+signals and live rules are preserved; pre-close workflow records this as an
+additional comparison. Three-session confirmed profits: 2023 +$18,622.15
+(2 trades), 2024 +$20,700.90 (17), 2025 +$36,482.87 (32). Stress remains
+positive: +$17,313.34 / +$9,298.25 / +$14,648.23. The filter is motivated
+by reused data and requires fresh validation; 2023 has only two trades.
+
+Forward timing is now measured independently from hold limit and realized
+profit. Confirmed 20% closing-price drops within 1/2/3 sessions in 2025:
+1/32, 1/30, 3/30; any lower close within three sessions: 23/30. Two terminal
+entries are censored. These are simulated entry counts, not live alerts or
+calibrated prediction probabilities. The baseline had 9/53 twenty-percent
+drops within three sessions. Confirmation improves portfolio consistency but
+removes some fast rugs; do not claim the rug detection or $189k target achieved.
+
+Also tested retaining continuing-up-move signals at fixed half target. Base
+profits are positive across 2023–2025, but 2024 stress loses $12,157.45, so
+it is not promoted. Optional per-signal position scales are validated (finite,
+0–1) and applied before share sizing; no percentage confidence is inferred.
+
+Reproduce with `python -m backtest.confirmation_comparison`. All 36 results
+and ledgers are local at `outputs/backtest/confirmation-2026-10-05`; tests
+pass 224. Existing production config still disables firm timing trade alerts.
+
 ## October 5: SMG accounting replay
 
 Added optional SMG daily cash-interest accounting to `smg/swing_backtest.py`:

@@ -135,6 +135,51 @@ def hybrid_event(packet,ticker,day,partial,raw_partial,cfg):
             'observed_change_from_prior_close':change}
 
 
+def confirmed_hybrid_events(packet,events,max_observed_gain=.02):
+    """Research filter: avoid entering a short during a continuing up move.
+
+    Uses only the decision quote and prior raw close. It never reads the
+    entry-day final close or future outcomes. Raw price changes remain subject
+    to the same unresolved corporate-action coverage as the source replay.
+    """
+    index={d:i for i,d in enumerate(packet['sessions'])}
+    result={};audit=Counter()
+    for day,rows in events.items():
+        result[day]=[]
+        i=index.get(day,0)
+        for event in rows:
+            prior=packet['raw'].get(event['ticker'],{}).get(packet['sessions'][i-1]) if i else None
+            if not prior or prior['c']<=0:
+                audit['UNKNOWN_PRIOR_RAW_PRICE']+=1;continue
+            change=event['decision_price']/prior['c']-1
+            if change>max_observed_gain:
+                audit['CONTINUING_UP_MOVE']+=1;continue
+            result[day].append({**event,'entry_filter':'OBSERVED_GAIN_AT_MOST_2_PERCENT',
+                                'observed_gain_from_prior_raw_close':change})
+            audit['RETAINED']+=1
+    return result,dict(audit)
+
+
+def scaled_hybrid_events(packet,events):
+    """Fixed research sizing: half target while the observed pump continues.
+
+    Retains higher-risk firm signals so a strict confirmation filter cannot
+    remove all such rug candidates. This multiplier is not confidence.
+    """
+    confirmed,audit=confirmed_hybrid_events(packet,events)
+    allowed={(day,e['ticker']) for day,rows in confirmed.items() for e in rows}
+    index={d:i for i,d in enumerate(packet['sessions'])};result={}
+    for day,rows in events.items():
+        result[day]=[];i=index.get(day,0)
+        for event in rows:
+            prior=packet['raw'].get(event['ticker'],{}).get(packet['sessions'][i-1]) if i else None
+            if not prior or prior['c']<=0:continue
+            result[day].append({**event,'position_scale':1.0 if (day,event['ticker']) in allowed else .5,
+                'observed_gain_from_prior_raw_close':event['decision_price']/prior['c']-1,
+                'entry_filter':'FIXED_HALF_TARGET_DURING_CONTINUING_UP_MOVE'})
+    return result,audit
+
+
 def run(packet,cfg,client,years,out,max_seconds=600):
     out=Path(out);out.mkdir(parents=True,exist_ok=True);summary=[]
     started=time.monotonic()
@@ -184,20 +229,26 @@ def run(packet,cfg,client,years,out,max_seconds=600):
         write_json(out/f'{year}-intraday-signals.json',events)
         write_json(out/f'{year}-hybrid-signals.json',hybrid)
         write_json(out/f'{year}-intraday-audit.json',{'sessions':audit,'gaps':dict(gaps)})
-        for strategy,event_set,bps,borrow,label in [(st,es,b,bw,l) for st,es in [(STRATEGY,events),(HYBRID,hybrid)] for b,bw,l in [(30,.1,'base'),(100,1.,'stress')]]:
+        confirmed,confirmation_audit=confirmed_hybrid_events(packet,hybrid)
+        write_json(out/f'{year}-confirmed-hybrid-signals.json',confirmed)
+        write_json(out/f'{year}-confirmation-audit.json',confirmation_audit)
+        policies=[(STRATEGY,events,'baseline'),(HYBRID,hybrid,'baseline'),(HYBRID,confirmed,'confirmed')]
+        for strategy,event_set,policy,bps,borrow,label in [(st,es,p,b,bw,l) for st,es,p in policies for b,bw,l in [(30,.1,'base'),(100,1.,'stress')]]:
             result=simulate(packet['raw'],packet['split'],packet['cohorts'][f'{year}-09-08']['short'],packet['sessions'],
                             start=f'{year}-09-08',end=f'{year}-12-05',hold=3,strategy=strategy,
                             cost_bps=bps,borrow_rate=borrow,position_target=30000,buying_power=150000,
                             firm_dates=packet['firm_dates'],firm_cfg=cfg,risk_controls=True,signal_share_sizing=True,
                             intraday_signals=event_set,smg_cash_interest=True)
-            write_json(out/(f'{year}-{strategy}.json' if label=='base' else f'{year}-{strategy}-stress.json'),result)
-            if label=='base':write_json(out/f'{year}-{strategy}-lead.json',lead_metrics(result,packet['raw'],packet['split'],packet['sessions'],f'{year}-09-08',f'{year}-12-05'))
-            summary.append({'year':year,'strategy':strategy,'cost_case':label,**{k:result[k] for k in ['net_profit','ending_balance','closed_trades','max_observed_drawdown_pct','signals','account_insolvent']},'data_gaps':dict(gaps),
+            suffix='-confirmed' if policy=='confirmed' else ''
+            prefix=f'{year}-{strategy}{suffix}'
+            write_json(out/(f'{prefix}.json' if label=='base' else f'{prefix}-stress.json'),result)
+            if label=='base':write_json(out/f'{prefix}-lead.json',lead_metrics(result,packet['raw'],packet['split'],packet['sessions'],f'{year}-09-08',f'{year}-12-05'))
+            summary.append({'year':year,'strategy':strategy,'entry_policy':policy,'cost_case':label,**{k:result[k] for k in ['net_profit','ending_balance','closed_trades','max_observed_drawdown_pct','signals','account_insolvent']},'data_gaps':dict(gaps),
                             'scan_complete':not any(gaps[k] for k in ['TIME_BUDGET','UNREVIEWED_SESSIONS','PROVIDER_OR_BUDGET_FAILURE'])})
-        print(json.dumps(summary[-4:]),flush=True)
+        print(json.dumps(summary[-6:]),flush=True)
     write_json(out/'summary.json',{'strategies':[STRATEGY,HYBRID],'results':summary,'market_requests':client.requests,
                'live_enabled':False,'universe_uses_reference_inputs':False,
-               'limitations':['Previously inspected 2025 is not a fresh holdout','Firm corpus is partial; prior-close price >$3 and nonnegative prior 21-session return restrict minute requests',
+               'limitations':['All years have been inspected; confirmation was motivated by prior losses and needs fresh validation','Firm corpus is partial; prior-close price >$3 and nonnegative prior 21-session return restrict minute requests',
                               'Five-minute aggregates and uniform-time volume projection are research proxies',
                               'Historical borrow/cap/halts/SMG availability/fees/margin unknown','Market-data gaps are not zero-return outcomes; result is conditional on reviewed sessions']})
 

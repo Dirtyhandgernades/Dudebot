@@ -72,3 +72,43 @@ def test_hybrid_prior_pattern_is_rejected_after_dump_or_resumed_squeeze():
     for price in [12,18]:
         changed={**partial,'c':price,'o':price,'h':price+.1,'l':price-.1}
         assert hybrid_event(d,'ABC',day,changed,changed,cfg) is None
+
+
+def test_confirmation_filter_cannot_read_the_future_fill_or_outcome():
+    from smg.intraday_replay import confirmed_hybrid_events
+    d=packet();day='2025-11-06';events={day:[{'ticker':'ABC','decision_price':10.1}]}
+    before,audit=confirmed_hybrid_events(d,events)
+    assert len(before[day])==1 and audit['RETAINED']==1
+    d['raw']['ABC'][day]['c']=1000
+    d['split']['ABC']['2025-11-07']['c']=.01
+    assert confirmed_hybrid_events(d,events)==(before,audit)
+    events[day][0]['decision_price']=10.3
+    after,audit=confirmed_hybrid_events(d,events)
+    assert after[day]==[] and audit['CONTINUING_UP_MOVE']==1
+
+
+def test_preclose_position_scale_reduces_decision_share_order():
+    d=packet();day='2025-11-06';end='2025-11-07';_,_,decision,cutoff=decision_window(day)
+    event={'ticker':'ABC','decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat(),
+           'decision_price':5,'timing_trigger':STRATEGY,'dump_structure_score':25,'position_scale':.5}
+    args=dict(start=day,end=end,strategy=STRATEGY,firm_dates=d['firm_dates'],
+              intraday_signals={day:[event]},buying_power=150000,position_target=30000,
+              risk_controls=True,signal_share_sizing=True)
+    result=simulate(d['raw'],d['split'],['ABC'],d['sessions'],**args)
+    assert result['trades'][0]['shares']==3000
+    assert result['trades'][0]['position_scale']==.5
+    for invalid in (float('nan'),-1,2):
+        event['position_scale']=invalid
+        with pytest.raises(ValueError):simulate(d['raw'],d['split'],['ABC'],d['sessions'],**args)
+
+
+def test_drop_timing_counts_exact_twenty_percent_and_censors_missing_outcomes():
+    from backtest.confirmation_comparison import drop_timing
+    d=packet();entry='2025-11-06';next_day='2025-11-07'
+    d['split']['ABC'][next_day]['c']=8
+    result={'trades':[{'ticker':'ABC','entry_date':entry,'adjusted_entry':10}]}
+    timing=drop_timing(result,d,'2025-11-10')
+    assert timing['1']['drop_20pct_at_close']==1
+    del d['split']['ABC'][next_day]
+    timing=drop_timing(result,d,'2025-11-10')
+    assert timing['1']['assessable_entries']==0 and timing['1']['unavailable_or_season_end']==1

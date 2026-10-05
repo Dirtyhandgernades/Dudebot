@@ -294,7 +294,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     entry=raw.get(ticker,{}).get(day);adj=series.get(day)
                     if not entry or not adj:gaps['MISSING_ENTRY_BAR']+=1;continue
                     if entry['c']<=3:gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                    opportunities.append((structure_score,ticker,entry,adj,signal_day,trigger,sizing_price))
+                    scale=event.get('position_scale',1.0)
+                    if not isinstance(scale,(int,float)) or not math.isfinite(scale) or not 0<=scale<=1:
+                        raise ValueError('Position scale must be finite and between zero and one')
+                    opportunities.append((structure_score,ticker,entry,adj,signal_day,trigger,sizing_price,scale))
                     continue
                 if any(d not in series for d in prior):
                     gaps['INCOMPLETE_SIGNAL_HISTORY']+=1;continue
@@ -319,9 +322,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['MISSING_ENTRY_BAR']+=1;continue
                 if entry['c']<=3:
                     gaps['ENTRY_PRICE_BELOW_GATE']+=1;continue
-                opportunities.append((structure_score,ticker,entry,adj,prior[-1],trigger,raw_prior['c']))
+                opportunities.append((structure_score,ticker,entry,adj,prior[-1],trigger,raw_prior['c'],1.0))
             key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
-            for structure_score,ticker,entry,adj,signal_day,trigger,decision_price in sorted(opportunities,key=key):
+            for structure_score,ticker,entry,adj,signal_day,trigger,decision_price,position_scale in sorted(opportunities,key=key):
                 if ticker in positions or len(positions)>=10:continue
                 marked=marked_equity(cash,positions,adjusted,day,side)
                 if marked is None:
@@ -334,9 +337,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 exposure=sum(p['notional']*adjusted[t][day]['c']/p['adjusted_entry']
                              for t,p in positions.items())
                 room=limit-exposure
-                budget=min(position_target,room)
+                budget=min(position_target*position_scale,room)
                 if signal_share_sizing:
-                    budget=min(position_target,decision_room)
+                    budget=min(position_target*position_scale,decision_room)
                     if decision_equity is None:budget=0
                 if risk_controls:budget=min(budget,(decision_equity or 0)*.25 if signal_share_sizing else marked*.25)
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
@@ -351,7 +354,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 cash-=notional+entry_fee
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]])]
-                positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger)
+                positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger,position_scale=position_scale)
         equity=marked_equity(cash,positions,adjusted,day,side)
         if equity is not None:
             peak=max(peak,equity);drawdown=max(drawdown,(peak-equity)/peak)
