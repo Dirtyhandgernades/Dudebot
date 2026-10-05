@@ -125,6 +125,81 @@ class LiveFirmDiscovery:
             self.store.put(key,result)
         return result['is_acquisition_corp'],result['evidence']
 
+    def refresh_stale(self,now,max_issuers=8,max_seconds=75):
+        """Recheck stored watches before scanning, including Monday after Friday.
+
+        No full-text search/backfill. New filings and listing identity must be
+        checked successfully before freshness changes; incomplete context stays
+        stale. Previously established SPAC evidence is never cleared.
+        """
+        started=time.monotonic();stored=[Candidate.model_validate(r) for _,r in self.store.items('candidate:FIRM_WATCH:')]
+        stale=[c for c in stored if (now-c.reviewed_at).total_seconds()>26*3600]
+        preferred=((self.store.get('broad_discovery',{}) or {}).get('firm_shortlist_symbols') or [])
+        order={t:i for i,t in enumerate(preferred)}
+        stale.sort(key=lambda c:(order.get(c.ticker,len(order)),c.reviewed_at,c.ticker))
+        audit={'at':now.isoformat(),'stored_firms':len(stored),'stale_before':len(stale),'refreshed':0,'rows':[]}
+        if not stale:
+            self.store.put('firm_live_refresh',audit);return audit
+        universe={}
+        try:
+            for u in self.sec.universe():
+                if not re.fullmatch('[A-Z]{5}',u['ticker']):universe.setdefault(str(int(u['cik'])),[]).append(u)
+        except Exception as exc:
+            audit.update(status='LISTING_REFRESH_UNAVAILABLE',error_type=type(exc).__name__)
+            self.store.put('firm_live_refresh',audit);return audit
+        # Each short attempt is durable so a bad issuer cannot monopolize all
+        # refresh slots on every scan. A failure never updates reviewed_at.
+        stale.sort(key=lambda c:((self.store.get('firm_refresh_attempt:'+c.cik,{}) or {}).get('at',''),
+                    order.get(c.ticker,len(order)),c.reviewed_at,c.ticker))
+        for previous in stale:
+            if len(audit['rows'])>=max_issuers or time.monotonic()-started>max_seconds:break
+            row={'ticker':previous.ticker,'cik':previous.cik}
+            self.store.put('firm_refresh_attempt:'+previous.cik,{'at':now.isoformat()})
+            try:
+                listings=universe.get(str(int(previous.cik)),[])
+                if len(listings)!=1:raise ValueError('CURRENT_LISTING_UNRESOLVED')
+                current=listings[0]
+                since=previous.reviewed_at.date()-timedelta(days=1)
+                filings=self.sec.submissions(previous.cik,since)
+                changes=[f for f in filings if f['form'] in {'8-K','6-K','20-F','10-K','424B3','424B4','424B5'}]
+                # Never claim a complete review after stopping halfway through
+                # a large issuer backlog. Dedicated discovery handles it later.
+                if len(changes)>8:raise ValueError('CONTEXT_REVIEW_BACKLOG')
+                notes,acquisition=self.review_context(changes)
+                candidate=previous.model_copy(deep=True)
+                # Current auditor/counsel must be reattached if a later annual
+                # report is present, rather than carried over by timestamp alone.
+                annual=next((f for f in changes if f['form'] in {'10-K','20-F'}),None)
+                current_matches=[m for m in previous.matches if m.relationship=='current']
+                if annual and current_matches and any(annual['date']>str(m.evidence.filed_at) for m in current_matches):
+                    if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
+                    raw=self.sec.document(annual['url']);self.downloads+=1
+                    fresh=extract_watch(dict(cik=previous.cik,ticker=current['ticker'],name=current['name'],exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS'),
+                                        [dict(raw,date=annual['date'])],now,self.entries)
+                    if fresh is None:raise ValueError('CURRENT_FIRM_ROLES_NOT_RECONFIRMED')
+                    candidate=fresh
+                    historical=[m for m in previous.matches if m.relationship=='historical' and m.role in {'underwriter','placement_agent'}]
+                    candidate.matches.extend(m for m in historical if not any(n.name==m.name and n.role==m.role for n in candidate.matches))
+                    if candidate.is_acquisition_corp is None:
+                        candidate.is_acquisition_corp=previous.is_acquisition_corp
+                        if 'is_acquisition_corp' in previous.evidence:candidate.evidence['is_acquisition_corp']=previous.evidence['is_acquisition_corp']
+                candidate.notes=list(dict.fromkeys(candidate.notes+previous.notes+notes))
+                if current['ticker']!=previous.ticker:candidate.notes.append('Ticker change requires corporate-action review.')
+                if previous.is_acquisition_corp is True:
+                    candidate.is_acquisition_corp=True
+                    if 'is_acquisition_corp' in previous.evidence:candidate.evidence['is_acquisition_corp']=previous.evidence['is_acquisition_corp']
+                if acquisition:
+                    candidate.is_acquisition_corp=True;candidate.evidence['is_acquisition_corp']=Evidence.model_validate(acquisition)
+                candidate.ticker=current['ticker'];candidate.name=current['name']
+                candidate.exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS'
+                candidate.reviewed_at=now
+                self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'))
+                row['status']='REFRESHED';audit['refreshed']+=1
+            except Exception as exc:row.update(status='REVIEW_UNAVAILABLE',reason=str(exc) if isinstance(exc,ValueError) else type(exc).__name__)
+            audit['rows'].append(row)
+        audit.update(stale_after=len(stale)-audit['refreshed'],status='REFRESH_CHECK_COMPLETE',seconds=round(time.monotonic()-started,2))
+        self.store.put('firm_live_refresh',audit);return audit
+
     def run(self,now):
         started=time.monotonic();universe={}
         for u in self.sec.universe():

@@ -85,7 +85,9 @@ def main():
         if args.command in {'archive','archive-enrich','archive-backfill'}:
             from .evidence_archive import EvidenceArchiver
             candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
-            candidates=[c for c in candidates if 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
+            # Archiving current borrow for a known research watch does not
+            # qualify a trade or certify its stale filing relationship.
+            candidates=[c for c in candidates if c.pipeline=='FIRM_WATCH' or 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
             mapping={c.ticker:c.cik for c in candidates if c.ticker and c.cik}
             archiver=EvidenceArchiver(http,store,
                 {'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')},
@@ -148,6 +150,11 @@ def main():
             (folder/'activation.json').write_text(json.dumps(dict(receipt,provider_health=health,discovery=discovery),indent=2))
             print(json.dumps({'activation':receipt}));return
         market=Alpaca(http,required_env('ALPACA_API_KEY'),required_env('ALPACA_SECRET_KEY'),cfg.market_feed,cfg.market_data_delay_minutes)
+        if args.command in {'alert','scan'} and cfg.screening_profile=='firm_first':
+            from .live_firms import LiveFirmDiscovery
+            refreshed=LiveFirmDiscovery(Sec(http,required_env('SEC_USER_AGENT'),store),LocalParser(entries),store,cfg).refresh_stale(now)
+            checkpoint(store)
+            print(json.dumps({'firm_refresh':refreshed}),flush=True)
         candidates=[Candidate.model_validate(raw) for _,raw in store.items('candidate:')]
         candidates=[c for c in candidates if (c.pipeline in {'RECENT_IPO','FIRM_WATCH','VOLATILITY_WATCH'} or c.event_date>=now.date()-timedelta(days=cfg.direct_offering_backfill_days))
                     and 0<=(now-c.reviewed_at).total_seconds()<=26*3600]
@@ -175,7 +182,7 @@ def main():
             if os.environ.get('DISCORD_ENABLED')=='true':
                 sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)
                 event=sender.send_new(results,cfg)
-                firm_watch=sender.send_firm_watch(results,cfg)
+                firm_watch=sender.send_firm_watch(results,cfg,store.get('firm_live_refresh',{}))
                 daily=sender.send_daily_no_trade(results,cfg)
                 print(json.dumps({'event_delivery':event,'firm_watch':firm_watch,'daily_status':daily}))
             else:print('DISCORD_DISABLED; report generated without sending')

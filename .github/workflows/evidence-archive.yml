@@ -8,6 +8,9 @@ on:
     # Two fallback checks when the Cloudflare dispatcher owns quarter-hour runs.
     - cron: '17 16,19 * * 1-5'
     - cron: '35 23 * * 1-5'
+  push:
+    branches: [main]
+    paths: [smg/live_firms.py, smg/cli.py, smg/runner.py, .github/workflows/evidence-archive.yml]
   workflow_dispatch:
     inputs:
       mode:
@@ -28,7 +31,7 @@ jobs:
        github.event.schedule == '35 23 * * 1-5' ||
        github.event.schedule == '17 16,19 * * 1-5' ||
        github.event.schedule == '7,22,37,52 13-21 * * 1-5')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,13 +49,13 @@ jobs:
           cache-dependency-path: requirements-tested.txt
       - run: python -m pip install -e . -c requirements-tested.txt
       - name: Alert once when a new trade phase qualifies
-        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli alert --send
       - name: Archive current market and borrow snapshot
-        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli archive
       - name: Enrich eight pending symbols with daily fundamentals and sentiment
-        if: (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli archive-enrich
       - name: Review prior scans against subsequent closes
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
@@ -66,6 +69,8 @@ jobs:
           name: evidence-archive-${{ github.run_id }}
           path: |
             reports/evidence-*.json
+            reports/latest.json
+            reports/discord-payloads.json
             reports/daily-outcome-review.json
           if-no-files-found: ignore
           retention-days: 30

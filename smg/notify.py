@@ -287,14 +287,15 @@ class DiscordSender:
         self.store.put(key,claim);self.checkpoint(self.store)
         return claim
 
-    def send_firm_watch(self,evaluations,cfg):
+    def send_firm_watch(self,evaluations,cfg,coverage=None):
         """One mention-free daily status for the primary firm research lane."""
         from .transport import ProviderError
         now=self.clock();local=local_time(now,cfg)
         if local.weekday()>=5 or local.hour<10:return 'BEFORE_FIRM_SUMMARY'
         firms=[e for e in evaluations if e.candidate.pipeline=='FIRM_WATCH'
                and e.status!='EXCLUDED']
-        if not firms:return 'NO_FIRM_WATCHES_SCANNED'
+        coverage=coverage or {}
+        if not firms and not coverage.get('stored_firms'):return 'NO_FIRM_WATCHES_SCANNED'
         key='firm_watch_digest:'+str(local.date())
         if self.store.get(key):return 'ALREADY_CLAIMED'
         lines=[]
@@ -314,6 +315,10 @@ class DiscordSender:
         fields=[{'name':f'Firm watches {i*4+1}–{min(i*4+4,len(lines))}',
                  'value':group,'inline':False} for i,group in enumerate(groups)]
         fields.append({'name':'Coverage','value':f'{len(firms)} firm candidates scanned in this run; {len(evaluations)} total candidates scanned.','inline':False})
+        if coverage.get('stored_firms'):
+            fields.append({'name':'Filing refresh','value':f"{coverage['stored_firms']} stored firm watches; {coverage.get('refreshed',0)} refreshed this run; {coverage.get('stale_after',coverage.get('stale_before',0))} still stale. Unverified watches cannot qualify as trades.",'inline':False})
+        if not firms:
+            fields.append({'name':'Scan unavailable','value':'Stored firm watches were not eligible for a fresh scan. This is a coverage failure, not evidence that no firm setup exists.','inline':False})
         payload={'username':'Dudebot','content':'**Daily firm-watch research** · '+local.strftime('%b %d, %Y'),
             'embeds':[{'title':'Firm watches · research status',
                 'description':'Listed underwriters, auditors and counsel lead this watchlist. A review item is not a trade alert.',

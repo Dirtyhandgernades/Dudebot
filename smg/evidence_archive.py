@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import time
 from datetime import date,datetime,timedelta,timezone
 from urllib.parse import quote
 import xml.etree.ElementTree as ET
@@ -110,7 +111,7 @@ class EvidenceArchiver:
         now=now or datetime.now(UTC);symbols=sorted(symbol_to_cik)
         effective=now-timedelta(minutes=16);summary={'observed_at':now.isoformat(),'symbols':len(symbols),'failures':[]}
         if not symbols:return {**summary,'status':'EMPTY_WATCHLIST'}
-        try:assets=current_assets(self.http,symbols,self.alpaca_headers)['assets']
+        try:assets=current_assets(self.http,symbols,self.alpaca_headers,max_seconds=75)['assets']
         except Exception as exc:
             assets={s:{'status':'UNAVAILABLE','error_type':type(exc).__name__} for s in symbols}
         try:market=_recent_market(self.http,self.alpaca_headers,symbols,effective) if is_open(effective) else {}
@@ -129,9 +130,11 @@ class EvidenceArchiver:
             for symbol in symbols:self._record_failure('halt_status',symbol,now,HALT_URL,exc)
 
         self.store.put('evidence_archive:last',summary)
-        return {**summary,'status':'ARCHIVED','market_rows':len(market),'asset_rows':len(assets)}
+        return {**summary,'status':'ARCHIVED','market_rows':len(market),'asset_rows':len(assets),
+                'asset_available_rows':sum(a.get('status')=='CURRENT' for a in assets.values()),
+                'asset_unavailable_rows':sum(a.get('status')!='CURRENT' for a in assets.values())}
 
-    def collect_daily(self,symbol_to_cik,now=None,max_symbols=8):
+    def collect_daily(self,symbol_to_cik,now=None,max_symbols=8,max_seconds=120):
         """Incrementally collect slow fundamentals and sentiment evidence."""
         now=now or datetime.now(UTC);prefix='evidence_daily:'+str(now.date())+':'
         pending={s:c for s,c in sorted(symbol_to_cik.items()) if not self.store.get(prefix+s)}
@@ -143,14 +146,16 @@ class EvidenceArchiver:
                 observed=self.store.latest_observation('market_borrow',symbol)
                 value=(observed or {}).get('value',{})
                 if value.get('price') is not None:market[symbol]={'price':value['price']}
-            self._daily(batch,market,now,summary)
-            for symbol in batch:self.store.put(prefix+symbol,{'completed_at':now.isoformat()})
-        summary['pending_after']=len(pending)-len(batch)
+            completed=self._daily(batch,market,now,summary,time.monotonic()+max_seconds)
+            summary['processed_symbols']=completed
+            for symbol in completed:self.store.put(prefix+symbol,{'completed_at':now.isoformat()})
+        summary['pending_after']=len(pending)-len(summary['processed_symbols'])
         self.store.put('evidence_enrichment:last',summary)
         return {**summary,'status':'ENRICHED' if batch else 'CURRENT_DAY_COMPLETE'}
 
-    def _daily(self,symbol_to_cik,market,now,summary):
+    def _daily(self,symbol_to_cik,market,now,summary,deadline=None):
         symbols=sorted(symbol_to_cik)
+        completed=[]
         try:
             raw=self.http.json(SEC_TICKERS,headers=self.sec_headers)
             for values in raw.get('data',[]):
@@ -161,6 +166,8 @@ class EvidenceArchiver:
         except Exception as exc:summary['failures'].append('SEC_IDENTITY:'+type(exc).__name__)
 
         for symbol,cik in symbol_to_cik.items():
+            if deadline is not None and time.monotonic()>=deadline:
+                summary['failures'].append('ENRICHMENT_TIME_BUDGET');break
             try:
                 facts=self.http.json(SEC_FACTS.format(cik=int(cik)),headers=self.sec_headers)
                 proxy=market_cap_proxy(facts,market[symbol]['price'],now) if symbol in market else {'status':'UNAVAILABLE','reason':'NO_CURRENT_PRICE'}
@@ -170,9 +177,10 @@ class EvidenceArchiver:
                 sentiment=collect_sentiment(symbol,self.http,now=now)
                 self.store.observe('sentiment',symbol,now,'multiple; see provider records',sentiment)
             except Exception as exc:self._record_failure('sentiment',symbol,now,'multiple',exc)
+            completed.append(symbol)
 
         day=previous_session(now.date())
-        if day:
+        if day and (deadline is None or time.monotonic()<deadline):
             url=FINRA_DAILY.format(day=day.strftime('%Y%m%d'))
             try:
                 values=parse_finra(self.http.text(url),symbols)
@@ -184,6 +192,8 @@ class EvidenceArchiver:
             except Exception as exc:
                 summary['failures'].append('FINRA:'+type(exc).__name__)
                 for symbol in symbols:self._record_failure('finra_short_volume',symbol,now,url,exc)
+        elif day:summary['failures'].append('FINRA_TIME_BUDGET')
+        return completed
 
     def backfill_public(self,symbols,days,now=None):
         """Bounded daily history fill. Call repeatedly; observations are idempotent."""

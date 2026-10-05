@@ -11,14 +11,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   practice:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 5
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
       # One durable, mention-free end-to-end receipt for the repaired live path.
-      PRACTICE_RECEIPT_ID: practice-live-repair-2026-09-22
+      PRACTICE_RECEIPT_ID: practice-live-repair-2026-10-05
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -117,6 +117,17 @@ def test_firm_watch_digest_shows_more_than_first_eight_names(tmp_path):
     assert 'F011' in '\n'.join(field['value'] for field in fields)
     assert all(len(field['value'])<=1024 for field in fields)
 
+
+def test_zero_fresh_firms_reports_a_coverage_failure_without_claiming_no_setups(tmp_path):
+    store=Store(tmp_path/'coverage.db');http=FakeHttp();at=NOW+timedelta(hours=1)
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
+    receipt=sender.send_firm_watch([],Config(),{'stored_firms':120,'refreshed':0,'stale_after':120})
+    assert receipt['status']=='SENT' and receipt['firm_count']==0
+    fields=http.calls[0]['body']['embeds'][0]['fields']
+    assert 'coverage failure' in fields[-1]['value']
+    assert '120 stored firm watches' in fields[-2]['value']
+    assert http.calls[0]['body']['allowed_mentions']=={'parse':[]}
+
 def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
     duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'

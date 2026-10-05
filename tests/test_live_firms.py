@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime,timedelta
 from pathlib import Path
 import yaml
 from smg.models import Config,HaltCheck
@@ -17,6 +17,65 @@ def watch(text=None):
     text=text or 'We are a manufacturer of consumer products. Our ordinary shares trade on Nasdaq. Wei, Wei & Co. LLP, our independent registered public accounting firm, audited our accounts.'
     doc=dict(text=text,url='https://example.com/annual',date=str(NOW.date()),sha256='fixture')
     return extract_watch(dict(cik='1',ticker='TEST',name='Operating Company'),[doc],NOW,ENTRIES)
+
+
+def test_weekend_watch_refresh_requires_successful_current_listing_and_filing_check(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    c=watch();c.reviewed_at=NOW-timedelta(days=3)
+    store=Store(tmp_path/'refresh.db');store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    class Sec:
+        def universe(self):return [{'cik':1,'ticker':'TEST','name':'Operating Company','exchange':'Nasdaq'}]
+        def submissions(self,cik,since):return []
+    result=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW)
+    assert result['refreshed']==1 and result['stale_after']==0
+    assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==NOW
+    c.reviewed_at=NOW-timedelta(days=3);c.is_acquisition_corp=True
+    store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW)
+    assert store.get('candidate:'+c.key)['is_acquisition_corp'] is True
+    class Broken(Sec):
+        def submissions(self,*args):raise ProviderError('data.sec.gov',503)
+    c.reviewed_at=NOW-timedelta(days=3);store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    result=LiveFirmDiscovery(Broken(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW)
+    assert result['refreshed']==0 and result['rows'][0]['status']=='REVIEW_UNAVAILABLE'
+    assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==c.reviewed_at
+
+
+def test_refresh_failure_rotates_and_new_relationship_change_stays_review_required(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    store=Store(tmp_path/'rotation.db')
+    for ticker,cik in [('AAA','1'),('BBB','2')]:
+        c=watch();c.ticker=ticker;c.cik=cik;c.reviewed_at=NOW-timedelta(days=3)
+        store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    store.put('broad_discovery',{'firm_shortlist_symbols':['AAA','BBB']})
+    class Sec:
+        def universe(self):return [{'cik':1,'ticker':'AAA','name':'A','exchange':'Nasdaq'},{'cik':2,'ticker':'BBB','name':'B','exchange':'Nasdaq'}]
+        def submissions(self,cik,since):
+            if cik=='1':raise ProviderError('data.sec.gov',503)
+            return [{'date':str(NOW.date()),'form':'8-K','url':'https://example.com/new'}]
+        def document(self,url):return {'url':url,'text':'The company dismissed its auditor.','sha256':'fixture'}
+    one=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW,max_issuers=1)
+    two=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW,max_issuers=1)
+    assert one['rows'][0]['ticker']=='AAA' and two['rows'][0]['ticker']=='BBB'
+    from smg.models import Candidate
+    from smg.firm_first import firm_structure
+    c=Candidate.model_validate(store.get('candidate:FIRM_WATCH:2:FIRMS'))
+    assert 'RELATIONSHIP_CHANGE_REVIEW_REQUIRED' in firm_structure(c,CFG,EntityList(ENTRIES),NOW).reasons
+
+
+def test_oversized_filing_backlog_cannot_be_reported_as_a_fresh_review(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    c=watch();c.reviewed_at=NOW-timedelta(days=3);store=Store(tmp_path/'backlog.db')
+    store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    class Sec:
+        def universe(self):return [{'cik':1,'ticker':'TEST','name':'A','exchange':'Nasdaq'}]
+        def submissions(self,*args):return [{'form':'8-K'}]*9
+    result=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW)
+    assert result['rows'][0]['reason']=='CONTEXT_REVIEW_BACKLOG'
+    assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==c.reviewed_at
 
 def test_firm_watch_unknown_terms_stays_research_without_short_timing():
     c=watch();assert c and c.is_acquisition_corp is False

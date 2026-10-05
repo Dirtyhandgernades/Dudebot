@@ -6,9 +6,13 @@ field disappears and would lose the distinction between unavailable states.
 """
 BORROW_AVAILABLE={'easy_to_borrow'}
 
-def current_assets(http,symbols,headers=None,base='https://paper-api.alpaca.markets'):
+def current_assets(http,symbols,headers=None,base='https://paper-api.alpaca.markets',max_seconds=None):
+    import time
+    started=time.monotonic()
     assets={}
     for s in symbols:
+        if max_seconds is not None and time.monotonic()-started>=max_seconds:
+            assets[s]={'status':'UNAVAILABLE','reason':'ASSET_LOOKUP_TIME_BUDGET'};continue
         try:
             x=http.json(base+'/v2/assets/'+s,headers={**(headers or {}),'Accept':'application/json'})
             assets[s]={k:x.get(k) for k in ('symbol','name','exchange','asset_class','tradable','shortable','borrow_status')}
