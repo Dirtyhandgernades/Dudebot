@@ -40,6 +40,12 @@ observed replay outcomes, not guarantees or evidence that any issuer is
 fraudulent. The live policy remains hold-three until multi-period validation
 improves.
 
+Selecting the hold length from 2023–2024 aggregate replay profit would choose
+five sessions (+$4,701 combined versus the other tested holds); its untouched
+2025 replay ended at $190,525.87. The same 2025 run under the declared stress
+case ended at $157,684.65. That walk-forward result is useful evidence for a
+research candidate, but it is not enough to claim a stable $189,000 outcome.
+
 ## October 5: live repair verification
 
 Failure annotations on runs 37370164409 / 37363838674 say GitHub never
