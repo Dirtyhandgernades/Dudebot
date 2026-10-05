@@ -109,7 +109,7 @@ class LiveFirmDiscovery:
 
     def issuer_classification(self,filings):
         """Use an annual filing to resolve an issuer type missing from a deal filing."""
-        annual=next((f for f in filings if f['form'] in {'10-K','20-F'}),None)
+        annual=next((f for f in filings if f['form'].removesuffix('/A') in {'10-K','20-F'}),None)
         if not annual:return None,None
         key='firm_issuer:'+hashlib.sha256(annual['url'].encode()).hexdigest()
         result=self.store.get(key)
@@ -161,7 +161,7 @@ class LiveFirmDiscovery:
                 current=listings[0]
                 since=previous.reviewed_at.date()-timedelta(days=1)
                 filings=self.sec.submissions(previous.cik,since)
-                changes=[f for f in filings if f['form'] in {'8-K','6-K','20-F','10-K','424B3','424B4','424B5'}]
+                changes=[f for f in filings if f['form'].removesuffix('/A') in {'8-K','6-K','20-F','10-K','424B3','424B4','424B5'}]
                 # Never claim a complete review after stopping halfway through
                 # a large issuer backlog. Dedicated discovery handles it later.
                 if len(changes)>8:raise ValueError('CONTEXT_REVIEW_BACKLOG')
@@ -169,7 +169,7 @@ class LiveFirmDiscovery:
                 candidate=previous.model_copy(deep=True)
                 # Current auditor/counsel must be reattached if a later annual
                 # report is present, rather than carried over by timestamp alone.
-                annual=next((f for f in changes if f['form'] in {'10-K','20-F'}),None)
+                annual=next((f for f in changes if f['form'].removesuffix('/A') in {'10-K','20-F'}),None)
                 current_matches=[m for m in previous.matches if m.relationship=='current']
                 if annual and current_matches and any(annual['date']>str(m.evidence.filed_at) for m in current_matches):
                     if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
@@ -279,7 +279,7 @@ class LiveFirmDiscovery:
                 # reset listing age or invent an IPO date after a rename.
                 current=universe[job['cik']][0];job=dict(job,ticker=current['ticker'],name=current['name'],exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS')
                 filings=self.sec.submissions(job['cik'],now.date()-timedelta(days=450))
-                changes=[f for f in filings if f['date']>job['date'] and f['form'] in {'8-K','6-K','20-F','10-K'}]
+                changes=[f for f in filings if f['date']>job['date'] and f['form'].removesuffix('/A') in {'8-K','6-K','20-F','10-K'}]
                 context_notes,acquisition=self.review_context(changes)
                 candidate=extract_watch(job,docs,now,self.entries);count+=1
                 if candidate is None:

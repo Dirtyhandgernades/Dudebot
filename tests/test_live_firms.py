@@ -77,6 +77,21 @@ def test_oversized_filing_backlog_cannot_be_reported_as_a_fresh_review(tmp_path)
     assert result['rows'][0]['reason']=='CONTEXT_REVIEW_BACKLOG'
     assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==c.reviewed_at
 
+
+def test_amended_annual_report_must_reconfirm_current_auditor(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    c=watch();c.reviewed_at=NOW-timedelta(days=3)
+    c.matches[0].evidence.filed_at=c.reviewed_at.date()
+    store=Store(tmp_path/'amendment.db');store.put('candidate:'+c.key,c.model_dump(mode='json'))
+    class Sec:
+        def universe(self):return [{'cik':1,'ticker':'TEST','name':'A','exchange':'Nasdaq'}]
+        def submissions(self,*args):return [{'form':'20-F/A','date':str(NOW.date()),'url':'https://example.com/amendment'}]
+        def document(self,url):return {'url':url,'text':'We are a manufacturer of products. Our new auditor is an unlisted firm.','sha256':'fixture'}
+    result=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),store,CFG).refresh_stale(NOW)
+    assert result['refreshed']==0 and result['rows'][0]['reason']=='CURRENT_FIRM_ROLES_NOT_RECONFIRMED'
+    assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==c.reviewed_at
+
 def test_firm_watch_unknown_terms_stays_research_without_short_timing():
     c=watch();assert c and c.is_acquisition_corp is False
     s=snapshot();s.asof-=timedelta(minutes=16);s.price_time-=timedelta(minutes=16)
