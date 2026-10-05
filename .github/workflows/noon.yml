@@ -5,6 +5,7 @@ permissions:
   contents: write
 concurrency:
   group: smg-state-writer
+  queue: max
   cancel-in-progress: false
 jobs:
   notify:
