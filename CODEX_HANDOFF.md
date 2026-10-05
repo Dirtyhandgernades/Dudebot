@@ -28,6 +28,18 @@ sensitivities only and do not justify enabling unbounded sizing. The $189,000
 goal and 70% firm-watch coverage remain unmet; no performance claim should be
 made from the 2025 result alone.
 
+Hold-period sensitivity with the guarded $30,000 policy was also run without
+changing production behavior. Five sessions produced the strongest 2025
+result at $190,525.87 (+$90,525.87, 49 closed trades, 14.171% drawdown), but
+the same fixed rule lost $10,052.33 in 2024; seven sessions ended 2025 at
+$189,156.59 and lost $20,780.68 in 2024. The 2025 five-session result is
+therefore a candidate research configuration, not a validated live switch.
+Its largest 2025 realized shorts were DTCK (+$23,491.02), MSGY (+$22,561.32),
+SWAG (+$9,302.74), ZDGE (+$8,829.46), and SCLX (+$7,651.70). These are
+observed replay outcomes, not guarantees or evidence that any issuer is
+fraudulent. The live policy remains hold-three until multi-period validation
+improves.
+
 ## October 5: live repair verification
 
 Failure annotations on runs 37370164409 / 37363838674 say GitHub never
