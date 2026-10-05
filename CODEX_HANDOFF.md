@@ -41,10 +41,26 @@ fraudulent. The live policy remains hold-three until multi-period validation
 improves.
 
 Selecting the hold length from 2023–2024 aggregate replay profit would choose
-five sessions (+$4,701 combined versus the other tested holds); its untouched
-2025 replay ended at $190,525.87. The same 2025 run under the declared stress
-case ended at $157,684.65. That walk-forward result is useful evidence for a
+five sessions (+$4,701 combined versus the other tested holds); its previously
+inspected 2025 replay ended at $190,525.87. This is a retrospective selection
+exercise, not an untouched walk-forward validation. The same 2025 run under the declared stress
+case ended at $157,684.65. That retrospective result is useful evidence for a
 research candidate, but it is not enough to claim a stable $189,000 outcome.
+
+The October 5 other-year comparison is reproducible offline with
+`python -m backtest.compare_cached_years`. Outputs are under
+`outputs/backtest/other-years-2026-10-05`, including all twelve portfolio
+replays and trade CSVs. Both three- and five-session settings are fixed across
+2023–2025. Five sessions: 2023 +$14,753.85 / 6 trades / 8.918% drawdown;
+2024 -$10,052.33 / 30 trades / 34.073% drawdown; 2025 +$90,525.87 /
+49 trades / 14.171% drawdown. Stress profits respectively: +$10,274.64,
+-$29,215.85, +$57,684.65. No simulated positions remain unresolved, but
+379/569/1,311 candidate-session minute windows are missing or stale in the
+source audits. Borrow evidence remains unavailable for all 7/48/90 signals.
+These runs are conditional research; historical eligibility and the simulator
+collateral ledger prevent calling them fully SMG-compliant executable profits.
+No live strategy was enabled or changed by this comparison. Earlier-year
+intraday signal packets are unavailable, so 2022 and earlier are untested.
 
 ## October 5: live repair verification
 
