@@ -125,6 +125,25 @@ class LiveFirmDiscovery:
             self.store.put(key,result)
         return result['is_acquisition_corp'],result['evidence']
 
+    def reconfirm_annual(self,candidate,filings,now):
+        current=[m for m in candidate.matches if m.relationship=='current']
+        annual=next((f for f in filings if f['form'].removesuffix('/A') in {'10-K','20-F'}),None)
+        if not annual or not current or not any(annual['date']>str(m.evidence.filed_at) for m in current):return candidate
+        if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
+        raw=self.sec.document(annual['url']);self.downloads+=1
+        fresh=extract_watch(dict(cik=candidate.cik,ticker=candidate.ticker,name=candidate.name,exchange=candidate.exchange),
+                            [dict(raw,date=annual['date'])],now,self.entries)
+        historical=[m for m in candidate.matches if m.relationship=='historical' and m.role in {'underwriter','placement_agent'}]
+        if fresh is None:
+            if not historical:raise ValueError('CURRENT_FIRM_ROLES_NOT_RECONFIRMED')
+            fresh=candidate.model_copy(deep=True);fresh.matches=historical
+        else:fresh.matches.extend(m for m in historical if not any(n.name==m.name and n.role==m.role for n in fresh.matches))
+        if fresh.is_acquisition_corp is None or candidate.is_acquisition_corp is True:
+            fresh.is_acquisition_corp=candidate.is_acquisition_corp
+            if 'is_acquisition_corp' in candidate.evidence:fresh.evidence['is_acquisition_corp']=candidate.evidence['is_acquisition_corp']
+        fresh.notes=list(dict.fromkeys(fresh.notes+candidate.notes))
+        return fresh
+
     def refresh_stale(self,now,max_issuers=8,max_seconds=75):
         """Recheck stored watches before scanning, including Monday after Friday.
 
@@ -169,20 +188,7 @@ class LiveFirmDiscovery:
                 candidate=previous.model_copy(deep=True)
                 # Current auditor/counsel must be reattached if a later annual
                 # report is present, rather than carried over by timestamp alone.
-                annual=next((f for f in changes if f['form'].removesuffix('/A') in {'10-K','20-F'}),None)
-                current_matches=[m for m in previous.matches if m.relationship=='current']
-                if annual and current_matches and any(annual['date']>str(m.evidence.filed_at) for m in current_matches):
-                    if self.downloads>=self.cfg.filings_max_downloads_per_run:raise ValueError('DOWNLOAD_BUDGET')
-                    raw=self.sec.document(annual['url']);self.downloads+=1
-                    fresh=extract_watch(dict(cik=previous.cik,ticker=current['ticker'],name=current['name'],exchange='XNYS' if current.get('exchange')=='NYSE' else 'XNAS'),
-                                        [dict(raw,date=annual['date'])],now,self.entries)
-                    if fresh is None:raise ValueError('CURRENT_FIRM_ROLES_NOT_RECONFIRMED')
-                    candidate=fresh
-                    historical=[m for m in previous.matches if m.relationship=='historical' and m.role in {'underwriter','placement_agent'}]
-                    candidate.matches.extend(m for m in historical if not any(n.name==m.name and n.role==m.role for n in candidate.matches))
-                    if candidate.is_acquisition_corp is None:
-                        candidate.is_acquisition_corp=previous.is_acquisition_corp
-                        if 'is_acquisition_corp' in previous.evidence:candidate.evidence['is_acquisition_corp']=previous.evidence['is_acquisition_corp']
+                candidate=self.reconfirm_annual(candidate,changes,now)
                 candidate.notes=list(dict.fromkeys(candidate.notes+previous.notes+notes))
                 if current['ticker']!=previous.ticker:candidate.notes.append('Ticker change requires corporate-action review.')
                 if previous.is_acquisition_corp is True:
@@ -296,6 +302,7 @@ class LiveFirmDiscovery:
                         candidate.notes.append('Historical underwriter retained; later issuer context reviewed.')
                 self.store.put('firm_checked:'+key,str(now.date()))
                 if candidate:
+                    candidate=self.reconfirm_annual(candidate,changes,now)
                     candidate.notes=list(dict.fromkeys(candidate.notes+context_notes))
                     if acquisition:
                         candidate.is_acquisition_corp=True
@@ -306,7 +313,14 @@ class LiveFirmDiscovery:
                             candidate.is_acquisition_corp=classification
                             candidate.evidence['is_acquisition_corp']=Evidence.model_validate(proof)
                     self.store.put('candidate:'+candidate.key,candidate.model_dump(mode='json'));reviewed.add(job['cik'])
-            except Exception as exc:self.issues.append(job['ticker']+': '+type(exc).__name__)
+            except Exception as exc:
+                if isinstance(exc,ValueError) and str(exc)=='CURRENT_FIRM_ROLES_NOT_RECONFIRMED':
+                    prior=candidate_by_cik.get(job['cik'])
+                    if prior:
+                        held=Candidate.model_validate(prior)
+                        held.notes=list(dict.fromkeys(held.notes+['RELATIONSHIP_CHANGE_REVIEW: current roles not reconfirmed by a later annual report.']))
+                        self.store.put('candidate:'+held.key,held.model_dump(mode='json'))
+                self.issues.append(job['ticker']+': '+type(exc).__name__)
         gaps=[]
         # Read the post-run candidates: a source refreshed above must not be
         # reported stale merely because the input snapshot was old.

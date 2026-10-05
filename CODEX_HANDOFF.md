@@ -1,5 +1,50 @@
 # Dudebot continuation handoff
 
+## October 5: live repair verification
+
+Failure annotations on runs 37370164409 / 37363838674 say GitHub never
+acquired a hosted runner: no application step ran. Successful scan
+37365455705 selected zero firms because all 129 stored firm watches still
+had Friday reviews, which failed the 26-hour freshness gate on Monday.
+
+The repair refreshes up to eight stale issuers before each scan, after checking
+current listing and newer filings. Failed/incomplete context stays stale;
+SPAC evidence survives refresh. New annual reports and amendments must
+reconfirm current auditor/counsel. Borrow archive now records current evidence
+for known research watches even if filing review is stale; it does not qualify
+them for trading. Borrow and enrichment have time budgets and explicit gaps.
+Live workflows use ubuntu-22.04; discovery also runs before the open.
+
+The old shared single-pending concurrency group canceled waiting discovery,
+practice and deployment jobs. After old deployment 37385073635 finished,
+migrated ALL state writers to smg-state-writer-v2 with queue:max and
+cancel-in-progress:false. Keep that common serial group. Quarter GitHub
+schedules now respect CLOUDFLARE_CRON_ENABLED; daily fallbacks remain.
+
+Completed repair scan 37385073546 refreshed/scanned eight firms: TJGC, FTFT,
+RPGL, CD, GOW, PUSA, GSIW, PDC. Discord confirmed firm-watch message
+1556801190488969382. 121 firms remained stale after the bounded first pass;
+later scans/discovery resume. Cloudflare deployment 37385073635 succeeded.
+V2 live scan 37385436221, practice 37385436217 and Cloudflare deployment
+37385436271 completed successfully without queue cancellation. The live scan
+selected 24 firms +4 broad names; current asset lookup succeeded for 134/135
+symbols (not a borrowability count). Practice Discord receipt is confirmed
+SENT as message 1556802827584806983 and persisted in immutable state commit
+144a290a. Local tests: 219 Python +23 worker. Read raw state at a commit SHA
+when auditing: branch raw URLs can return an older CDN-cached database.
+
+Pre-close research run 37098678759 independently caught DTCK November 6,
+2025 before its November 7 dump (+$21,389.80 conditional P&L). Portfolio
+2025 +$31,736.36; 2024 -$4,711.36; 2025 stress +$3,554.66. Friend watch
+coverage 13/60, trade overlap 3 and aligned entry 2. Inputs remain independent,
+volume is a uniform-time projection; historical eligibility/borrow unavailable.
+Files: outputs/backtest/intraday-37098678759. Pending hybrid research is saved
+in stash@{0}, labeled Pending hybrid research preserved during October 5 live
+repair; it was not deployed after Windows execution was interrupted.
+
+Failed firm trade qualification remains disabled. Broad alerts are independent;
+longs review-only. Profit and 70% detection targets remain unmet.
+
 ## October 2: completed bounded coverage/risk repair
 
 See `backtest/GAME_COVERAGE_REPAIR.md` and final successful run 37081288053.

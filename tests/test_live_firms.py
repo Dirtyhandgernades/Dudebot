@@ -92,6 +92,20 @@ def test_amended_annual_report_must_reconfirm_current_auditor(tmp_path):
     assert result['refreshed']==0 and result['rows'][0]['reason']=='CURRENT_FIRM_ROLES_NOT_RECONFIRMED'
     assert datetime.fromisoformat(store.get('candidate:'+c.key)['reviewed_at'])==c.reviewed_at
 
+
+def test_later_annual_drops_unconfirmed_auditor_but_preserves_dated_underwriter(tmp_path):
+    from smg.live_firms import LiveFirmDiscovery
+    from smg.extraction import LocalParser
+    c=watch('We provide consumer products. Our ordinary shares trade on Nasdaq. '
+            'Cathay Securities served as our underwriter. Wei, Wei & Co. LLP is our auditor.')
+    for match in c.matches:match.evidence.filed_at=(NOW-timedelta(days=30)).date()
+    class Sec:
+        def document(self,url):return {'url':url,'text':'We provide consumer products. Our ordinary shares trade here. An unlisted firm is our new auditor.','sha256':'fixture'}
+    d=LiveFirmDiscovery(Sec(),LocalParser(ENTRIES),Store(tmp_path/'roles.db'),CFG)
+    result=d.reconfirm_annual(c,[{'form':'20-F/A','date':str(NOW.date()),'url':'https://example.com/latest'}],NOW)
+    assert [m.name for m in result.matches]==['Cathay Securities']
+    assert result.matches[0].relationship=='historical'
+
 def test_firm_watch_unknown_terms_stays_research_without_short_timing():
     c=watch();assert c and c.is_acquisition_corp is False
     s=snapshot();s.asof-=timedelta(minutes=16);s.price_time-=timedelta(minutes=16)
