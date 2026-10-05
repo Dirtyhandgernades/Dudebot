@@ -214,7 +214,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -222,7 +222,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     These are sensitivity assumptions, not certified SMG fees/borrow availability.
     """
     index={day:i for i,day in enumerate(sessions)};days=[d for d in sessions if start<=d<=end]
-    cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0
+    cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0;interest_pnl=0.0
     position_target=position_target or initial*.10;buying_power=buying_power or initial
     side=1 if strategy.endswith('LONG') else -1
     if strategy in {'LIVE_FIRM_TIMING_SHORT','FIRM_EXHAUSTION_RESEARCH'} and (firm_dates is None or firm_cfg is None):
@@ -232,8 +232,19 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         raise ValueError('Intraday research requires dated signals, firm evidence and decision-price share sizing')
     if intraday_signals is not None and strategy not in preclose_strategies:raise ValueError('Unexpected intraday signals')
     fee=cost_bps/10000
-    for day in days:
+    for day_position,day in enumerate(days):
         i=index[day]
+        # SMG carries cash interest daily. Apply it before that session's
+        # decisions so a negative cash balance from prior leverage is charged
+        # at the game's margin rate. This is an explicit optional mode because
+        # the older research runs intentionally modeled cash as a simplified
+        # collateral ledger.
+        if smg_cash_interest and day_position:
+            elapsed=(date.fromisoformat(day)-date.fromisoformat(days[day_position-1])).days
+            rate=positive_cash_rate if cash>=0 else negative_cash_rate
+            charge=cash*rate*elapsed/365
+            cash+=charge
+            interest_pnl+=charge
         # Share orders must be sized before today's fills/exits are known.
         decision_equity=marked_equity(cash,positions,adjusted,sessions[i-1],side) if i else None
         decision_room=0
@@ -350,7 +361,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     insolvent=any(row['equity'] is not None and row['equity']<=0 for row in curve)
     financial_status=('ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED' if insolvent else
                       'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
-    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,initial_balance=initial,position_target=position_target,buying_power=buying_power,
+    return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,smg_cash_interest=smg_cash_interest,positive_cash_rate=positive_cash_rate,negative_cash_rate=negative_cash_rate,interest_pnl=round(interest_pnl,2),initial_balance=initial,position_target=position_target,buying_power=buying_power,
         risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,
         account_insolvent=insolvent,financial_status=financial_status,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,

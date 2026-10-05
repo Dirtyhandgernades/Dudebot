@@ -26,6 +26,18 @@ def test_short_accounting_charges_both_sides_and_borrow():
     assert result['trades'][0]['entry_date']==days[22]
     assert result['gross_20pct_winners']==1
 
+def test_smg_cash_interest_applies_daily_positive_and_negative_rates():
+    days,bars=fixture()
+    bars[days[23]]={**bars[days[23]],'c':8}
+    positive=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[23],hold=1,
+                       strategy='PUMP_FAILURE_SHORT',smg_cash_interest=True)
+    assert positive['interest_pnl']==pytest.approx(100000*.0075/365,abs=.01)
+    leveraged=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[23],hold=1,
+                        strategy='FIRM_BASELINE_SHORT',smg_cash_interest=True,buying_power=150000,
+                        position_target=150000,signal_share_sizing=False)
+    assert leveraged['interest_pnl']<0
+    assert leveraged['negative_cash_rate']==pytest.approx(.07)
+
 def test_missing_exit_cannot_become_a_winning_survivor_or_zero_loss():
     days,bars=fixture();del bars[days[23]]
     result=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,start=days[22],end=days[23],hold=1,strategy='FIRM_BASELINE_SHORT')

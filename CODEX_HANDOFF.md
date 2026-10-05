@@ -1,5 +1,33 @@
 # Dudebot continuation handoff
 
+## October 5: SMG accounting replay
+
+Added optional SMG daily cash-interest accounting to `smg/swing_backtest.py`:
+positive cash earns 0.75% annualized and negative cash is charged 7%
+annualized between simulated sessions. Existing research defaults remain
+unchanged; the pre-close replay now enables this mode and records
+`interest_pnl`. The implementation is covered by the full local suite: 221
+tests passed.
+
+Using the existing independently discovered hybrid firm-watch signals and the
+same $100,000 start / $150,000 buying-power assumption, with $30,000 target
+positions and risk controls enabled:
+
+- 2023 base: ending $113,780.91 (+$13,780.91), 6 closed trades.
+- 2024 base: ending $89,073.70 (-$10,926.30), 32 closed trades.
+- 2025 base: ending $175,079.35 (+$75,079.35), 56 closed trades.
+- Stress (100 bps slippage, 100% borrow): 2023 $109,676.60; 2024
+  $72,367.08; 2025 $136,345.66.
+
+The fixed friend-style concentration sensitivity (risk controls disabled,
+still with SMG cash interest) did not validate the $189,000 target across
+periods. A $30,000 target ended 2025 at $185,626.10 but ended 2024 at
+$121,028.51; $40,000 ended 2025 at $165,966.04; $50,000 ended 2025 at
+$178,204.88 and raised 2024 drawdown to 32.356%. These are research
+sensitivities only and do not justify enabling unbounded sizing. The $189,000
+goal and 70% firm-watch coverage remain unmet; no performance claim should be
+made from the 2025 result alone.
+
 ## October 5: live repair verification
 
 Failure annotations on runs 37370164409 / 37363838674 say GitHub never

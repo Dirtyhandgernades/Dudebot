@@ -189,7 +189,7 @@ def run(packet,cfg,client,years,out,max_seconds=600):
                             start=f'{year}-09-08',end=f'{year}-12-05',hold=3,strategy=strategy,
                             cost_bps=bps,borrow_rate=borrow,position_target=30000,buying_power=150000,
                             firm_dates=packet['firm_dates'],firm_cfg=cfg,risk_controls=True,signal_share_sizing=True,
-                            intraday_signals=event_set)
+                            intraday_signals=event_set,smg_cash_interest=True)
             write_json(out/(f'{year}-{strategy}.json' if label=='base' else f'{year}-{strategy}-stress.json'),result)
             if label=='base':write_json(out/f'{year}-{strategy}-lead.json',lead_metrics(result,packet['raw'],packet['split'],packet['sessions'],f'{year}-09-08',f'{year}-12-05'))
             summary.append({'year':year,'strategy':strategy,'cost_case':label,**{k:result[k] for k in ['net_profit','ending_balance','closed_trades','max_observed_drawdown_pct','signals','account_insolvent']},'data_gaps':dict(gaps),
