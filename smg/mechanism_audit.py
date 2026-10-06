@@ -80,6 +80,17 @@ def compact_records(paths,entities):
 def historical_news(symbols,cache,budget=40,pages_per_group=2):
     if not 1<=pages_per_group<=20:raise ValueError('News pages per group must be between 1 and 20')
     cache=Path(cache);cache.mkdir(parents=True,exist_ok=True);http=Http();out={};audit=[];requests=0
+    wanted=set(symbols)
+    def retain(row):
+        compact={k:row.get(k) for k in ('id','headline','url','created_at','updated_at','source','symbols')}
+        for symbol in set(compact.get('symbols') or []) & wanted:
+            existing=out.setdefault(symbol,{}).get(str(compact['id']))
+            if existing is None or (compact.get('updated_at') or compact.get('created_at') or '')>=(existing.get('updated_at') or existing.get('created_at') or ''):
+                out[symbol][str(compact['id'])]=compact
+    # Adding newly discovered issuers changes batch boundaries and query keys.
+    # Preserve earlier archived articles instead of losing them on regrouping.
+    for path in sorted(cache.glob('*.json')):
+        for row in json.loads(path.read_text()).get('news',[]):retain(row)
     headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
     for offset in range(0,len(symbols),25):
         group=symbols[offset:offset+25];page=None;seen=set();new_pages=0
@@ -101,8 +112,7 @@ def historical_news(symbols,cache,budget=40,pages_per_group=2):
                     break
                 path.write_text(json.dumps(data),encoding='utf-8')
             for r in data.get('news',[]):
-                row={k:r.get(k) for k in ('id','headline','url','created_at','updated_at','source','symbols')}
-                for symbol in set(row.get('symbols') or []) & set(group):out.setdefault(symbol,{})[str(row['id'])]=row
+                retain(r)
             page=data.get('next_page_token')
             if not page:
                 audit.append({'symbols':group,'status':'PROVIDER_SEARCH_COMPLETE_NOT_EXHAUSTIVE_WEB_COVERAGE'});break

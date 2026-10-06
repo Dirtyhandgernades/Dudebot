@@ -103,3 +103,5 @@ def test_cached_news_pagination_resumes_instead_of_stopping_at_same_pages(tmp_pa
     second,status,requests=historical_news(['TEST'],tmp_path,budget=2,pages_per_group=2)
     assert len(second['TEST'])==3 and calls==[0,1,2] and requests==2
     assert status[0]['status']=='PROVIDER_SEARCH_COMPLETE_NOT_EXHAUSTIVE_WEB_COVERAGE'
+    regrouped,status,requests=historical_news(['NEW','TEST'],tmp_path,budget=0,pages_per_group=2)
+    assert len(regrouped['TEST'])==3 and requests==0
