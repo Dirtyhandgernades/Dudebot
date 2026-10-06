@@ -47,6 +47,13 @@ forward forecasts before versioning. First session remainsOct7.287 tests pass;
 local full daily replay ~3seconds,0 provider requests. See
 `backtest/AUTOMATIC_IMPROVEMENT.md` and outputs/backtest/daily-adaptive-first.
 
+Hosted first full cycle37538298985 SUCCEEDED on7066661; CI37538249984 also
+SUCCEEDED. Durable challenger adaptive-8b797d36e3d29902c3a9 was STAGED, trained
+3868 available costed historical outcomes through2025-12-05. Active modelnull,
+fresh live outcomes0, orders0, replay requests0. Reports downloaded to
+outputs/daily-adaptive-37538298985. Do not call this a live promotion. Updated
+the existing local first-session verification heartbeat for v2/daily-adaptive.
+
 ## October 6: live verification follow-up and failure isolation
 
 Verified Cloudflare workflow_dispatch cadence at 15-minute intervals on main
