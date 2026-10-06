@@ -114,7 +114,7 @@ def forward_review(path,now=None):
             if cutoff.tzinfo is None or observed-cutoff<timedelta(minutes=16):raise ValueError('Delay missing')
             x=feature_row(forecast['history'])
             if x is None or not all(math.isfinite(v) for v in x):raise ValueError('Missing forecast features')
-        except (ValueError,KeyError,TypeError):invalid+=1;continue
+        except (ValueError,KeyError,TypeError,AttributeError):invalid+=1;continue
         contract=forecast['contract_id'];groups.setdefault(contract,[]).append({
             'ticker':forecast['ticker'],'signal_date':forecast['signal_date'],'entry_date':forecast['signal_date'],
             'x':x,'paper_eligible':forecast['paper_eligible'],'feature_basis':forecast['feature_basis']})

@@ -80,22 +80,30 @@ def run(packet,client,out):
             for ticker,rows in data.items():
                 for bar in rows:grouped[ticker][bar['t'][:10]].append(bar)
             indexed[mode]=grouped
-        early={};late={};point_counts=Counter()
+        early={};late={};confirmed_then_late={};all_events={};point_counts=Counter()
         for day,tickers in candidate_days.items():
-            early[day]=[];late[day]=[];checkpoints=points(day)
+            early[day]=[];late[day]=[];confirmed_then_late[day]=[];all_events[day]=[];checkpoints=points(day)
             for ticker in tickers:
-                chosen=None
+                chosen=None;confirmed=None;late_fallback=None
                 for point in checkpoints:
                     if ticker in public and public[ticker]>point:continue
                     if ticker not in public and day==packet['first_dates'][ticker]:continue
                     event=at_point(packet,ticker,day,indexed['raw'][ticker][day],indexed['split'][ticker][day],point,cfg)
                     if not event:gaps['NO_SETUP_OR_PRICE_WINDOW']+=1;continue
                     event['training_rank']=scores[(day,ticker)]
+                    all_events[day].append(event)
+                    prior=packet['raw'][ticker][sessions[index[day]-1]]['c']
+                    change=event['decision_price']/prior-1
+                    if confirmed is None and change<=.02:confirmed={**event,'position_scale':1.,'entry_filter':'OBSERVED_GAIN_AT_MOST_2_PERCENT'}
                     if chosen is None:chosen=event;point_counts[point.hour*60+point.minute]+=1
-                    if point==checkpoints[-1]:late[day].append(event)
+                    if point==checkpoints[-1]:
+                        late[day].append(event);late_fallback={**event,'position_scale':.5,'entry_filter':'DEFERRED_PRECLOSE_HALF_TARGET'}
                 if chosen:early[day].append(chosen)
+                if confirmed or late_fallback:confirmed_then_late[day].append(confirmed or late_fallback)
+        (out/f'{year}-all-checkpoint-signals.json').write_text(json.dumps(all_events,indent=2))
         scaled,_=scaled_hybrid_events(packet,early)
-        for policy,events in [('PRECLOSE_ONLY',late),('FIRST_INTRADAY_SIGNAL',early),('FIRST_SIGNAL_UPMOVE_HALF_SIZE',scaled)]:
+        for policy,events in [('PRECLOSE_ONLY',late),('FIRST_INTRADAY_SIGNAL',early),('FIRST_SIGNAL_UPMOVE_HALF_SIZE',scaled),
+                              ('CONFIRMED_EARLY_OR_DEFERRED_HALF',confirmed_then_late)]:
             (out/f'{year}-{policy}-signals.json').write_text(json.dumps(events,indent=2))
             row={'year':year,'policy':policy,'candidate_symbols':len(symbols),'candidate_symbol_days':sum(map(len,candidate_days.values())),
                  'rank_threshold':threshold,'training_latest_label':max(r['label_end'] for r in train),
