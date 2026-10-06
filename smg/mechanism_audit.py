@@ -174,8 +174,10 @@ def news_topics(rows):
     return sorted(k for k,pattern in terms.items() if any(re.search(pattern,r.get('headline') or '',re.I) for r in rows))
 
 
-def audit(data,sessions,roster,independent,first,records,news,start,end):
+def audit(data,sessions,roster,independent,first,records,news,start,end,renames=()):
     index={d:i for i,d in enumerate(sessions)};by_ticker=defaultdict(list)
+    identity_ends={r['old_symbol']:r['effective_date'] for r in renames if r.get('status')=='STITCHED_RENAME'}
+    identity_starts={r['new_symbol']:r['effective_date'] for r in renames if r.get('status')=='STITCHED_RENAME'}
     for r in records:by_ticker[r['ticker']].append(r)
     events=[];stock_rows=[];controls=[];alerts=defaultdict(set);gaps=Counter()
     for ticker in roster:
@@ -183,6 +185,7 @@ def audit(data,sessions,roster,independent,first,records,news,start,end):
         active=False;own=[];available=0
         for i,day in enumerate(sessions):
             if not start<=day<=end or i<22:continue
+            if day>=identity_ends.get(ticker,'9999-99-99') or day<identity_starts.get(ticker,'0000-00-00'):continue
             prior=sessions[i-22:i];outcome=sessions[i-3:i+1]
             if any(d not in series for d in outcome):
                 active=False;gaps['OUTCOME_WINDOW_UNAVAILABLE']+=1;continue
@@ -274,8 +277,17 @@ def main():
         extra,n=download(missing,'2022-06-01','2025-12-05',cache);requests+=n
         for mode in data:data[mode].update(extra[mode])
         news,news_audit,n=historical_news(roster,'backtest/runtime/mechanism-news',args.news_budget);requests+=n
+    from .history_identity import usable_rename,apply_renames
+    with Path('config/historical_symbol_changes.csv').open(newline='') as f:changes=list(csv.DictReader(f))
+    changes=[c for c in changes if c['old_symbol'] in first and usable_rename(c,args.end)]
+    if args.collect:
+        for change in changes:
+            extra,n=download([change['new_symbol']],change['effective_date'],args.end,cache);requests+=n
+            for mode in data:data[mode].update(extra[mode])
+    identity_audit=apply_renames(data,records,first,changes,args.end)
+    independent=set(first);roster=sorted(set(roster)|independent)
     sessions=[str(s.date()) for s in calendar(2025).sessions_in_range('2022-06-01','2025-12-05')]
-    result=audit(data,sessions,roster,independent,first,records,news,'2023-01-01',args.end)
+    result=audit(data,sessions,roster,independent,first,records,news,'2023-01-01',args.end,identity_audit)
     lineage=json.loads(Path('backtest/issuer_lineage.json').read_text())['changes']
     for row in result['stock_rows']:
         row['identity_history']=[c for c in lineage if row['ticker'] in {c['old_symbol'],c['new_symbol']}]
@@ -283,7 +295,7 @@ def main():
             row['data_status']='SYMBOL_NOT_EFFECTIVE_DURING_AUDIT_WINDOW; historical MCTR row is separate'
     periods=[]
     for year in (2023,2024,2025):
-        subset=audit(data,sessions,roster,independent,first,records,news,f'{year}-09-08',f'{year}-12-05')
+        subset=audit(data,sessions,roster,independent,first,records,news,f'{year}-09-08',f'{year}-12-05',identity_audit)
         periods.append({'year':year,'events':len(subset['events']),'patterns':subset['pattern_comparison']})
     result['smg_periods']=periods
     if args.collect:
@@ -295,7 +307,7 @@ def main():
         (out/'named-2026-examples.json').write_text(json.dumps(current,indent=2),encoding='utf-8')
     with gzip.open(out/'audit-inputs.json.gz','wt',encoding='utf-8') as f:
         json.dump({'sessions':sessions,'first_dates':first,'independent_symbols':sorted(independent),
-                   'raw':data['raw'],'split':data['split'],'records':records,'news':news},f)
+                   'raw':data['raw'],'split':data['split'],'records':records,'news':news,'renames':identity_audit},f)
     for name,rows in [('stocks',result['stock_rows']),('episodes',result['events']),('firm-rates',result['firm_control_rates'])]:
         (out/f'{name}.json').write_text(json.dumps(rows,indent=2),encoding='utf-8')
         if rows:
@@ -312,6 +324,7 @@ def main():
     (out/'reference-verification.json').write_text(json.dumps(comparison,indent=2),encoding='utf-8')
     summary={k:v for k,v in result.items() if k not in ('stock_rows','events','controls')}
     summary.update(stock_count=len(roster),independent_symbols=len(independent),events=len(result['events']),
+        identity_maintenance=identity_audit,
         family_counts=dict(Counter(r['chart_family'] for r in result['events'])),market_and_news_requests=requests,
         news_coverage=news_audit,news_articles=sum(len(r) for r in news.values()),reference_events=len(refs),
         reference_events_with_close_data=sum(r['measured_close_change_pct'] is not None for r in comparison),

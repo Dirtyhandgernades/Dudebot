@@ -105,3 +105,23 @@ def test_cached_news_pagination_resumes_instead_of_stopping_at_same_pages(tmp_pa
     assert status[0]['status']=='PROVIDER_SEARCH_COMPLETE_NOT_EXHAUSTIVE_WEB_COVERAGE'
     regrouped,status,requests=historical_news(['NEW','TEST'],tmp_path,budget=0,pages_per_group=2)
     assert len(regrouped['TEST'])==3 and requests==0
+
+
+def test_same_security_rename_preserves_marks_without_retroactive_new_symbol_signals():
+    from smg.history_identity import apply_renames,usable_rename
+    from backtest.repair_study import independent_rows
+    change={'old_symbol':'OLD','new_symbol':'NEW','effective_date':'2025-10-03',
+            'published_at':'2025-10-02T13:00:00Z','action':'rename_only','source_url':'https://example.com/proof'}
+    data={'raw':{'OLD':{'2025-10-02':{'c':10}},'NEW':{'2025-10-03':{'c':8}}},
+          'split':{'OLD':{'2025-10-02':{'c':10}},'NEW':{'2025-10-03':{'c':1}}}}
+    records=[{'ticker':'OLD','cik':'123','decision_at':'2025-09-01T14:00:00Z','firm_matches':[]}]
+    first={'OLD':'2025-09-01'};audit=apply_renames(data,records,first,[change],'2025-12-05')
+    assert audit[0]['status']=='STITCHED_RENAME'
+    assert data['split']['OLD']['2025-10-03']['c']==8
+    assert data['split']['NEW']['2025-10-02']['c']==10 and first['NEW']=='2025-10-03'
+    assert records[1]['decision_at']=='2025-10-03T13:30:00+00:00'
+    assert not usable_rename({**change,'published_at':'2025-10-03T14:00:00Z'},'2025-12-05')
+    assert held_issuer('OLD','123')==held_issuer('NEW','000123')
+    windows=[{'ticker':'OLD','issuer_cik':'123','signal_date':'2025-10-02','label_end':'2025-10-08'},
+             {'ticker':'NEW','issuer_cik':'123','signal_date':'2025-10-03','label_end':'2025-10-09'}]
+    assert independent_rows(windows)==windows[:1]

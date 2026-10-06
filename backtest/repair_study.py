@@ -22,15 +22,25 @@ from smg.game_rules import is_excluded_symbol
 from smg.market import calendar,session_bounds
 from smg.mechanism_audit import compact_records,roles_before,news_before,news_topics,longer_ramp_watch
 from smg.risk_model import feature_row,earliest_firm_dates,predict,metrics
-from smg.validation import independent_rows,fit_calibration,calibrated_scores,reliability
+from smg.validation import fit_calibration,calibrated_scores,reliability
 
 FEATURES=('return21','return5','return1','drawdown21','log_volume_ratio','failed_low','range',
           'upper_wick','close_location','peak_age','volume_trend','realized_volatility','long_ramp',
           'public_underwriter','public_auditor','public_counsel','financing_news','distress_news')
 
 
-def held_issuer(ticker):
-    return int(hashlib.sha256(ticker.encode()).hexdigest()[:8],16)%5==0
+def held_issuer(ticker,cik=None):
+    key='CIK:'+str(int(cik)) if cik is not None else 'TICKER:'+ticker
+    return int(hashlib.sha256(key.encode()).hexdigest()[:8],16)%5==0
+
+
+def independent_rows(rows):
+    kept=[];ends={}
+    for row in sorted(rows,key=lambda r:(r['signal_date'],r['ticker'])):
+        key='CIK:'+row['issuer_cik'] if row.get('issuer_cik') else 'TICKER:'+row['ticker']
+        if row['signal_date']<=ends.get(key,''):continue
+        kept.append(row);ends[key]=row['label_end']
+    return kept
 
 
 def features(history,long_history,links,news):
@@ -56,6 +66,7 @@ def build_rows(packet,records):
     for ticker,day in packet['first_dates'].items():first[ticker]=min(day,first.get(ticker,day))
     by_ticker=defaultdict(list)
     for r in records:by_ticker[r['ticker']].append(r)
+    identity_ends={r['old_symbol']:r['effective_date'] for r in packet.get('renames',[]) if r.get('status')=='STITCHED_RENAME'}
     discontinuities=[0]
     for i in range(len(sessions)-1):
         expected=str(calendar(int(sessions[i][:4])).next_session(sessions[i]).date())
@@ -64,9 +75,12 @@ def build_rows(packet,records):
     for ticker,public_day in sorted(first.items()):
         if is_excluded_symbol(ticker) or (len(ticker)==5 and ticker.isalpha()):gaps['HARD_SYMBOL_EXCLUSION']+=1;continue
         series=split.get(ticker,{});unadjusted=raw.get(ticker,{})
+        ciks={str(int(r['cik'])) for r in by_ticker[ticker] if r.get('cik') and str(r['cik']).isdigit()}
+        cik=next(iter(ciks)) if len(ciks)==1 else None
         if not series:gaps['INDEPENDENT_SYMBOL_WITHOUT_PRICE_HISTORY']+=1;continue
         for i in range(21,len(sessions)-4):
             day=sessions[i]
+            if day>=identity_ends.get(ticker,'9999-99-99'):continue
             if day<public_day:continue
             if discontinuities[i+4]!=discontinuities[i-21]:gaps['NONCONTIGUOUS_SESSIONS']+=1;continue
             price=(unadjusted.get(day) or {}).get('c')
@@ -94,7 +108,7 @@ def build_rows(packet,records):
             rows.append({'ticker':ticker,'signal_date':day,'entry_date':span[0],'label_end':span[-1],
                          'x':x,'label':int(decline<=-.20+1e-10) if decline is not None else None,'max_decline_1_3':decline,
                          'same_close_warning_label':warning_label,
-                         'raw_signal_price':price,'decision_at':close.isoformat(),'held_issuer':held_issuer(ticker),
+                         'raw_signal_price':price,'decision_at':close.isoformat(),'held_issuer':held_issuer(ticker,cik),'issuer_cik':cik,
                          'execution':evidence['status'],'execution_gaps':evidence['missing'],
                          'dated_firms':links,'news_ids':[r['id'] for r in news]})
     return rows,dict(gaps),first
@@ -268,7 +282,7 @@ def main():
              'candidate_symbols':len(first),'sampled_symbols':len({r['ticker'] for r in rows}),'rows':len(rows),
              'source_record_count':len(records),'gaps':gaps,'results':results,'unavailable_labels':sum(r['label'] is None for r in rows),
              'live_enabled':False,'frozen_forward_changed':False,'market_requests':0,
-             'limitations':['All tested years previously inspected','Issuer split is symbol-based, not complete issuer lineage',
+             'limitations':['All tested years previously inspected','Issuer split uses unique source CIK where present; unresolved CIKs fall back to symbol',
                             'Bounded news corpus is incomplete; absence of a headline is not absence of an event',
                             'Historical execution evidence missing; strict portfolios must not assume availability']}
     gates=[]
