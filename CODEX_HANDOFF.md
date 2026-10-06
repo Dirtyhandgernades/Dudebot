@@ -1,5 +1,59 @@
 # Dudebot continuation handoff
 
+## October 6: ranked firm layer approved and enabled for October 7
+
+Read `backtest/RANKED_FIRM_DEPLOYMENT.md`. User explicitly authorized judging
+backtest quality and deployment without further approval. Approved ranked
+pre-close exhaustion because all three seasons are positive in base, full
+stress and identical-trade stress, with stressed drawdown <25%; rejected early
+and return/core variants despite some larger 2025 results. This is gated
+advisory notification, not orders or calibrated confidence sizing.
+
+Final corrected checkpoint replay 37516775704 succeeded, reused cache with
+ZERO new requests (initial whole-session minute gather used424 requests once).
+PRECLOSE_ONLY base profits2023/24/25: $3,373.47 /$40,180.81 /$75,549.15;
+full stress $2,179.15 /$27,004.55 /$35,622.07; base trades2 /18 /44.
+2025 ending $175,549.15. Worst stressed drawdown22.919%. Sparse2023 sample
+and historical eligibility/borrow/cap/halts remain limitations; do not claim
+certified executable profits, untouched tests, 70% capture or guaranteed90k.
+
+`config/ranked_firm_alerts.json` enabled, first session2026-10-07, policy
+ranked-firm-2026-10-07-v1. Model trained4013 prior daily observations /457
+positives, latest label2025-12-05; threshold0.43827250876096624, training
+median rank not probability. Source fingerprints include the exact published
+implementation. Do not edit these policy inputs after registration without
+a new version. Old failed `firm_timing_trade_alerts_enabled` remains false.
+
+`smg.ranked_firm --prepare`: batch prior daily bars, rolling cache, prioritizes
+firm shortlist. `--send`: current delayed5Min actual candles, formal source/
+game/halt/borrow gates, early forming-watch embeds with no mentions, qualified
+short-entry phase alerts in validated pre-close window. Hard exclusions and
+free SIP16m delay preserved. Watches are explicitly not trade recommendations.
+Ticker/side/phase claims shared with existing sender; no ambiguous retries.
+
+Nightly `smg.action_learning` learns policy returns and tail losses from
+separate basis/contract groups, never silently retunes deployed weights.
+New ranked observations and cache share future outcome review; no new provider
+request for fitting. Proposed candidate models remain research-only. Full
+early price/market/focus enrichment run37502827341 made only4 requests:
+7335 earlier raw symbol-days added for59 issuers already public before2023,
+plusSPY context which never enters the candidate universe. 2023–25 return
+models failed consistency; all variants and failures preserved in artifacts.
+
+Fixed price-only alias correction: adjusted volume divides by price scale,
+VWAP multiplies by it; old packets upgrade once via repair_legacy_volume.
+Borrow/halt archive receipt timestamps no longer assume request-start access.
+Frozen original experiment v4 startsOct7; source changes versioned before
+any forecast existed. Read-only nightly review keeps empty superseded versions
+explicit and does not bypass populated changed contracts.
+
+276 tests passed; enabled policy fingerprint test added (277 tests). Main
+commit67a430c matches published ranked implementation; preflight45b7c65.
+Message-free production preflight37518437950 dispatched. Verify result before
+claiming final production compatibility. First-session startup and fresh
+three-session outcomes cannot be asserted in advance. Existing daily archive,
+ranked scan steps and nighttime feedback workflow are installed.
+
 ## October 6: repair cycle and wider timing replay
 
 Read `backtest/REPAIR_RESULTS_2026_10_06.md`. 265 tests pass. Verified repairs:
