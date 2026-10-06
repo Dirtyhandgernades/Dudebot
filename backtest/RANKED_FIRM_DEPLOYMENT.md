@@ -1,5 +1,7 @@
 # Ranked firm strategy deployment — October 6, 2026
 
+The user subsequently authorized a daily automated research/backtest/promotion cycle. The explicit v2 ranked extension is documented in [AUTOMATIC_IMPROVEMENT.md](AUTOMATIC_IMPROVEMENT.md). It preserves the base strategy and adds only a prospectively validated rank filter. The initial candidate is collecting evidence; it has not replaced the incumbent.
+
 The earlier broad daily-return candidates did not fix the weak year. They were rejected. I selected the ranked **pre-close firm exhaustion** policy because it was profitable in all three tested seasons in normal costs, a full higher-cost portfolio replay, and higher costs on identical base trades. Its worst observed stressed drawdown was below 25%. This is approval for gated advisory alerts, not automatic orders or calibrated percentage confidence.
 
 ## Final replay

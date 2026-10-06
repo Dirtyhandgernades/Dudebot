@@ -1,5 +1,52 @@
 # Dudebot continuation handoff
 
+## October 6: autonomous daily research, replay and gated promotion
+
+User explicitly authorized automatic research/backtesting/improvement daily.
+New `.github/workflows/daily-adaptive.yml` runs each weekday23:55UTC (18:55
+Central during daylight time,17:55 in winter), shared serialized state queue.
+It refreshes bounded completed live prices, reuses a single immutable cached
+historical bundle, replays2023/24/25 and writes full reports. No Discord webhook
+or order API is available to the research job. Historical replay itself makes
+ZERO provider requests. Existing daytime SEC discovery/news/fundamental
+enrichment remains the automatic source research; do not claim a new LLM news
+researcher or news-trained model. Inputs have pinned SHA256 hashes.
+
+`smg.adaptive_firm` trains three disclosed profit-policy logistic recipes with
+L2=.02/.1/.5 and median threshold selected on prior training only. Historical
+timestamped corpus was prefiltered by the incumbent rank, so the only allowed
+automatic live change is an EXTRA rank filter on already fully qualified firm
+signals, never a replacement universe, looser rules, bigger sizes or orders.
+All losing variants remain in reports. First historical gate selectedL2=.5:
+base profits2023/24/25 $3,373.47 /$41,569.54 /$74,537.40; aggregate full-stress
+improvement $2,313.71. Other two recipes rejected. This is conditional,
+reused-history evidence, not certified profit or an untouched test.
+
+One challenger stays frozen in durable `adaptive_staged`. Base-qualified
+decisions (including later rejected ones) and challenger scores are recorded
+BEFORE outcomes. Completed3-session policy labels and higher-cost labels are
+saved immutably before the90-day provider cache rolls off. Missing inventory
+or prices are unknown. Training takes only matured observations strictly
+before creation date. Candidates incorporate new costed paper outcomes.
+
+Automatic promotion requires all3-year base/stress/same-trade gates, >=50
+fresh issuer-nonoverlapping decisions, >=10 issuers, >=20 sessions, >=20 kept
+and10 rejected outcomes, positive kept net returns, positive paired base and
+stressed improvement, and improvement in both chronological halves. Subsequent
+challengers must beat the CURRENT active model's validated paired decisions,
+not only the original baseline. Retrain daily; start another frozen challenger
+after25 additional training outcomes. A >=10-outcome paired regression rolls
+back to the original fully gated strategy; model/context changes also roll back.
+Each lifecycle event and exact model id is persisted. No calibrated confidence
+or confidence sizing is introduced. Old frozen experimentv4 is untouched.
+
+Published base ranked contract now `ranked-firm-2026-10-07-v2`, source fingerprints
+updated for the explicit adaptive extension; v1 archived underconfig/experiments.
+Read-only remote state check found ZERO ranked contracts/observations and ZERO
+forward forecasts before versioning. First session remainsOct7.287 tests pass;
+local full daily replay ~3seconds,0 provider requests. See
+`backtest/AUTOMATIC_IMPROVEMENT.md` and outputs/backtest/daily-adaptive-first.
+
 ## October 6: live verification follow-up and failure isolation
 
 Verified Cloudflare workflow_dispatch cadence at 15-minute intervals on main

@@ -3,7 +3,7 @@ import yaml
 
 
 def test_state_writers_share_a_serial_queue_that_preserves_pending_discovery_and_delivery():
-    writers=['activate','broad-discover','cloudflare','discover','evidence-archive','noon','practice']
+    writers=['activate','broad-discover','cloudflare','discover','evidence-archive','noon','practice','daily-adaptive']
     for name in writers:
         workflow=yaml.safe_load((Path('.github/workflows')/(name+'.yml')).read_text())
         concurrency=workflow['concurrency']

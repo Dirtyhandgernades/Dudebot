@@ -1,0 +1,68 @@
+name: Daily multi-year research and gated model improvement
+on:
+  schedule:
+    - cron: '55 23 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: smg-state-writer-v2
+  queue: max
+  cancel-in-progress: false
+jobs:
+  learn:
+    if: vars.SMG_LIVE_ENABLED != 'false'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      DISCORD_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/cache/restore@v4
+        id: inputs
+        with:
+          path: backtest/runtime/daily-adaptive-inputs
+          key: daily-adaptive-inputs-v1
+      - uses: actions/download-artifact@v4
+        if: steps.inputs.outputs.cache-hit != 'true'
+        with:
+          name: action-policy-37502827341
+          run-id: 37502827341
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/daily-adaptive-inputs/training
+      - uses: actions/download-artifact@v4
+        if: steps.inputs.outputs.cache-hit != 'true'
+        with:
+          name: intraday-checkpoints-37516775704
+          run-id: 37516775704
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/daily-adaptive-inputs/signals
+      - name: Refresh completed live outcome prices with the existing bounded cache
+        run: python -m smg.ranked_firm --collect-only
+      - name: Replay three years, train and validate a frozen challenger, promote or roll back
+        run: >-
+          python -u -m smg.adaptive_firm
+          --packet backtest/runtime/daily-adaptive-inputs/training/action-inputs/inputs.json.gz
+          --signals backtest/runtime/daily-adaptive-inputs/signals
+      - uses: actions/cache/save@v4
+        if: success() && steps.inputs.outputs.cache-hit != 'true'
+        with:
+          path: backtest/runtime/daily-adaptive-inputs
+          key: daily-adaptive-inputs-v1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-adaptive-${{ github.run_id }}
+          path: reports/daily-adaptive/
+          retention-days: 90

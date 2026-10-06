@@ -22,6 +22,7 @@ from .shortability import executable_short
 from .transport import Http
 from .storage import Store,GitHubState
 from .notify import DiscordSender
+from .adaptive_firm import apply_active
 
 UTC=timezone.utc
 
@@ -185,6 +186,9 @@ def main():
             observed_now=datetime.now(UTC)
             result=eligible_signal(c,histories[c.ticker],raw_histories[c.ticker],partial_bar(split.get(c.ticker,[]),bounds[0],now-timedelta(minutes=16)),
                 partial_bar(raw.get(c.ticker,[]),bounds[0],now-timedelta(minutes=16)),observed_now,cfg,entities,spec,borrow,halt,caps)
+            # Base eligibility and the original model are unchanged. Adaptive
+            # decisions are recorded before any additional promoted rank filter.
+            if not args.preflight:result=apply_active(store,result,spec,observed_now)
             store.put('ranked_evaluation:'+c.key,result.model_dump(mode='json'));results.append(result)
             context=result.ranking_evidence.get('ranked_firm')
             if context and not args.preflight:
