@@ -82,14 +82,18 @@ def build_rows(packet,records):
             # No strict candle prerequisite: rank the broad short/long ramp watch.
             if not (x[0]>=.12 or x[1]>=.20 or x[12]):continue
             span=sessions[i+1:i+5]
-            if not all(d in series and d in unadjusted for d in span):gaps['ENTRY_OR_OUTCOME_MISSING']+=1;continue
-            entry=series[span[0]]['c'];future=[series[d]['c'] for d in span[1:]]
-            decline=min(future)/entry-1
+            outcome_complete=all(d in series for d in span)
+            if not outcome_complete:gaps['ENTRY_OR_OUTCOME_MISSING']+=1
+            # Missing future bars are a pending/unavailable label, not a
+            # reason to erase an otherwise observable earlier candidate.
+            decline=min(series[d]['c'] for d in span[1:])/series[span[0]]['c']-1 if outcome_complete else None
+            warning_days=sessions[i+1:i+4]
+            warning_label=int(min(series[d]['c'] for d in warning_days)/history[-1]['c']-1<=-.20+1e-10) if all(d in series for d in warning_days) else None
             close=session_bounds(date.fromisoformat(day))[1]
             evidence=execution_evidence(ticker,close.isoformat(),price)
             rows.append({'ticker':ticker,'signal_date':day,'entry_date':span[0],'label_end':span[-1],
-                         'x':x,'label':int(decline<=-.20+1e-10),'max_decline_1_3':decline,
-                         'same_close_warning_label':int(min(series[d]['c'] for d in sessions[i+1:i+4])/history[-1]['c']-1<=-.20+1e-10),
+                         'x':x,'label':int(decline<=-.20+1e-10) if decline is not None else None,'max_decline_1_3':decline,
+                         'same_close_warning_label':warning_label,
                          'raw_signal_price':price,'decision_at':close.isoformat(),'held_issuer':held_issuer(ticker),
                          'execution':evidence['status'],'execution_gaps':evidence['missing'],
                          'dated_firms':links,'news_ids':[r['id'] for r in news]})
@@ -181,13 +185,13 @@ def evaluate(rows,packet,out):
     results=[];out.mkdir(parents=True,exist_ok=True)
     for year in (2023,2024,2025):
         cutoff=f'{year}-01-01';cal_start=str(date(year,1,1)-timedelta(days=180))
-        prior_days=sorted({r['signal_date'] for r in rows if r['label_end']<cutoff and not r['held_issuer']})
+        prior_days=sorted({r['signal_date'] for r in rows if r['label'] is not None and r['label_end']<cutoff and not r['held_issuer']})
         # A short initial packet must not reserve virtually all earlier bars
         # for calibration. Choose this split using dates only, never outcomes.
         if prior_days:cal_start=max(cal_start,prior_days[min(len(prior_days)-1,int(.70*len(prior_days)))])
         # Hold 20% of tickers out from BOTH fit and calibration, deterministically.
-        train=independent_rows([r for r in rows if r['label_end']<cal_start and not r['held_issuer']])
-        calibration=independent_rows([r for r in rows if cal_start<=r['signal_date'] and r['label_end']<cutoff and not r['held_issuer']])
+        train=independent_rows([r for r in rows if r['label'] is not None and r['label_end']<cal_start and not r['held_issuer']])
+        calibration=independent_rows([r for r in rows if r['label'] is not None and cal_start<=r['signal_date'] and r['label_end']<cutoff and not r['held_issuer']])
         test=[r for r in rows if f'{year}-09-08'<=r['signal_date'] and r['label_end']<=f'{year}-12-05']
         for name,width in [('CORE_PRICE',7),('STRUCTURE_AND_DATED_CONTEXT',len(FEATURES)),
                            ('STRUCTURE_WITH_COOLING_GUARD',len(FEATURES))]:
@@ -199,7 +203,8 @@ def evaluate(rows,packet,out):
             predicted=scores(model,test)
             def timing(r):return name!='STRUCTURE_WITH_COOLING_GUARD' or (-.12<=r['x'][2]<=.10 and r['x'][8]<=.65)
             selected=[{**r,'score':s} for r,s in zip(test,predicted) if s>=threshold and timing(r)]
-            independent=independent_rows(test);ind_scores=scores(model,independent)
+            known_test=[r for r in test if r['label'] is not None]
+            independent=independent_rows(known_test);ind_scores=scores(model,independent)
             hold=[r for r in independent if r['held_issuer']]
             calibrated=calibrated_scores(calibrator,ind_scores)
             base_rate=sum(r['label'] for r in calibration)/len(calibration) if calibration else None
@@ -214,9 +219,10 @@ def evaluate(rows,packet,out):
             result={'year':year,'model':name,'training_windows':len(train),'calibration_windows':len(calibration),
                     'training_latest_label':model['training_latest_label'],'calibration_latest_label':max((r['label_end'] for r in calibration),default=None),
                     'threshold_source':'Fixed 90th percentile of prior TRAINING scores, not future profit',
-                    'rank_threshold':threshold,'warning_same_close_positives':sum(r['same_close_warning_label'] for r in independent),
+                    'rank_threshold':threshold,'warning_same_close_positives':sum(r['same_close_warning_label'] or 0 for r in independent),
                     'next_close_entry_positives':sum(r['label'] for r in independent),
-                    'all_daily':metrics(test,predicted,threshold),'independent_windows':metrics(independent,ind_scores,threshold),
+                    'all_daily':metrics(known_test,scores(model,known_test),threshold),'independent_windows':metrics(independent,ind_scores,threshold),
+                    'unavailable_outcome_candidates':len(test)-len(known_test),
                     'timing_guard':'Prior return between -12% and +10%; close in lower 65% of range' if name.endswith('GUARD') else None,
                     'selected_independent_windows':len(selected_windows),
                     'selected_window_precision':sum(r['label'] for r in selected_windows)/len(selected_windows) if selected_windows else None,
@@ -230,6 +236,21 @@ def evaluate(rows,packet,out):
                 p=portfolio(selected,packet['raw'],packet['split'],packet['sessions'],year,strict,bps,borrow)
                 (out/f'{year}-{name}-{case}.json').write_text(json.dumps(p,indent=2))
                 result[case]={k:p[k] for k in ('ending_balance','net_profit','closed_trades','max_drawdown_pct')}
+            # Future labels annotate what was missed; they never alter the
+            # earlier rank, threshold or action. Keep losses and unknowns too.
+            decisions=[]
+            for r,s in zip(test,predicted):
+                action='SELECTED_RESEARCH' if s>=threshold and timing(r) else 'TIMING_GUARD_REJECTED' if s>=threshold else 'RANK_BELOW_PRIOR_THRESHOLD'
+                decisions.append({'ticker':r['ticker'],'signal_date':r['signal_date'],'entry_date':r['entry_date'],
+                                  'label_end':r['label_end'],'rank_score':s,'rank_threshold':threshold,'action':action,
+                                  'outcome_20pct_after_entry':r['label'],'same_close_warning_outcome':r['same_close_warning_label'],
+                                  'held_issuer':r['held_issuer'],'execution_status':r['execution'],
+                                  'execution_gaps':'|'.join(r['execution_gaps'])})
+            if decisions:
+                with (out/f'{year}-{name}-decisions.csv').open('w',newline='',encoding='utf-8') as f:
+                    writer=csv.DictWriter(f,fieldnames=list(decisions[0]));writer.writeheader();writer.writerows(decisions)
+            result['missed_after_entry_positives']=sum(d['outcome_20pct_after_entry']==1 and d['action']!='SELECTED_RESEARCH' for d in decisions)
+            result['decision_actions']=dict(Counter(d['action'] for d in decisions))
             result['reliability']=reliability(independent,calibrated) if calibrated else {'status':'CALIBRATION_UNAVAILABLE'}
             results.append(result)
     return results
@@ -245,11 +266,23 @@ def main():
     with gzip.open(out/'observations.json.gz','wt',encoding='utf-8') as f:json.dump(rows,f)
     summary={'status':'REUSED_HISTORY_RESEARCH_NOT_LIVE_VALIDATION','input_sha256':hashlib.sha256(raw_bytes).hexdigest(),
              'candidate_symbols':len(first),'sampled_symbols':len({r['ticker'] for r in rows}),'rows':len(rows),
-             'source_record_count':len(records),'gaps':gaps,'results':results,
+             'source_record_count':len(records),'gaps':gaps,'results':results,'unavailable_labels':sum(r['label'] is None for r in rows),
              'live_enabled':False,'frozen_forward_changed':False,'market_requests':0,
              'limitations':['All tested years previously inspected','Issuer split is symbol-based, not complete issuer lineage',
                             'Bounded news corpus is incomplete; absence of a headline is not absence of an event',
                             'Historical execution evidence missing; strict portfolios must not assume availability']}
+    gates=[]
+    for name in ('CORE_PRICE','STRUCTURE_AND_DATED_CONTEXT','STRUCTURE_WITH_COOLING_GUARD'):
+        by_year={r['year']:r for r in results if r['model']==name}
+        failures=['FRESH_PROSPECTIVE_OUTCOMES_REQUIRED','HISTORICAL_EXECUTION_UNVERIFIED']
+        for year in (2023,2024,2025):
+            row=by_year.get(year,{})
+            if not row.get('base'):failures.append(f'{year}_INSUFFICIENT_DATA');continue
+            if row['base']['net_profit'] is None or row['base']['net_profit']<=0:failures.append(f'{year}_BASE_NOT_PROFITABLE')
+            if row['stress']['net_profit'] is None or row['stress']['net_profit']<=0:failures.append(f'{year}_STRESS_NOT_PROFITABLE')
+            if row['confidence_gate']=='FAIL':failures.append(f'{year}_STATISTICAL_GATE_FAILED')
+        gates.append({'model':name,'status':'BLOCKED','reasons':failures,'live_enabled':False})
+    summary['promotion_gates']=gates
     (out/'summary.json').write_text(json.dumps(summary,indent=2),encoding='utf-8')
     print(json.dumps({**{k:summary[k] for k in ('candidate_symbols','sampled_symbols','rows','gaps')},
                       'results':[{k:r[k] for k in ('year','model','status') if k in r}|{k:r[k] for k in ('base','stress','strict','confidence_gate','held_issuer_windows') if k in r} for r in results]}),flush=True)

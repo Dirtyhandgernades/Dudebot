@@ -63,6 +63,12 @@ def test_future_prices_cannot_change_prior_feature_vector_and_issuer_split_is_fi
     assert held_issuer('TEST')==held_issuer('TEST')
 
 
+def test_missing_future_bar_preserves_observable_candidate_without_inventing_label():
+    data,days=packet();del data['split']['TEST'][days[34]]
+    row=next(r for r in build_rows(data,[])[0] if r['signal_date']==days[30])
+    assert row['label'] is None and row['x'] is not None
+
+
 def test_strict_portfolio_does_not_place_unknown_execution_trade():
     data,days=packet()
     row={'ticker':'TEST','signal_date':'2025-09-08','entry_date':'2025-09-09',
