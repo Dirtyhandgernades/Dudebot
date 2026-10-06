@@ -49,6 +49,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-tested.txt
       - run: python -m pip install -e . -c requirements-tested.txt
+      - name: Prioritize firm watches with matching completed daily rank features
+        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.ranked_firm --prepare
       - name: Alert once when a new trade phase qualifies
         if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli alert --send
@@ -58,6 +61,9 @@ jobs:
       - name: Enrich eight pending symbols with daily fundamentals and sentiment
         if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli archive-enrich
+      - name: Publish newly qualified ranked firm signals and distinct research watches
+        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        run: python -m smg.ranked_firm --send
       - name: Review prior scans against subsequent closes
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
         run: python -m smg.cli review
@@ -66,7 +72,9 @@ jobs:
         run: python -m smg.cli archive-backfill --max-days 10
       - name: Learn realized policy returns and squeeze losses without retuning live weights
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
-        run: python -m smg.action_learning --state runtime/state.sqlite --out reports/action-policy-learning.json
+        run: |
+          python -m smg.ranked_firm --collect-only
+          python -m smg.action_learning --state runtime/state.sqlite --out reports/action-policy-learning.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -78,5 +86,6 @@ jobs:
             reports/daily-outcome-review.json
             reports/frozen-forward-capture.json
             reports/action-policy-learning.json
+            reports/ranked-firm-alerts.json
           if-no-files-found: ignore
           retention-days: 30

@@ -36,12 +36,12 @@ def rationale(e):
         lines += [f'<{v.url}>' for v in c.evidence.values() if urlsplit(v.url).scheme=='https']
         return '\n'.join(lines)
     if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons:
-        entity='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches)
+        entity='; '.join(f"{x['name']} ({x['role']}; {x['category']}; {x.get('relationship','source-dated association')})" for x in e.matches)
         phase='monthly history unavailable' if m.monthly_return is None else 'below preferred surge' if 'NOT_YET_PUMPED_OR_BELOW_PREFERRED_SURGE' in e.reasons else 'lower-priority surge' if 'LOW_PRIORITY_MONTHLY_SURGE' in e.reasons else 'pumped'
         if m.drawdown_pct<=-20:phase+='; below recent high'
         lines=[f'**FIRM-FIRST WATCH | {clean(c.ticker)} | {clean(c.name)}**',
                'Listed-firm relationship: '+clean(entity)+'.',
-               f'Price ${m.price:,.2f} | 21-session return {metric(m.monthly_return,"%")} | RVOL {metric(m.rvol,"×")}.',
+               f'Price ${m.price:,.2f} | 21-session return {metric(m.monthly_return,"%")} | '+('RVOL proxy ' if 'UNIFORM_TIME_VOLUME_PROJECTION' in m.flags else 'RVOL ')+f'{metric(m.rvol,"×")}.',
                f'State: {phase}; drawdown from recent high {m.drawdown_pct:.2f}%.',
                f'IPO date: {c.ipo_date or "unverified"} | offering price {metric(c.offer_price)}; proceeds {metric(c.offer_gross)}.',
                'Offering size, price, age, geography and pump/volume are preferences; firm association is a research signal.',
@@ -51,6 +51,10 @@ def rationale(e):
         if gaps:lines.append('Preference/data gaps: '+clean(', '.join(gaps))[:450])
         urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
         lines+=['Sources:']+[f'<{u}>' for u in urls if urlsplit(u).scheme=='https' and '@' not in urlsplit(u).netloc]
+        ranked=e.ranking_evidence.get('ranked_firm')
+        if ranked:
+            lines.append('Setup: ranked firm exhaustion; intended review horizon 1–3 sessions. Rank is not a calibrated dump probability.')
+            if ranked.get('position_scale')==.5:lines.append('Continuing upward move: half the research position target; fixed risk adjustment, not confidence sizing.')
         return '\n'.join(lines)
     entity='; '.join(f"{x['name']} ({x['role']}; {x['category']})" for x in e.matches)
     title='IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'

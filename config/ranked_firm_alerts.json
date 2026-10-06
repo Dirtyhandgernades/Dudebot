@@ -1,0 +1,12 @@
+{
+  "id": "ranked-firm-2026-10-07-v1",
+  "enabled": false,
+  "first_session": "2026-10-07",
+  "confidence_sizing_enabled": false,
+  "entry_policy": "PRECLOSE_ONLY",
+  "position_target": 50000,
+  "model": null,
+  "rank_threshold": null,
+  "implementation_sha256": {},
+  "status": "AWAITING_FINAL_CHECKPOINT_REPLAY"
+}

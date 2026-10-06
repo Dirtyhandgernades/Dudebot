@@ -52,6 +52,18 @@ def test_early_price_history_aligns_units_and_rejects_raw_revision():
     assert align_early_history(packet,extra)['alignment_gaps'][0]['reason']=='RAW_HISTORY_REVISION_REQUIRES_REVIEW'
 
 
+def test_rename_alignment_preserves_price_times_volume_and_is_idempotent():
+    from smg.history_identity import repair_legacy_volume
+    packet={'renames':[{'status':'STITCHED_RENAME','old_symbol':'OLD','new_symbol':'NEW',
+                       'effective_date':'2025-10-03','adjusted_scale':.1}],
+            'split':{'OLD':{'2025-10-03':{'c':25,'v':50,'vw':250}},'NEW':{'2025-10-03':{'c':25,'v':50,'vw':250}}}}
+    repair_legacy_volume(packet)
+    assert packet['split']['NEW']['2025-10-03']['v']==500
+    assert packet['split']['NEW']['2025-10-03']['vw']==25
+    repair_legacy_volume(packet)
+    assert packet['split']['NEW']['2025-10-03']['v']==500
+
+
 def test_augmented_context_does_not_read_future_prices_or_trade_market_proxy():
     from backtest.extend_training_inputs import augment_rows
     from backtest.repair_study import build_rows

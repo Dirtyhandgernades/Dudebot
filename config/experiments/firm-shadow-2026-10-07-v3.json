@@ -1,6 +1,6 @@
 {
-  "id": "firm-shadow-2026-10-07-v4",
-  "frozen_at": "2026-10-06T18:29:11Z",
+  "id": "firm-shadow-2026-10-07-v3",
+  "frozen_at": "2026-10-06T16:33:51Z",
   "start_date": "2026-10-07",
   "end_date": "2026-12-05",
   "target_drop_fraction": 0.2,
@@ -87,7 +87,7 @@
     "smg/validation.py": "7e988b1b152d04dc8b640ce984d9595f73b61c7d64afa7a2d5f51fe442375c4f",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
-    "smg/swing_backtest.py": "1fcb8b602dd4452923db325234fe50fea22a2b6819b32cfe9f780952353ac5db",
+    "smg/swing_backtest.py": "89214f7d1a7f80141464bc98ce9b8ecc32feff67d83ec27878c79eb36298b305",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
     "smg/models.py": "74da1afe7ce2354c17323a70c879c90ab72f00e2ce44aa9fad6e8c7277725139",
     "smg/providers.py": "f1b353234e2845858868e000f0a558accf1b64905143eed9a94030c5e4809d6c",
@@ -112,6 +112,6 @@
     "minimum_positive_outcomes": 10,
     "minimum_distinct_tickers": 5
   },
-  "parent_contract_id": "firm-shadow-2026-10-07-v3",
-  "version_reason": "Unchanged forecast weights; correctly align adjusted volume as well as prices across same-security renames. Prior version had no forecasts before Oct7 start."
+  "parent_contract_id": "firm-shadow-2026-10-07-v2",
+  "version_reason": "Unchanged forecast weights; 20% pre-order sizing reserve, observed fill-overshoot diagnostics, and efficient SHA-guarded state restore. No retrospective cancellation by target size. Earlier contracts had zero forecasts before migration."
 }

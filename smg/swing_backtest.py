@@ -172,8 +172,10 @@ def stitch_rename(data,change):
     for day in after:
         old_raw[day]=dict(new_raw[day])
         old_split[day]={**new_split[day],**{k:new_split[day][k]*scale for k in ('o','h','l','c') if k in new_split[day]}}
+        if 'v' in old_split[day]:old_split[day]['v']/=scale
+        if 'vw' in old_split[day]:old_split[day]['vw']*=scale
     data['raw'][old]=old_raw;data['split'][old]=old_split
-    return {'status':'STITCHED_RENAME','mapped_sessions':len(after),'adjusted_scale':scale,**change}
+    return {'status':'STITCHED_RENAME','mapped_sessions':len(after),'adjusted_scale':scale,'volume_alignment_applied':True,**change}
 
 def borrow_metrics(signal_events,observations):
     """Use only borrow evidence known by the planned entry close.

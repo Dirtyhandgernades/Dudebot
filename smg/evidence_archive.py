@@ -108,7 +108,7 @@ class EvidenceArchiver:
         self.store.observe(kind,subject,now,source,{'status':'UNAVAILABLE','error_type':type(exc).__name__})
 
     def collect(self,symbol_to_cik,now=None):
-        now=now or datetime.now(UTC);symbols=sorted(symbol_to_cik)
+        now=now or datetime.now(UTC);symbols=sorted(symbol_to_cik);started=time.monotonic()
         effective=now-timedelta(minutes=16);summary={'observed_at':now.isoformat(),'symbols':len(symbols),'failures':[]}
         if not symbols:return {**summary,'status':'EMPTY_WATCHLIST'}
         try:assets=current_assets(self.http,symbols,self.alpaca_headers,max_seconds=75)['assets']
@@ -116,15 +116,18 @@ class EvidenceArchiver:
             assets={s:{'status':'UNAVAILABLE','error_type':type(exc).__name__} for s in symbols}
         try:market=_recent_market(self.http,self.alpaca_headers,symbols,effective) if is_open(effective) else {}
         except Exception as exc:market={};summary['failures'].append('MARKET:'+type(exc).__name__)
+        received=now+timedelta(seconds=time.monotonic()-started)
         for symbol in symbols:
             value={**assets.get(symbol,{'status':'UNAVAILABLE'}),**market.get(symbol,{})}
             value['effective_at']=effective.isoformat();value['data_delay_minutes']=16
-            self.store.observe('market_borrow',symbol,now,'https://paper-api.alpaca.markets/v2/assets/'+quote(symbol),value)
+            value['observation_time_basis']='RECEIVED_BY_COLLECTOR; not assumed at request start'
+            self.store.observe('market_borrow',symbol,received,'https://paper-api.alpaca.markets/v2/assets/'+quote(symbol),value)
 
         try:
             xml=self.http.response(HALT_URL).content;events=halt_events(xml);halted={e['symbol'] for e in events if not e.get('resumption_trade_time')}
-            for event in events:self.store.observe('halt_event',event['symbol'],now,HALT_URL,event)
-            for symbol in symbols:self.store.observe('halt_status',symbol,now,HALT_URL,{'status':'HALTED' if symbol in halted else 'CLEAR'})
+            halt_received=now+timedelta(seconds=time.monotonic()-started)
+            for event in events:self.store.observe('halt_event',event['symbol'],halt_received,HALT_URL,event)
+            for symbol in symbols:self.store.observe('halt_status',symbol,halt_received,HALT_URL,{'status':'HALTED' if symbol in halted else 'CLEAR'})
         except Exception as exc:
             summary['failures'].append('HALTS:'+type(exc).__name__)
             for symbol in symbols:self._record_failure('halt_status',symbol,now,HALT_URL,exc)

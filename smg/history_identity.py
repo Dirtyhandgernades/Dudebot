@@ -13,6 +13,20 @@ def usable_rename(change,end):
     return bool(change.get('action')=='rename_only' and effective<=end and published and bounds and published<=bounds[0] and change.get('source_url'))
 
 
+def repair_legacy_volume(packet):
+    """Upgrade archived price-only alias normalization exactly once."""
+    for change in packet.get('renames',[]):
+        if change.get('status')!='STITCHED_RENAME' or change.get('volume_alignment_applied'):continue
+        scale=change['adjusted_scale']
+        for symbol in (change['old_symbol'],change['new_symbol']):
+            for day,bar in packet['split'].get(symbol,{}).items():
+                if day<change['effective_date']:continue
+                if 'v' in bar:bar['v']/=scale
+                if 'vw' in bar:bar['vw']*=scale
+        change['volume_alignment_applied']=True
+    return packet
+
+
 def apply_renames(data,records,first,changes,end):
     audit=[]
     for change in changes:

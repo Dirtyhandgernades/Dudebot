@@ -88,41 +88,45 @@ def forward_review(path,now=None):
     """Read only the existing forecast/price ledger. Missing outcomes stay unknown."""
     now=now or datetime.now(timezone.utc)
     db=sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro',uri=True)
-    values={k:json.loads(v) for k,v in db.execute("SELECT key,value FROM kv WHERE key LIKE 'forward_forecast:%' OR key LIKE 'forward_prices:%' OR key LIKE 'forward_contract:%'")};db.close()
+    values={k:json.loads(v) for k,v in db.execute("SELECT key,value FROM kv WHERE key LIKE 'forward_forecast:%' OR key LIKE 'forward_prices:%' OR key LIKE 'forward_contract:%' OR key LIKE 'ranked_observation:%' OR key LIKE 'ranked_contract:%' OR key='ranked_daily_history'")};db.close()
     split={k.removeprefix('forward_prices:split:'):v for k,v in values.items() if k.startswith('forward_prices:split:')}
     raw={k.removeprefix('forward_prices:raw:'):v for k,v in values.items() if k.startswith('forward_prices:raw:')}
+    daily=values.get('ranked_daily_history',{});ranked_split=daily.get('split',{});ranked_raw=daily.get('raw',{})
     # A manual daytime review cannot treat the current partial daily bar as final.
-    for data in (split,raw):
+    for data in (split,raw,ranked_split,ranked_raw):
         for series in data.values():
             for day in list(series):
                 bounds=session_bounds(date.fromisoformat(day))
                 if not bounds or bounds[1]+timedelta(minutes=16)>now:del series[day]
-    groups={};invalid=0
+    groups={};invalid=0;bases={}
     for key,forecast in values.items():
-        if not key.startswith('forward_forecast:'):continue
+        ranked=key.startswith('ranked_observation:')
+        if not key.startswith('forward_forecast:') and not ranked:continue
         try:
             observed=datetime.fromisoformat(forecast['observed_at'].replace('Z','+00:00'))
             bounds=session_bounds(date.fromisoformat(forecast['signal_date']))
             if observed.tzinfo is None or observed>now or not bounds or not bounds[0]<=observed<bounds[1]:raise ValueError('Invalid forecast time')
-            contract=values.get('forward_contract:'+forecast['contract_id'],{})
+            contract=values.get(('ranked_contract:' if ranked else 'forward_contract:')+forecast['contract_id'],{})
             if not contract.get('sha256') or forecast.get('contract_sha256')!=contract['sha256']:raise ValueError('Unknown forecast contract')
-            if not forecast['feature_basis'].startswith('REGULAR_SESSION_MINUTE_AGGREGATES'):raise ValueError('Different feature basis')
-            history_days=[r['date'] for r in forecast['history']]
+            expected='PROVIDER_DAILY_COMPLETED_BEFORE_ENTRY' if ranked else 'REGULAR_SESSION_MINUTE_AGGREGATES'
+            if not forecast['feature_basis'].startswith(expected):raise ValueError('Different feature basis')
+            history_days=forecast['history_dates'] if ranked else [r['date'] for r in forecast['history']]
             if len(history_days)!=22 or history_days!=sorted(set(history_days)) or history_days[-1]>=forecast['signal_date']:
                 raise ValueError('History contains current/future features')
-            cutoff=datetime.fromisoformat(forecast['event']['data_cutoff'].replace('Z','+00:00'))
+            cutoff=datetime.fromisoformat((forecast['data_cutoff'] if ranked else forecast['event']['data_cutoff']).replace('Z','+00:00'))
             if cutoff.tzinfo is None or observed-cutoff<timedelta(minutes=16):raise ValueError('Delay missing')
-            x=feature_row(forecast['history'])
+            x=forecast['x'] if ranked else feature_row(forecast['history'])
             if x is None or not all(math.isfinite(v) for v in x):raise ValueError('Missing forecast features')
         except (ValueError,KeyError,TypeError,AttributeError):invalid+=1;continue
         contract=forecast['contract_id'];groups.setdefault(contract,[]).append({
             'ticker':forecast['ticker'],'signal_date':forecast['signal_date'],'entry_date':forecast['signal_date'],
             'x':x,'paper_eligible':forecast['paper_eligible'],'feature_basis':forecast['feature_basis']})
+        bases[contract]=(ranked_split,ranked_raw) if ranked else (split,raw)
     reports=[]
     for contract,forecasts in groups.items():
         # Never pool contracts or daily-provider training with this live feature basis.
-        rows=add_outcomes(forecasts,split,raw);known=[];ends={}
-        for row in sorted(rows,key=lambda r:(r['signal_date'],r['ticker'])):
+        data,raw_data=bases[contract];rows=add_outcomes(forecasts,data,raw_data);known=[];ends={}
+        for row in sorted(rows,key=lambda r:(r['signal_date'],r['ticker'],not r['paper_eligible'])):
             if row['policy_net_return'] is None or row['signal_date']<=ends.get(row['ticker'],''):continue
             known.append(row);ends[row['ticker']]=row['label_end']
         tail_count=sum(r['tail_loss'] for r in known);profit_count=sum(r['policy_profitable'] for r in known)

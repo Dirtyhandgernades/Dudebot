@@ -16,6 +16,7 @@ from smg.game_rules import is_excluded_symbol
 from smg.market import session_bounds
 from smg.risk_model import samples,fit,predict,feature_row,matured_before
 from smg.swing_backtest import simulate
+from smg.history_identity import repair_legacy_volume
 from backtest.repair_study import fixed_trade_cost_sensitivity
 
 
@@ -33,6 +34,7 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     for change in packet.get('renames',[]):
         if change.get('status')=='STITCHED_RENAME' and ticker==change['new_symbol'] and day>=change['effective_date']:
             adjusted={**adjusted,**{k:adjusted[k]*change['adjusted_scale'] for k in ('o','h','l','c')}}
+            adjusted['v']/=change['adjusted_scale']
     event=hybrid_event(packet,ticker,day,adjusted,raw,cfg)
     if event:
         event.update(decision_at=decision.isoformat(),data_cutoff=cutoff.isoformat(),
@@ -41,7 +43,7 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
 
 
 def run(packet,client,out):
-    out.mkdir(parents=True,exist_ok=True);packet={**packet,'firm_dates':packet['first_dates']}
+    out.mkdir(parents=True,exist_ok=True);packet=repair_legacy_volume(packet);packet={**packet,'firm_dates':packet['first_dates']}
     sessions=packet['sessions'];index={d:i for i,d in enumerate(sessions)};results=[];public={}
     for row in packet['records']:
         if 'VERIFIED_LISTED_FIRM_RELATIONSHIP' not in row.get('reasons',[]):continue

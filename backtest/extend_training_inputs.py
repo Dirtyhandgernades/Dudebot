@@ -9,6 +9,7 @@ import yaml
 from smg.market import calendar
 from smg.rules import EntityList,normalize_name
 from smg.swing_backtest import download
+from smg.history_identity import repair_legacy_volume
 from backtest.repair_study import build_rows
 
 EXTRA_FEATURES=('focus_auditor_association','focus_underwriter_association','focus_counsel_association',
@@ -59,7 +60,9 @@ def align_early_history(packet,extra,end='2022-06-07'):
             for day,bar in extra.get(mode,{}).get(ticker,{}).items():
                 if day in packet[mode].get(ticker,{}):continue
                 value=dict(bar)
-                if mode=='split':value.update({k:value[k]*ratio for k in ('o','h','l','c') if k in value})
+                if mode=='split':
+                    value.update({k:value[k]*ratio for k in ('o','h','l','c','vw') if k in value})
+                    if 'v' in value:value['v']/=ratio
                 packet[mode].setdefault(ticker,{})[day]=value
                 if mode=='raw':added+=1
     return {'added_raw_symbol_days':added,'alignment_gaps':gaps}
@@ -68,7 +71,7 @@ def align_early_history(packet,extra,end='2022-06-07'):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--packet',required=True);parser.add_argument('--out',required=True)
     parser.add_argument('--collect',action='store_true');args=parser.parse_args();out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
-    packet=json.loads(gzip.decompress(Path(args.packet).read_bytes()));requests=0;collection={}
+    packet=repair_legacy_volume(json.loads(gzip.decompress(Path(args.packet).read_bytes())));requests=0;collection={}
     if args.collect:
         early=sorted(s for s,d in packet['first_dates'].items() if d<'2023-01-01')
         cache=Path('backtest/runtime/action-history');cache.mkdir(parents=True,exist_ok=True)
