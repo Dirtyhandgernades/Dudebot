@@ -1,0 +1,18 @@
+{
+  "version": "research-2026-10-06-v1",
+  "status": "RESEARCH_ONLY_NOT_LIVE_CLASSIFIER",
+  "selection_guard": "Reference and friend symbols are audit labels, never independent screening inputs",
+  "confidence_guard": "Association, chart shape and keyword topics cannot establish fraud or calibrated dump probability",
+  "evidence_time_guard": "Created and revised source timestamps must precede the decision; later findings may annotate causes only",
+  "mechanisms": [
+    {"id": "LIMITED_FLOAT_IPO", "public_evidence": ["dated_prospectus", "issuer_and_seller_shares", "economic_ownership", "resale_and_lockup_terms"], "missing_private_evidence": ["coordinated_allocations", "brokerage_account_ownership"], "guard": "Voting control is not economic float; IPO firm association is not a dump clock"},
+    {"id": "PRIVATE_CLUB_PROMOTION", "public_evidence": ["timestamped_solicitation", "issuer_specific_regulatory_report"], "missing_private_evidence": ["chat_campaign", "operator_inventory", "sale_plan"], "guard": "No archived public posts does not establish no campaign"},
+    {"id": "PUBLIC_PROMOTION", "public_evidence": ["original_posts_and_edits", "compensation_disclosures", "timestamped_regulatory_allegations"], "missing_private_evidence": ["speaker_trades", "coordinated_inventory"], "guard": "Promotion is not itself a verified manipulation finding"},
+    {"id": "NARRATIVE_FINANCING_OVERHANG", "public_evidence": ["dated_business_claims", "effective_resale_registration", "actual_financing_terms", "actual_sale_disclosures"], "missing_private_evidence": ["future_holder_sale_timing"], "guard": "Shelf capacity and registered resale shares do not prove sales"},
+    {"id": "DISTRESS_DILUTION", "public_evidence": ["cash_runway", "going_concern", "dated_share_changes", "financing_terms"], "missing_private_evidence": [], "guard": "Distress does not establish fraud or a guaranteed decline"},
+    {"id": "FUNDAMENTAL_REGULATORY_SHOCK", "public_evidence": ["earnings_or_trial_release", "regulatory_decision", "bankruptcy_or_exchange_notice"], "missing_private_evidence": ["unpublished_result"], "guard": "After-event reports cannot become advance features"},
+    {"id": "REBOUND_SQUEEZE_WATERFALL", "public_evidence": ["dated_raw_and_split_bars", "prior_drawdown", "ramp_horizon", "breakout_and_support", "volume"], "missing_private_evidence": ["complete_historical_borrow", "coordinated_orders"], "guard": "Price morphology is not cause; warning recall is not executable entry accuracy"}
+  ],
+  "execution_evidence": ["historical_security_eligibility", "price_above_3", "market_cap_at_least_25m", "approved_exchange", "halt_interval", "borrow_snapshot_and_cost", "decision_time", "feed_delay", "end_of_day_fill", "costs_and_position_limits"],
+  "activation": "Requires a new frozen experiment version and independent timing/portfolio validation"
+}

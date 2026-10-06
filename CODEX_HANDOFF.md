@@ -1,5 +1,46 @@
 # Dudebot continuation handoff
 
+## October 6: full roster mechanism research completed
+
+Read `backtest/MECHANISM_FINDINGS.md` and research-only
+`backtest/mechanism_taxonomy.json`. Hosted audit 37409948746 succeeded;
+local artifacts are `outputs/mechanism-audit-37409948746`, including
+`audit-inputs.json.gz`, stocks/episodes CSV and JSON, reference checks,
+firm rates and separate 2026 examples. Roster 540 / independent symbols 420;
+6,145 closing-collapse episodes, not confirmed frauds. All 137 reference
+and 60 friend short tickers have some bars; 220/230 reference dates have
+close data, 187 have >=20% prior-close declines. 28 price histories missing.
+
+Partial scope is price >$3, prior independent public firm evidence and hard
+symbol rules; historical cap/halt/borrow/full SMG eligibility are unverified.
+Broad short-or-63-session ramp watch: 559/873 episodes (64.03%) preceded by
+a warning, but 360/3,861 sampled windows (9.32%) meet next-three-session 20%
+close decline; 11,619 symbol-days flagged. SMG seasonal coverage/precision:
+2023 58.33%/16.52%, 2024 69.05%/13.07%, 2025 59.17%/7.99%.
+Four stricter chart confirmations combined: 10.08% recall / 9.03% precision.
+No new portfolio profit result, fresh holdout claim or live activation.
+
+Source identity parser accepts explicit issuer listing approval and quoted
+ticker punctuation, normalizes invisible whitespace, rejects mere application
+or customer listings. Parsed cache v4 retries old negative v3 results.
+Cache-only run 37409766543 succeeded: same 1,720 reviewed docs, 647 candidate
+records (was 484), unresolved 755 (was 978), zero downloads, 344.38 seconds.
+This newer source snapshot is NOT included in the above market audit; next
+source-coverage replay must explicitly use it. 3,559 documents still deferred.
+CI 37409766530 passed, local 249 tests passed for 72d5b62.
+
+Verified TJGC is MCTR renamed effective Dec 10, 2025, notice public after
+the opening. Keep MCTR in the Sep–Dec5 game; do not reset IPO age or use TJGC
+retroactively. Lineage saved in `backtest/issuer_lineage.json`, forensic only.
+DTCK's OneStop engagement ended Aug30,2024, replaced by AOGB; old audit
+reports must not imply current engagement. Research audit has dated correction;
+live frozen implementation is unchanged. WCT later labels WWC previous auditor;
+replacement interval remains a gap. Do not infer wrongdoing from firm names.
+
+Frozen forward implementation/config files remain unchanged. Any production
+relationship/timing model changes need a new experiment version, not edits
+that break the existing published fingerprint. Longs remain review-only.
+
 ## October 5: all five validation work streams implemented
 
 See `backtest/VALIDATION_AND_FORWARD_PLAN.md`. Offline audit/export:
