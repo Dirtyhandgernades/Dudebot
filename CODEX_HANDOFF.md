@@ -1,5 +1,25 @@
 # Dudebot continuation handoff
 
+## October 6: live verification follow-up and failure isolation
+
+Verified Cloudflare workflow_dispatch cadence at 15-minute intervals on main
+02cfe65. Latest runs37534345097 and37536081899 succeeded. Earlier runs37532549257
+and37523132196 failed in the legacy alert command with GitHub HTTP403
+(ACCESS_DENIED);37521324397 had HTTP500. Do not relabel these as rate limits or
+claim their API cause is repaired. The default Actions success condition also
+skipped the later evidence/ranked steps. Those independent steps now explicitly
+run unless cancelled, retaining shared state serialization, SHA guards and
+visible failed job status. Nightly backfill/learning similarly survive earlier
+review failure. Seven focused workflow/policy tests pass; no model changes.
+
+Local heartbeat `dudebot-first-live-session-verification` checks this chat daily
+at18:45 America/Chicago, reports meaningful delivery/failure/outcome changes,
+and should pause after the post-Oct12 three-session report. It requires the
+desktop app/computer to be available; hosted bot scheduling remains Cloudflare
+and GitHub and does not depend on this follow-up. First ranked policy date is
+stillOct7; today's inactive result is expected. Verify actual live receipts
+and future closes when available, not before. Preserve frozen fingerprints.
+
 ## October 6: ranked firm layer approved and enabled for October 7
 
 Read `backtest/RANKED_FIRM_DEPLOYMENT.md`. User explicitly authorized judging

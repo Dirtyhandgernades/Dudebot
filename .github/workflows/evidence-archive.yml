@@ -56,22 +56,24 @@ jobs:
         if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
         run: python -m smg.cli alert --send
       - name: Archive current market and borrow snapshot
-        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        # Each command restores/checkpoints state independently. Keep failures
+        # visible, but do not let a legacy alert error skip fresh evidence.
+        if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')) }}
         run: python -m smg.cli archive
       - name: Enrich eight pending symbols with daily fundamentals and sentiment
-        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')) }}
         run: python -m smg.cli archive-enrich
       - name: Publish newly qualified ranked firm signals and distinct research watches
-        if: github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')
+        if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')) }}
         run: python -m smg.ranked_firm --send
       - name: Review prior scans against subsequent closes
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
         run: python -m smg.cli review
       - name: Backfill ten public halt and FINRA sessions
-        if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
+        if: ${{ !cancelled() && ((github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')) }}
         run: python -m smg.cli archive-backfill --max-days 10
       - name: Learn realized policy returns and squeeze losses without retuning live weights
-        if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
+        if: ${{ !cancelled() && ((github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')) }}
         run: |
           python -m smg.ranked_firm --collect-only
           python -m smg.action_learning --state runtime/state.sqlite --out reports/action-policy-learning.json
