@@ -17,11 +17,13 @@ def current_assets(http,symbols,headers=None,base='https://paper-api.alpaca.mark
             x=http.json(base+'/v2/assets/'+s,headers={**(headers or {}),'Accept':'application/json'})
             assets[s]={k:x.get(k) for k in ('symbol','name','exchange','asset_class','tradable','shortable','borrow_status')}
             assets[s]['asset_status']=x.get('status')
-            assets[s]['borrow_available']=bool(x.get('shortable') and x.get('borrow_status') in BORROW_AVAILABLE)
             assets[s].update(status='CURRENT',source=base+'/v2/assets/'+s)
+            assets[s]['borrow_available']=executable_short(assets[s])
         except Exception as e:assets[s]={'status':'UNAVAILABLE','error_type':type(e).__name__}
     return {'assets':assets,'historical_status':'ARCHIVED_OBSERVATIONS_ONLY','limitation':'Borrow is known only at archived observation times and does not prove SMG Security Table membership.'}
 
 def executable_short(asset):
-    return bool(asset and asset.get('status')=='CURRENT' and asset.get('tradable') and
-                asset.get('shortable') and asset.get('borrow_status') in BORROW_AVAILABLE)
+    return bool(asset and asset.get('status')=='CURRENT' and asset.get('tradable') is True and
+                asset.get('shortable') is True and asset.get('borrow_status') in BORROW_AVAILABLE and
+                asset.get('asset_status') in {None,'active'} and asset.get('asset_class') in {None,'us_equity'} and
+                asset.get('exchange') in {None,'NASDAQ','NYSE','XNAS','XNYS'})

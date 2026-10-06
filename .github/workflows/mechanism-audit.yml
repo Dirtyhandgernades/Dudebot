@@ -44,8 +44,8 @@ jobs:
           path: backtest/runtime/mechanism-baseline
       - uses: actions/download-artifact@v4
         with:
-          name: game-firm-coverage-37400698858
-          run-id: 37400698858
+          name: game-firm-coverage-37409766543
+          run-id: 37409766543
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: backtest/runtime/mechanism-sources
       - uses: actions/cache@v4
@@ -58,9 +58,14 @@ jobs:
       - name: Audit all stock labels while testing only independent firm candidates
         run: |
           python -u -m smg.mechanism_audit --packet backtest/runtime/mechanism-inputs/firm-timing-inputs.json.gz --records backtest/runtime/mechanism-baseline/decisions.json backtest/runtime/mechanism-sources/discovery-decisions.json --out reports/mechanism-audit --collect --news-budget "$NEWS_BUDGET"
+      - name: Compare chronological timing, held issuers and strict execution evidence
+        run: |
+          python -u -m backtest.repair_study --packet reports/mechanism-audit/audit-inputs.json.gz --records backtest/runtime/mechanism-sources/discovery-decisions.json --out reports/repair-study
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: mechanism-audit-${{ github.run_id }}
-          path: reports/mechanism-audit/
+          path: |
+            reports/mechanism-audit/
+            reports/repair-study/
           retention-days: 90

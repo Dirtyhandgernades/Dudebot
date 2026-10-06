@@ -77,11 +77,12 @@ def compact_records(paths,entities):
     return list(unique.values())
 
 
-def historical_news(symbols,cache,budget=40):
+def historical_news(symbols,cache,budget=40,pages_per_group=2):
+    if not 1<=pages_per_group<=20:raise ValueError('News pages per group must be between 1 and 20')
     cache=Path(cache);cache.mkdir(parents=True,exist_ok=True);http=Http();out={};audit=[];requests=0
     headers={'APCA-API-KEY-ID':os.environ['ALPACA_API_KEY'],'APCA-API-SECRET-KEY':os.environ['ALPACA_SECRET_KEY']}
     for offset in range(0,len(symbols),25):
-        group=symbols[offset:offset+25];page=None;seen=set()
+        group=symbols[offset:offset+25];page=None;seen=set();new_pages=0
         while True:
             query={'symbols':','.join(group),'start':'2023-01-01','end':'2025-12-05T23:59:59Z',
                    'limit':50,'sort':'desc','include_content':'false'}
@@ -92,12 +93,13 @@ def historical_news(symbols,cache,budget=40):
             else:
                 if requests>=budget:
                     audit.append({'symbols':group,'status':'NEWS_REQUEST_BUDGET'});break
+                requests+=1;new_pages+=1
                 try:data=http.json('https://data.alpaca.markets/v1beta1/news',params=query,headers=headers)
                 except ProviderError as exc:
                     audit.append({'symbols':group,'status':'NEWS_UNAVAILABLE','http_status':exc.status})
                     if exc.status in {401,403,429}:return {s:list(r.values()) for s,r in out.items()},audit,requests
                     break
-                requests+=1;path.write_text(json.dumps(data),encoding='utf-8')
+                path.write_text(json.dumps(data),encoding='utf-8')
             for r in data.get('news',[]):
                 row={k:r.get(k) for k in ('id','headline','url','created_at','updated_at','source','symbols')}
                 for symbol in set(row.get('symbols') or []) & set(group):out.setdefault(symbol,{})[str(row['id'])]=row
@@ -106,7 +108,9 @@ def historical_news(symbols,cache,budget=40):
                 audit.append({'symbols':group,'status':'PROVIDER_SEARCH_COMPLETE_NOT_EXHAUSTIVE_WEB_COVERAGE'});break
             # Bound each group so a few frequently-covered stocks do not use
             # every request before the rest of the audit roster is queried.
-            if len(seen)>=1:
+            # Cache hits must not consume the per-run pagination allowance:
+            # otherwise every resumed run gets stuck at exactly the old page.
+            if new_pages>=pages_per_group or len(seen)>=100:
                 audit.append({'symbols':group,'status':'PROVIDER_PAGINATION_TRUNCATED'});break
             if page in seen:raise ValueError('Repeated historical news page token')
             seen.add(page)
@@ -126,9 +130,12 @@ def news_before(rows,day):
 
 
 def roles_before(records,ticker,day):
-    found={}
+    found={};bounds=session_bounds(date.fromisoformat(day))
+    if not bounds:return []
     for r in records.get(ticker,[]):
-        if r['decision_at'][:10]>day:continue
+        try:available=datetime.fromisoformat(r['decision_at'].replace('Z','+00:00'))
+        except (ValueError,TypeError,AttributeError):continue
+        if available.tzinfo is None or available>bounds[1]:continue
         for m in r['firm_matches']:
             relation=m.get('relationship','CURRENT_AT_SOURCE_DATE_ONLY')
             for change in RELATIONSHIP_CHANGES:

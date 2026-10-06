@@ -1,7 +1,7 @@
 {
-  "id": "firm-shadow-2026-10-07-v2",
-  "frozen_at": "2026-10-06T16:13:58Z",
-  "start_date": "2026-10-07",
+  "id": "firm-shadow-2026-10-06-v1",
+  "frozen_at": "2026-10-06T01:33:39+00:00",
+  "start_date": "2026-10-06",
   "end_date": "2026-12-05",
   "target_drop_fraction": 0.2,
   "horizon_sessions": 3,
@@ -100,14 +100,11 @@
     "smg/extraction.py": "4c73af7485b9ac0b54915b433da26ae9251e48ec8ff47c3704f14aced0c827a4",
     "config/strategy.yaml": "8a8bae18941a3e7630d764c0eef03882a70afb107b90de2b73870da0bdc0056a",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
-    "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
-    "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f"
+    "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0"
   },
   "confidence_gate": {
     "minimum_matured": 50,
     "minimum_positive_outcomes": 10,
     "minimum_distinct_tickers": 5
-  },
-  "parent_contract_id": "firm-shadow-2026-10-06-v1",
-  "version_reason": "Strict boolean and active/approved-asset borrow gating; unchanged forecast weights. Preserve prior v1 forecasts for outcome review."
+  }
 }
