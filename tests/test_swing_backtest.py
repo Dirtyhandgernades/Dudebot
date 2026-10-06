@@ -177,6 +177,18 @@ def test_share_quantity_does_not_know_the_future_fill_price():
     assert second['notional']==22500
 
 
+def test_research_allocation_cap_is_applied_at_decision_time():
+    days,bars=fixture()
+    args=dict(start=days[22],end=days[23],hold=1,strategy='FIRM_BASELINE_SHORT',
+              position_target=50000,buying_power=150000,signal_share_sizing=True,risk_controls=True)
+    default=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args)
+    aggressive=simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args,max_position_equity_fraction=.30)
+    assert default['trades'][0]['shares']==2500
+    assert aggressive['trades'][0]['shares']==3000
+    for invalid in (float('nan'),0,-.3,1.1):
+        with pytest.raises(ValueError):simulate({'ABC':bars},{'ABC':bars},['ABC'],days,**args,max_position_equity_fraction=invalid)
+
+
 def test_exhaustion_research_requires_a_pump_and_upper_wick():
     from smg.swing_backtest import firm_exhaustion_trigger
     from smg.models import Config

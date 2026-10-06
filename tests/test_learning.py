@@ -76,3 +76,43 @@ def test_missed_firm_moves_up_research_queue_without_becoming_a_trade(tmp_path):
     assert result['research_priority_symbols']==['WCT']
     assert store.get('learning_priority')['firm_symbols']==['WCT']
     assert result['reviews'][0]['misses'][0]['scan_status']=='NOT_SELECTED_FOR_SCAN'
+
+
+def test_learning_censors_partial_horizons_and_does_not_skip_missing_sessions(tmp_path):
+    store=Store(tmp_path/'censored.sqlite')
+    store.put('watch_census:2026-09-21',{'firm_symbols':['ABC']})
+    bars={'ABC':{'2026-09-21':{'c':10},'2026-09-22':{'c':9}}}
+    row=outcome_rows(store,bars,'2026-09-21','2026-09-22')[0]
+    assert row['outcome']=='PENDING_3_SESSION_OUTCOME'
+    bars['ABC']['2026-09-25']={'c':1}
+    row=outcome_rows(store,bars,'2026-09-21','2026-09-25')[0]
+    assert row['outcome']=='DATA_GAP'
+    assert row['three_session_complete'] is False
+    assert row['missing_completed_sessions']==['2026-09-23','2026-09-24']
+
+
+def test_learning_twenty_percent_label_is_not_rounded_up(tmp_path):
+    store=Store(tmp_path/'threshold.sqlite')
+    store.put('watch_census:2026-09-21',{'firm_symbols':['ABC']})
+    bars={'ABC':{'2026-09-21':{'c':10},'2026-09-22':{'c':8.00001}}}
+    row=outcome_rows(store,bars,'2026-09-21','2026-09-22')[0]
+    assert row['outcome']=='PENDING_3_SESSION_OUTCOME'
+    bars['ABC']['2026-09-22']['c']=8
+    assert outcome_rows(store,bars,'2026-09-21','2026-09-22')[0]['outcome']=='MISSED_20PCT_CLOSE_DROP'
+
+
+def test_daily_feature_capture_keeps_timestamped_data_when_later_scan_has_no_quote(tmp_path):
+    store=Store(tmp_path/'features.sqlite')
+    now=datetime(2026,9,21,18,tzinfo=timezone.utc)
+    candidate=SimpleNamespace(ticker='ABC',pipeline='FIRM_WATCH')
+    evaluation=SimpleNamespace(candidate=candidate,status='MARKET_NOT_CONFIRMED',reasons=[],shortability=None,
+                               snapshot=SimpleNamespace(price=12,monthly_return=30,asof=now))
+    record_scan(store,[candidate],[evaluation],now)
+    first=store.get('scan_day:2026-09-21:FIRM_WATCH:ABC')['feature_snapshot']
+    evaluation.snapshot=None
+    record_scan(store,[candidate],[evaluation],now.replace(hour=22))
+    latest=store.get('scan_day:2026-09-21:FIRM_WATCH:ABC')
+    assert latest['feature_snapshot']==first
+    assert latest['feature_snapshot']['observed_at']==now.isoformat()
+    assert latest['price'] is None
+    assert latest['first_observed_at']==now.isoformat()

@@ -44,13 +44,21 @@ def earliest_firm_dates(records):
         if ticker and day and day<found.get(ticker,'9999-99-99'):found[ticker]=day
     return found
 
-def samples(records,raw,adjusted,sessions):
-    available=earliest_firm_dates(records);rows=[]
+def samples(records,raw,adjusted,sessions,firm_dates=None):
+    from .market import calendar
+    available=earliest_firm_dates(records) if firm_dates is None else firm_dates;rows=[]
+    # A seasonal cache can jump from December to June. Those are not adjacent
+    # trading sessions, either for features or a one-to-three-session label.
+    discontinuities=[0]
+    for i in range(len(sessions)-1):
+        actual_next=str(calendar(int(sessions[i][:4])).next_session(sessions[i]).date())
+        discontinuities.append(discontinuities[-1]+int(sessions[i+1]!=actual_next))
     for ticker,first in available.items():
         series=adjusted.get(ticker,{});raw_series=raw.get(ticker,{})
-        for i in range(22,len(sessions)-8):
+        for i in range(21,len(sessions)-4):
             day=sessions[i]
             if day<first:continue
+            if discontinuities[i+4]!=discontinuities[i-21]:continue
             history_days=sessions[i-21:i+1]
             if any(d not in series for d in history_days):continue
             current_raw=raw_series.get(day);entry=series.get(sessions[i+1])
@@ -64,7 +72,7 @@ def samples(records,raw,adjusted,sessions):
             if any(v is None for v in future):continue
             decline=min(v['c'] for v in future)/entry['c']-1
             rows.append({'ticker':ticker,'signal_date':day,'entry_date':sessions[i+1],
-                'x':x,'label':int(decline<=-.20),'max_decline_1_3':decline})
+                'label_end':sessions[i+4],'x':x,'label':int(decline<=-.20+1e-10),'max_decline_1_3':decline})
     return rows
 
 def _sigmoid(values):
@@ -123,11 +131,16 @@ def score_reliability(rows,scores):
     return {'score_is_calibrated_probability':False,'bins':bins,
             'limitation':'Class-balanced scores are ranks; samples overlap and are correlated. Bin hit rates are diagnostics, not certified trade confidence.'}
 
+
+def matured_before(rows,cutoff,start=None):
+    """A fold cannot learn an outcome that matured after its decision cutoff."""
+    return [r for r in rows if r['label_end']<cutoff and (start is None or r['signal_date']>=start)]
+
 def walk_forward_report(records,raw,adjusted,sessions):
     rows=samples(records,raw,adjusted,sessions)
-    train=[r for r in rows if r['signal_date'][:4] in {'2022','2023'}]
-    validation=[r for r in rows if r['signal_date'][:4]=='2024']
-    holdout=[r for r in rows if r['signal_date'][:4]=='2025']
+    train=matured_before(rows,'2024-01-01','2022-01-01')
+    validation=matured_before(rows,'2025-01-01','2024-01-01')
+    holdout=matured_before(rows,'2026-01-01','2025-01-01')
     model=fit(train);train_scores=predict(model,train);validation_scores=predict(model,validation)
     validation_metrics=metrics(validation,validation_scores)
     threshold=validation_metrics['threshold']

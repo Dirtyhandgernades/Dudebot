@@ -44,3 +44,24 @@ def test_firm_evidence_after_close_is_not_available_for_same_close():
     assert earliest_firm_dates(rows)=={'ABC':'2025-09-09'}
     rows[0]['decision_at']='2025-09-08T18:00:00Z'
     assert earliest_firm_dates(rows)=={'ABC':'2025-09-08'}
+
+
+def test_training_labels_never_bridge_missing_exchange_sessions():
+    from smg.market import calendar
+    from smg.risk_model import samples
+    sessions=[str(s.date()) for s in calendar(2023).sessions_in_range('2023-11-01','2023-12-05')]
+    sessions += [str(s.date()) for s in calendar(2024).sessions_in_range('2024-06-03','2024-07-12')]
+    series={d:{**b,'v':100} for d,b in zip(sessions,bars(len(sessions)))}
+    records=[{'ticker':'ABC','decision_at':'2023-01-03T12:00:00Z',
+              'reasons':['VERIFIED_LISTED_FIRM_RELATIONSHIP']}]
+    rows=samples(records,{'ABC':series},{'ABC':series},sessions)
+    assert rows
+    assert all((date.fromisoformat(r['label_end'])-date.fromisoformat(r['signal_date'])).days<10 for r in rows)
+    assert all(r['signal_date']>'2024-06-25' for r in rows)
+
+
+def test_fold_cannot_learn_late_maturing_outcomes_from_prior_year_signals():
+    from smg.risk_model import matured_before
+    known={'signal_date':'2023-12-20','label_end':'2023-12-27','label':1}
+    future={'signal_date':'2023-12-29','label_end':'2024-01-05','label':1}
+    assert matured_before([known,future],'2024-01-01')==[known]

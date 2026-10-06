@@ -1,5 +1,41 @@
 # Dudebot continuation handoff
 
+## October 5: chronological fast-dump rank and learning corrections
+
+See `backtest/FAST_DUMP_RANK_RESULTS.md`. Fixed calendar continuity in
+`risk_model.samples` (seasonal December–June gaps cannot create labels) and
+purged labels that mature after a fold cutoff. The live learning review now
+uses the next three actual exchange sessions, reports missing bars, leaves
+partial negatives pending, uses unrounded 20% labels, and excludes incomplete
+current-day daily outcomes.
+One timestamped feature snapshot per symbol/lane/day is retained for future
+forward learning; missing later quotes preserve its original observation time.
+No additional provider requests or per-scan history growth is introduced.
+
+`backtest.target_rank_research` uses the independently gathered packet's firm
+dates; 233 mappings differ from the older discovery-decisions file.
+Chronological model training, fixed top-quartile training-score entry gate,
+hold three, target $30k: 2023 +$2,859.18 (one trade; 98 training samples /
+4 positives), 2024 +$35,277.28 (14 trades), 2025 +$67,549.55 (26). Stress:
++$2,211.40 / +$26,233.91 / +$49,488.44. Twenty-percent drops within three
+sessions: 0/1, 5/14, 5/26. No calibrated confidence, no robust 2023 sample.
+
+Fixed $50k target (same 25% decision-equity cap) lifts 2025 profit to
+$76,849.99 but worsens 2024 profit/drawdown. It is a sensitivity, not a live
+switch. All 54 portfolios/model cutoffs saved at
+`outputs/backtest/target-rank-2026-10-05`. All years reused; fresh holdout and
+historical eligibility/borrow gaps persist. Live firm timing remains disabled.
+
+The broader top-half training-score entry gate with $50k target and a fixed
+30% decision-equity cap produced 2023 +$18,658.11 (3 trades), 2024
++$39,124.52 (16), 2025 +$103,258.54 (36; ending $203,258.54). Stress profits:
++$16,487.95 / +$25,305.11 / +$64,020.56. Base drawdowns: 3.059%, 25.691%,
+19.966%. Twenty-percent closing declines within three sessions: 1/2, 5/16,
+6/35; season-end entries are censored. The conditional 2025 target is met
+in this aggressive inspected-data sensitivity; reliable $90k seasons and
+massive-dump prediction remain unproved. Default allocation cap remains 25%.
+Local verification: 230 tests passed.
+
 ## October 5: consistency candidate and timing audit
 
 See `backtest/CONFIRMATION_RESULTS.md`. Added a research-only observed-price
