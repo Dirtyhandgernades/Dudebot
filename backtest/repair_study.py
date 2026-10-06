@@ -198,6 +198,21 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
                            'Cash interest, game-specific margin mechanics and dividends not certified']}
 
 
+def fixed_trade_cost_sensitivity(base,split,cost_bps=100,borrow_rate=1.):
+    """Higher costs on exactly the same shares/dates; no favorable reselection."""
+    total=0.;fee=cost_bps/10000
+    for trade in base['trades']:
+        bar=split.get(trade['ticker'],{}).get(trade['exit_date'])
+        if bar is None:return {'status':'EXIT_PRICE_UNAVAILABLE','net_profit':None}
+        ratio=bar['c']/trade['adjusted_entry'];notional=trade['notional']
+        borrow=notional*borrow_rate*(date.fromisoformat(trade['exit_date'])-date.fromisoformat(trade['entry_date'])).days/365
+        total+=notional*(1-ratio)-notional*fee-5-notional*ratio*fee-5-borrow
+    return {'status':'COST_ONLY_SAME_BASE_TRADES_NOT_MARGIN_REPLAY','closed_trades':len(base['trades']),
+            'net_profit':round(total,2) if not base['open_positions'] else None,
+            'cost_bps_each_way':cost_bps,'assumed_annual_borrow_rate':borrow_rate,
+            'limitation':'Same hypothetical base trades; no historical execution certification or stressed buying-power replay'}
+
+
 def evaluate(rows,packet,out):
     results=[];out.mkdir(parents=True,exist_ok=True)
     for year in (2023,2024,2025):
@@ -251,8 +266,10 @@ def evaluate(rows,packet,out):
             (out/f'{year}-{name}-model.json').write_text(json.dumps(models,indent=2))
             for case,bps,borrow,strict in [('base',30,.1,False),('stress',100,1.,False),('strict',30,.1,True)]:
                 p=portfolio(selected,packet['raw'],packet['split'],packet['sessions'],year,strict,bps,borrow)
+                if case=='base':base_portfolio=p
                 (out/f'{year}-{name}-{case}.json').write_text(json.dumps(p,indent=2))
                 result[case]={k:p[k] for k in ('ending_balance','net_profit','closed_trades','max_drawdown_pct')}
+            result['fixed_base_trade_stress']=fixed_trade_cost_sensitivity(base_portfolio,packet['split'])
             # Future labels annotate what was missed; they never alter the
             # earlier rank, threshold or action. Keep losses and unknowns too.
             decisions=[]
@@ -297,6 +314,7 @@ def main():
             if not row.get('base'):failures.append(f'{year}_INSUFFICIENT_DATA');continue
             if row['base']['net_profit'] is None or row['base']['net_profit']<=0:failures.append(f'{year}_BASE_NOT_PROFITABLE')
             if row['stress']['net_profit'] is None or row['stress']['net_profit']<=0:failures.append(f'{year}_STRESS_NOT_PROFITABLE')
+            if row['fixed_base_trade_stress']['net_profit'] is None or row['fixed_base_trade_stress']['net_profit']<=0:failures.append(f'{year}_FIXED_TRADE_COST_STRESS_NOT_PROFITABLE')
             if row['confidence_gate']=='FAIL':failures.append(f'{year}_STATISTICAL_GATE_FAILED')
         gates.append({'model':name,'status':'BLOCKED','reasons':failures,'live_enabled':False})
     summary['promotion_gates']=gates

@@ -77,6 +77,9 @@ def test_strict_portfolio_does_not_place_unknown_execution_trade():
     assert result['closed_trades']==0 and result['ending_balance']==100000
     conditional=portfolio([{**row,'score':.9}],data['raw'],data['split'],days,2025)
     assert conditional['closed_trades']==1 and conditional['net_profit']<0
+    from backtest.repair_study import fixed_trade_cost_sensitivity
+    stressed=fixed_trade_cost_sensitivity(conditional,data['split'])
+    assert stressed['closed_trades']==conditional['closed_trades'] and stressed['net_profit']<conditional['net_profit']
 
 
 def test_presized_buffer_and_fill_overshoot_are_reported_without_future_cancellation():

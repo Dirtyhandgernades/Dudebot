@@ -1,5 +1,58 @@
 # Dudebot continuation handoff
 
+## October 6: repair cycle and wider timing replay
+
+Read `backtest/REPAIR_RESULTS_2026_10_06.md`. 265 tests pass. Verified repairs:
+same-day post-close role exclusion; news pagination resumes past cached pages
+and preserves articles when batches change; unknown future bars retain earlier
+candidates; next-close timing; CIK-disjoint issuer tests and overlap purging;
+BREA -> SLMT Oct3 dated price continuity and warm-up without old-symbol
+post-rename selection; strict actual boolean/active-approved asset borrow gates.
+
+Two live failures (37492353072 / 37494177550) were GitHub HTTP403, exact subtype
+not retained. State was 16 MB. GitHubState now restores raw bytes in one call,
+computes the Git blob SHA, caches identical same-run successful checkpoints,
+skips no-op writes and preserves conflicting-write protection. Short hinted
+GET rate limits retry; mutations / permission failures / long waits do not.
+CI 37496712776 and fixed live/archive 37496712779 succeeded; archive failures
+empty, current asset indications 134 available / one unavailable. Practice
+37497135644 SENT embed-v1, message 1557069379341123708, mention-free.
+
+New hosted dataset 37495259370: 623 audit symbols / 515 independently sourced
+identities / 6,728 closing episodes / 5,740 stock-linked news rows / 57 missing
+provider histories. Only four price + capped40 news requests. Artifacts under
+`outputs/mechanism-audit-37495259370`. FINAL updated local study is
+`outputs/backtest/repair-final-37495259370` (14,016 observations / 317 sampled
+symbols / 27 unavailable future labels retained). Hosted study inside the
+artifact predates final sizing/state code; do not quote it as the final result.
+
+Base net profits 2023 / 2024 / 2025:
+core $34,527.74 / -$16,238.78 / $134,327.78;
+expanded $37,305.62 / -$4,187.39 / $78,189.90;
+cooling guard -$2,612.00 / $12,687.91 / $15,062.31.
+Expanded SAME-BASE-TRADES cost-only stress $20,144.20 / -$41,702.65 /
+$31,426.23. Full higher-cost portfolio paths select different later positions
+and can be nonmonotonic; do not imply higher borrow improves the strategy.
+Strict historical evidence: zero trades / $100k, not validated executable
+profits. Selected next-close entry-window hits expanded29.41% /16.67% /30.16%.
+All reused years; all new candidate models blocked from live deployment.
+
+Sizing now reserves 20% BEFORE an order. A fill overshoot is recorded, never
+retrospectively cancelled by an assumed target (would be hindsight). Actual
+buying-power rejection remains separate. Original simulator defaults preserve
+buffer1.0 for old comparisons; new study / forward paper profiles use1.2.
+No calibrated confidence sizing, orders or paid provider was enabled.
+
+Forward v3 `firm-shadow-2026-10-07-v3` frozen before Oct7; v1/v2 archived in
+config/experiments. Live state download verified zero forecasts before
+migration. Empty changed contracts report SUPERSEDED_EMPTY_CONTRACT;
+populated changed contracts remain blocked. Weights/threshold unchanged;
+new hash manifest includes state/transport/borrow and repaired simulator.
+First full Oct7 target label can mature Oct12. Do not edit frozen files without
+a NEW version after publication. Existing nightly archive/review stays active.
+Future data cannot be claimed fixed/available today. See report for residual
+current/former firm, cap/float/borrow/halt/SMG/news and consistency gaps.
+
 ## October 6: full roster mechanism research completed
 
 Read `backtest/MECHANISM_FINDINGS.md` and research-only
