@@ -60,3 +60,14 @@ def test_current_hard_exclusions_and_future_quote_cannot_be_bypassed_by_rank():
 
 def test_after_close_has_no_trade_even_when_delayed_quote_is_still_in_session():
     assert evaluate(now=NOW+timedelta(hours=1)).status!='QUALIFIED'
+
+
+def test_enabled_published_policy_implementation_fingerprints_match():
+    import json
+    from pathlib import Path
+    from datetime import datetime,timezone
+    from smg.ranked_firm import valid_policy
+    root=Path(__file__).resolve().parents[1]
+    spec=json.loads((root/'config/ranked_firm_alerts.json').read_text())
+    assert valid_policy(spec,root,datetime(2026,10,7,16,tzinfo=timezone.utc)) is True
+    assert spec['confidence_sizing_enabled'] is False and spec['entry_policy']=='PRECLOSE_ONLY'

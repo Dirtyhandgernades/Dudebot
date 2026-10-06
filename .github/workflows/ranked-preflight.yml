@@ -1,0 +1,33 @@
+name: Ranked firm live data preflight (no messages)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: smg-state-writer-v2
+  queue: max
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      DISCORD_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - run: python -m smg.ranked_firm --preflight
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ranked-preflight-${{ github.run_id }}
+          path: reports/ranked-firm-alerts.json
