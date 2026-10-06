@@ -97,6 +97,7 @@ def eligible_signal(candidate,history,raw_history,adjusted_partial,raw_partial,n
     score=predict(policy['model'],[{'x':x}])[0]
     result.ranking_evidence['ranked_firm']={'policy_id':policy['id'],'rank_score':score,'threshold':policy['rank_threshold'],
                                          'is_probability':False,'features':x,'feature_dates':[r['date'] for r in history]}
+    result.rank=[min(m['priority'] for m in result.matches),-len(result.matches),-score]
     if score<policy['rank_threshold']:
         result.status='MARKET_NOT_CONFIRMED';result.reasons.append('PRIOR_TRAINED_RANK_BELOW_THRESHOLD');return result
     packet={'sessions':[r['date'] for r in history]+[str(now.date())],'split':{candidate.ticker:{r['date']:r for r in history}}}
@@ -138,9 +139,11 @@ def eligible_signal(candidate,history,raw_history,adjusted_partial,raw_partial,n
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--prepare',action='store_true');parser.add_argument('--collect-only',action='store_true');parser.add_argument('--send',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--prepare',action='store_true');parser.add_argument('--collect-only',action='store_true');parser.add_argument('--preflight',action='store_true');parser.add_argument('--send',action='store_true');args=parser.parse_args()
+    if args.preflight and args.send:parser.error('Preflight cannot send messages')
     root=Path.cwd();now=datetime.now(UTC);spec=json.loads((root/'config/ranked_firm_alerts.json').read_text())
-    if not valid_policy(spec,root,now):print('RANKED_FIRM_POLICY_NOT_ACTIVE');return
+    active=valid_policy(spec,root,now)
+    if not active and not (args.preflight and spec.get('enabled')):print('RANKED_FIRM_POLICY_NOT_ACTIVE');return
     cfg,entries=settings(root);entities=EntityList(entries);http=Http();backend=None;path=root/'runtime/state.sqlite'
     if os.environ.get('GITHUB_ACTIONS')=='true':
         backend=GitHubState(http,required_env('GITHUB_REPOSITORY'),required_env('GITHUB_TOKEN'),cfg.state_branch);backend.restore(path)
@@ -149,7 +152,7 @@ def main():
         digest=hashlib.sha256(json.dumps(spec,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         prior_contract=store.get('ranked_contract:'+spec['id'])
         if prior_contract and prior_contract['sha256']!=digest:raise ValueError('RANKED_POLICY_CHANGED; publish a new version')
-        if not prior_contract:store.put('ranked_contract:'+spec['id'],{'sha256':digest,'spec':spec,'registered_at':now.isoformat()})
+        if not prior_contract and not args.preflight:store.put('ranked_contract:'+spec['id'],{'sha256':digest,'spec':spec,'registered_at':now.isoformat()})
         candidates=[Candidate.model_validate(v) for _,v in store.items('candidate:FIRM_WATCH:')]
         cache,requests=daily_history(store,http,[c.ticker for c in candidates],now)
         if args.collect_only:print(json.dumps({'status':'RANKED_PRICES_COLLECTED','through':cache['through'],'requests':requests}));return
@@ -184,7 +187,7 @@ def main():
                 partial_bar(raw.get(c.ticker,[]),bounds[0],now-timedelta(minutes=16)),observed_now,cfg,entities,spec,borrow,halt,caps)
             store.put('ranked_evaluation:'+c.key,result.model_dump(mode='json'));results.append(result)
             context=result.ranking_evidence.get('ranked_firm')
-            if context:
+            if context and not args.preflight:
                 phase='QUALIFIED' if result.status=='QUALIFIED' else 'WATCH'
                 key='ranked_observation:'+spec['id']+':'+str(now.date())+':'+c.ticker+':'+phase
                 if not store.get(key):
