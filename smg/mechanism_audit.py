@@ -55,6 +55,13 @@ def chart_family(history):
     return 'NO_MEASURED_PRIOR_PUMP'
 
 
+def longer_ramp_watch(history):
+    """Quarter-length pump memory; no timing or fraud certainty is inferred."""
+    if len(history)!=63 or not all(history) or any(b['c']<=0 for b in history):return False
+    peak=max(b['c'] for b in history)
+    return peak/history[0]['c']-1>=.50 and history[-1]['c']/peak-1>=-.25
+
+
 def compact_records(paths,entities):
     known={name.casefold():role for role,groups in entities.items() for names in groups.values() for name in names}
     unique={}
@@ -168,6 +175,9 @@ def audit(data,sessions,roster,independent,first,records,news,start,end):
                       and not is_excluded_symbol(ticker) and not re.fullmatch('[A-Z]{5}',ticker))
             if complete:
                 available+=1;triggers=patterns(history)
+                if i>=63 and longer_ramp_watch([series.get(d) for d in sessions[i-63:i]]):triggers.append('LONGER_RAMP_WATCH_ONLY')
+                if 'RAMP_WATCH_NO_VOLUME_GATE' in triggers or 'LONGER_RAMP_WATCH_ONLY' in triggers:
+                    triggers.append('COMBINED_SUSCEPTIBILITY_WATCH_ONLY')
                 if eligible:
                     for tag in triggers:alerts[tag].add((prev,ticker))
                     if set(triggers)&set(FAMILIES):alerts['COMBINED'].add((prev,ticker))
@@ -206,13 +216,16 @@ def audit(data,sessions,roster,independent,first,records,news,start,end):
             'news_articles_archived':len(news.get(ticker,[]))})
     eligible_events=[r for r in events if r['price_and_evidence_scope']]
     scores=[]
-    for tag in FAMILIES+('COMBINED','RAMP_WATCH_ONLY','RAMP_WATCH_NO_VOLUME_GATE'):
+    for tag in FAMILIES+('COMBINED','RAMP_WATCH_ONLY','RAMP_WATCH_NO_VOLUME_GATE','LONGER_RAMP_WATCH_ONLY','COMBINED_SUSCEPTIBILITY_WATCH_ONLY'):
         selected=[r for r in controls if (bool(set(r['tags'])&set(FAMILIES)) if tag=='COMBINED' else tag in r['tags'])]
-        detected=sum(any((d,e['ticker']) in alerts[tag] for d in sessions[max(0,index[e['drop_date']]-3):index[e['drop_date']]]) for e in eligible_events)
+        covered=[e for e in eligible_events if any((d,e['ticker']) in alerts[tag] for d in sessions[max(0,index[e['drop_date']]-3):index[e['drop_date']]])]
+        detected=len(covered)
         scores.append({'pattern':tag,'sampled_warning_windows':len(selected),'true_20pct_warning_windows':sum(r['label'] for r in selected),
             'warning_precision':sum(r['label'] for r in selected)/len(selected) if selected else None,
             'price_evidence_scope_events':len(eligible_events),'events_with_prior_warning':detected,
             'partial_scope_event_recall':detected/len(eligible_events) if eligible_events else None,
+            'price_evidence_scope_tickers':len({e['ticker'] for e in eligible_events}),
+            'tickers_with_some_prior_warning':len({e['ticker'] for e in covered}),
             'warning_days':len(alerts[tag]),'fully_verified_executable_recall':None})
     firms=defaultdict(list)
     for r in controls:
@@ -246,6 +259,16 @@ def main():
         news,news_audit,n=historical_news(roster,'backtest/runtime/mechanism-news',args.news_budget);requests+=n
     sessions=[str(s.date()) for s in calendar(2025).sessions_in_range('2022-06-01','2025-12-05')]
     result=audit(data,sessions,roster,independent,first,records,news,'2023-01-01',args.end)
+    lineage=json.loads(Path('backtest/issuer_lineage.json').read_text())['changes']
+    for row in result['stock_rows']:
+        row['identity_history']=[c for c in lineage if row['ticker'] in {c['old_symbol'],c['new_symbol']}]
+        if any(row['ticker']==c['new_symbol'] and args.end<c['effective_date'] for c in row['identity_history']):
+            row['data_status']='SYMBOL_NOT_EFFECTIVE_DURING_AUDIT_WINDOW; historical MCTR row is separate'
+    periods=[]
+    for year in (2023,2024,2025):
+        subset=audit(data,sessions,roster,independent,first,records,news,f'{year}-09-08',f'{year}-12-05')
+        periods.append({'year':year,'events':len(subset['events']),'patterns':subset['pattern_comparison']})
+    result['smg_periods']=periods
     if args.collect:
         extended,n=download(['XHLD','WCT','TJGC'],'2025-12-06','2026-10-05',cache);requests+=n
         for mode in data:
@@ -253,6 +276,9 @@ def main():
         full_sessions=[str(s.date()) for s in calendar(2026).sessions_in_range('2022-06-01','2026-10-05')]
         current=audit(data,full_sessions,['XHLD','WCT','TJGC'],independent,first,records,{},'2026-01-01','2026-10-05')
         (out/'named-2026-examples.json').write_text(json.dumps(current,indent=2),encoding='utf-8')
+    with gzip.open(out/'audit-inputs.json.gz','wt',encoding='utf-8') as f:
+        json.dump({'sessions':sessions,'first_dates':first,'independent_symbols':sorted(independent),
+                   'raw':data['raw'],'split':data['split'],'records':records,'news':news},f)
     for name,rows in [('stocks',result['stock_rows']),('episodes',result['events']),('firm-rates',result['firm_control_rates'])]:
         (out/f'{name}.json').write_text(json.dumps(rows,indent=2),encoding='utf-8')
         if rows:

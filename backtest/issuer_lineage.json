@@ -1,0 +1,17 @@
+{
+  "purpose": "Verified forensic identity history; not a retrospective signal selector",
+  "changes": [
+    {
+      "cik": "1969928",
+      "old_symbol": "MCTR",
+      "new_symbol": "TJGC",
+      "effective_date": "2025-12-10",
+      "published_at": "2025-12-11T01:32:28Z",
+      "action": "same_security_rename",
+      "cusip_unchanged": true,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1969928/000121390025120275/ea0269188-6k_tjgc.htm",
+      "publication_proof": "https://www.sec.gov/Archives/edgar/data/1969928/000121390025120275/0001213900-25-120275-index.html",
+      "causal_limit": "Notice was public after the effective opening. Keep MCTR for all 2025 SMG decisions; do not retroactively admit TJGC. Original IPO age must not reset."
+    }
+  ]
+}

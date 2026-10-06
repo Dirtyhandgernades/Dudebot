@@ -66,6 +66,7 @@ def identity_exchange(value):
 
 
 def source_identity(soup,text):
+    text=identity_text(text)
     native=callable(getattr(soup,'xpath',None))
     def content(node):return identity_text(' '.join(node.itertext()) if native else node.get_text(' ',strip=True))
     elements=soup.xpath('//*[@name]') if native else soup.find_all(attrs={'name':True})
@@ -103,8 +104,17 @@ def source_identity(soup,text):
     # ticker from an unscoped NASDAQ:XYZ mention elsewhere in an issuer filing.
     own=r'(?:our|the company[’\']s)\s+[^;]{0,90}?(?:shares|stock|ADSs?)\b[^;]{0,160}?(?:listed|trade[sd]?|trading)\b[^;]{0,80}?'
     venue=r'(Nasdaq|New York Stock Exchange|NYSE)(?!\s*(?:American|Arca|National|Texas))'
-    symbol=r'[^;]{0,100}?\b(?:symbol|ticker)\s*[“"\']((?-i:[A-Z]{1,6}))[”"\']'
+    symbol=r'[^;]{0,100}?\b(?:symbol|ticker)\s*[“"\']((?-i:[A-Z]{1,6}))\.?[”"\']'
     declarations={(m.group(2),'XNAS' if m.group(1).lower()=='nasdaq' else 'XNYS') for m in re.finditer(own+venue+symbol,text,re.I)}
+    # Prospectuses may put the exchange's approval before the issuer's own
+    # shares ("We have received approval ... to list our ordinary shares").
+    # Do not accept a mere application, reserved symbol, or customer listing.
+    approval=(r'\bwe\s+(?:(?:have\s+)?(?:received|obtained)\b[^;]{0,90}?\bapproval\b|'
+              r'(?:have\s+been|were|are)\s+approved\b)'
+              r'[^;]{0,160}?\b(?:list|listing)\s+(?:of\s+)?(?:our|the)\s+'
+              r'(?:ordinary\s+shares|common\s+(?:stock|shares)|shares|ADSs?)\b[^;]{0,100}?')
+    for m in re.finditer(approval+venue+symbol,text,re.I):
+        declarations.add((m.group(2),'XNAS' if m.group(1).lower()=='nasdaq' else 'XNYS'))
     if len(declarations)==1:
         ticker,venue=next(iter(declarations))
         if not symbols or symbols=={ticker}:return ticker,venue,names

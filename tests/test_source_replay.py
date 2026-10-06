@@ -93,3 +93,17 @@ def test_strict_transactions_extracted_from_dated_source_without_labels():
     assert strict[0].pipeline=='RECENT_IPO'
     assert strict[0].ticker=='ABCD'
     assert strict[0].reviewed_at.date()>date(2024,6,1)
+
+
+def test_issuer_approved_listing_can_identify_prospectus_before_registration_table():
+    raw='<p>We have received the approval letter from the Nasdaq Stock Market to list our Ordinary Shares on the Nasdaq Capital Market under the symbol “WCT.”</p>'
+    for soup in (BeautifulSoup(raw,'html.parser'),lhtml.document_fromstring(raw)):
+        text=soup.get_text(' ',strip=True) if hasattr(soup,'get_text') else ' '.join(soup.itertext())
+        assert source_identity(soup,text)[:2]==('WCT','XNAS')
+
+
+def test_listing_application_or_customer_approval_is_not_issuer_identity():
+    for raw in ['<p>We have applied to list our ordinary shares on Nasdaq under the symbol "PLAN".</p>',
+                '<p>Our customer received approval to list its shares on Nasdaq under the symbol "OTHR".</p>']:
+        soup=lhtml.document_fromstring(raw)
+        assert source_identity(soup,' '.join(soup.itertext()))[:2]==(None,None)
