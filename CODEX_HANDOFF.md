@@ -37,10 +37,19 @@ priority. Weekly workflow cap is 200 new documents, six-minute parsing budget;
 it resumes caches and does not repeat market/profit runs. New minute audits
 record per-symbol failure/setup reasons. Data coverage remains incomplete.
 
-Local verification: 240 tests passed. Do not change the frozen source/config
+Local verification: 241 tests passed. Do not change the frozen source/config
 files without a new experiment version; a fingerprint mismatch blocks shadow
 capture/review while normal alerts continue. Documentation-only changes do
 not affect the policy hash. Tests use fixtures and are not new market outcomes.
+
+Hosted commit 17b7af6: CI 37399904375, intraday 37399904292, source replay
+37399904321, Cloudflare 37399904307 and practice 37399904339 succeeded.
+Live archive 37399904325 registered the frozen contract, correctly outside
+the forward window. Review 37399952559 confirmed zero forecasts / zero mature
+outcomes / confidence gate NOT_READY. Artifacts downloaded to local
+outputs/hosted-validation-37399904325 and -37399952559. The first gather
+37399950644 was cancelled while queued without steps; switched research
+runner to ubuntu-22.04, multi-pending queue and gather-only push behavior.
 
 ## October 5: chronological fast-dump rank and learning corrections
 

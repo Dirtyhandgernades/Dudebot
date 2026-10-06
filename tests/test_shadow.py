@@ -100,3 +100,11 @@ def test_optional_raw_provider_failure_is_labeled_without_losing_split_review(tm
     result=daily_review(store,Http(),{},datetime(2026,9,9,23,35,tzinfo=timezone.utc))
     assert result['forward_raw_failures'][0]['error_type']=='RuntimeError'
     assert result['frozen_forward'][0]['rows'][0]['outcome']=='HIT_20_PERCENT'
+
+
+def test_published_forward_policy_matches_repository_implementation():
+    from pathlib import Path
+    from smg.shadow import verify_implementation
+    spec=json.loads((Path(__file__).resolve().parents[1]/'config/frozen_forward.json').read_text())
+    verify_implementation(spec)
+    assert spec['live_trade_enabled'] is False and spec['confidence_sizing_enabled'] is False

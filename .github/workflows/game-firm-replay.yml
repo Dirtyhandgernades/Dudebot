@@ -20,16 +20,17 @@ on:
         default: earlier_years
   push:
     branches: [main]
-    paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py, .github/workflows/game-firm-replay.yml]
+    paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py]
 permissions:
   contents: read
   actions: read
 concurrency:
   group: game-firm-replay
+  queue: max
   cancel-in-progress: false
 jobs:
   replay:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 18
     env:
       SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
@@ -37,7 +38,7 @@ jobs:
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       # Code pushes validate caches without launching another large gather.
       MAX_SOURCE_DOWNLOADS: ${{ inputs.max_documents || (github.event_name == 'schedule' && 200) || 0 }}
-      SOURCE_MODE: ${{ inputs.source_mode || (github.event_name == 'schedule' && 'gather') || 'replay' }}
+      SOURCE_MODE: ${{ inputs.source_mode || 'gather' }}
       SOURCE_PRIORITY: ${{ inputs.priority_period || 'earlier_years' }}
     steps:
       - uses: actions/checkout@v4

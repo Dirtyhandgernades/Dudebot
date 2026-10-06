@@ -100,6 +100,19 @@ It also runs weekly with that cap. Neither the gather nor the daily feedback
 silently changes the frozen weights. Fresh data supports a later, separately
 versioned model.
 
-Local verification: 240 tests pass, including immutable forecasts, future-data
+Local verification: 241 tests pass, including immutable forecasts, future-data
 rejection, nonoverlapping calibration, frozen code changes, borrow/cap gating,
 missing raw prices and paper positions retained across reviews.
+
+Hosted tests 37399904375, pre-close replay 37399904292 and source replay
+37399904321 passed for commit 17b7af6. The live scan 37399904325 registered
+the frozen contract and correctly reported `OUTSIDE_FORWARD_WINDOW` after
+hours. The hosted review 37399952559 returned `PENDING_PROSPECTIVE_OUTCOMES`,
+zero forecasts and confidence gate `NOT_READY`. No forward market result has
+been asserted from the smoke tests.
+
+The first new-document gather 37399950644 waited for an ubuntu-latest runner
+without executing steps; it was cancelled before collecting data. The gather
+workflow now uses the working ubuntu-22.04 pool, queues multiple pending
+requests, and defaults code pushes to cache-only gather instead of repeating
+market/profit replay. Workflow-only changes are validated by explicit dispatch.
