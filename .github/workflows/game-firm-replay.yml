@@ -1,11 +1,23 @@
 name: Game firm coverage and risk replay
 on:
+  schedule:
+    - cron: '41 4 * * 6'
   workflow_dispatch:
     inputs:
       max_documents:
         description: Maximum new SEC documents; 0 validates cached sources only
         type: number
         default: 1200
+      source_mode:
+        description: Gather new evidence only or run a full replay
+        type: choice
+        options: [gather, replay]
+        default: gather
+      priority_period:
+        description: Prioritize thin earlier-year evidence without selecting winner symbols
+        type: choice
+        options: [earlier_years, balanced]
+        default: earlier_years
   push:
     branches: [main]
     paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py, .github/workflows/game-firm-replay.yml]
@@ -24,7 +36,9 @@ jobs:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       # Code pushes validate caches without launching another large gather.
-      MAX_SOURCE_DOWNLOADS: ${{ inputs.max_documents || 0 }}
+      MAX_SOURCE_DOWNLOADS: ${{ inputs.max_documents || (github.event_name == 'schedule' && 200) || 0 }}
+      SOURCE_MODE: ${{ inputs.source_mode || (github.event_name == 'schedule' && 'gather') || 'replay' }}
+      SOURCE_PRIORITY: ${{ inputs.priority_period || 'earlier_years' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,7 +79,12 @@ jobs:
           key: swing-bars-v1-${{ github.run_id }}
           restore-keys: swing-bars-v1-
       - name: Independently discover dated firms and test fixed research policies
-        run: python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json --max-documents "$MAX_SOURCE_DOWNLOADS"
+        run: |
+          if [ "$SOURCE_MODE" = "gather" ]; then
+            python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json --max-documents "$MAX_SOURCE_DOWNLOADS" --priority-period "$SOURCE_PRIORITY" --max-seconds 360 --gather-only
+          else
+            python -m smg.game_firm_replay --baseline backtest/runtime/corrected-replay/decisions.json --max-documents "$MAX_SOURCE_DOWNLOADS" --priority-period "$SOURCE_PRIORITY"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

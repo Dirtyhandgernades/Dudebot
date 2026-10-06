@@ -214,7 +214,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -261,8 +261,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 previous_return=side*(prior_mark['c']/p['adjusted_entry']-1)
                 if previous_return<=-.12:exit_reason='STOP_SIGNAL_PREVIOUS_CLOSE'
                 elif previous_return>=.20:exit_reason='TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE'
-            if day<p['planned_exit'] and day!=days[-1] and exit_reason=='TIME_LIMIT':continue
-            if day==days[-1] and exit_reason=='TIME_LIMIT':exit_reason='GAME_END'
+            if day<p['planned_exit'] and (day!=days[-1] or not liquidate_at_end) and exit_reason=='TIME_LIMIT':continue
+            if liquidate_at_end and day==days[-1] and exit_reason=='TIME_LIMIT':exit_reason='GAME_END'
             bar=adjusted.get(ticker,{}).get(day)
             if not bar:
                 gaps['MISSING_EXIT_BAR']+=1;continue
@@ -274,7 +274,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             trades.append({**p,'exit_date':day,'exit_reason':exit_reason,'ticker':ticker,'side':'LONG' if side>0 else 'SHORT','pnl':pnl,'return_pct':100*pnl/p['notional'],'gross_return_pct':100*side*(ratio-1)})
             del positions[ticker]
         # Signal is formed at prior close, never using today's fill/outcome bar.
-        if day!=days[-1] and i>=22:
+        if (day!=days[-1] or not liquidate_at_end) and i>=22:
             opportunities=[]
             for ticker in symbols:
                 event=next((e for e in intraday_signals.get(day,[]) if e['ticker']==ticker),None) if intraday_signals is not None else None
@@ -355,7 +355,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['ORDER_REJECTED_BUYING_POWER_AT_FILL']+=1;continue
                 cash-=notional+entry_fee
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
-                planned=sessions[min(i+selected_hold,index[days[-1]])]
+                planned=sessions[min(i+selected_hold,index[days[-1]] if liquidate_at_end else len(sessions)-1)]
                 positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger,position_scale=position_scale)
         equity=marked_equity(cash,positions,adjusted,day,side)
         if equity is not None:
@@ -368,7 +368,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                       'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,smg_cash_interest=smg_cash_interest,positive_cash_rate=positive_cash_rate,negative_cash_rate=negative_cash_rate,interest_pnl=round(interest_pnl,2),initial_balance=initial,position_target=position_target,buying_power=buying_power,
         risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,max_position_equity_fraction=max_position_equity_fraction,
-        account_insolvent=insolvent,financial_status=financial_status,
+        account_insolvent=insolvent,financial_status=financial_status,liquidate_at_end=liquidate_at_end,
+        marked_ending_equity=round(curve[-1]['equity'],2) if curve and curve[-1]['equity'] is not None else None,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,
         realized_profit=round(sum(profits),2),closed_trades=len(trades),unresolved_open_positions=len(positions),
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),

@@ -208,10 +208,12 @@ def run(packet,cfg,client,years,out,max_seconds=600):
                     if firm_exhaustion_trigger(prior,cfg):prior_names.append(ticker)
                 raw=client.get(sorted(set(preliminary)|set(prior_names)),opened,cutoff,'raw')
                 selected=[];combined=[]
+                raw_missing=set()
                 for ticker in sorted(set(preliminary)|set(prior_names)):
                     partial=partials[ticker]
                     raw_partial=partial_bar(raw.get(ticker,[]),opened,cutoff)
-                    if not raw_partial:gaps['MISSING_OR_STALE_RAW_WINDOW']+=1;continue
+                    if not raw_partial:
+                        gaps['MISSING_OR_STALE_RAW_WINDOW']+=1;raw_missing.add(ticker);continue
                     event=signal_event(packet,ticker,day,partial,raw_partial,cfg)
                     if event:selected.append(event)
                     event=hybrid_event(packet,ticker,day,partial,raw_partial,cfg)
@@ -219,7 +221,10 @@ def run(packet,cfg,client,years,out,max_seconds=600):
                 events[day]=selected
                 hybrid[day]=combined
                 audit.append({'day':day,'candidates':len(names),'chart_matches':len(preliminary),
-                              'signals':len(selected),'hybrid_signals':len(combined),'decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat()})
+                              'signals':len(selected),'hybrid_signals':len(combined),'decision_at':decision.isoformat(),'data_cutoff':cutoff.isoformat(),
+                              'candidate_audit':[{'ticker':t,'status':'SPLIT_WINDOW_UNAVAILABLE' if t not in partials else
+                                  'RAW_WINDOW_UNAVAILABLE' if t in raw_missing else 'HYBRID_SETUP_FOUND' if any(e['ticker']==t for e in combined) else
+                                  'SETUP_PRICE_OR_CONFIRMATION_REJECTED' if t in set(preliminary)|set(prior_names) else 'NO_TIMING_PATTERN'} for t in names]})
             except (ProviderError,RuntimeError) as exc:
                 gaps['PROVIDER_OR_BUDGET_FAILURE']+=1
                 audit.append({'day':day,'status':'UNAVAILABLE','error_type':type(exc).__name__,

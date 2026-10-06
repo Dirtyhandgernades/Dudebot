@@ -66,6 +66,7 @@ class Scanner:
                 if self.cfg.market_data_delay_minutes:snapshot.flags.append('DELAYED_MARKET_DATA')
                 if any('ads ratio' in n.lower() or 'ticker change' in n.lower() for n in c.notes):snapshot.flags.append('CORPORATE_ACTION_REVIEW')
                 r=assess(c,self.cfg,self.entities,now,snapshot,halt)
+                if borrow is not None:r.shortability=borrow
                 if r.status=='QUALIFIED':
                     r.signal_side=self.cfg.live_signal_side
                     r.ranking_evidence=self._ranking_context(c.ticker,now)

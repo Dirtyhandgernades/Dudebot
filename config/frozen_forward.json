@@ -1,0 +1,110 @@
+{
+  "id": "firm-shadow-2026-10-06-v1",
+  "frozen_at": "2026-10-06T01:33:39+00:00",
+  "start_date": "2026-10-06",
+  "end_date": "2026-12-05",
+  "target_drop_fraction": 0.2,
+  "horizon_sessions": 3,
+  "model": {
+    "features": [
+      "return_21",
+      "return_5",
+      "return_1",
+      "drawdown_21",
+      "volume_ratio_20",
+      "failed_prev_low",
+      "range_pct"
+    ],
+    "mean": [
+      0.6116615274727424,
+      0.3398364139174057,
+      0.11266917371130128,
+      -0.11406591867274259,
+      16.308282424966613,
+      0.0990990990990991,
+      0.1906704888561075
+    ],
+    "scale": [
+      0.8344842070250348,
+      0.6902861254960755,
+      0.49873559593570443,
+      0.10720234655331505,
+      150.74088607691502,
+      0.2987950261581434,
+      0.15460097467183123
+    ],
+    "weights": [
+      0.5092163571670302,
+      0.08940613894551556,
+      -0.3584126088736892,
+      0.3278830632512407,
+      0.21014244587658074,
+      -0.18132959301304816,
+      0.5062328335062338
+    ],
+    "bias": -0.19527198410886723,
+    "training_samples": 666,
+    "training_positives": 82
+  },
+  "rank_threshold": 0.41235697952197226,
+  "calibration": {
+    "method": "UNWEIGHTED_PLATT_RESEARCH",
+    "a": 0.4517677916608094,
+    "b": -2.0588790259377077,
+    "samples": 419,
+    "positive_outcomes": 48,
+    "latest_label": "2025-12-04"
+  },
+  "confidence_sizing_enabled": false,
+  "live_trade_enabled": false,
+  "decision_window_minutes_before_close": 30,
+  "data_delay_minutes": 16,
+  "profiles": {
+    "baseline": {
+      "initial": 100000,
+      "position_target": 30000,
+      "buying_power": 150000,
+      "max_position_equity_fraction": 0.25
+    },
+    "aggressive": {
+      "initial": 100000,
+      "position_target": 50000,
+      "buying_power": 150000,
+      "max_position_equity_fraction": 0.3
+    }
+  },
+  "input_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb",
+  "feature_contract": "Prior 22 complete regular-session minute aggregates; intraday exhaustion research setup",
+  "limitations": [
+    "Daily-provider training differs from regular-session minute features; prospective calibration required",
+    "Prospective observations may be ineligible or unborrowable; detection and execution are separate",
+    "No forecast or calibration estimate is an accusation or guaranteed trade outcome"
+  ],
+  "implementation_sha256": {
+    "smg/shadow.py": "5ec6a4cf9a4acbc50ad5f67de0cf26e0a8d74d68c80ebe38e5899da2d5bcb47c",
+    "smg/validation.py": "7e988b1b152d04dc8b640ce984d9595f73b61c7d64afa7a2d5f51fe442375c4f",
+    "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
+    "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
+    "smg/swing_backtest.py": "ab793c00e50ff1b33dbee4f5f848af8b395aab104beb43ff6478fbce30ebb2de",
+    "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
+    "smg/models.py": "74da1afe7ce2354c17323a70c879c90ab72f00e2ce44aa9fad6e8c7277725139",
+    "smg/providers.py": "f1b353234e2845858868e000f0a558accf1b64905143eed9a94030c5e4809d6c",
+    "smg/runner.py": "4d2a6a19a9761f594c6b31e9c2d4c687c07de7e5f99994393e1f69219a157059",
+    "smg/learning.py": "d7a8eba2b59a5e11a23773866b0d87916565c2be6b18bb90fca9fed3adf61cb3",
+    "smg/cli.py": "db2b7ff75a1fc6ef27368892040d9bd4055b4aea4fef4e804bc58af9b5723252",
+    "smg/game_rules.py": "abd50e0de104f3c537f14ddf26701f442daa2fa1ee2b510e57b062c120870691",
+    "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
+    "smg/live_selection.py": "faaf89adb11031ea20bb8cbb76e35f3b2e1ecdb6a9d54ab0694e23ac56e75cbe",
+    "smg/rules.py": "3a67c79e8033ff25e655c6a10259c790001c515c54b917bbafbceb7cf9348dd6",
+    "smg/live_firms.py": "2b672a8c17adf68c4547a5d609ca8d6048a465c47676df67219b4fbf32b67e9c",
+    "smg/extraction.py": "4c73af7485b9ac0b54915b433da26ae9251e48ec8ff47c3704f14aced0c827a4",
+    "config/strategy.yaml": "8a8bae18941a3e7630d764c0eef03882a70afb107b90de2b73870da0bdc0056a",
+    "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
+    "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0"
+  },
+  "confidence_gate": {
+    "minimum_matured": 50,
+    "minimum_positive_outcomes": 10,
+    "minimum_distinct_tickers": 5
+  }
+}

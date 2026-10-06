@@ -28,7 +28,7 @@ class Alpaca:
         while True:
             data=self.http.json('https://data.alpaca.markets/v2/stocks/bars',params=dict(params),headers=self.headers)
             for r in (data.get('bars') or {}).get(ticker,[]):
-                result.append(Bar(start=datetime.fromisoformat(r['t'].replace('Z','+00:00')),close=r['c'],high=r['h'],low=r['l'],volume=r['v']))
+                result.append(Bar(start=datetime.fromisoformat(r['t'].replace('Z','+00:00')),open=r.get('o'),close=r['c'],high=r['h'],low=r['l'],volume=r['v']))
             token=data.get('next_page_token')
             if not token:break
             if token in seen:raise ValueError('Alpaca pagination loop')

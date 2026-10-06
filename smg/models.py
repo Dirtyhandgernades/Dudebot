@@ -96,6 +96,7 @@ class Candidate(Strict):
 
 class Bar(Strict):
     start: datetime
+    open: float | None = Field(default=None,gt=0)
     close: float = Field(gt=0)
     high: float = Field(gt=0)
     low: float = Field(gt=0)
@@ -123,6 +124,8 @@ class Snapshot(Strict):
     flags: list[str] = []
     feed: str = 'synthetic'
     declared_delay_minutes: int = 0
+    research_history: list[dict] | None = None
+    research_partial: dict | None = None
 
 class HaltCheck(Strict):
     checked_at: datetime

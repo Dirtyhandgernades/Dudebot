@@ -10,7 +10,7 @@ on:
     - cron: '35 23 * * 1-5'
   push:
     branches: [main]
-    paths: [smg/live_firms.py, smg/cli.py, smg/runner.py, .github/workflows/evidence-archive.yml]
+    paths: [smg/live_firms.py, smg/cli.py, smg/runner.py, smg/shadow.py, smg/learning.py, config/frozen_forward.json, .github/workflows/evidence-archive.yml]
   workflow_dispatch:
     inputs:
       mode:
@@ -73,5 +73,6 @@ jobs:
             reports/latest.json
             reports/discord-payloads.json
             reports/daily-outcome-review.json
+            reports/frozen-forward-capture.json
           if-no-files-found: ignore
           retention-days: 30

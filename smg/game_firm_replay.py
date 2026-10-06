@@ -46,7 +46,7 @@ def dated_records(candidates,cfg,entities):
     return records
 
 
-def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600):
+def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority_period='balanced'):
     state=root/'backtest/runtime/game-firm-search'
     state.mkdir(parents=True,exist_ok=True)
     db=state/'firm-search.sqlite'
@@ -65,6 +65,7 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600):
         warm=cache/(digest+'.html')
         # Budget priority uses dates/forms/cache only, never winner tickers.
         if parsed.exists():bucket=0
+        elif priority_period=='earlier_years' and src['file_date']<'2025-01-01':bucket=1
         elif src['file_date']>'2025-07-28' and src['form'].startswith('424B'):bucket=1
         elif warm.exists():bucket=2
         elif src['file_date']>'2025-07-28':bucket=3
@@ -123,7 +124,8 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600):
              'source_status_counts':dict(Counter(s['status'] for s in sources)),
              'unvisited_sources':len(selected)-len(sources),'downloads_this_run':downloaded,
              'source_seconds':round(time.monotonic()-started,2),'universe_complete':False,
-             'budget_priority':'One source per issuer first; cached evidence, post-July offerings, cached negatives, other dated game filings, earlier sources'}
+             'budget_priority':'One source per issuer first; '+('earlier-year evidence before reused 2025 sources' if priority_period=='earlier_years' else 'cached evidence, post-July offerings, cached negatives, other dated game filings, earlier sources'),
+             'priority_period':priority_period}
     write_json(out/'discovery-summary.json',summary)
     return records,summary
 
@@ -166,8 +168,12 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--baseline',required=True)
     parser.add_argument('--max-documents',type=int,default=1200)
     parser.add_argument('--max-seconds',type=int,default=600)
+    parser.add_argument('--priority-period',choices=['balanced','earlier_years'],default='balanced')
+    parser.add_argument('--gather-only',action='store_true',help='Collect independent sources without repeating market downloads/backtests')
     args=parser.parse_args();root=Path.cwd();cfg,entries=settings(root)
-    additions,discovery=discover(root,cfg,entries,max_documents=args.max_documents,max_seconds=args.max_seconds)
+    additions,discovery=discover(root,cfg,entries,max_documents=args.max_documents,max_seconds=args.max_seconds,priority_period=args.priority_period)
+    if args.gather_only:
+        print(json.dumps({'status':'BOUNDED_SOURCE_GATHER','discovery':discovery,'records':len(additions)}));return
     records=json.loads(Path(args.baseline).read_text())+additions
     first=earliest_firm_dates(records)
     # Include within-game discoveries, but gate each signal by its known date.

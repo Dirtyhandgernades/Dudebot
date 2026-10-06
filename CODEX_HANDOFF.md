@@ -1,5 +1,47 @@
 # Dudebot continuation handoff
 
+## October 5: all five validation work streams implemented
+
+See `backtest/VALIDATION_AND_FORWARD_PLAN.md`. Offline audit/export:
+`python -m backtest.complete_validation`; reports at
+`outputs/backtest/validation-2026-10-05`. Audit uses distinct three-session
+20% closing decline episodes, never after-drop advance signals. 2025 reasons:
+315 price-below-$3, 39 firm evidence not yet public, 157 no setup or unavailable
+old minute provenance, 9 missing signal histories, 3 ranking rejections,
+1 selected without position, 7 with a position. Full corpus: 531 episodes;
+this is not whole-market eligible recall or proof of a 20% profitable entry.
+
+Nonoverlapping calibration: 172 windows in 2024 / 419 reused 2025 evaluation
+windows. Brier 0.2263 raw ->0.0985 calibrated, versus ~0.101 constant base
+rate. Confidence sizing is disabled; calibration gains are modest and no
+80%/90% prediction claim is supported.
+
+`config/frozen_forward.json` freezes the prior-trained rank for prospective
+October 6–December 5 research. `smg.shadow` checks immutable semantic config
+and implementation hashes; it captures only actual pre-close delayed quotes,
+logs gaps, separates current eligibility/borrow from detection, and never
+places orders or sends messages. Prior regular-session minute features are
+derived from scanner downloads without extra API calls. They differ from
+historical daily-provider training; prospective validation is required.
+
+Nightly `review` now exports forward counts, mature outcomes, calibration
+gate and two conditional paper portfolios. Raw/split close data are collected
+for new forward symbols; missing raw entry prices are not imputed. Open paper
+positions are retained between reviews. Fixed profiles: $30k/25% equity cap
+and $50k/30% cap; both $100k initial / $150k assumed buying power. No live
+confidence or firm timing activation. First full three-session outcome for
+an October 6 forecast is October 9, not yet available at implementation.
+
+Historical source gather has a bounded gather-only mode and earlier-year
+priority. Weekly workflow cap is 200 new documents, six-minute parsing budget;
+it resumes caches and does not repeat market/profit runs. New minute audits
+record per-symbol failure/setup reasons. Data coverage remains incomplete.
+
+Local verification: 240 tests passed. Do not change the frozen source/config
+files without a new experiment version; a fingerprint mismatch blocks shadow
+capture/review while normal alerts continue. Documentation-only changes do
+not affect the policy hash. Tests use fixtures and are not new market outcomes.
+
 ## October 5: chronological fast-dump rank and learning corrections
 
 See `backtest/FAST_DUMP_RANK_RESULTS.md`. Fixed calendar continuity in

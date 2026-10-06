@@ -178,6 +178,16 @@ def main():
         results=scanner.scan(candidates,datetime.now(UTC))
         from .learning import record_scan
         record_scan(store,all_candidates,results,datetime.now(UTC))
+        frozen_path=root/'config/frozen_forward.json'
+        if frozen_path.exists():
+            from .shadow import capture
+            try:shadow=capture(store,results,datetime.now(UTC),cfg,frozen_path)
+            except (ValueError,TypeError,KeyError,OSError) as exc:
+                shadow={'status':'FROZEN_SHADOW_ERROR','reason':str(exc) if isinstance(exc,ValueError) else type(exc).__name__}
+                store.put('forward_capture:last',shadow)
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'frozen-forward-capture.json').write_text(json.dumps(shadow,indent=2))
+            print(json.dumps({'frozen_forward_capture':shadow}))
         if args.command=='alert' and args.send:
             if os.environ.get('DISCORD_ENABLED')=='true':
                 sender=DiscordSender(http,required_env('DISCORD_WEBHOOK_URL'),store,checkpoint)

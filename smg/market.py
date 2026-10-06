@@ -69,7 +69,19 @@ def calculate(bars: list[Bar], now, cfg, source_url, ipo_date=None):
     window_days=set(previous[-cfg.monthly_return_sessions:]+[now.date()])
     high=max(b.high for day, rows in by_day.items() if day in window_days for b in rows)
     first=by_day.get(ipo_date) if ipo_date else None
+    history=None
+    prior_days=previous[-22:]
+    if len(prior_days)==22 and all(by_day.get(d) and
+            timedelta(0)<=session_bounds(d)[1]-(by_day[d][-1].start+timedelta(minutes=1))<=timedelta(minutes=5)
+            for d in prior_days):
+        history=[{'date':str(d),'c':by_day[d][-1].close,'h':max(b.high for b in by_day[d]),
+                  'l':min(b.low for b in by_day[d]),'v':sum(b.volume for b in by_day[d])} for d in prior_days]
+    partial=None
+    if current[0].open is not None:
+        partial={'o':current[0].open,'c':price,'h':max(b.high for b in current),'l':min(b.low for b in current),
+                 'v':total,'last_complete_at':(current[-1].start+timedelta(minutes=1)).isoformat()}
     return Snapshot(asof=now,price_time=current[-1].start,price=price,monthly_return=monthly,
         one_day_return=ret(1),five_day_return=ret(5),since_first_close_return=(price/first[-1].close-1)*100 if first and ipo_date<now.date() else None,
         drawdown_pct=(price/high-1)*100,rvol=rvol,rvol20=total/short if short and short>0 else None,
-        baseline_sessions=count,cumulative_volume=total,baseline_volume=base,source_url=source_url,flags=sorted(set(flags)))
+        baseline_sessions=count,cumulative_volume=total,baseline_volume=base,source_url=source_url,flags=sorted(set(flags)),
+        research_history=history,research_partial=partial)

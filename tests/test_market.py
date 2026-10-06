@@ -40,3 +40,14 @@ def test_short_history_has_no_fabricated_month():
 def test_market_holiday_closed():
     rows,_=bars()
     with pytest.raises(ValueError,match='MARKET_CLOSED'):calculate(rows,datetime(2026,9,7,19,tzinfo=UTC),Config(),'x')
+
+
+def test_research_features_are_prior_sessions_and_partial_candle_excludes_future():
+    rows,days=bars()
+    rows=[b.model_copy(update={'open':b.close}) for b in rows]
+    rows.append(Bar(start=NOW,open=1000,close=1000,high=1000,low=1000,volume=9e6))
+    s=calculate(rows,NOW,Config(),'fixture',days[0])
+    assert len(s.research_history)==22
+    assert all(r['date']<str(NOW.date()) for r in s.research_history)
+    assert s.research_partial['h']==20 and s.research_partial['c']==20
+    assert s.research_partial['last_complete_at']==NOW.isoformat()

@@ -77,7 +77,8 @@ def review(store,http,headers,now):
     today=str(last_day);days=sorted({key.split(':')[1] for key,_ in store.items('watch_census:')
         if str(now.date()-timedelta(days=10))<=key.split(':')[1]<today})
     symbols=sorted({symbol for day in days for symbol in store.get('watch_census:'+day,{}).get('firm_symbols',[])}|
-        {v['ticker'] for day in days for _,v in store.items('scan_day:'+day+':')})
+        {v['ticker'] for day in days for _,v in store.items('scan_day:'+day+':')}|
+        {v['ticker'] for _,v in store.items('forward_forecast:') if str(now.date()-timedelta(days=10))<=v['signal_date']<=today})
     bars={};requests=0
     for offset in range(0,len(symbols),100):
         params={'symbols':','.join(symbols[offset:offset+100]),'timeframe':'1Day',
@@ -94,6 +95,25 @@ def review(store,http,headers,now):
             if token in seen:raise ValueError('Repeated Alpaca outcome-review page token')
             seen.add(token)
             params['page_token']=token
+    raw_bars={};raw_failures=[]
+    forward_symbols=sorted({v['ticker'] for _,v in store.items('forward_forecast:')
+        if str(now.date()-timedelta(days=10))<=v['signal_date']<=today})
+    for offset in range(0,len(forward_symbols),100):
+        params={'symbols':','.join(forward_symbols[offset:offset+100]),'timeframe':'1Day',
+                'start':str(now.date()-timedelta(days=11))+'T00:00:00Z','end':effective.isoformat(),
+                'feed':'sip','adjustment':'raw','asof':'-','limit':10000,'sort':'asc'}
+        seen=set()
+        while True:
+            try:data=http.json(URL,params=params,headers=headers);requests+=1
+            except Exception as exc:
+                raw_failures.append({'symbols':forward_symbols[offset:offset+100],'error_type':type(exc).__name__})
+                break
+            for symbol,series in (data.get('bars') or {}).items():
+                raw_bars.setdefault(symbol,{}).update({bar['t'][:10]:bar for bar in series})
+            token=data.get('next_page_token')
+            if not token:break
+            if token in seen:raise ValueError('Repeated raw forward-review page token')
+            seen.add(token);params['page_token']=token
     output=[]
     for day in days:
         rows=outcome_rows(store,bars,day,today)
@@ -111,8 +131,11 @@ def review(store,http,headers,now):
                 priority.append(row['ticker'])
     store.put('learning_priority',{'reviewed_at':now.isoformat(),'firm_symbols':priority[:8],
         'basis':'Recent watched firm names with a >=20% subsequent close decline; research order only'})
+    from .shadow import review as review_forward
+    forward=review_forward(store,bars,today,now,raw_bars)
     return {'reviewed_at':now.isoformat(),'scan_days':len(days),'symbols':len(symbols),
-        'market_requests':requests,'research_priority_symbols':priority[:8],'reviews':output,
+        'market_requests':requests,'research_priority_symbols':priority[:8],'reviews':output,'frozen_forward':forward,
+        'forward_raw_failures':raw_failures,
         'limitations':['Close-to-close outcomes only; intraday rugs can be missed',
             'Borrow, market cap, halts and game availability are not reconstructed historically',
             'A missed outcome is diagnostic, not evidence that a short was executable',
