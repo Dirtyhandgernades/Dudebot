@@ -57,13 +57,40 @@ class GitHubState:
     """GitHub contents API with SHA guards. Never catches a conflicting write and overwrites."""
     def __init__(self,http,repo,token,branch='smg-state'):
         if not repo or '/' not in repo: raise ValueError('GITHUB_REPOSITORY is required')
-        self.http=http;self.repo=repo;self.branch=branch;self.sha=None
+        self.http=http;self.repo=repo;self.branch=branch;self.sha=None;self.branch_exists=False
         self.headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
     @property
     def url(self): return 'https://api.github.com/repos/'+self.repo+'/contents/runtime/state.sqlite'
+    def remember_local(self,path):
+        import os
+        run=os.environ.get('GITHUB_RUN_ID')
+        if run:
+            Path(path).with_suffix('.remote.json').write_text(json.dumps({'run':run,'repo':self.repo,'branch':self.branch,'sha':self.sha}))
     def restore(self,path):
         import base64
+        import os
         from .transport import ProviderError
+        local=Path(path);memo=local.with_suffix('.remote.json');run=os.environ.get('GITHUB_RUN_ID')
+        if run and local.exists() and memo.exists():
+            try:cached=json.loads(memo.read_text())
+            except (ValueError,OSError):cached={}
+            if (cached.get('run'),cached.get('repo'),cached.get('branch'))==(run,self.repo,self.branch) and cached.get('sha')==self.blob_sha(local.read_bytes()):
+                # Serialized state-writer workflow commands share the last
+                # successful checkpoint. The next write still uses its SHA
+                # and rejects a concurrent external update before any send.
+                self.sha=cached['sha'];self.branch_exists=True;return
+        if hasattr(self.http,'response'):
+            try:r=self.http.response(self.url,params={'ref':self.branch},headers={**self.headers,'Accept':'application/vnd.github.raw+json'})
+            except ProviderError as exc:
+                if exc.status!=404:raise
+                return
+            content=r.content
+            if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
+            self.sha=self.blob_sha(content);self.branch_exists=True
+            Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_bytes(content)
+            self.remember_local(path)
+            return
+        # Preserve compatibility with json-only provider adapters.
         try: data=self.http.json(self.url,params={'ref':self.branch},headers=self.headers)
         except ProviderError as exc:
             if exc.status!=404: raise
@@ -74,18 +101,27 @@ class GitHubState:
         content=base64.b64decode(data['content']);self.sha=data['sha']
         Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_bytes(content)
     def ensure_branch(self):
+        if self.branch_exists:return
         from .transport import ProviderError
         root='https://api.github.com/repos/'+self.repo
-        try: self.http.json(root+'/git/ref/heads/'+self.branch,headers=self.headers);return
+        try: self.http.json(root+'/git/ref/heads/'+self.branch,headers=self.headers);self.branch_exists=True;return
         except ProviderError as exc:
             if exc.status!=404:raise
         repo=self.http.json(root,headers=self.headers)
         ref=self.http.json(root+'/git/ref/heads/'+repo['default_branch'],headers=self.headers)
         self.http.json(root+'/git/refs',method='POST',headers=self.headers,body={'ref':'refs/heads/'+self.branch,'sha':ref['object']['sha']})
+        self.branch_exists=True
+    @staticmethod
+    def blob_sha(content):
+        import hashlib
+        return hashlib.sha1(b'blob '+str(len(content)).encode()+b'\x00'+content).hexdigest()
     def checkpoint(self,store):
         import base64
+        content=store.path.read_bytes()
+        if self.sha==self.blob_sha(content):return
         self.ensure_branch()
-        body={'message':'Update SMG notifier state','branch':self.branch,'content':base64.b64encode(store.path.read_bytes()).decode()}
+        body={'message':'Update SMG notifier state','branch':self.branch,'content':base64.b64encode(content).decode()}
         if self.sha:body['sha']=self.sha
         data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
         self.sha=data['content']['sha']
+        self.remember_local(store.path)

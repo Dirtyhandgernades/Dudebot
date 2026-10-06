@@ -101,6 +101,10 @@ def review(store,bars,today,now,raw_bars=None):
         spec=bundle['spec'];forecasts=[v for _,v in store.items('forward_forecast:'+spec['id']+':')]
         try:verify_implementation(spec)
         except ValueError:
+            if not forecasts:
+                reports.append({'contract_id':spec['id'],'status':'SUPERSEDED_EMPTY_CONTRACT','forecasts':0,
+                                'confidence_sizing_enabled':False,'live_enabled':False})
+                continue
             reports.append({'contract_id':spec['id'],'status':'FROZEN_IMPLEMENTATION_CHANGED','confidence_sizing_enabled':False})
             continue
         rows=[]

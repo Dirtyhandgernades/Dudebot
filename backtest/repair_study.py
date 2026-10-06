@@ -167,16 +167,18 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
                 if not entry or not adjusted or equity is None:gaps['MISSING_FILL_OR_CAPITAL']+=1;continue
                 if entry['c']<=3:gaps['ENTRY_BELOW_3']+=1;continue
                 budget=min(50000,.30*decision_equity,decision_room)
-                shares=math.floor(max(0,budget)/row['raw_signal_price'])
+                # Reserve 20% for a closing-price move BEFORE placing shares.
+                # This is a fixed sensitivity policy, not a guaranteed cap.
+                shares=math.floor(max(0,budget)/(row['raw_signal_price']*1.20))
                 if shares<10:continue
                 notional=shares*entry['c'];entry_fee=notional*fee+5
                 exposure=sum(p['notional']*split[t][day]['c']/p['adjusted_entry'] for t,p in positions.items())
                 room=min(150000,1.5*max(0,equity))-exposure
                 # A next-close price jump can make stale-price shares exceed
                 # the intended position size even when total buying power fits.
-                if notional>min(50000,.30*decision_equity):gaps['POSITION_LIMIT_EXCEEDED_AT_FILL']+=1;continue
+                if notional>min(50000,.30*decision_equity):gaps['POSITION_TARGET_EXCEEDED_AT_FILL']+=1
                 if notional+entry_fee>room:gaps['ORDER_REJECTED_AT_FILL']+=1;continue
-                cash-=notional+entry_fee;decision_room=max(0,decision_room-shares*row['raw_signal_price']*(1+fee)-5)
+                cash-=notional+entry_fee;decision_room=max(0,decision_room-shares*row['raw_signal_price']*1.20*(1+fee)-5)
                 positions[ticker]={'signal_date':row['signal_date'],'entry_date':day,'planned_exit':sessions[min(i+3,indices[days[-1]])],
                                    'entry_price':entry['c'],'adjusted_entry':adjusted['c'],'shares':shares,'notional':notional,
                                    'entry_fee':entry_fee,'score':row['score'],'execution':row['execution']}
@@ -189,6 +191,7 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
             'closed_trades':len(trades),'trades':trades,'max_drawdown_pct':100*drawdown,'open_positions':positions,
             'cost_bps_each_way':cost_bps,'assumed_annual_borrow_rate':borrow_rate,'commission_per_order':5,
             'position_target':50000,'decision_equity_cap':.30,'assumed_gross_buying_power':150000,
+            'decision_price_buffer':1.20,
             'gaps':dict(gaps),'curve':curve,'live_enabled':False,
             'limitations':['Daily features imply next-close entry; no same-close hindsight fill',
                            'Conditional results lack verified historical cap/halt/borrow/SMG membership',

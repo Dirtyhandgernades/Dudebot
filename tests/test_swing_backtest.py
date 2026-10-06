@@ -5,6 +5,18 @@ from smg.swing_backtest import PERIODS,borrow_metrics,dump_structure_score,froze
 def test_walk_forward_periods_are_fixed_before_outcomes():
     assert PERIODS == [('2023-09-08','2023-12-05'),('2024-09-08','2024-12-05'),('2025-09-08','2025-12-05')]
 
+
+def test_next_close_price_jump_is_flagged_without_retrospectively_erasing_trade():
+    from smg.models import Config
+    days,bars=fixture()
+    bars[days[21]]={**bars[days[21]],'c':15,'h':18,'l':14,'v':400}
+    bars[days[22]]={**bars[days[22]],'c':30,'h':31,'l':29}
+    result=simulate({'TEST':bars},{'TEST':bars},['TEST'],days,start=days[22],end=days[25],hold=3,
+                    strategy='FIRM_EXHAUSTION_RESEARCH',firm_dates={'TEST':days[0]},firm_cfg=Config(),
+                    position_target=30000,buying_power=150000,risk_controls=True,signal_share_sizing=True)
+    assert result['closed_trades']>=1 and result['gaps']['POSITION_TARGET_EXCEEDED_AT_FILL']>=1
+    assert result['trades'][0]['notional']>30000
+
 def fixture():
     days=[str(date(2025,1,1)+timedelta(days=i)) for i in range(30)]
     bars={day:dict(c=10,h=10.1,l=9.9,v=100) for day in days}

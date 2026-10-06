@@ -214,7 +214,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -223,6 +223,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     """
     if not math.isfinite(max_position_equity_fraction) or not 0<max_position_equity_fraction<=1:
         raise ValueError('Position equity fraction must be finite and in (0, 1]')
+    if not isinstance(decision_price_buffer,(int,float)) or not math.isfinite(decision_price_buffer) or decision_price_buffer<1:
+        raise ValueError('Decision price buffer must be finite and at least one')
     index={day:i for i,day in enumerate(sessions)};days=[d for d in sessions if start<=d<=end]
     cash=float(initial);positions={};trades=[];curve=[];gaps=Counter();signals=0;signal_events=[];peak=initial;drawdown=0;interest_pnl=0.0
     position_target=position_target or initial*.10;buying_power=buying_power or initial
@@ -345,11 +347,16 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     if decision_equity is None:budget=0
                 if risk_controls:budget=min(budget,(decision_equity or 0)*max_position_equity_fraction if signal_share_sizing else marked*max_position_equity_fraction)
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
-                sizing_price=decision_price if signal_share_sizing else entry['c']
+                sizing_price=decision_price*decision_price_buffer if signal_share_sizing else entry['c']
                 shares=math.floor(budget/sizing_price)
                 if shares<10:continue
                 if signal_share_sizing:decision_room=max(0,decision_room-shares*sizing_price*(1+fee)-commission)
                 notional=shares*entry['c'];entry_fee=notional*fee+commission
+                if risk_controls and notional>min(position_target*position_scale,(decision_equity or 0)*max_position_equity_fraction if signal_share_sizing else marked*max_position_equity_fraction):
+                    # SMG market orders cannot be retrospectively withdrawn
+                    # because the closing price exceeded a research target.
+                    # Record overshoot; only actual buying power can reject.
+                    gaps['POSITION_TARGET_EXCEEDED_AT_FILL']+=1
                 if signal_share_sizing and (notional+entry_fee>room or
                         (buying_power<=initial and notional+entry_fee>cash)):
                     gaps['ORDER_REJECTED_BUYING_POWER_AT_FILL']+=1;continue
@@ -367,7 +374,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     financial_status=('ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED' if insolvent else
                       'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,smg_cash_interest=smg_cash_interest,positive_cash_rate=positive_cash_rate,negative_cash_rate=negative_cash_rate,interest_pnl=round(interest_pnl,2),initial_balance=initial,position_target=position_target,buying_power=buying_power,
-        risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,max_position_equity_fraction=max_position_equity_fraction,
+        risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,max_position_equity_fraction=max_position_equity_fraction,decision_price_buffer=decision_price_buffer,
         account_insolvent=insolvent,financial_status=financial_status,liquidate_at_end=liquidate_at_end,
         marked_ending_equity=round(curve[-1]['equity'],2) if curve and curve[-1]['equity'] is not None else None,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,

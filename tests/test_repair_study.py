@@ -79,13 +79,14 @@ def test_strict_portfolio_does_not_place_unknown_execution_trade():
     assert conditional['closed_trades']==1 and conditional['net_profit']<0
 
 
-def test_position_limit_cannot_be_bypassed_by_next_close_price_jump():
+def test_presized_buffer_and_fill_overshoot_are_reported_without_future_cancellation():
     data,days=packet()
     data['raw']['TEST']['2025-09-09']={**data['raw']['TEST']['2025-09-09'],'c':10}
     row={'ticker':'TEST','signal_date':'2025-09-08','entry_date':'2025-09-09',
          'raw_signal_price':5,'execution':'UNAVAILABLE','score':.9}
     result=portfolio([row],data['raw'],data['split'],days,2025)
-    assert result['closed_trades']==0 and result['gaps']['POSITION_LIMIT_EXCEEDED_AT_FILL']==1
+    assert result['closed_trades']==1 and result['gaps']['POSITION_TARGET_EXCEEDED_AT_FILL']==1
+    assert result['trades'][0]['shares']==5000 and result['decision_price_buffer']==1.20
 
 
 def test_cached_news_pagination_resumes_instead_of_stopping_at_same_pages(tmp_path,monkeypatch):
