@@ -1,0 +1,66 @@
+name: Full roster collapse mechanism research
+on:
+  workflow_dispatch:
+    inputs:
+      news_budget:
+        description: Maximum new historical news requests; unavailable access remains a gap
+        type: number
+        default: 40
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: independent-mechanism-audit
+  queue: max
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      NEWS_BUDGET: ${{ inputs.news_budget || 40 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: pre-close-firm-37399904292
+          run-id: 37399904292
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/mechanism-inputs
+      - uses: actions/download-artifact@v4
+        with:
+          name: independent-source-replay-35415517622
+          run-id: 35415517622
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/mechanism-baseline
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-firm-coverage-37400698858
+          run-id: 37400698858
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/mechanism-sources
+      - uses: actions/cache@v4
+        with:
+          path: |
+            backtest/runtime/mechanism-bars
+            backtest/runtime/mechanism-news
+          key: mechanism-audit-v1-${{ github.run_id }}
+          restore-keys: mechanism-audit-v1-
+      - name: Audit all stock labels while testing only independent firm candidates
+        run: |
+          python -u -m smg.mechanism_audit --packet backtest/runtime/mechanism-inputs/firm-timing-inputs.json.gz --records backtest/runtime/mechanism-baseline/decisions.json backtest/runtime/mechanism-sources/discovery-decisions.json --out reports/mechanism-audit --collect --news-budget "$NEWS_BUDGET"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mechanism-audit-${{ github.run_id }}
+          path: reports/mechanism-audit/
+          retention-days: 90
