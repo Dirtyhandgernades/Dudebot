@@ -33,7 +33,7 @@ confidence or firm timing activation. First full three-session outcome for
 an October 6 forecast is October 9, not yet available at implementation.
 
 Historical source gather has a bounded gather-only mode and earlier-year
-priority. Weekly workflow cap is 200 new documents, six-minute parsing budget;
+priority. Weekday-night workflow cap is 200 new documents, six-minute parsing budget;
 it resumes caches and does not repeat market/profit runs. New minute audits
 record per-symbol failure/setup reasons. Data coverage remains incomplete.
 
@@ -50,6 +50,12 @@ outcomes / confidence gate NOT_READY. Artifacts downloaded to local
 outputs/hosted-validation-37399904325 and -37399952559. The first gather
 37399950644 was cancelled while queued without steps; switched research
 runner to ubuntu-22.04, multi-pending queue and gather-only push behavior.
+Replacement gather 37400698858 succeeded: 200 new documents, source work
+66.91 seconds, reviewed 1,720 (was 1,520), extracted candidate source records
+484 (was 414), verified dated firm records 300, records before 2025 179.
+Outstanding: 3,559 deferred sources, 978 unresolved identity/exchange records.
+Outputs: `outputs/backtest/gather-37400698858`. No new trade/profit claim;
+frozen weights unchanged. CI 37400675267 also succeeded for 39280f2.
 
 ## October 5: chronological fast-dump rank and learning corrections
 

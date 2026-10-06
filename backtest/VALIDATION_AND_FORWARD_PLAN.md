@@ -9,7 +9,7 @@ be reported before they occur.
 |---|---|---|
 | Missed-dump audit | Independent corpus episodes, prior setup/selection dates, position coverage and rejection/gap reasons | Full-market recall and exact old minute-window causes remain unavailable |
 | Entry timing | Baseline, 2% confirmation, rank thresholds and three-session outcomes compared; new per-symbol minute provenance | Better fast-dump precision/recall on fresh data |
-| Independent data | Bounded gather-only workflow, earlier-year priority, reusable caches, weekly 200-document cap; existing live borrow/feature archive | Unresolved historical tickers, cap, halts, borrow and SMG membership |
+| Independent data | Bounded gather-only workflow, earlier-year priority, reusable caches, 200-document cap each weekday night; existing live borrow/feature archive | Unresolved historical tickers, cap, halts, borrow and SMG membership |
 | Frozen forward test | Versioned model, thresholds, code/config hashes, first immutable forecast per symbol/day, daily outcome and paper-ledger review | New prospective forecasts and their mature 1–3-session outcomes |
 | Confidence and sizing | Nonoverlapping calibration windows, Platt diagnostics, uncertainty bins, prospective readiness gate and separate paper sizing profiles | Enough new evidence for confidence sizing; no automatic live promotion |
 
@@ -96,7 +96,7 @@ python -m pytest -q
 The historical gather workflow can be dispatched with `max_documents=200`,
 `source_mode=gather`, `priority_period=earlier_years`. It resumes existing
 independent caches and avoids repeating price downloads and profit searches.
-It also runs weekly with that cap. Neither the gather nor the daily feedback
+It also runs each weekday night with that cap. Neither the gather nor the daily feedback
 silently changes the frozen weights. Fresh data supports a later, separately
 versioned model.
 
@@ -116,3 +116,12 @@ without executing steps; it was cancelled before collecting data. The gather
 workflow now uses the working ubuntu-22.04 pool, queues multiple pending
 requests, and defaults code pushes to cache-only gather instead of repeating
 market/profit replay. Workflow-only changes are validated by explicit dispatch.
+
+Replacement gather 37400698858 completed successfully: 200 new SEC documents
+downloaded in 66.91 seconds of source work. Reviewed sources rose from 1,520
+to 1,720; extracted source candidates from 414 to 484. Verified dated firm
+records now total 300, and 179 extracted records predate 2025. These are
+source records, not 70 new eligible stocks or demonstrated profitable trades.
+There are still 3,559 budget-deferred sources and 978 unresolved symbol or
+exchange records. The frozen weights were not retrained from this gather.
+Artifacts: `outputs/backtest/gather-37400698858`.
