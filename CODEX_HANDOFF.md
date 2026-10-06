@@ -49,8 +49,12 @@ explicit and does not bypass populated changed contracts.
 
 276 tests passed; enabled policy fingerprint test added (277 tests). Main
 commit67a430c matches published ranked implementation; preflight45b7c65.
-Message-free production preflight37518437950 dispatched. Verify result before
-claiming final production compatibility. First-session startup and fresh
+Message-free production preflight37518437950 SUCCEEDED:98 structurally screened
+firm candidates, two daily +two intraday requests, no delivery, zero orders.
+Results86 review-required /8 market-not-confirmed /4 halted exclusions;48
+prior prices below model scope,38 unavailable fresh minute windows,6 rank
+rejections,2 no current setup. No current trade was invented to pass the test.
+CI and enabled policy fingerprint tests pass (277 tests). First-session startup and fresh
 three-session outcomes cannot be asserted in advance. Existing daily archive,
 ranked scan steps and nighttime feedback workflow are installed.
 
