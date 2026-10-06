@@ -1,0 +1,46 @@
+name: Learn firm trade returns and squeeze risk
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: action-policy-research
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: mechanism-audit-37495259370
+          run-id: 37495259370
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/action-base
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/action-history
+          key: action-history-v1-${{ github.run_id }}
+          restore-keys: action-history-v1-
+      - name: Fill early training history and preserve dated firm and market context
+        run: python -u -m backtest.extend_training_inputs --packet backtest/runtime/action-base/mechanism-audit/audit-inputs.json.gz --out reports/action-inputs --collect
+      - name: Compare every fixed policy across three game seasons
+        run: python -u -m backtest.action_policy_study --packet reports/action-inputs/inputs.json.gz --observations reports/action-inputs/observations.json.gz --out reports/action-policy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: action-policy-${{ github.run_id }}
+          path: reports/
+          retention-days: 90

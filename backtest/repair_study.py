@@ -134,14 +134,14 @@ def scores(model,rows):
     return predict(model,[{'x':np.clip(r['x'][:len(model['features'])],-20,20).tolist()} for r in rows])
 
 
-def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=.1):
+def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=.1,stop_cooldown_sessions=0):
     """Conditional research cash/collateral ledger; no actual order/borrow claim."""
     start=f'{year}-09-08';end=f'{year}-12-05';days=[d for d in sessions if start<=d<=end]
     indices={d:i for i,d in enumerate(sessions)};queued=defaultdict(list)
     for r in rows:
         if strict and r['execution']!='EXECUTABLE_INDICATION':continue
         queued[r['entry_date']].append(r)
-    cash=100000.;positions={};trades=[];curve=[];gaps=Counter();peak=cash;drawdown=0.;fee=cost_bps/10000
+    cash=100000.;positions={};trades=[];curve=[];gaps=Counter();peak=cash;drawdown=0.;fee=cost_bps/10000;blocked_until={}
     def marked(day):
         if any(day not in split[t] for t in positions):return None
         return cash+sum(p['notional']*(2-split[t][day]['c']/p['adjusted_entry']) for t,p in positions.items())
@@ -158,11 +158,17 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
             exit_fee=p['notional']*ratio*fee+5;borrow=p['notional']*borrow_rate*(date.fromisoformat(day)-date.fromisoformat(p['entry_date'])).days/365
             net=gross-p['entry_fee']-exit_fee-borrow;cash+=p['notional']+gross-exit_fee-borrow
             trades.append({**p,'ticker':ticker,'exit_date':day,'exit_reason':reason,'pnl':round(net,2),'return_pct':100*net/p['notional']})
+            if reason=='STOP_FROM_PRIOR_CLOSE' and stop_cooldown_sessions:
+                blocked_until[p.get('issuer_cik') or ticker]=i+stop_cooldown_sessions
             del positions[ticker]
         if day!=days[-1] and decision_equity is not None and decision_equity>0:
             for row in sorted(queued.get(day,[]),key=lambda r:(-r['score'],r['ticker'])):
                 ticker=row['ticker']
                 if ticker in positions or len(positions)>=10:continue
+                issuer=row.get('issuer_cik') or ticker
+                if i<blocked_until.get(issuer,-1):gaps['STOP_REENTRY_COOLDOWN']+=1;continue
+                if row.get('issuer_cik') and any(p.get('issuer_cik')==row['issuer_cik'] for p in positions.values()):
+                    gaps['SAME_ISSUER_POSITION_ALREADY_OPEN']+=1;continue
                 entry=raw[ticker].get(day);adjusted=split[ticker].get(day);equity=marked(day)
                 if not entry or not adjusted or equity is None:gaps['MISSING_FILL_OR_CAPITAL']+=1;continue
                 if entry['c']<=3:gaps['ENTRY_BELOW_3']+=1;continue
@@ -182,6 +188,7 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
                 positions[ticker]={'signal_date':row['signal_date'],'entry_date':day,'planned_exit':sessions[min(i+3,indices[days[-1]])],
                                    'entry_price':entry['c'],'adjusted_entry':adjusted['c'],'shares':shares,'notional':notional,
                                    'entry_fee':entry_fee,'score':row['score'],'execution':row['execution']}
+                positions[ticker]['issuer_cik']=row.get('issuer_cik')
         equity=marked(day)
         if equity is not None:peak=max(peak,equity);drawdown=max(drawdown,(peak-equity)/peak)
         curve.append({'date':day,'equity':equity,'open_positions':len(positions)})
@@ -192,6 +199,7 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
             'cost_bps_each_way':cost_bps,'assumed_annual_borrow_rate':borrow_rate,'commission_per_order':5,
             'position_target':50000,'decision_equity_cap':.30,'assumed_gross_buying_power':150000,
             'decision_price_buffer':1.20,
+            'stop_cooldown_sessions':stop_cooldown_sessions,
             'gaps':dict(gaps),'curve':curve,'live_enabled':False,
             'limitations':['Daily features imply next-close entry; no same-close hindsight fill',
                            'Conditional results lack verified historical cap/halt/borrow/SMG membership',
