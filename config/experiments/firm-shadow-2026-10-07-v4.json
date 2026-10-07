@@ -1,5 +1,5 @@
 {
-  "id": "firm-shadow-2026-10-07-v5",
+  "id": "firm-shadow-2026-10-07-v4",
   "frozen_at": "2026-10-06T18:29:11Z",
   "start_date": "2026-10-07",
   "end_date": "2026-12-05",
@@ -104,14 +104,14 @@
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
-    "smg/storage.py": "f65fb6106dc3d69e78336b7bc428ceace05a978ac1193b3ae70f33e60bf9bb9c",
-    "smg/transport.py": "8f2a52082456cbaa6c471c8849c9e75dac4d0586be1f52c55798490acf0d81a0"
+    "smg/storage.py": "a5c23aab27aea34a850c692c1b02a2d12f70ae6e61db81d83773dd6132a1fd06",
+    "smg/transport.py": "2a925b2d28bd9d94dbf69cc12256b7f66484f433d5374fb2bfd8de950c2b5841"
   },
   "confidence_gate": {
     "minimum_matured": 50,
     "minimum_positive_outcomes": 10,
     "minimum_distinct_tickers": 5
   },
-  "parent_contract_id": "firm-shadow-2026-10-07-v4",
-  "version_reason": "Unchanged strategy weights; immutable-blob state restore, guarded409reconciliation and safe HTTP diagnostics/read retries. Earlier contracts had no live-session forecasts before these transport repairs."
+  "parent_contract_id": "firm-shadow-2026-10-07-v3",
+  "version_reason": "Unchanged forecast weights; correctly align adjusted volume as well as prices across same-security renames. Prior version had no forecasts before Oct7 start."
 }

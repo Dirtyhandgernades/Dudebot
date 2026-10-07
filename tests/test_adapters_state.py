@@ -54,7 +54,8 @@ def test_github_state_sha_guard_and_restore(tmp_path):
     assert http.calls[-1][1]['body']['sha']=='expected-sha' and backend.sha=='new-sha'
 
 def test_conflicting_github_write_is_not_retried_without_guard(tmp_path):
-    store=Store(tmp_path/'s.sqlite');http=Responses([{'object':{'sha':'head'}},ProviderError('api.github.com',409)])
+    store=Store(tmp_path/'s.sqlite');http=Responses([{'object':{'sha':'head'}},ProviderError('api.github.com',409),{'sha':'different-writer'}])
     backend=GitHubState(http,'owner/repo','fake');backend.sha='expected'
     with pytest.raises(ProviderError):backend.checkpoint(store)
-    assert len(http.calls)==2 and http.calls[-1][1]['body']['sha']=='expected'
+    writes=[kw for _,kw in http.calls if kw.get('method')=='PUT']
+    assert len(http.calls)==3 and len(writes)==1 and writes[0]['body']['sha']=='expected'

@@ -1,5 +1,31 @@
 # Dudebot continuation handoff
 
+## October6evening: verified GitHub state failure and guarded repair
+
+While testing timing sidecar, live evidence run37556348137 failed at archive-enrich
+withHTTP409, then ranked finally-checkpoint withHTTP403. Daily37556436282 and
+practice/Discord succeeded; this was a persistence problem, not proof of a
+Discord outage. Exact historical409/403subtypes weren't logged; don't claim
+a confirmed rate-limit or stale-cache root cause merely from the status.
+
+Storage now resolves object metadata then downloads the immutable Git blob,
+verifies itsSHA before replacing local SQLite, and requestsno-cache. Same-run
+memo still avoids repeated downloads. On failed write it reconciles read-only:
+accept exactdesired remote bytes; onlyretry409once if remote still equals the
+original expectedSHA, retaining that guard; never adopt another writer'sSHA.
+Terminal failure is remembered so finally cannot hammer the same mutation.
+HTTP adds bounded transientGET retries, at least1s between GitHub mutations,
+safe secondary-limit/SHA-conflict classification without logging token/body.
+Secondary limit withoutRetryAfter is NOTretriedearly. Sources: GitHub official
+RESTcontents/blob and APIbest-practices docs.300tests pass including CAS,
+concurrent writer, lost acknowledgement, corruptedblob and read interruption.
+
+Explicit contracts now ranked-firm-2026-10-07-v4 and original
+firm-shadow-2026-10-07-v5, archived v3/v4 respectively; weights, firstsession,
+calibration evidence and exclusions unchanged. No live-session forecasts existed
+before these protocol changes. Earlier staged challenger retires/restages on
+context change, not a hidden live model change. Latest source hashes published.
+
 ## October6: practice verified and timing research continued
 
 Simplified-card practice37555586890 SUCCEEDED and Discord receiptSENT,

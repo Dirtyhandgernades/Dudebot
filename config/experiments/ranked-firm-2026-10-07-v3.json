@@ -1,5 +1,5 @@
 {
-  "id": "ranked-firm-2026-10-07-v4",
+  "id": "ranked-firm-2026-10-07-v3",
   "enabled": true,
   "first_session": "2026-10-07",
   "confidence_sizing_enabled": false,
@@ -56,8 +56,8 @@
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
     "smg/notify.py": "65a5e1be658b168d91f7d2ef1fc925ea474cf2a63ba367459137c8fdf52b2fe8",
-    "smg/storage.py": "f65fb6106dc3d69e78336b7bc428ceace05a978ac1193b3ae70f33e60bf9bb9c",
-    "smg/transport.py": "8f2a52082456cbaa6c471c8849c9e75dac4d0586be1f52c55798490acf0d81a0",
+    "smg/storage.py": "a5c23aab27aea34a850c692c1b02a2d12f70ae6e61db81d83773dd6132a1fd06",
+    "smg/transport.py": "2a925b2d28bd9d94dbf69cc12256b7f66484f433d5374fb2bfd8de950c2b5841",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
     "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
@@ -151,9 +151,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-07-v3",
+  "parent_contract_id": "ranked-firm-2026-10-07-v2",
   "automatic_improvement_enabled": true,
-  "version_reason": "Unchanged strategy weights; immutable-blob state restore, guarded409reconciliation and safe HTTP diagnostics/read retries. Earlier contracts had no live-session forecasts before these transport repairs.",
+  "version_reason": "Unchanged entry model and exclusions; simpler cards, empirical1/2/3-session drop reference, prospective probability refresh and bounded advisory sizing. v2 had only a staged challenger, no live forecasts.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",

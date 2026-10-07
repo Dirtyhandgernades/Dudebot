@@ -57,8 +57,8 @@ class GitHubState:
     """GitHub contents API with SHA guards. Never catches a conflicting write and overwrites."""
     def __init__(self,http,repo,token,branch='smg-state'):
         if not repo or '/' not in repo: raise ValueError('GITHUB_REPOSITORY is required')
-        self.http=http;self.repo=repo;self.branch=branch;self.sha=None;self.branch_exists=False
-        self.headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+        self.http=http;self.repo=repo;self.branch=branch;self.sha=None;self.branch_exists=False;self.checkpoint_error=None
+        self.headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Cache-Control':'no-cache'}
     @property
     def url(self): return 'https://api.github.com/repos/'+self.repo+'/contents/runtime/state.sqlite'
     def remember_local(self,path):
@@ -80,12 +80,23 @@ class GitHubState:
                 # and rejects a concurrent external update before any send.
                 self.sha=cached['sha'];self.branch_exists=True;return
         if hasattr(self.http,'response'):
-            try:r=self.http.response(self.url,params={'ref':self.branch},headers={**self.headers,'Accept':'application/vnd.github.raw+json'})
+            expected=None;read_url=self.url;params={'ref':self.branch}
+            try:
+                if hasattr(self.http,'json'):
+                    # Resolve a small object first, then fetch its immutable
+                    # blob rather than a potentially stale moving-branch body.
+                    metadata=self.http.json(self.url,params=params,headers={**self.headers,'Accept':'application/vnd.github.object+json'})
+                    expected=metadata['sha']
+                    import re
+                    if not re.fullmatch('[a-f0-9]{40}',expected):raise ValueError('Invalid state blob SHA')
+                    read_url='https://api.github.com/repos/'+self.repo+'/git/blobs/'+expected;params=None
+                r=self.http.response(read_url,params=params,headers={**self.headers,'Accept':'application/vnd.github.raw+json'})
             except ProviderError as exc:
                 if exc.status!=404:raise
                 return
             content=r.content
             if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
+            if expected and self.blob_sha(content)!=expected:raise ValueError('GitHub state blob checksum mismatch')
             self.sha=self.blob_sha(content);self.branch_exists=True
             Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_bytes(content)
             self.remember_local(path)
@@ -117,11 +128,32 @@ class GitHubState:
         return hashlib.sha1(b'blob '+str(len(content)).encode()+b'\x00'+content).hexdigest()
     def checkpoint(self,store):
         import base64
+        from .transport import ProviderError
+        if self.checkpoint_error:raise self.checkpoint_error
         content=store.path.read_bytes()
         if self.sha==self.blob_sha(content):return
         self.ensure_branch()
         body={'message':'Update SMG notifier state','branch':self.branch,'content':base64.b64encode(content).decode()}
         if self.sha:body['sha']=self.sha
-        data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
+        desired=self.blob_sha(content)
+        try:
+            data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
+        except ProviderError as exc:
+            # Read-only reconciliation is not a blind mutation retry. A lost
+            # acknowledgement may already have committed EXACTLY these bytes.
+            # Otherwise retry a409 once only when the remote blob is still the
+            # SAME expected snapshot; retain its SHA guard. Never adopt a
+            # different writer's SHA to overwrite their state.
+            try:
+                remote=self.http.json(self.url,params={'ref':self.branch},
+                    headers={**self.headers,'Accept':'application/vnd.github.object+json'})
+                actual=remote.get('sha') if isinstance(remote,dict) else None
+                if actual==desired:
+                    self.sha=desired;self.remember_local(store.path);return
+                if exc.status==409 and self.sha and actual==self.sha:
+                    data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
+                else:raise exc
+            except ProviderError as final:
+                self.checkpoint_error=final;raise
         self.sha=data['content']['sha']
         self.remember_local(store.path)
