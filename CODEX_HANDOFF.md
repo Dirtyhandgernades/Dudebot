@@ -1,5 +1,26 @@
 # Dudebot continuation handoff
 
+## October6evening: large-state API denial fallback
+
+Immutable restore repair run37557745033 passed archive/enrich/ranked/timing
+steps, but the LEGACY alert checkpoint still got genericGitHub403. No confirmed
+subtype; do not call it a rate limit. Added a same-credential compressedGit
+fallback ONLY after a403ACCESS_DENIED write AND read-only metadata confirms
+the remote file still has the original expectedSHA. Git fetches current branch,
+checks that sameblob guard, uses an isolated index preserving other files,
+creates a commit on that parent and makes an ordinary fast-forward push.
+Never forcepush/adopt a changed file/bypass branch rules. The actualcheckout
+HTTPSremote must match the configuredrepo. It uses checkout's existing token;
+stdout/stderr and secrets are not printed. Same-run memo remembers recovered
+transport to avoid repeating rejected Base64 uploads. Terminal failures stop
+same-process retries. This is a transport workaround, not relaxed policy.
+
+Latest contracts ranked-firm-2026-10-07-v5 / firm-shadow-2026-10-07-v6;
+prior versions archived, sameweights/screen/horizon/probabilityreference.
+No actual live-session forecasts yet (market stillclosed).301tests passed,
+including mockedGit tree/isolated-index/no-force protections. Await hosted
+evidence/archive validation of the fallback; Discord practice alreadySENT.
+
 ## October6evening: verified GitHub state failure and guarded repair
 
 While testing timing sidecar, live evidence run37556348137 failed at archive-enrich

@@ -57,7 +57,7 @@ class GitHubState:
     """GitHub contents API with SHA guards. Never catches a conflicting write and overwrites."""
     def __init__(self,http,repo,token,branch='smg-state'):
         if not repo or '/' not in repo: raise ValueError('GITHUB_REPOSITORY is required')
-        self.http=http;self.repo=repo;self.branch=branch;self.sha=None;self.branch_exists=False;self.checkpoint_error=None
+        self.http=http;self.repo=repo;self.branch=branch;self.sha=None;self.branch_exists=False;self.checkpoint_error=None;self.writer_transport='api'
         self.headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Cache-Control':'no-cache'}
     @property
     def url(self): return 'https://api.github.com/repos/'+self.repo+'/contents/runtime/state.sqlite'
@@ -65,7 +65,7 @@ class GitHubState:
         import os
         run=os.environ.get('GITHUB_RUN_ID')
         if run:
-            Path(path).with_suffix('.remote.json').write_text(json.dumps({'run':run,'repo':self.repo,'branch':self.branch,'sha':self.sha}))
+            Path(path).with_suffix('.remote.json').write_text(json.dumps({'run':run,'repo':self.repo,'branch':self.branch,'sha':self.sha,'transport':self.writer_transport}))
     def restore(self,path):
         import base64
         import os
@@ -78,7 +78,7 @@ class GitHubState:
                 # Serialized state-writer workflow commands share the last
                 # successful checkpoint. The next write still uses its SHA
                 # and rejects a concurrent external update before any send.
-                self.sha=cached['sha'];self.branch_exists=True;return
+                self.sha=cached['sha'];self.branch_exists=True;self.writer_transport=cached.get('transport','api');return
         if hasattr(self.http,'response'):
             expected=None;read_url=self.url;params={'ref':self.branch}
             try:
@@ -126,12 +126,54 @@ class GitHubState:
     def blob_sha(content):
         import hashlib
         return hashlib.sha1(b'blob '+str(len(content)).encode()+b'\x00'+content).hexdigest()
+    def git_checkpoint(self,store,content):
+        """Compressed transfer with the SAME checkout token and no force push.
+
+        Contents API failures can occur on large state payloads. Git's compact
+        pack avoids the Base64 JSON upload; it does not bypass branch rules or
+        adopt another writer's file. The isolated index preserves main's files.
+        """
+        import os,subprocess,tempfile
+        from .transport import ProviderError
+        root=store.path.resolve().parent.parent
+        env={**os.environ,'GIT_TERMINAL_PROMPT':'0','GIT_AUTHOR_NAME':'github-actions[bot]',
+             'GIT_AUTHOR_EMAIL':'41898282+github-actions[bot]@users.noreply.github.com',
+             'GIT_COMMITTER_NAME':'github-actions[bot]',
+             'GIT_COMMITTER_EMAIL':'41898282+github-actions[bot]@users.noreply.github.com'}
+        def git(args,data=None):
+            result=subprocess.run(['git',*args],cwd=root,env=env,input=data,capture_output=True,timeout=90)
+            if result.returncode:raise ProviderError('github.com',reason='STATE_GIT_TRANSFER_REJECTED')
+            return result.stdout.decode().strip()
+        from urllib.parse import urlsplit
+        remote=urlsplit(git(['remote','get-url','origin']))
+        if remote.scheme!='https' or remote.hostname!='github.com' or remote.path.strip('/').removesuffix('.git').lower()!=self.repo.lower():
+            raise ValueError('Git state remote does not match the authenticated repository')
+        git(['fetch','--quiet','--no-tags','--depth=1','origin',self.branch])
+        head=git(['rev-parse','FETCH_HEAD']);actual=git(['rev-parse',head+':runtime/state.sqlite']);desired=self.blob_sha(content)
+        if actual==desired:self.sha=desired;self.writer_transport='git';self.remember_local(store.path);return
+        if actual!=self.sha:raise ProviderError('github.com',409,'STATE_SHA_CONFLICT')
+        fd,name=tempfile.mkstemp(prefix='state-index-',dir=store.path.parent);os.close(fd);index=Path(name).resolve();index.unlink()
+        env['GIT_INDEX_FILE']=str(index)
+        try:
+            blob=git(['hash-object','-w','--stdin'],content)
+            if blob!=desired:raise ValueError('Git checkpoint checksum mismatch')
+            git(['read-tree',head]);git(['update-index','--add','--cacheinfo','100644',blob,'runtime/state.sqlite'])
+            tree=git(['write-tree']);commit=git(['commit-tree',tree,'-p',head],b'Update SMG notifier state\n')
+            # A remote change after fetch rejects this ordinary fast-forward.
+            git(['push','--quiet','origin',commit+':refs/heads/'+self.branch])
+            self.sha=desired;self.writer_transport='git';self.remember_local(store.path)
+        finally:
+            for owned in (index,Path(str(index)+'.lock')):
+                if owned.exists():owned.unlink()
     def checkpoint(self,store):
         import base64
         from .transport import ProviderError
         if self.checkpoint_error:raise self.checkpoint_error
         content=store.path.read_bytes()
         if self.sha==self.blob_sha(content):return
+        if self.writer_transport=='git':
+            try:self.git_checkpoint(store,content);return
+            except ProviderError as exc:self.checkpoint_error=exc;raise
         self.ensure_branch()
         body={'message':'Update SMG notifier state','branch':self.branch,'content':base64.b64encode(content).decode()}
         if self.sha:body['sha']=self.sha
@@ -150,6 +192,10 @@ class GitHubState:
                 actual=remote.get('sha') if isinstance(remote,dict) else None
                 if actual==desired:
                     self.sha=desired;self.remember_local(store.path);return
+                if exc.status==403 and exc.reason=='ACCESS_DENIED' and actual==self.sha:
+                    import os
+                    if os.environ.get('GITHUB_ACTIONS')!='true':raise exc
+                    self.git_checkpoint(store,content);return
                 if exc.status==409 and self.sha and actual==self.sha:
                     data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
                 else:raise exc

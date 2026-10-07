@@ -138,3 +138,26 @@ def test_transient_read_retries_and_secondary_limit_is_not_reported_as_permissio
     http.session=Limited()
     with pytest.raises(ProviderError,match='SECONDARY_RATE_LIMIT'):http.response('https://api.github.com/test')
     assert http.session.calls==1
+
+
+def test_compressed_git_state_write_keeps_other_files_and_never_force_pushes(tmp_path,monkeypatch):
+    store=Store(tmp_path/'runtime/state.sqlite');store.put('value',1)
+    b=GitHubState(None,'o/r','fixture');b.sha='old';content=store.path.read_bytes();desired=b.blob_sha(content);calls=[]
+    def run(command,**kwargs):
+        args=command[1:];calls.append((args,kwargs))
+        value=''
+        if args[:3]==['remote','get-url','origin']:value='https://github.com/o/r.git'
+        elif args[:2]==['rev-parse','FETCH_HEAD']:value='head'
+        elif args[0]=='rev-parse':value='old'
+        elif args[0]=='hash-object':value=desired
+        elif args[0]=='write-tree':value='tree'
+        elif args[0]=='commit-tree':value='commit'
+        return SimpleNamespace(returncode=0,stdout=value.encode(),stderr=b'')
+    monkeypatch.setattr('subprocess.run',run)
+    b.git_checkpoint(store,content)
+    assert b.sha==desired and b.writer_transport=='git'
+    assert any(a[:2]==['read-tree','head'] for a,_ in calls)
+    pushes=[a for a,_ in calls if a[0]=='push']
+    assert pushes==[['push','--quiet','origin','commit:refs/heads/smg-state']]
+    assert all('--force' not in a for a,_ in calls)
+    assert any('GIT_INDEX_FILE' in kw['env'] for a,kw in calls if a[0]=='read-tree')
