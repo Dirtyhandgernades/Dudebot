@@ -68,11 +68,10 @@ def strength(e,now):
             'is_probability':False,'news_status':news_status,'version':VERSION}
 
 
-def position_guide(price,score,firm,qualified,equity=100000,available_bp=150000,probability=None):
+def position_guide(price,score,firm,qualified,equity=100000,available_bp=150000,probability=None,observed_range=None,reserved=0):
     """Exact integer count at a delayed quote; closing fill remains unknown.
 
-    Strong firm setups retain the existing maximum target. Lower tiers reduce
-    that target. This never raises the published 30%-of-equity/50k envelope.
+    Evidence strength cannot override the shared exposure envelope.
     $5 order fee, 30bps modeled entry friction and a20% pre-order reserve apply.
     Account balances are explicit assumptions, not a connected SMG account.
     """
@@ -85,20 +84,26 @@ def position_guide(price,score,firm,qualified,equity=100000,available_bp=150000,
           and evidence.get('samples',0)>=30 and drop.get('estimate',0)>=.35
           and drop.get('wilson_95',[0,1])[0]>=.20 and severe.get('estimate',0)>=.10)
     target=50000 if high else 20000 if score>=65 else 10000
-    ceiling=min(target,equity*.30,available_bp)
-    shares=max(0,math.floor((ceiling/1.2-5)/(price*1.003)))
+    from .exposure import budget
+    risk=budget(equity,available_bp,target,observed_range,reserved)
+    ceiling=risk['ceiling']
+    shares=max(0,math.floor((ceiling-5)/(price*1.2*1.003)))
     if shares<10:shares=0
     capital=round(shares*price,2)
     return {'shares':shares,'capital':capital,'target':target,'tier':'Strong firm setup' if high else 'Standard' if score>=65 else 'Small',
             'status':'PAPER_REFERENCE_ONLY' if shares else 'MINIMUM_10_SHARES_EXCEEDS_CAP',
-            'equity_assumption':equity,'available_bp_assumption':available_bp,'reserve_pct':20}
+            'equity_assumption':equity,'available_bp_assumption':available_bp,'reserve_pct':20,
+            'exposure':risk,'reserved_capital':shares*price*1.2*1.003+5 if shares else 0}
 
 
 def embed(e,now,practice=False):
     c=e.candidate;m=e.snapshot;score=strength(e,now)
     firm=bool(e.matches);qualified=e.status=='QUALIFIED' and not practice
     probability=e.ranking_evidence.get('drop_probability',{})
-    plan=position_guide(m.price if m else None,score['score'],firm,qualified,probability=probability)
+    risk=e.ranking_evidence.get('exposure',{})
+    plan=e.ranking_evidence.get('paper_position_plan') if qualified else None
+    if plan is None:plan=position_guide(m.price if m else None,score['score'],firm,qualified,probability=probability,
+                                      observed_range=risk.get('observed_range'),reserved=risk.get('reserved',0))
     if 'RANKED_FIRM_EXHAUSTION_SHORT' in e.reasons:setup='Pump exhaustion / failed follow-through'
     elif any('PUMP_FAILURE' in r for r in e.reasons):setup='Pump failure'
     elif any('BREAKDOWN' in r for r in e.reasons):setup='Price breakdown'
@@ -107,7 +112,7 @@ def embed(e,now,practice=False):
     why=(parties+'\n' if parties else 'No verified listed-firm match.\n')+setup
     if m:why+=f" · price ${m.price:.2f}"+(f" · RVOL {m.rvol:.1f}×" if m.rvol is not None else '')
     horizon='Estimated drop window: next 1–3 trading sessions.\nReassess each close; maximum planned hold: 3 sessions.' if qualified else 'No entry confirmed. Monitor for a 1–3-session setup; hold 0 shares until qualified.'
-    sizing=(f"**{plan['shares']:,} shares · ${plan['capital']:,.2f} at the quoted price**\n{plan['tier']} · 20% reserve included.\nPaper assumptions: $100k equity / $150k free buying power. Closing fill and existing holdings are unknown."
+    sizing=(f"**{plan['shares']:,} shares · ${plan['capital']:,.2f} at the quoted price**\n{plan['tier']} · 20% price reserve. 10% per-position / 60% total advisory exposure limits.\nPaper account: $100k equity. Closing fill and actual holdings are unknown; losses can exceed the modeled risk budget."
             if plan['shares'] else '**0 shares · $0 allocated**\n'+('Practice/watch only; no qualified entry.' if not qualified else '10-share minimum exceeds the paper position cap.'))
     urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
     safe=[u for u in urls if urlsplit(u).scheme=='https' and '@' not in urlsplit(u).netloc and not any(t in u for t in '()<>\r\n')]

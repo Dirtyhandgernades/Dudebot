@@ -1,5 +1,5 @@
 {
-  "id": "ranked-firm-2026-10-07-v6",
+  "id": "ranked-firm-2026-10-07-v5",
   "enabled": true,
   "first_session": "2026-10-07",
   "confidence_sizing_enabled": false,
@@ -48,14 +48,14 @@
   },
   "rank_threshold": 0.43827250876096624,
   "implementation_sha256": {
-    "smg/ranked_firm.py": "1babb2237836390c2199aabb5f772cd31f31a4e201d983b12176e158879e1100",
+    "smg/ranked_firm.py": "a0b9ca5d6d499ad7f1a291da11fb2f8e74f205da5f5169ab8fa5976f65ed7266",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
     "smg/game_rules.py": "abd50e0de104f3c537f14ddf26701f442daa2fa1ee2b510e57b062c120870691",
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
-    "smg/notify.py": "2f66f8469261bbd44a840db7374daedfb7a06ba1df054ef1a2c60c226bec162b",
+    "smg/notify.py": "65a5e1be658b168d91f7d2ef1fc925ea474cf2a63ba367459137c8fdf52b2fe8",
     "smg/storage.py": "ef2d8890968a6536b4da6f968838867b99f679c9a4e5642675dedbe1f5c433f6",
     "smg/transport.py": "8f2a52082456cbaa6c471c8849c9e75dac4d0586be1f52c55798490acf0d81a0",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
@@ -63,15 +63,14 @@
     "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
     "smg/action_learning.py": "2611f9487dc409f4c6a7aa7cfc05da0179e4f428281e1332276732d8afd4d988",
     "backtest/daily_adaptive_study.py": "1181600766ef88d6518851508f23b36e1577f719ec914839fa0f426e0b3cfbf5",
-    "smg/swing_backtest.py": "6efd681ed32341c3de48d091f489fe8146a34fc5b5df03b05be532754ddecc6f",
+    "smg/swing_backtest.py": "1fcb8b602dd4452923db325234fe50fea22a2b6819b32cfe9f780952353ac5db",
     "smg/history_identity.py": "e219d9aa28fabfefb26dc12a45ede2df8605a9ec55f22ad2491ba6a08caee3f5",
     "backtest/repair_study.py": "51ccaf55e252657a891ae85335be32e816f6b55dd22085eaceee2532efe42897",
-    "smg/trade_card.py": "19cecf7f20cb563c0a7e79df3628989362f83a638665cf775ec2624c34865eaa",
-    "smg/drop_probability.py": "b8f7f46706ba9de68b7078129c2c918aa19efd6d518d1e63e61116b507d82fd1",
-    "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92"
+    "smg/trade_card.py": "3b28e4778af5b3b6fb6812e50074bab03ecba41384a0587c830e278e1d21d67b",
+    "smg/drop_probability.py": "b8f7f46706ba9de68b7078129c2c918aa19efd6d518d1e63e61116b507d82fd1"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
-  "published_at": "2026-10-07T03:27:51.949928+00:00",
+  "published_at": "2026-10-06T19:19:11Z",
   "training_latest_label": "2025-12-05",
   "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
   "validation": {
@@ -152,9 +151,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-07-v5",
+  "parent_contract_id": "ranked-firm-2026-10-07-v4",
   "automatic_improvement_enabled": true,
-  "version_reason": "Explicit advisory exposure limits and shared capacity ledger. Base ranking weights, entry timing, exclusions and confidence-sizing prohibition unchanged. New timing filters remain research-only.",
+  "version_reason": "Same weights and screening; compressed Git state-write fallback with identical token, expected blob guard, isolated index and ordinary fast-forward push after Contents API denial. No live-session forecasts in prior version.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",
@@ -1080,16 +1079,5 @@
       "observed_rate": 0.125
     }
   },
-  "historical_reference_probability_enabled": true,
-  "advisory_exposure": {
-    "id": "bounded-short-exposure-v1",
-    "max_position_fraction": 0.1,
-    "max_gross_fraction": 0.6,
-    "shock_loss_fraction": 0.02,
-    "shock_floor": 0.25,
-    "range_multiplier": 2.0,
-    "range_lookback_sessions": 5,
-    "target_ceiling": 20000,
-    "cooldown_sessions": 3
-  }
+  "historical_reference_probability_enabled": true
 }

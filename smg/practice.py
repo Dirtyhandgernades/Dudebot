@@ -67,7 +67,7 @@ def practice_embed(text,audit,now):
             'description':'Illustration only; no stock is recommended. Score85 and price$10 below are layout examples, not observed live inputs.',
             'fields':[{'name':'Strength score','value':'85/100 · illustrative; not a probability'},
                       {'name':'Historical 20%+ drop reference','value':probability},
-                      {'name':'Sizing example','value':f"{guide['shares']:,} shares × $10 = ${guide['capital']:,.2f}\n$100k equity / $150k available BP;20% reserve. A high strength score alone cannot unlock the largest tier."},
+                      {'name':'Sizing example','value':f"{guide['shares']:,} shares × $10 = ${guide['capital']:,.2f}\n$100k paper equity;20% price reserve;10% position and60% shared advisory capacity limits. Unknown volatility uses a100% adverse-move stress. Losses can exceed this stress; actual holdings are unknown."},
                       {'name':'Hold plan','value':'1–3 trading sessions; no guaranteed drop date'}],
             'footer':{'text':'PRACTICE ONLY · current live orders:0'},'timestamp':now.isoformat()}
     return {'username':'Dudebot','content':'**Practice upload · new simplified cards**','embeds':[card,sample],'allowed_mentions':{'parse':[]}}

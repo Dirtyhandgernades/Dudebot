@@ -216,7 +216,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -237,7 +237,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     if strategy in preclose_strategies and (intraday_signals is None or firm_dates is None or not signal_share_sizing):
         raise ValueError('Intraday research requires dated signals, firm evidence and decision-price share sizing')
     if intraday_signals is not None and strategy not in preclose_strategies:raise ValueError('Unexpected intraday signals')
-    fee=cost_bps/10000
+    fee=cost_bps/10000;cooldowns={}
     for day_position,day in enumerate(days):
         i=index[day]
         # SMG carries cash interest daily. Apply it before that session's
@@ -258,12 +258,16 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             previous_exposure=sum(p['notional']*adjusted[t][sessions[i-1]]['c']/p['adjusted_entry']
                                   for t,p in positions.items())
             decision_room=max(0,min(buying_power,decision_equity*buying_power/initial)-previous_exposure)
+            if exposure_policy:
+                decision_room=min(decision_room,max(0,decision_equity*exposure_policy['max_gross_fraction']-previous_exposure))
         for ticker,p in list(positions.items()):
             exit_reason='TIME_LIMIT'
             prior_mark=adjusted.get(ticker,{}).get(sessions[i-1]) if i else None
             if risk_controls and prior_mark and sessions[i-1]>=p['entry_date']:
                 previous_return=side*(prior_mark['c']/p['adjusted_entry']-1)
-                if previous_return<=-.12:exit_reason='STOP_SIGNAL_PREVIOUS_CLOSE'
+                if previous_return<=-.12:
+                    exit_reason='STOP_SIGNAL_PREVIOUS_CLOSE'
+                    if exposure_policy:cooldowns[ticker]=i+exposure_policy['cooldown_sessions']
                 elif previous_return>=.20:exit_reason='TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE'
             if day<p['planned_exit'] and (day!=days[-1] or not liquidate_at_end) and exit_reason=='TIME_LIMIT':continue
             if liquidate_at_end and day==days[-1] and exit_reason=='TIME_LIMIT':exit_reason='GAME_END'
@@ -332,6 +336,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             key=(lambda x:(-x[0],x[1])) if side<0 else (lambda x:x[1])
             for structure_score,ticker,entry,adj,signal_day,trigger,decision_price,position_scale in sorted(opportunities,key=key):
                 if ticker in positions or len(positions)>=10:continue
+                if exposure_policy and i<=cooldowns.get(ticker,-1):
+                    gaps['EXPOSURE_STOP_COOLDOWN']+=1;continue
                 marked=marked_equity(cash,positions,adjusted,day,side)
                 if marked is None:
                     gaps['NEW_ENTRY_BLOCKED_UNVALUED_CAPITAL']+=1;continue
@@ -348,12 +354,20 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     budget=min(position_target*position_scale,decision_room)
                     if decision_equity is None:budget=0
                 if risk_controls:budget=min(budget,(decision_equity or 0)*max_position_equity_fraction if signal_share_sizing else marked*max_position_equity_fraction)
+                if exposure_policy:
+                    from .exposure import budget as bounded_budget,range_fraction
+                    history=[adjusted.get(ticker,{}).get(d,{}) for d in sessions[i-exposure_policy['range_lookback_sessions']:i]]
+                    envelope=bounded_budget(max(0,decision_equity or 0),max(0,decision_room),budget,
+                        range_fraction(history),policy=exposure_policy)
+                    budget=min(budget,envelope['ceiling'])
                 if buying_power<=initial:budget=min(budget,max(0,(cash-commission)/(1+fee)))
                 sizing_price=decision_price*decision_price_buffer if signal_share_sizing else entry['c']
-                shares=math.floor(budget/sizing_price)
+                shares=math.floor((budget-commission)/(sizing_price*(1+fee))) if exposure_policy else math.floor(budget/sizing_price)
                 if shares<10:continue
                 if signal_share_sizing:decision_room=max(0,decision_room-shares*sizing_price*(1+fee)-commission)
                 notional=shares*entry['c'];entry_fee=notional*fee+commission
+                if exposure_policy and notional+entry_fee>envelope['ceiling']:
+                    gaps['EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL']+=1
                 if risk_controls and notional>min(position_target*position_scale,(decision_equity or 0)*max_position_equity_fraction if signal_share_sizing else marked*max_position_equity_fraction):
                     # SMG market orders cannot be retrospectively withdrawn
                     # because the closing price exceeded a research target.
@@ -366,17 +380,20 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]] if liquidate_at_end else len(sessions)-1)]
                 positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger,position_scale=position_scale)
+                if exposure_policy:positions[ticker]['exposure_envelope']=envelope
         equity=marked_equity(cash,positions,adjusted,day,side)
         if equity is not None:
             peak=max(peak,equity);drawdown=max(drawdown,(peak-equity)/peak)
         curve.append(dict(date=day,equity=equity,open_positions=len(positions)))
+        if exposure_policy:
+            curve[-1]['gross_exposure']=sum(p['notional']*adjusted[t][day]['c']/p['adjusted_entry'] for t,p in positions.items()) if equity is not None else None
     profits=[t['pnl'] for t in trades]
     final=cash if not positions else None
     insolvent=any(row['equity'] is not None and row['equity']<=0 for row in curve)
     financial_status=('ACCOUNT_INSOLVENT_MARGIN_RULES_UNMODELED' if insolvent else
                       'UNRESOLVED_POSITIONS' if positions else 'CONDITIONAL_SIMULATION_COMPLETE')
     return dict(strategy=strategy,hold_sessions=hold,cost_bps_each_way=cost_bps,commission_per_order=commission,borrow_rate=borrow_rate,smg_cash_interest=smg_cash_interest,positive_cash_rate=positive_cash_rate,negative_cash_rate=negative_cash_rate,interest_pnl=round(interest_pnl,2),initial_balance=initial,position_target=position_target,buying_power=buying_power,
-        risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,max_position_equity_fraction=max_position_equity_fraction,decision_price_buffer=decision_price_buffer,
+        risk_controls=risk_controls,signal_share_sizing=signal_share_sizing,max_position_equity_fraction=max_position_equity_fraction,decision_price_buffer=decision_price_buffer,exposure_policy=exposure_policy,
         account_insolvent=insolvent,financial_status=financial_status,liquidate_at_end=liquidate_at_end,
         marked_ending_equity=round(curve[-1]['equity'],2) if curve and curve[-1]['equity'] is not None else None,
         ending_balance=round(final,2) if final is not None else None,net_profit=round(final-initial,2) if final is not None else None,

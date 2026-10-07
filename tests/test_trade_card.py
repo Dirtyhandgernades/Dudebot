@@ -40,8 +40,9 @@ def test_strength_cannot_alone_unlock_maximum_size_and_unknown_quotes_allocate_z
     probability={'status':'ESTIMATED_HISTORICAL_REFERENCE','samples':50,
                  'targets':{'day_3':{'estimate':.60,'wilson_95':[.4,.75]},'severe_50pct_day_3':{'estimate':.15}}}
     strong=position_guide(10,90,True,True,probability=probability)
-    assert strong['shares']>regular['shares'] and strong['capital']<30000
-    assert strong['shares']==2492 and strong['capital']==24920
+    assert strong['shares']==regular['shares'] and strong['capital']<2000
+    assert strong['exposure']['range_status']=='UNKNOWN_RANGE_100_PERCENT_STRESS'
+    assert position_guide(10,90,True,True,probability=probability,observed_range=.08)['capital']<8000
     assert position_guide(None,99,True,True)['shares']==0
     assert position_guide(10,99,True,False)['shares']==0
     assert position_guide(10000,99,True,True)['shares']==0

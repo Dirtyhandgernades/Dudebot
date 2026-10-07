@@ -1,5 +1,39 @@
 # Dudebot continuation handoff
 
+## October 6 exposure repair
+
+User requested fixing all exposed risks after the balanced replay. New
+smg/exposure.py bounds proposed SHORT order budgets to10% assumed equity,
+60% shared advisory gross capacity, and2% assumed equity divided by an adverse
+shock(max25%,2xprior5sessionmaxrange; unknownrange100%stress). Fees and20%
+quote-price reserve included before exact integer shares. Shared reservations
+span firm/volatility lanes, persist BEFORE Discord and after uncertain sends,
+block overlapping ticker recommendations and expire after3exchange sessions.
+They are advisory claims, NOTactualSMGholdings, and expiry does NOTconfirm
+anactualexit. Higherstrength/probability cannotoverride riskbudget. Closing
+fills and later squeezes can still exceed it; no unlimited-short-loss guarantee.
+
+Optional simulator exposure policy uses PRIOR candles only, limits previous
+marked gross exposure, doesnotspend anticipated exit proceeds, includesfees,
+preserves closingpriceovershoots, and adds3sessioncooldownafterstops. The
+cooldown ispaperonly; no actualaccountpositions/orderexecution connected.
+Allfixed exposure/confirmation variants retained, zeroproviderrequests.
+Final expanded2023/24/25net2730.58/4706.87/3408.07; stress2345.57/3296.15/12.58;
+base drawdown1.431/2.066/5.684%. PLRZloss35582.01->2312.22,CCHH24413.50->3364.04.
+Originalcorpusboundednet432.27/5601.23/7328.97. Profits shrinkwithrisk; doNOTclaim
+a strongeredge orconsistent70k. Confirmedpriorvarianthaszerooriginal2023
+trades andisNOTpromoted. Earlier22sessionrangeprofile remains under
+outputs/backtest/exposure-2026-10-06; final5sessionprofile under
+outputs/backtest/exposure-2026-10-06-final. Missing historical borrow/cap/halt
+facts remainunknown. Allconditional paper simulations.
+
+Explicitcontracts ranked-firm-2026-10-07-v6 / firm-shadow-2026-10-07-v7;
+previousversions archived, source hashes includeexposure. Modelweights,
+entrytiming, hard exclusions, firstsession andconfidence-sizingfalseunchanged.
+310tests pass. Read backtest/EXPOSURE_REPAIR.md. Practiceworkflowreceipt
+practice-exposure-limits-2026-10-06-v1 provides one mention-free protection
+math/card check; hosted run/receipt must be verified after push.
+
 ## Verified October 6 balanced rebuild and controlled reruns
 
 The user target is $70k+ PER SEASON, each position held 1–3 trading sessions.

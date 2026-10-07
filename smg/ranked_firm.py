@@ -137,6 +137,10 @@ def eligible_signal(candidate,history,raw_history,adjusted_partial,raw_partial,n
     scale=.5 if mode in {'FIRST_SIGNAL_UPMOVE_HALF_SIZE','CONFIRMED_EARLY_OR_DEFERRED_HALF'} and change>.02 else 1.
     result.ranking_evidence['ranked_firm'].update(event=event,position_scale=scale,
         position_target=policy.get('position_target',50000),decision_equity_cap=.30,decision_price_buffer=1.2)
+    from .exposure import range_fraction,POLICY
+    result.ranking_evidence['exposure']={'policy_id':POLICY['id'],
+        'observed_range':range_fraction(history[-POLICY['range_lookback_sessions']:]),
+        'basis':'Completed prior-session candles; no closing fill or future outcome'}
     result.rank=[min(m['priority'] for m in result.matches),-len(result.matches),-score]
     return result
 

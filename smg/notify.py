@@ -203,6 +203,24 @@ class DiscordSender:
                 continue
             phase=self._phase(e,cfg);prior=self.store.get(state_key)
             if prior and prior.get('phase')==phase:continue
+            if (e.signal_side or cfg.live_signal_side)=='SHORT':
+                from .exposure import reserve,POLICY
+                from .trade_card import position_guide,strength
+                from .market import calendar
+                day=str(now.date())
+                sessions=[str(d.date()) for d in calendar(now.year).sessions_in_range(now.date()-timedelta(days=40),now.date())]
+                # Shared across discovery lanes. This is an advisory ledger;
+                # actual game holdings and fills are not connected.
+                reserved,existing=reserve(self.store,e.candidate.ticker,day,None,sessions,POLICY['id'])
+                if existing:
+                    e.status='MARKET_NOT_CONFIRMED';e.reasons.append('EXPOSURE_ACTIVE_PAPER_RESERVATION');continue
+                plan=position_guide(e.snapshot.price,strength(e,now)['score'],bool(e.matches),True,
+                    probability=e.ranking_evidence.get('drop_probability'),
+                    observed_range=e.ranking_evidence.get('exposure',{}).get('observed_range'),reserved=reserved)
+                e.ranking_evidence['paper_position_plan']=plan
+                if not plan['shares']:
+                    e.status='MARKET_NOT_CONFIRMED';e.reasons.append('ADVISORY_EXPOSURE_CAPACITY_EXHAUSTED');continue
+                reserve(self.store,e.candidate.ticker,day,plan['reserved_capital'],sessions,POLICY['id'])
             claim={'status':'CLAIMED','claimed_at':now.isoformat(),'phase':phase,'candidate_key':e.candidate.key,'ticker':e.candidate.ticker,'side':e.signal_side}
             self.store.put(state_key,claim);claims.append((state_key,claim));new.append(e)
         if not new:return 'NO_NEW_TRADES'
