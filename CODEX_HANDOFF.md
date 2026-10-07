@@ -32,7 +32,13 @@ previousversions archived, source hashes includeexposure. Modelweights,
 entrytiming, hard exclusions, firstsession andconfidence-sizingfalseunchanged.
 310tests pass. Read backtest/EXPOSURE_REPAIR.md. Practiceworkflowreceipt
 practice-exposure-limits-2026-10-06-v1 provides one mention-free protection
-math/card check; hosted run/receipt must be verified after push.
+math/card check. On61dff3e: CI37567145742,Cloudflare37567145739,fullarchive
+37567145796,existing swingregression37567145875 allSUCCEEDED. Practice
+37567145829SUCCEEDED, actualSENTmessage1557234726354423830 inchannel
+1546733107846324254 atOct6Central22:34. Twoexplicitpracticeembeds, noorders
+andnotanactualqualifiedliverecommendation. Receipt under
+outputs/exposure-verification-37567145829. Existinglocalheartbeatupdated
+tolatestcontractsv6/v7 andadvisoryledgerverification; hostedbotindependent.
 
 ## Verified October 6 balanced rebuild and controlled reruns
 
