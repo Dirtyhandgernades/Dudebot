@@ -6,6 +6,7 @@ from smg.transport import Http
 from smg.game_firm_replay import research_entries
 from smg.source_replay import parse_source,source_identity
 from lxml import html as lhtml
+from urllib.parse import urlencode
 import yaml
 
 
@@ -29,7 +30,26 @@ def main():
         if ticker in packet['first_dates']:
             row['status']='INDEPENDENT_EVIDENCE_ALREADY_PRESENT';rows.append(row);continue
         if ticker not in hints:
-            row['status']='NO_CURRENT_CIK_HINT_HISTORICAL_MAPPING_UNRESOLVED';rows.append(row);continue
+            # A missing current listing must not erase a historical issuer.
+            # These benchmark-directed queries remain entirely audit-only.
+            try:
+                query=urlencode({'q':'"'+ticker+'"','forms':'20-F,10-K,424B4',
+                    'dateRange':'custom','startdt':'2021-01-01','enddt':label['first_short_date']})
+                search=json.loads(fetch('https://efts.sec.gov/LATEST/search-index?'+query))
+                for hit in search.get('hits',{}).get('hits',[])[:5]:
+                    src=hit['_source']
+                    if len(src.get('ciks',[]))!=1 or src.get('file_type',src.get('form'))!=src.get('form'):continue
+                    acc,name=hit['_id'].split(':',1)
+                    url=f"https://www.sec.gov/Archives/edgar/data/{int(src['ciks'][0])}/{acc.replace('-','')}/{name}"
+                    raw=fetch(url);tree=lhtml.document_fromstring(raw.encode('utf-8'),parser=lhtml.HTMLParser(encoding='utf-8',no_network=True))
+                    symbol,exchange,_=source_identity(tree,' '.join(tree.itertext()))
+                    if symbol==ticker and exchange in {'XNAS','XNYS'}:
+                        hints[ticker]={'cik':src['ciks'][0],'name':'Historical issuer verified in own filing',
+                                       'historical_lookup_proof':url};break
+            except Exception as exc:
+                row['historical_lookup_gap']=type(exc).__name__
+            if ticker not in hints:
+                row['status']='HISTORICAL_MAPPING_UNRESOLVED_AFTER_BOUNDED_LOOKUP';rows.append(row);continue
         row['current_hint']=hints[ticker]
         try:
             data=json.loads(fetch(f"https://data.sec.gov/submissions/CIK{int(hints[ticker]['cik']):010d}.json"));blocks=[data['filings']['recent']]
