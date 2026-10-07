@@ -79,7 +79,7 @@ jobs:
       - name: Merge source chronology and fill missing earlier prices
         run: python -u -m backtest.balanced_packet --packet backtest/runtime/balanced-base/action-inputs/inputs.json.gz --records reports/game-firm-replay/discovery-decisions.json --out reports/balanced --collect
       - name: Replay with the same two-year prior training window for every season
-        run: python -u -m backtest.balanced_checkpoints --base backtest/runtime/balanced-base/action-inputs/inputs.json.gz --packet reports/balanced/inputs.json.gz --out reports/balanced/checkpoints
+        run: python -u -m backtest.balanced_checkpoints --base backtest/runtime/balanced-base/action-inputs/inputs.json.gz --packet reports/balanced/inputs.json.gz --out reports/balanced/checkpoints --controls
       - name: Compare confirmation rules and measure remaining coverage gaps
         run: |
           python -m backtest.firm_timing_study --packet reports/balanced/inputs.json.gz --signals reports/balanced/checkpoints --out reports/balanced/timing
