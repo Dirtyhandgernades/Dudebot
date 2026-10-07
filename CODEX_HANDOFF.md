@@ -1,5 +1,39 @@
 # Dudebot continuation handoff
 
+## October6: practice verified and timing research continued
+
+Simplified-card practice37555586890 SUCCEEDED and Discord receiptSENT,
+message1557198276921393235, channel1546733107846324254. Two explicit practice
+embeds, mentionsdisabled; stored research card plus a labeled sizing illustration.
+CI37555586860 and Cloudflare deployment37555586867 succeeded. Adaptive37555631612
+succeeded: new source-context challenger adaptive-3a103b0c5053c8d07e31 STAGED,
+not promoted; empirical probability reference59episodes. Live ranked lane's
+first actual market session remainsOct7; do not call a practice receipt an
+observed qualified live recommendation. ClientdateOct6; receiptUTC01:09Oct7
+isOct6Central20:09.
+
+User then explicitly asked to keep improving timing. Cached4-policy research
+in backtest/firm_timing_study.py, outputs/backtest/firm-timing-2026-10-06:
+baseline2023/24/25 profits3373.47/40180.81/75549.15;
+current-only180.98/36682.90/38142.37 (2023zero trades;interestonly);
+prior<=0%180.98/41211.79/91047.33;
+prior<=+2%2859.18/41211.79/95491.11.
+Last rule stress2211.40/28100.19/60770.48;2025drawdown14.630%base/19.661%stress.
+It retains7filled20%dump hits in2025 with38trades vsbaseline7/44. It loses
+one of2023's only2trades and regresses that sparse year's profit15.25%, so
+the established minimum2trades/no>10%regression gate forbids live promotion.
+Do not silently relax gates or market a reused2025result as consistent profit.
+
+Added smg.timing_shadow prospective sidecar, shared state queue, no provider
+requests or orders. Records all four keep/reject decisions on base-qualified
+preclose events BEFORE outcomes; review saves immutable policy outcomes and
+issuer-nonoverlapping paired-paper comparisons. It validates its own published
+source contract and cannot change alerts or active models. Evidence workflow
+captures eachlive scan; daily-adaptive reviews and repeats the cached4-policy
+comparison eachweekday. Core v3/v4 fingerprints are unchanged by this research
+sidecar.295tests pass. Follow evidence until a justified new policy can pass
+all validation; no artificial probabilities or forced daily trades.
+
 ## October6: simple cards, empirical probability and bounded paper shares
 
 User requested simple Discord cards, actual historical drop probability

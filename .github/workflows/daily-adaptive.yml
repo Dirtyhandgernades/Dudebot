@@ -55,6 +55,11 @@ jobs:
           python -u -m smg.adaptive_firm
           --packet backtest/runtime/daily-adaptive-inputs/training/action-inputs/inputs.json.gz
           --signals backtest/runtime/daily-adaptive-inputs/signals
+      - name: Review prospective timing filters and repeat their cached multi-year comparison
+        run: |
+          python -m smg.timing_shadow --review
+          python -m backtest.firm_timing_study --packet backtest/runtime/daily-adaptive-inputs/training/action-inputs/inputs.json.gz --signals backtest/runtime/daily-adaptive-inputs/signals --out reports/daily-adaptive/timing-history
+          cp reports/timing-shadow.json reports/daily-adaptive/timing-shadow.json
       - uses: actions/cache/save@v4
         if: success() && steps.inputs.outputs.cache-hit != 'true'
         with:

@@ -66,6 +66,9 @@ jobs:
       - name: Publish newly qualified ranked firm signals and distinct research watches
         if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')) }}
         run: python -m smg.ranked_firm --send
+      - name: Record timing challengers before outcomes without changing live signals
+        if: ${{ !cancelled() && (github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule != '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode != 'backfill')) }}
+        run: python -m smg.timing_shadow
       - name: Review prior scans against subsequent closes
         if: (github.event_name == 'schedule' && github.event.schedule == '35 23 * * 1-5') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill')
         run: python -m smg.cli review
@@ -89,5 +92,6 @@ jobs:
             reports/frozen-forward-capture.json
             reports/action-policy-learning.json
             reports/ranked-firm-alerts.json
+            reports/timing-shadow.json
           if-no-files-found: ignore
           retention-days: 30
