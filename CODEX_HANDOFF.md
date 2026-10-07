@@ -1,5 +1,47 @@
 # Dudebot continuation handoff
 
+## October6: simple cards, empirical probability and bounded paper shares
+
+User requested simple Discord cards, actual historical drop probability
+alongside strength, exact paper share sizing, more capital on well-supported
+strong firm setups, and an explicitly authorized practice upload.
+
+`smg.trade_card` gives ticker/firm flag, short rationale, strength0–99,
+historical20% closing-drop probabilities for1/2/3 sessions,50% target reference,
+uncertainty/sample count,1–3-session maximum hold and exact integer paper shares.
+Strength is NOT a probability. Weights firm35/chart25/prior rank15/pump-volume10/
+fresh checks10/news2.5/FINRA context2.5. Missing/future context adds no points.
+FINRA short volume is context, never a borrow or misconduct finding.
+
+Probability corpus:59 issuer-nonoverlapping independently sourced timestamped
+preclose entry episodes,51 issuers, no reference/friend ticker selection. Pooled
+Jeffreys estimates20%drop1/2/3 sessions:5.8%/10.8%/19.2%;3-session approximate
+Wilson95% interval10.7–30.4%;50%within3sessions7.5%. Fixed rank bands require30
+episodes/5issuers or explicitly fall back to the pooled firm-setup reference.
+It is not live-calibrated stock-specific certainty. Rolling past-matured-only
+2025 probability backtest24forecasts:3d predicted18.7%,observed25%,Brier.2006.
+All previously inspected periods and historical eligibility/borrow limits
+remain explicit. See outputs/backtest/drop-probability/summary.json.
+
+Nightly adaptive review now stores immutable drop labels and updates the
+empirical reference from new base-qualified entries. It cannot use intraday
+lows or a later rug to call an earlier closing-entry trade profitable.
+Suggested sizing assumes$100k equity/$150k FREE buying power (not a connected
+SMGaccount):targets10k/20k/50k;30%equity cap,20%reserve,$5fee,30bpsentry friction,
+minimum10shares. Largest tier requiresfirm+strength>=80 AND >=35% estimated
+3d20%drop with lower interval>=20%; a high score alone does NOT unlock it.
+Quotes are delayed, closing fill/existing holdings unknown. This reduces weaker
+paper suggestions within the existing validated cap; no trading orders or
+new probability-based simulation sizing is enabled. Watches allocate0.
+
+Notify and forming-watch cards share the simpler format. Practice uses stored
+evaluation as WATCH plus a clearly marked sizing-math illustration, no mentions
+or actual order. Unique receiptpractice-simple-probability-2026-10-06-v1.
+Ranked contract explicitly versioned to v3;v2 archived. Original entry model,
+firstOct7session,hard exclusions and frozen originalv4 remain unchanged.
+Old staged challenger is retired/restaged on source-context change; do not
+pretend it was promoted.293 local tests pass; published hashes updated.
+
 ## October 6: autonomous daily research, replay and gated promotion
 
 User explicitly authorized automatic research/backtesting/improvement daily.

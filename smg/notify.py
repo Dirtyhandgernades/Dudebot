@@ -82,46 +82,13 @@ def rationale(e):
     return '\n'.join(lines)
 
 def digest(evaluations,now,cfg,presorted=False):
+    from .trade_card import embed
     items=[e for e in evaluations if e.status=='QUALIFIED']
     if not presorted:items.sort(key=lambda e:e.rank)
     payloads=[]
     for i,e in enumerate(items):
-        c=e.candidate;m=e.snapshot
-        firm_first='VERIFIED_LISTED_FIRM_RELATIONSHIP' in e.reasons
-        title='VOLATILITY SHORT' if c.pipeline=='VOLATILITY_WATCH' else 'FIRM-FIRST WATCH' if firm_first else 'IPO SURGE MATCH' if c.pipeline=='RECENT_IPO' else 'DIRECT OFFERING REVIEW'
-        super_priority=any(x.get('category','').startswith('SUPER ') for x in e.matches)
-        firms='\n'.join(f"**{clean(x['name'])}** · {clean(x['role'])} · {clean(x['category'])}" for x in e.matches)
-        urls=list(dict.fromkeys(x['evidence']['url'] for x in e.matches))
-        sources='\n'.join(f'[Filing {n+1}]({u})' for n,u in enumerate(urls) if urlsplit(u).scheme=='https' and '@' not in urlsplit(u).netloc and not any(x in u for x in '()<>\n\r'))
-        details=rationale(e).split('\n')[2:]
-        # One card per stock stays below Discord's 6,000-character aggregate embed limit.
-        description='\n'.join(x for x in details if x!='Sources:' and not x.startswith('<https://'))[:2500]
-        borrow=e.shortability or {};finra=(e.ranking_evidence.get('finra_short_volume') or {}).get('value',{})
-        sentiment=(e.ranking_evidence.get('sentiment') or {}).get('value',{})
-        context=f"Target hold: {cfg.live_short_hold_sessions_min}–{cfg.live_short_hold_sessions_max} sessions; reassess daily\n"
-        context+=f"Alpaca borrow: {borrow.get('borrow_status','unavailable')} · tradable {borrow.get('tradable','?')} · shortable {borrow.get('shortable','?')}\n"
-        context+=f"FINRA prior-day short-volume ratio: {metric((finra.get('short_volume_ratio')*100) if finra.get('short_volume_ratio') is not None else None,'%')}\n"
-        context+=f"Sentiment score: {metric(sentiment.get('score'))} (ranking context only)"
-        trigger=('Firm pump failure' if 'FIRM_PUMP_FAILURE_SHORT' in e.reasons else
-                 'Firm breakdown' if 'FIRM_BREAKDOWN_SHORT' in e.reasons else
-                 'High-volatility breakdown' if 'HIGH_VOLATILITY_BREAKDOWN_SHORT' in e.reasons else
-                 'Pump failure' if 'PUMP_FAILURE_SHORT' in e.reasons else 'Other verified setup')
-        embed={'title':f'{clean(c.ticker)} · {title}'[:256], 'description':clean(c.name)[:250]+'\n\n'+description,
-               'color':0xE7AF38 if super_priority else 0x39B9A8,
-               'fields':[{'name':'Matched firms','value':firms[:1000] or 'No listed high-priority firm match; stronger volatility confirmation required','inline':False},
-                         {'name':'Price','value':'$'+metric(m.price),'inline':True},
-                         {'name':'21-session change','value':metric(m.monthly_return,'%'),'inline':True},
-                         {'name':'1-session change','value':metric(m.one_day_return,'%'),'inline':True},
-                         {'name':'Relative volume','value':metric(m.rvol,'×'),'inline':True},
-                         {'name':'Short setup','value':trigger,'inline':True},
-                         {'name':'DECA eligibility','value':f'Reported market cap: ${metric(m.market_cap)}\nNasdaq/NYSE · price > $3 · cap ≥ $25M\nMinimum opening order: 10 shares (~${metric(m.price*10)} before fees)','inline':False},
-                         {'name':f'{cfg.live_short_hold_sessions_min}–{cfg.live_short_hold_sessions_max} session short plan','value':context[:1024],'inline':False},
-                         {'name':'SMG position guide','value':'$15k review size · up to $30k only for the highest-ranked setup · $150k maximum gross exposure · minimum 10 shares','inline':False},
-                         {'name':'Source filings','value':sources[:1000] or 'See research report','inline':False}],
-               'footer':{'text':f'Dudebot · {m.feed.upper()} delayed {m.declared_delay_minutes} min · Research watchlist'},
-               'timestamp':now.isoformat()}
-        payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**New qualified trade** · '+local_time(now,cfg).strftime('%b %d, %Y · %H:%M %Z'),
-                         'embeds':[embed],'allowed_mentions':{'parse':['everyone'] if i==0 else []}})
+        payloads.append({'username':'Dudebot','content':('@everyone\n' if i==0 else '')+'**New qualified trade** - '+local_time(now,cfg).strftime('%b %d, %Y %H:%M %Z'),
+                         'embeds':[embed(e,now)],'allowed_mentions':{'parse':['everyone'] if i==0 else []}})
     return payloads
 
 class DiscordSender:

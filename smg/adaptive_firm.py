@@ -89,6 +89,7 @@ def record_base(store,result,spec,now):
     store.put(key,{'context':context(spec),'ticker':result.candidate.ticker,'cik':result.candidate.cik,
                   'entry_date':str(now.date()),'observed_at':now.isoformat(),
                   'data_cutoff':facts['event']['data_cutoff'],'x':facts['features'],
+                  'rank_score':facts['rank_score'],
                   'history_dates':facts['feature_dates'],'base_eligible':True})
 
 
@@ -103,6 +104,8 @@ def mature_outcome(store,row,spec,now):
             return {'status':'OUTCOME_NOT_MATURE','policy_net_return':None}
         stress=policy_outcome(row,cache.get('split',{}),cache.get('raw',{}),cost_bps=100,borrow_rate=1.)
         outcome={**outcome,'label_observed_at':now.isoformat(),'stress_policy_net_return':stress['policy_net_return']}
+        from .drop_probability import outcome as drop_outcome
+        outcome['drop_labels']=drop_outcome(row,cache.get('split',{}),cache.get('raw',{}))
         store.put(key,outcome)
     return outcome
 
@@ -216,7 +219,9 @@ def nightly(store,spec,study,training,now):
             store.put('adaptive_retired:'+active['id'],{'reason':'PAIRED_REGRESSION','at':now.isoformat()})
             store.delete('adaptive_active');report['rollback']='PAIRED_REGRESSION';active=None
     staged=store.get('adaptive_staged')
-    if staged and not valid_model(staged,spec,now):store.delete('adaptive_staged');staged=None
+    if staged and not valid_model(staged,spec,now):
+        store.observe('adaptive_lifecycle',staged['id'],now,'local:nightly',{'action':'RETIRED_STAGED_CONTEXT_CHANGED'})
+        store.delete('adaptive_staged');staged=None
     if staged:
         rows,gaps=observed_pairs(store,staged,spec,now);parent_flags=None
         if active:
@@ -238,6 +243,12 @@ def nightly(store,spec,study,training,now):
             store.observe('adaptive_lifecycle',staged['id'],now,'local:nightly',{'action':'PROMOTED','gate':gate})
             report['status']='PROMOTED_ADDITIONAL_RANK_FILTER';active=promoted;staged=None
     fresh=base_training(store,spec,now)
+    from .drop_probability import build
+    probability_rows=spec.get('drop_probability_reference_rows',[])+[
+        {**r,**r['drop_labels']} for r in fresh if r.get('drop_labels') and r.get('rank_score') is not None]
+    reference=build(probability_rows)
+    store.put('drop_probability_live',{'context':context(spec),'reference':reference,'built_at':now.isoformat()})
+    report['drop_probability']=reference
     report['fresh_training_outcomes']=len(fresh)
     candidate=make_candidate(training+fresh,spec,now,study['selected_l2'])
     report['daily_candidate']=candidate

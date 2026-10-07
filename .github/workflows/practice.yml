@@ -19,7 +19,7 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
       # One durable, mention-free end-to-end receipt for the repaired live path.
-      PRACTICE_RECEIPT_ID: practice-live-repair-2026-10-06
+      PRACTICE_RECEIPT_ID: practice-simple-probability-2026-10-06-v1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,0 +1,19 @@
+# Simple Discord signals
+
+Each card shows ticker, whether a verified listed-firm association exists, why the setup was selected, strength out of100, estimated drop probabilities, a1–3-trading-session horizon, exact paper shares at the delayed quote, and source links. Review watches show0shares/$0. A firm association is not a finding of misconduct.
+
+Strength and probability answer different questions. The fixed strength rubric uses firm evidence35points, chart25, the prior-trained seven-feature rank15, pump/volume10, fresh execution checks10, and optional recent news/FINRA context2.5each. Missing or future evidence adds no points. FINRA short volume is not borrow inventory or proof of bearish direction. Strength is a heuristic, not a win probability.
+
+Probability asks whether a qualified preclose firm setup's closing entry is followed by a20%or larger lower close within the next1,2or3 actualNYSEsessions. It also reports the50%-drop target within3sessions. Intraday lows and a dump that finished before entry do not count. The independent historical corpus has59nonoverlapping issuer episodes across51issuers; it uses no reference/friend ticker nominations.
+
+The probability estimator uses three fixed prior-rank bands. A band needs30episodes and5issuers; otherwise it explicitly uses the pooled firm-entry reference or returns insufficient data. Jeffreys posterior means prevent an observed zero from becoming a claim of zero risk; approximate Wilson95%intervals and sample size are displayed. These are conditional estimates from repeatedly inspected historical data, not certified live calibration or proof of executable shorting. Missing historical eligibility/borrow/cap/halt data remains a limitation.
+
+The pooled estimates are5.8%for1session,10.8%within2,and19.2%within3. The3-session interval is10.7–30.4%; the50%target estimate is7.5%. Rolling chronological2025evaluation predicts24later episodes using only labels already matured before each entry. Its3-session mean forecast is18.7%, observed rate25%, Brier.2006. All forecasts and outcomes are retained in outputs/backtest/drop-probability/summary.json; this is not an untouched-year result.
+
+The timing diagnostic found42/59positive modeled policy returns after costs,31/59with a10%closing decline and11/59with a20%decline within3sessions. Current-session exhaustion accounts for9/41of the20%hits; prior-close setups for2/18. None of these59fell10%between the observed signal quote and closing entry. The diagnostic describes the cohort; it is not portfolio P&L, whole-market recall or evidence that every missed breakdown was found.
+
+The largest paper target requires strength>=80, a firm association, at least30comparable outcomes, estimated3-session20%drop>=35%, lower95%bound>=20%, and estimated50%drop>=10%. A score alone or a familiar ticker cannot unlock it. Targets are10k/20k/50k within the existing30%-of-equity cap, a20%price reserve,$5order fee and30bpsmodeled entry friction. Minimum order10shares; integer shares are rounded down. At$100kequity the largest target is capped to$30kbefore reserves. Exact share counts refer to the quoted price, not an unknown closing fill.
+
+Equity100k and available buying power150k are paper assumptions. SMGaccount holdings/balances are not connected. The guide is advisory and reduces weaker suggestions inside the previously tested maximum; the frozen backtest allocation policy itself is not changed into probability sizing or claimed to be newly validated. No actual orders are placed.
+
+Nightly research saves matured drop labels and updates the empirical reference from subsequent base-qualified entries. New rankings still need the independent prospective promotion gate. The notification extension is explicit ranked-firm-2026-10-07-v3; prior configurations are archived. Original entry weights, exclusions,16minute freeSIPdelay and the separate frozenv4 experiment remain unchanged.

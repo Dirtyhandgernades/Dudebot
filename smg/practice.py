@@ -28,18 +28,46 @@ def practice_payload(store,root,now,cfg,entities):
     text='\n'.join(lines)
     if len(text)>1900:
         text='\n'.join(lines[:3]+['Full per-stock audit is in the workflow artifact.']+lines[-3:])
+    samples=[]
+    for prefix in ('ranked_evaluation:','evaluation:'):
+        for _,row in store.items(prefix):
+            if row.get('snapshot'):samples.append(row)
+    samples.sort(key=lambda r:r['snapshot']['price_time'],reverse=True)
     return text,{'reference_events':len(events),'reference_symbols':len(reference),'overlap_tickers':symbols,'rows':rows,
+                 'card_example':samples[0] if samples else None,
                  'meaning':'Present-day research overlap only; not a historical backtest or a live alert'}
 
 
 def practice_embed(text,audit,now):
-    fields=[{'name':r['ticker']+' · '+r['firm_check'],
-             'value':clean('; '.join(r['firms']))[:600]+f"\nSource dated {r['source_date']}",'inline':False} for r in audit['rows'][:20]]
-    return {'username':'Dudebot','content':'', 'embeds':[{
-        'title':'Dudebot · Practice research check','color':0x39B9A8,
-        'description':f"**{audit['reference_events']} reference events · {audit['reference_symbols']} stocks**\nCurrent overlap: **{', '.join(audit['overlap_tickers']) or 'None'}**\n\n"
-            'These are current filing matches, not historical detections or qualified stock alerts. Historical replay remains incomplete.',
-        'fields':fields[:6]+[{'name':'Delivery & data','value':'Newly qualified phases alert after the 15-minute weekday scan. Free Alpaca SIP is delayed 16 minutes.','inline':False},
-            {'name':'Hard exclusions','value':'Halted/suspended stocks, SPACs/acquisition corporations, and exactly-five-letter tickers. Unknown checks suppress alerts.','inline':False}],
-        'footer':{'text':'Practice only · No trade or detection claim'},'timestamp':now.isoformat()}],
-        'allowed_mentions':{'parse':[]}}
+    from .trade_card import embed,position_guide
+    from .models import Evaluation
+    from pathlib import Path
+    import json
+    spec=json.loads((Path.cwd()/'config/ranked_firm_alerts.json').read_text(encoding='utf-8'))
+    reference=spec.get('drop_probability_reference',{}).get('pooled',{})
+    if audit.get('card_example'):
+        card=embed(Evaluation.model_validate(audit['card_example']),now,practice=True)
+    else:
+        first=next(iter(audit['rows']),{})
+        card={'title':(first.get('ticker') or 'Dudebot')+' · FIRM WATCH · PRACTICE','color':0xE7AF38,
+              'description':'Stored filing association only. Current entry checks are not confirmed.',
+              'fields':[{'name':'Why picked · Firm watch','value':clean('; '.join(first.get('firms',[]))) or 'No verified current filing match'},
+                        {'name':'Strength score','value':'Unavailable without a complete current scan'},
+                        {'name':'Estimated drop probability','value':'No qualified entry; no stock-specific probability assigned'},
+                        {'name':'Drop window / hold','value':'Monitor only. If later qualified: 1–3 trading sessions'},
+                        {'name':'Suggested paper position','value':'0 shares · $0 allocated; practice/watch only'}],
+              'footer':{'text':'PRACTICE ONLY · no trade recommendation'},'timestamp':now.isoformat()}
+    guide=position_guide(10,85,True,True)
+    targets=reference.get('targets',{})
+    probability='Insufficient historical reference data'
+    if targets:
+        probability=' · '.join(f"{h}d {100*targets[f'day_{h}']['estimate']:.1f}%" for h in (1,2,3))
+        probability+=f"\n{reference['samples']} independent past firm entries; not a forecast for the example stock."
+    sample={'title':'PRACTICE · Layout and sizing math','color':0x6B7280,
+            'description':'Illustration only; no stock is recommended. Score85 and price$10 below are layout examples, not observed live inputs.',
+            'fields':[{'name':'Strength score','value':'85/100 · illustrative; not a probability'},
+                      {'name':'Historical 20%+ drop reference','value':probability},
+                      {'name':'Sizing example','value':f"{guide['shares']:,} shares × $10 = ${guide['capital']:,.2f}\n$100k equity / $150k available BP;20% reserve. A high strength score alone cannot unlock the largest tier."},
+                      {'name':'Hold plan','value':'1–3 trading sessions; no guaranteed drop date'}],
+            'footer':{'text':'PRACTICE ONLY · current live orders:0'},'timestamp':now.isoformat()}
+    return {'username':'Dudebot','content':'**Practice upload · new simplified cards**','embeds':[card,sample],'allowed_mentions':{'parse':[]}}

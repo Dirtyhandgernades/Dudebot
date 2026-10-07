@@ -23,6 +23,8 @@ from .transport import Http
 from .storage import Store,GitHubState
 from .notify import DiscordSender
 from .adaptive_firm import apply_active
+from .adaptive_firm import context as adaptive_context
+from .drop_probability import estimate
 
 UTC=timezone.utc
 
@@ -186,6 +188,15 @@ def main():
             observed_now=datetime.now(UTC)
             result=eligible_signal(c,histories[c.ticker],raw_histories[c.ticker],partial_bar(split.get(c.ticker,[]),bounds[0],now-timedelta(minutes=16)),
                 partial_bar(raw.get(c.ticker,[]),bounds[0],now-timedelta(minutes=16)),observed_now,cfg,entities,spec,borrow,halt,caps)
+            sentiment=store.latest_observation('sentiment',c.ticker)
+            if sentiment:result.ranking_evidence['sentiment']=sentiment
+            finra=store.latest_observation('finra_short_volume',c.ticker)
+            if finra:result.ranking_evidence['finra_short_volume']=finra
+            reference=spec.get('drop_probability_reference')
+            learned=store.get('drop_probability_live',{})
+            if learned.get('context')==adaptive_context(spec):reference=learned['reference']
+            if result.status=='QUALIFIED':
+                result.ranking_evidence['drop_probability']=estimate(reference,result.ranking_evidence['ranked_firm']['rank_score'])
             # Base eligibility and the original model are unchanged. Adaptive
             # decisions are recorded before any additional promoted rank filter.
             if not args.preflight:result=apply_active(store,result,spec,observed_now)
@@ -214,14 +225,9 @@ def main():
                 if store.get(key):continue
                 snapshot=result.snapshot;receipt={'status':'CLAIMED','at':datetime.now(UTC).isoformat()}
                 store.put(key,receipt);checkpoint(store)
-                payload={'username':'Dudebot','content':'','allowed_mentions':{'parse':[]},'embeds':[{
-                    'title':'Firm watch forming · '+result.candidate.ticker,'color':0xE7AF38,
-                    'description':'A sourced firm association and exhaustion pattern were detected. **Research watch; no qualified short entry yet.**',
-                    'fields':[{'name':'Price and structure','value':f'${snapshot.price:.2f} · 21-session {snapshot.monthly_return:.1f}% · RVOL proxy {snapshot.rvol:.2f}×'},
-                              {'name':'Listed parties','value':'; '.join(m['name']+' ('+m['role']+')' for m in result.matches)[:900]},
-                              {'name':'Entry status','value':'; '.join(x for x in result.reasons if x in ('CURRENT_BORROW_NOT_EXECUTABLE','RESEARCH_WATCH_WAITING_FOR_PRECLOSE_CONFIRMATION','CONTINUING_PUMP_WAIT_FOR_CONFIRMATION'))},
-                              {'name':'Source','value':result.matches[0]['evidence']['url']}],
-                    'footer':{'text':'Free SIP delayed 16 minutes · firm association is not a fraud finding'},'timestamp':datetime.now(UTC).isoformat()}]}
+                from .trade_card import embed
+                payload={'username':'Dudebot','content':'','allowed_mentions':{'parse':[]},
+                         'embeds':[embed(result,datetime.now(UTC))]}
                 try:
                     reply=http.json(webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
                     receipt.update(status='SENT',message_id=reply['id'])

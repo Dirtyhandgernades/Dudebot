@@ -1,5 +1,5 @@
 {
-  "id": "ranked-firm-2026-10-07-v2",
+  "id": "ranked-firm-2026-10-07-v3",
   "enabled": true,
   "first_session": "2026-10-07",
   "confidence_sizing_enabled": false,
@@ -48,24 +48,26 @@
   },
   "rank_threshold": 0.43827250876096624,
   "implementation_sha256": {
-    "smg/ranked_firm.py": "04493b9d1f2c6d9070aa81de138b2870529dd22ba38c1c74547eeb93e9797d41",
+    "smg/ranked_firm.py": "a0b9ca5d6d499ad7f1a291da11fb2f8e74f205da5f5169ab8fa5976f65ed7266",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
     "smg/game_rules.py": "abd50e0de104f3c537f14ddf26701f442daa2fa1ee2b510e57b062c120870691",
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
-    "smg/notify.py": "2a85870b344e3da951921d70655d9a4c2bd64e1ca66041f61e3b7e2a979c9c93",
+    "smg/notify.py": "65a5e1be658b168d91f7d2ef1fc925ea474cf2a63ba367459137c8fdf52b2fe8",
     "smg/storage.py": "a5c23aab27aea34a850c692c1b02a2d12f70ae6e61db81d83773dd6132a1fd06",
     "smg/transport.py": "2a925b2d28bd9d94dbf69cc12256b7f66484f433d5374fb2bfd8de950c2b5841",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
-    "smg/adaptive_firm.py": "202a5bd6d7ca54b88138501fda3040b5a1c2af0ad68c7979d5128decbe97d0b2",
+    "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
     "smg/action_learning.py": "2611f9487dc409f4c6a7aa7cfc05da0179e4f428281e1332276732d8afd4d988",
     "backtest/daily_adaptive_study.py": "1181600766ef88d6518851508f23b36e1577f719ec914839fa0f426e0b3cfbf5",
     "smg/swing_backtest.py": "1fcb8b602dd4452923db325234fe50fea22a2b6819b32cfe9f780952353ac5db",
     "smg/history_identity.py": "e219d9aa28fabfefb26dc12a45ede2df8605a9ec55f22ad2491ba6a08caee3f5",
-    "backtest/repair_study.py": "51ccaf55e252657a891ae85335be32e816f6b55dd22085eaceee2532efe42897"
+    "backtest/repair_study.py": "51ccaf55e252657a891ae85335be32e816f6b55dd22085eaceee2532efe42897",
+    "smg/trade_card.py": "3b28e4778af5b3b6fb6812e50074bab03ecba41384a0587c830e278e1d21d67b",
+    "smg/drop_probability.py": "b8f7f46706ba9de68b7078129c2c918aa19efd6d518d1e63e61116b507d82fd1"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
   "published_at": "2026-10-06T19:19:11Z",
@@ -149,9 +151,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-07-v1",
+  "parent_contract_id": "ranked-firm-2026-10-07-v2",
   "automatic_improvement_enabled": true,
-  "version_reason": "Original base weights and hard gates preserved; automatic additional rank filter with multi-year replay, prospective shadow promotion and rollback. Parent has no registered forecasts.",
+  "version_reason": "Unchanged entry model and exclusions; simpler cards, empirical1/2/3-session drop reference, prospective probability refresh and bounded advisory sizing. v2 had only a staged challenger, no live forecasts.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",
@@ -160,5 +162,922 @@
       2024,
       2025
     ]
-  }
+  },
+  "drop_probability_reference": {
+    "method": "EMPIRICAL_FIXED_RANK_BANDS_JEFFREYS_MEAN",
+    "target": "20pct lower close within1/2/3 sessions after closing entry",
+    "minimum_samples": 30,
+    "minimum_issuers": 5,
+    "pooled": {
+      "samples": 59,
+      "issuers": 51,
+      "latest_label": "2025-12-03",
+      "targets": {
+        "day_1": {
+          "hits": 3,
+          "estimate": 0.058333333333333334,
+          "wilson_95": [
+            0.017442401159453308,
+            0.1391672332228667
+          ]
+        },
+        "day_2": {
+          "hits": 6,
+          "estimate": 0.10833333333333334,
+          "wilson_95": [
+            0.047447326513182495,
+            0.2046404624673654
+          ]
+        },
+        "day_3": {
+          "hits": 11,
+          "estimate": 0.19166666666666668,
+          "wilson_95": [
+            0.10742612239043585,
+            0.30379192425382523
+          ]
+        },
+        "severe_50pct_day_3": {
+          "hits": 4,
+          "estimate": 0.075,
+          "wilson_95": [
+            0.026678187098391565,
+            0.16175749881667106
+          ]
+        }
+      }
+    },
+    "bins": [
+      {
+        "rank_min": 0,
+        "rank_max": 0.5,
+        "samples": 41,
+        "issuers": 36,
+        "latest_label": "2025-12-03",
+        "targets": {
+          "day_1": {
+            "hits": 1,
+            "estimate": 0.03571428571428571,
+            "wilson_95": [
+              0.00431842027071648,
+              0.12595347011678087
+            ]
+          },
+          "day_2": {
+            "hits": 4,
+            "estimate": 0.10714285714285714,
+            "wilson_95": [
+              0.0385964597529614,
+              0.22547975519030555
+            ]
+          },
+          "day_3": {
+            "hits": 8,
+            "estimate": 0.20238095238095238,
+            "wilson_95": [
+              0.10234315749205929,
+              0.34013882352556724
+            ]
+          },
+          "severe_50pct_day_3": {
+            "hits": 2,
+            "estimate": 0.05952380952380952,
+            "wilson_95": [
+              0.013480662282573552,
+              0.16139266962351367
+            ]
+          }
+        }
+      },
+      {
+        "rank_min": 0.5,
+        "rank_max": 0.7,
+        "samples": 13,
+        "issuers": 13,
+        "latest_label": "2025-12-01",
+        "targets": {
+          "day_1": {
+            "hits": 0,
+            "estimate": 0.03571428571428571,
+            "wilson_95": [
+              0,
+              0.22810184305529166
+            ]
+          },
+          "day_2": {
+            "hits": 0,
+            "estimate": 0.03571428571428571,
+            "wilson_95": [
+              0,
+              0.22810184305529166
+            ]
+          },
+          "day_3": {
+            "hits": 1,
+            "estimate": 0.10714285714285714,
+            "wilson_95": [
+              0.013710066379696323,
+              0.3331453392824736
+            ]
+          },
+          "severe_50pct_day_3": {
+            "hits": 0,
+            "estimate": 0.03571428571428571,
+            "wilson_95": [
+              0,
+              0.22810184305529166
+            ]
+          }
+        }
+      },
+      {
+        "rank_min": 0.7,
+        "rank_max": 1,
+        "samples": 5,
+        "issuers": 5,
+        "latest_label": "2025-11-11",
+        "targets": {
+          "day_1": {
+            "hits": 2,
+            "estimate": 0.4166666666666667,
+            "wilson_95": [
+              0.1176182311592533,
+              0.769280067791163
+            ]
+          },
+          "day_2": {
+            "hits": 2,
+            "estimate": 0.4166666666666667,
+            "wilson_95": [
+              0.1176182311592533,
+              0.769280067791163
+            ]
+          },
+          "day_3": {
+            "hits": 2,
+            "estimate": 0.4166666666666667,
+            "wilson_95": [
+              0.1176182311592533,
+              0.769280067791163
+            ]
+          },
+          "severe_50pct_day_3": {
+            "hits": 2,
+            "estimate": 0.4166666666666667,
+            "wilson_95": [
+              0.1176182311592533,
+              0.769280067791163
+            ]
+          }
+        }
+      }
+    ],
+    "limits": [
+      "Previously inspected years; not untouched live calibration",
+      "Historical borrow/cap/halts/SMG membership remain unverified",
+      "Only independently sourced preclose firm setups; not a whole-market probability",
+      "Approximate intervals assume independent episodes; market/issuer correlations remain"
+    ]
+  },
+  "drop_probability_reference_rows": [
+    {
+      "ticker": "GDHG",
+      "cik": "0001928340",
+      "entry_date": "2023-09-11",
+      "rank_score": 0.21488231672616004,
+      "observed_at": "2023-09-11T19:40:00+00:00",
+      "label_end": "2023-09-14",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "RVYL",
+      "cik": "0001419275",
+      "entry_date": "2023-11-24",
+      "rank_score": 0.9144216413823439,
+      "observed_at": "2023-11-24T17:40:00+00:00",
+      "label_end": "2023-11-29",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "BTCM",
+      "cik": "0001517496",
+      "entry_date": "2023-12-05",
+      "rank_score": 0.1821397305219738,
+      "observed_at": "2023-12-05T20:40:00+00:00",
+      "label_end": "2023-12-08",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "TELO",
+      "cik": "0001971532",
+      "entry_date": "2024-09-09",
+      "rank_score": 0.42456634747288646,
+      "observed_at": "2024-09-09T19:40:00+00:00",
+      "label_end": "2024-09-12",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "RYDE",
+      "cik": "0001971115",
+      "entry_date": "2024-09-10",
+      "rank_score": 0.7467715443949072,
+      "observed_at": "2024-09-10T19:40:00+00:00",
+      "label_end": "2024-09-13",
+      "day_1": 1,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 1
+    },
+    {
+      "ticker": "PGHL",
+      "cik": "0001966678",
+      "entry_date": "2024-09-12",
+      "rank_score": 0.604808623555531,
+      "observed_at": "2024-09-12T19:40:00+00:00",
+      "label_end": "2024-09-17",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "YRD",
+      "cik": "0001631761",
+      "entry_date": "2024-10-02",
+      "rank_score": 0.4779343427294706,
+      "observed_at": "2024-10-02T19:40:00+00:00",
+      "label_end": "2024-10-07",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "LXEH",
+      "cik": "0001814067",
+      "entry_date": "2024-10-07",
+      "rank_score": 0.4617575364067066,
+      "observed_at": "2024-10-07T19:40:00+00:00",
+      "label_end": "2024-10-10",
+      "day_1": 0,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "NISN",
+      "cik": "0001603993",
+      "entry_date": "2024-10-07",
+      "rank_score": 0.45435277911890304,
+      "observed_at": "2024-10-07T19:40:00+00:00",
+      "label_end": "2024-10-10",
+      "day_1": 0,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "LOBO",
+      "cik": "0001932072",
+      "entry_date": "2024-10-08",
+      "rank_score": 0.5411991704201051,
+      "observed_at": "2024-10-08T19:40:00+00:00",
+      "label_end": "2024-10-11",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ASPI",
+      "cik": "0001921865",
+      "entry_date": "2024-10-18",
+      "rank_score": 0.4666832888900903,
+      "observed_at": "2024-10-18T19:40:00+00:00",
+      "label_end": "2024-10-23",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "FTEL",
+      "cik": "0001928581",
+      "entry_date": "2024-10-25",
+      "rank_score": 0.4296331025750329,
+      "observed_at": "2024-10-25T19:40:00+00:00",
+      "label_end": "2024-10-30",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ATLX",
+      "cik": "0001540684",
+      "entry_date": "2024-10-29",
+      "rank_score": 0.45917388701946216,
+      "observed_at": "2024-10-29T19:40:00+00:00",
+      "label_end": "2024-11-01",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ASPI",
+      "cik": "0001921865",
+      "entry_date": "2024-11-01",
+      "rank_score": 0.6166106899179092,
+      "observed_at": "2024-11-01T19:40:00+00:00",
+      "label_end": "2024-11-06",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ELWS",
+      "cik": "0001944399",
+      "entry_date": "2024-11-05",
+      "rank_score": 0.6505589447183536,
+      "observed_at": "2024-11-05T20:40:00+00:00",
+      "label_end": "2024-11-08",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "HPAI",
+      "cik": "0002001699",
+      "entry_date": "2024-11-05",
+      "rank_score": 0.4522531510336058,
+      "observed_at": "2024-11-05T20:40:00+00:00",
+      "label_end": "2024-11-08",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "SLNH",
+      "cik": "0000064463",
+      "entry_date": "2024-11-11",
+      "rank_score": 0.42707880377382595,
+      "observed_at": "2024-11-11T20:40:00+00:00",
+      "label_end": "2024-11-14",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "FTEL",
+      "cik": "0001928581",
+      "entry_date": "2024-11-18",
+      "rank_score": 0.48099182638141086,
+      "observed_at": "2024-11-18T20:40:00+00:00",
+      "label_end": "2024-11-21",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "SDOT",
+      "cik": "0001701756",
+      "entry_date": "2024-11-27",
+      "rank_score": 0.4412297971479439,
+      "observed_at": "2024-11-27T20:40:00+00:00",
+      "label_end": "2024-12-03",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "NTHI",
+      "cik": "0001979414",
+      "entry_date": "2025-09-08",
+      "rank_score": 0.4272133567921325,
+      "observed_at": "2025-09-08T19:40:00+00:00",
+      "label_end": "2025-09-11",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "CLNN",
+      "cik": "0001822791",
+      "entry_date": "2025-09-09",
+      "rank_score": 0.4520511785888218,
+      "observed_at": "2025-09-09T19:40:00+00:00",
+      "label_end": "2025-09-12",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "NVFY",
+      "cik": "0001473334",
+      "entry_date": "2025-09-09",
+      "rank_score": 0.7190485578891153,
+      "observed_at": "2025-09-09T19:40:00+00:00",
+      "label_end": "2025-09-12",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ONEG",
+      "cik": "0002030834",
+      "entry_date": "2025-09-10",
+      "rank_score": 0.42917341476851956,
+      "observed_at": "2025-09-10T19:40:00+00:00",
+      "label_end": "2025-09-15",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "VERI",
+      "cik": "0001615165",
+      "entry_date": "2025-09-10",
+      "rank_score": 0.45012694813788995,
+      "observed_at": "2025-09-10T19:40:00+00:00",
+      "label_end": "2025-09-15",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "AGH",
+      "cik": "0002009312",
+      "entry_date": "2025-09-11",
+      "rank_score": 0.45937910619662714,
+      "observed_at": "2025-09-11T19:40:00+00:00",
+      "label_end": "2025-09-16",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ANPA",
+      "cik": "0002031688",
+      "entry_date": "2025-09-11",
+      "rank_score": 0.4303757089130194,
+      "observed_at": "2025-09-11T19:40:00+00:00",
+      "label_end": "2025-09-16",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "AMST",
+      "cik": "0001807166",
+      "entry_date": "2025-09-12",
+      "rank_score": 0.7783759882502163,
+      "observed_at": "2025-09-12T19:40:00+00:00",
+      "label_end": "2025-09-17",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "SONN",
+      "cik": "0001106838",
+      "entry_date": "2025-09-15",
+      "rank_score": 0.6136627640130381,
+      "observed_at": "2025-09-15T19:40:00+00:00",
+      "label_end": "2025-09-18",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ENTO",
+      "cik": "0001604191",
+      "entry_date": "2025-09-16",
+      "rank_score": 0.4984882970235926,
+      "observed_at": "2025-09-16T19:40:00+00:00",
+      "label_end": "2025-09-19",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "MLGO",
+      "cik": "0001800392",
+      "entry_date": "2025-09-18",
+      "rank_score": 0.46151119761054255,
+      "observed_at": "2025-09-18T19:40:00+00:00",
+      "label_end": "2025-09-23",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "FATN",
+      "cik": "0001993400",
+      "entry_date": "2025-09-22",
+      "rank_score": 0.6176180194226352,
+      "observed_at": "2025-09-22T19:40:00+00:00",
+      "label_end": "2025-09-25",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "LAES",
+      "cik": "0001951222",
+      "entry_date": "2025-09-22",
+      "rank_score": 0.4539412566023761,
+      "observed_at": "2025-09-22T19:40:00+00:00",
+      "label_end": "2025-09-25",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "VERI",
+      "cik": "0001615165",
+      "entry_date": "2025-09-22",
+      "rank_score": 0.5445739488543951,
+      "observed_at": "2025-09-22T19:40:00+00:00",
+      "label_end": "2025-09-25",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "NTHI",
+      "cik": "0001979414",
+      "entry_date": "2025-09-23",
+      "rank_score": 0.4554934805803178,
+      "observed_at": "2025-09-23T19:40:00+00:00",
+      "label_end": "2025-09-26",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "SCLX",
+      "cik": "0001820190",
+      "entry_date": "2025-09-23",
+      "rank_score": 0.4120592107469665,
+      "observed_at": "2025-09-23T19:40:00+00:00",
+      "label_end": "2025-09-26",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "TDIC",
+      "cik": "0002041338",
+      "entry_date": "2025-09-26",
+      "rank_score": 0.43420010883312177,
+      "observed_at": "2025-09-26T19:40:00+00:00",
+      "label_end": "2025-10-01",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "MSGY",
+      "cik": "0002020228",
+      "entry_date": "2025-09-29",
+      "rank_score": 0.46847687062652876,
+      "observed_at": "2025-09-29T19:40:00+00:00",
+      "label_end": "2025-10-02",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 1,
+      "severe_50pct_day_3": 1
+    },
+    {
+      "ticker": "PC",
+      "cik": "0001998056",
+      "entry_date": "2025-10-02",
+      "rank_score": 0.4370753575355226,
+      "observed_at": "2025-10-02T19:40:00+00:00",
+      "label_end": "2025-10-07",
+      "day_1": 0,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "LAES",
+      "cik": "0001951222",
+      "entry_date": "2025-10-03",
+      "rank_score": 0.40571983412956886,
+      "observed_at": "2025-10-03T19:40:00+00:00",
+      "label_end": "2025-10-08",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "QUBT",
+      "cik": "0001758009",
+      "entry_date": "2025-10-06",
+      "rank_score": 0.45001581914658095,
+      "observed_at": "2025-10-06T19:40:00+00:00",
+      "label_end": "2025-10-09",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "BZAI",
+      "cik": "0001871638",
+      "entry_date": "2025-10-07",
+      "rank_score": 0.47828084202622634,
+      "observed_at": "2025-10-07T19:40:00+00:00",
+      "label_end": "2025-10-10",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "PHOE",
+      "cik": "0002035709",
+      "entry_date": "2025-10-07",
+      "rank_score": 0.408759793289088,
+      "observed_at": "2025-10-07T19:40:00+00:00",
+      "label_end": "2025-10-10",
+      "day_1": 1,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "TDIC",
+      "cik": "0002041338",
+      "entry_date": "2025-10-07",
+      "rank_score": 0.472430311907186,
+      "observed_at": "2025-10-07T19:40:00+00:00",
+      "label_end": "2025-10-10",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 1,
+      "severe_50pct_day_3": 1
+    },
+    {
+      "ticker": "SWIN",
+      "cik": "0001959224",
+      "entry_date": "2025-10-09",
+      "rank_score": 0.4240807300595987,
+      "observed_at": "2025-10-09T19:40:00+00:00",
+      "label_end": "2025-10-14",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "JFU",
+      "cik": "0001619544",
+      "entry_date": "2025-10-10",
+      "rank_score": 0.6121737845339574,
+      "observed_at": "2025-10-10T19:40:00+00:00",
+      "label_end": "2025-10-15",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "THH",
+      "cik": "0002044241",
+      "entry_date": "2025-10-13",
+      "rank_score": 0.40332946670515757,
+      "observed_at": "2025-10-13T19:40:00+00:00",
+      "label_end": "2025-10-16",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ACON",
+      "cik": "0001635077",
+      "entry_date": "2025-10-14",
+      "rank_score": 0.4309321825537464,
+      "observed_at": "2025-10-14T19:40:00+00:00",
+      "label_end": "2025-10-17",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "AGH",
+      "cik": "0002009312",
+      "entry_date": "2025-10-20",
+      "rank_score": 0.5432325634863543,
+      "observed_at": "2025-10-20T19:40:00+00:00",
+      "label_end": "2025-10-23",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "AEI",
+      "cik": "0001750106",
+      "entry_date": "2025-10-28",
+      "rank_score": 0.41223530017727444,
+      "observed_at": "2025-10-28T19:40:00+00:00",
+      "label_end": "2025-10-31",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "WULF",
+      "cik": "0001083301",
+      "entry_date": "2025-10-29",
+      "rank_score": 0.40446955972439236,
+      "observed_at": "2025-10-29T19:40:00+00:00",
+      "label_end": "2025-11-03",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "DTCK",
+      "cik": "0001949478",
+      "entry_date": "2025-11-06",
+      "rank_score": 0.9740606230810885,
+      "observed_at": "2025-11-06T20:40:00+00:00",
+      "label_end": "2025-11-11",
+      "day_1": 1,
+      "day_2": 1,
+      "day_3": 1,
+      "severe_50pct_day_3": 1
+    },
+    {
+      "ticker": "SWAG",
+      "cik": "0001872525",
+      "entry_date": "2025-11-11",
+      "rank_score": 0.5633811682217091,
+      "observed_at": "2025-11-11T20:40:00+00:00",
+      "label_end": "2025-11-14",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ANVS",
+      "cik": "0001477845",
+      "entry_date": "2025-11-18",
+      "rank_score": 0.5875072569428138,
+      "observed_at": "2025-11-18T20:40:00+00:00",
+      "label_end": "2025-11-21",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "CCHH",
+      "cik": "0002074123",
+      "entry_date": "2025-11-19",
+      "rank_score": 0.4210585145128974,
+      "observed_at": "2025-11-19T20:40:00+00:00",
+      "label_end": "2025-11-24",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "MAGH",
+      "cik": "0002046117",
+      "entry_date": "2025-11-20",
+      "rank_score": 0.6472774582965689,
+      "observed_at": "2025-11-20T20:40:00+00:00",
+      "label_end": "2025-11-25",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "SCLX",
+      "cik": "0001820190",
+      "entry_date": "2025-11-21",
+      "rank_score": 0.4095371984342009,
+      "observed_at": "2025-11-21T20:40:00+00:00",
+      "label_end": "2025-11-26",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "ZJK",
+      "cik": "0001941506",
+      "entry_date": "2025-11-25",
+      "rank_score": 0.5973934436561832,
+      "observed_at": "2025-11-25T20:40:00+00:00",
+      "label_end": "2025-12-01",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "GANX",
+      "cik": "0001819411",
+      "entry_date": "2025-11-28",
+      "rank_score": 0.42789584931171876,
+      "observed_at": "2025-11-28T17:40:00+00:00",
+      "label_end": "2025-12-03",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 0,
+      "severe_50pct_day_3": 0
+    },
+    {
+      "ticker": "WOK",
+      "cik": "0001929783",
+      "entry_date": "2025-11-28",
+      "rank_score": 0.4439684795604631,
+      "observed_at": "2025-11-28T17:40:00+00:00",
+      "label_end": "2025-12-03",
+      "day_1": 0,
+      "day_2": 0,
+      "day_3": 1,
+      "severe_50pct_day_3": 0
+    }
+  ],
+  "probability_validation": {
+    "day_1": {
+      "tested": 24,
+      "status": "ROLLING_MATURED_PAST_ONLY_2025",
+      "brier": 0.07802909972738765,
+      "mean_estimate": 0.04465845075791177,
+      "observed_rate": 0.08333333333333333
+    },
+    "day_2": {
+      "tested": 24,
+      "status": "ROLLING_MATURED_PAST_ONLY_2025",
+      "brier": 0.11288620261415823,
+      "mean_estimate": 0.11066017623004853,
+      "observed_rate": 0.125
+    },
+    "day_3": {
+      "tested": 24,
+      "status": "ROLLING_MATURED_PAST_ONLY_2025",
+      "brier": 0.20057292366770954,
+      "mean_estimate": 0.18697630312779723,
+      "observed_rate": 0.25
+    },
+    "severe_50pct_day_3": {
+      "tested": 24,
+      "status": "ROLLING_MATURED_PAST_ONLY_2025",
+      "brier": 0.1148277218088518,
+      "mean_estimate": 0.066147162142333,
+      "observed_rate": 0.125
+    }
+  },
+  "historical_reference_probability_enabled": true
 }

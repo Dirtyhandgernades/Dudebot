@@ -1,0 +1,164 @@
+{
+  "id": "ranked-firm-2026-10-07-v2",
+  "enabled": true,
+  "first_session": "2026-10-07",
+  "confidence_sizing_enabled": false,
+  "entry_policy": "PRECLOSE_ONLY",
+  "position_target": 50000,
+  "model": {
+    "features": [
+      "return_21",
+      "return_5",
+      "return_1",
+      "drawdown_21",
+      "volume_ratio_20",
+      "failed_prev_low",
+      "range_pct"
+    ],
+    "mean": [
+      0.7860424297784018,
+      0.38553718338088033,
+      0.11641924121450704,
+      -0.12361888182303947,
+      28.25758352169836,
+      0.10266633441315724,
+      0.19690206183927958
+    ],
+    "scale": [
+      2.681280008336243,
+      2.040993041092098,
+      0.517430909242951,
+      0.12978963863200163,
+      320.5238050778092,
+      0.30352258267108745,
+      0.21490604267407576
+    ],
+    "weights": [
+      0.43468895857747164,
+      0.021320832174015314,
+      0.09040506487947772,
+      -0.007394007593953882,
+      0.003329161820586826,
+      -0.08632483600959302,
+      0.3945249582828549
+    ],
+    "bias": -0.0929880626569186,
+    "training_samples": 4013,
+    "training_positives": 457
+  },
+  "rank_threshold": 0.43827250876096624,
+  "implementation_sha256": {
+    "smg/ranked_firm.py": "04493b9d1f2c6d9070aa81de138b2870529dd22ba38c1c74547eeb93e9797d41",
+    "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
+    "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
+    "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
+    "smg/game_rules.py": "abd50e0de104f3c537f14ddf26701f442daa2fa1ee2b510e57b062c120870691",
+    "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
+    "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
+    "smg/notify.py": "2a85870b344e3da951921d70655d9a4c2bd64e1ca66041f61e3b7e2a979c9c93",
+    "smg/storage.py": "a5c23aab27aea34a850c692c1b02a2d12f70ae6e61db81d83773dd6132a1fd06",
+    "smg/transport.py": "2a925b2d28bd9d94dbf69cc12256b7f66484f433d5374fb2bfd8de950c2b5841",
+    "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
+    "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
+    "smg/adaptive_firm.py": "202a5bd6d7ca54b88138501fda3040b5a1c2af0ad68c7979d5128decbe97d0b2",
+    "smg/action_learning.py": "2611f9487dc409f4c6a7aa7cfc05da0179e4f428281e1332276732d8afd4d988",
+    "backtest/daily_adaptive_study.py": "1181600766ef88d6518851508f23b36e1577f719ec914839fa0f426e0b3cfbf5",
+    "smg/swing_backtest.py": "1fcb8b602dd4452923db325234fe50fea22a2b6819b32cfe9f780952353ac5db",
+    "smg/history_identity.py": "e219d9aa28fabfefb26dc12a45ede2df8605a9ec55f22ad2491ba6a08caee3f5",
+    "backtest/repair_study.py": "51ccaf55e252657a891ae85335be32e816f6b55dd22085eaceee2532efe42897"
+  },
+  "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
+  "published_at": "2026-10-06T19:19:11Z",
+  "training_latest_label": "2025-12-05",
+  "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
+  "validation": {
+    "run_id": 37516775704,
+    "periods": [
+      {
+        "year": 2023,
+        "base": {
+          "net_profit": 3373.47,
+          "ending_balance": 103373.47,
+          "closed_trades": 2,
+          "max_observed_drawdown_pct": 0.168
+        },
+        "stress": {
+          "net_profit": 2179.15,
+          "ending_balance": 102179.15,
+          "closed_trades": 2,
+          "max_observed_drawdown_pct": 0.434
+        },
+        "same_trades_cost_stress": {
+          "status": "COST_ONLY_SAME_BASE_TRADES_NOT_MARGIN_REPLAY",
+          "closed_trades": 2,
+          "net_profit": 2013.13,
+          "cost_bps_each_way": 100,
+          "assumed_annual_borrow_rate": 1,
+          "limitation": "Same hypothetical base trades; no historical execution certification or stressed buying-power replay"
+        }
+      },
+      {
+        "year": 2024,
+        "base": {
+          "net_profit": 40180.81,
+          "ending_balance": 140180.81,
+          "closed_trades": 18,
+          "max_observed_drawdown_pct": 17.2
+        },
+        "stress": {
+          "net_profit": 27004.55,
+          "ending_balance": 127004.55,
+          "closed_trades": 18,
+          "max_observed_drawdown_pct": 20.604
+        },
+        "same_trades_cost_stress": {
+          "status": "COST_ONLY_SAME_BASE_TRADES_NOT_MARGIN_REPLAY",
+          "closed_trades": 18,
+          "net_profit": 26287.92,
+          "cost_bps_each_way": 100,
+          "assumed_annual_borrow_rate": 1,
+          "limitation": "Same hypothetical base trades; no historical execution certification or stressed buying-power replay"
+        }
+      },
+      {
+        "year": 2025,
+        "base": {
+          "net_profit": 75549.15,
+          "ending_balance": 175549.15,
+          "closed_trades": 44,
+          "max_observed_drawdown_pct": 17.423
+        },
+        "stress": {
+          "net_profit": 35622.07,
+          "ending_balance": 135622.07,
+          "closed_trades": 44,
+          "max_observed_drawdown_pct": 22.919
+        },
+        "same_trades_cost_stress": {
+          "status": "COST_ONLY_SAME_BASE_TRADES_NOT_MARGIN_REPLAY",
+          "closed_trades": 44,
+          "net_profit": 46192.38,
+          "cost_bps_each_way": 100,
+          "assumed_annual_borrow_rate": 1,
+          "limitation": "Same hypothetical base trades; no historical execution certification or stressed buying-power replay"
+        }
+      }
+    ],
+    "historical_execution_certified": false,
+    "sparse_2023_sample": true,
+    "live_orders_enabled": false,
+    "percent_confidence_enabled": false
+  },
+  "parent_contract_id": "ranked-firm-2026-10-07-v1",
+  "automatic_improvement_enabled": true,
+  "version_reason": "Original base weights and hard gates preserved; automatic additional rank filter with multi-year replay, prospective shadow promotion and rollback. Parent has no registered forecasts.",
+  "adaptive_research_inputs": {
+    "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
+    "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",
+    "years": [
+      2023,
+      2024,
+      2025
+    ]
+  }
+}
