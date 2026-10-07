@@ -1,5 +1,18 @@
 # Dudebot continuation handoff
 
+## Verified final hosted repair cycle
+
+On5c059e4: full evidence/archive37558699573 SUCCEEDED (legacy alert included),
+CI37558699433 SUCCEEDED, daily-adaptive37558700071 SUCCEEDED. Daily status
+FROZEN_CHALLENGER_STAGED adaptive-f844e351924316621181; active_modelnull,
+fresh_outcomes0, historical_probability59episodes. Artifacts under
+outputs/verification-37558700071. This verifies repaired hosted workflow;
+do not claim every futureGitHubfailure impossible or that the fallback code
+path necessarily ran (no per-transport log). PracticeSENT receipt remains
+1557198276921393235 from37555586890. First actual market sessionOct7pending.
+Next meaningful work is fresh prospective timing/probability/outcome evidence,
+not repeatedly tuning inspected2025to force a higher advertised return.
+
 ## October6evening: large-state API denial fallback
 
 Immutable restore repair run37557745033 passed archive/enrich/ranked/timing
