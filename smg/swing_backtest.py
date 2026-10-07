@@ -265,10 +265,10 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             prior_mark=adjusted.get(ticker,{}).get(sessions[i-1]) if i else None
             if risk_controls and prior_mark and sessions[i-1]>=p['entry_date']:
                 previous_return=side*(prior_mark['c']/p['adjusted_entry']-1)
-                if previous_return<=-.12:
+                if previous_return<=-.12+1e-10:
                     exit_reason='STOP_SIGNAL_PREVIOUS_CLOSE'
                     if exposure_policy:cooldowns[ticker]=i+exposure_policy['cooldown_sessions']
-                elif previous_return>=.20:exit_reason='TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE'
+                elif previous_return>=.20-1e-10:exit_reason='TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE'
             if day<p['planned_exit'] and (day!=days[-1] or not liquidate_at_end) and exit_reason=='TIME_LIMIT':continue
             if liquidate_at_end and day==days[-1] and exit_reason=='TIME_LIMIT':exit_reason='GAME_END'
             bar=adjusted.get(ticker,{}).get(day)

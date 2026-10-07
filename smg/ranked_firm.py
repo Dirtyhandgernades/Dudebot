@@ -109,6 +109,8 @@ def eligible_signal(candidate,history,raw_history,adjusted_partial,raw_partial,n
     change=raw_partial['c']/raw_history[-1]['c']-1
     mode=policy['entry_policy']
     event.update(decision_at=now.isoformat(),data_cutoff=cutoff.isoformat())
+    from .entry_features import chart
+    event['observed_chart']=chart(history,adjusted_partial)
     fraction=(observed-bounds[0])/(bounds[1]-bounds[0]);average=sum(r['v'] for r in history[-20:])/20
     rvol=adjusted_partial['v']/fraction/average if fraction>0 and average>0 else None
     snapshot=Snapshot(asof=cutoff,price_time=observed,price=raw_partial['c'],
@@ -196,6 +198,14 @@ def main():
             if sentiment:result.ranking_evidence['sentiment']=sentiment
             finra=store.latest_observation('finra_short_volume',c.ticker)
             if finra:result.ranking_evidence['finra_short_volume']=finra
+            if result.ranking_evidence.get('ranked_firm',{}).get('event'):
+                from .entry_features import features,before_news
+                rows=(sentiment or {}).get('value',{}).get('providers',{}).get('news',{}).get('headline_rows',[])
+                facts=[{'decision_at':observed_now.isoformat(),'firm_matches':result.matches}]
+                values=features(histories[c.ticker],facts,rows,observed_now,entities.entries)
+                result.ranking_evidence['entry_research']={'x':values[:14] if values else None,
+                    'news_rows':before_news(rows,observed_now),'captured_at':observed_now.isoformat(),
+                    'basis':'Prior completed daily prices and associations observed at decision; news audit-only'}
             reference=spec.get('drop_probability_reference')
             learned=store.get('drop_probability_live',{})
             if learned.get('context')==adaptive_context(spec):reference=learned['reference']

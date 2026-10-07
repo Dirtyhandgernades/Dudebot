@@ -1,5 +1,5 @@
 {
-  "id": "ranked-firm-2026-10-07-v7",
+  "id": "ranked-firm-2026-10-07-v6",
   "enabled": true,
   "first_session": "2026-10-07",
   "confidence_sizing_enabled": false,
@@ -48,7 +48,7 @@
   },
   "rank_threshold": 0.43827250876096624,
   "implementation_sha256": {
-    "smg/ranked_firm.py": "9b56f6c8bd6729834a2d7aec845bf8a5cf96147799f24490f4f07657d5c283b7",
+    "smg/ranked_firm.py": "1babb2237836390c2199aabb5f772cd31f31a4e201d983b12176e158879e1100",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
@@ -61,18 +61,17 @@
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
     "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
-    "smg/action_learning.py": "57b2f0efd0937b7e7803c13cc79597d8c6050de37f5578a0b641c764b4572784",
+    "smg/action_learning.py": "2611f9487dc409f4c6a7aa7cfc05da0179e4f428281e1332276732d8afd4d988",
     "backtest/daily_adaptive_study.py": "1181600766ef88d6518851508f23b36e1577f719ec914839fa0f426e0b3cfbf5",
-    "smg/swing_backtest.py": "c13de036e32ec759596017dd1f8701b65f76d06f18f42327950332dca7612bc0",
+    "smg/swing_backtest.py": "6efd681ed32341c3de48d091f489fe8146a34fc5b5df03b05be532754ddecc6f",
     "smg/history_identity.py": "e219d9aa28fabfefb26dc12a45ede2df8605a9ec55f22ad2491ba6a08caee3f5",
-    "backtest/repair_study.py": "7fc222fc37809f854890cf69e59f109c8202fe1fcf1e5b85ce791200397485ae",
+    "backtest/repair_study.py": "51ccaf55e252657a891ae85335be32e816f6b55dd22085eaceee2532efe42897",
     "smg/trade_card.py": "19cecf7f20cb563c0a7e79df3628989362f83a638665cf775ec2624c34865eaa",
     "smg/drop_probability.py": "b8f7f46706ba9de68b7078129c2c918aa19efd6d518d1e63e61116b507d82fd1",
-    "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92",
-    "smg/entry_features.py": "98507731498c034365e5bcfb2c34353ede445d1fb22939a9df9bad29989accbd"
+    "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
-  "published_at": "2026-10-07T04:27:52.099056+00:00",
+  "published_at": "2026-10-07T03:27:51.949928+00:00",
   "training_latest_label": "2025-12-05",
   "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
   "validation": {
@@ -153,9 +152,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-07-v6",
+  "parent_contract_id": "ranked-firm-2026-10-07-v5",
   "automatic_improvement_enabled": true,
-  "version_reason": "Exact stop/target boundary arithmetic repair and source-dated entry diagnostics. Weights, selection, exposure limits and first-session dates unchanged. Entry-quality models remain research-only.",
+  "version_reason": "Explicit advisory exposure limits and shared capacity ledger. Base ranking weights, entry timing, exclusions and confidence-sizing prohibition unchanged. New timing filters remain research-only.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",

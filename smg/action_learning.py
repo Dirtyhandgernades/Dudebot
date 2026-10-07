@@ -29,8 +29,8 @@ def policy_outcome(row,split,raw=None,cost_bps=30,borrow_rate=.1):
     base=series[entry]['c'];exit_day=days[3];reason='THREE_SESSION_LIMIT'
     for i in (1,2):
         previous_return=1-series[days[i]]['c']/base
-        if previous_return<=-.12:exit_day=days[i+1];reason='STOP_FROM_PRIOR_CLOSE';break
-        if previous_return>=.20:exit_day=days[i+1];reason='TARGET_FROM_PRIOR_CLOSE';break
+        if previous_return<=-.12+1e-10:exit_day=days[i+1];reason='STOP_FROM_PRIOR_CLOSE';break
+        if previous_return>=.20-1e-10:exit_day=days[i+1];reason='TARGET_FROM_PRIOR_CLOSE';break
     ratio=series[exit_day]['c']/base;elapsed=(date.fromisoformat(exit_day)-date.fromisoformat(entry)).days
     # Commission fraction refers to a fixed $25k research notional. Actual
     # portfolio fees are recomputed using the real simulated shares/notional.

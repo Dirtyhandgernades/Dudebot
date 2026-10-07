@@ -1,0 +1,39 @@
+name: Labelled source-gap audit (excluded from selection)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e . -c requirements-tested.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: balanced-research-37570684442
+          run-id: 37570684442
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/labelled-audit-base
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/labelled-source-audit
+          key: labelled-source-audit-v1-${{ github.run_id }}
+          restore-keys: labelled-source-audit-v1-
+      - run: >-
+          python -u -m backtest.source_gap_audit
+          --packet backtest/runtime/labelled-audit-base/balanced/news/inputs.json.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: labelled-source-gap-audit-${{ github.run_id }}
+          path: reports/balanced/source-gap-audit/

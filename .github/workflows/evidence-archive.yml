@@ -93,5 +93,6 @@ jobs:
             reports/action-policy-learning.json
             reports/ranked-firm-alerts.json
             reports/timing-shadow.json
+            reports/entry-quality-shadow.json
           if-no-files-found: ignore
           retention-days: 30

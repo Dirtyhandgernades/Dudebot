@@ -83,7 +83,15 @@ def main():
         backend=GitHubState(Http(),os.environ['GITHUB_REPOSITORY'],os.environ['GITHUB_TOKEN']);backend.restore(path)
     store=Store(path)
     try:
+        now=datetime.now(timezone.utc)  # Capture time follows state restoration.
         result=review(store,now) if a.review else capture(store,root,now)
+        # Share the loaded state and one checkpoint with entry research.
+        # No extra market requests or state restore/save subprocess is needed.
+        from .entry_shadow import capture as entry_capture,review as entry_review
+        entry=entry_review(store,root,now) if a.review else entry_capture(store,root,now)
+        (root/'reports').mkdir(exist_ok=True)
+        (root/'reports/entry-quality-shadow.json').write_text(json.dumps(entry,indent=2))
+        result['entry_quality']=entry
         folder=root/'reports';folder.mkdir(exist_ok=True);(folder/'timing-shadow.json').write_text(json.dumps(result,indent=2))
         if backend:backend.checkpoint(store)
         print(json.dumps(result))

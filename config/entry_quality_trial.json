@@ -1,0 +1,481 @@
+{
+  "id": "entry-quality-2026-10-07-v1",
+  "parent_policy": "ranked-firm-2026-10-07-v7",
+  "published_at": "2026-10-07T04:27:52.099056+00:00",
+  "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
+  "live_enabled": false,
+  "automatic_promotion": false,
+  "historical_gates": {
+    "CHART_CONFIRMED": {
+      "passed_historical": false,
+      "checks": [
+        {
+          "corpus": "original",
+          "year": 2023,
+          "failures": [
+            "base_SPARSE_TRADES",
+            "stress_SPARSE_TRADES",
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "original",
+          "year": 2024,
+          "failures": []
+        },
+        {
+          "corpus": "original",
+          "year": 2025,
+          "failures": [
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2023,
+          "failures": [
+            "base_SPARSE_TRADES",
+            "stress_SPARSE_TRADES"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2024,
+          "failures": []
+        },
+        {
+          "corpus": "expanded",
+          "year": 2025,
+          "failures": [
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        }
+      ],
+      "aggregate_stress_improvement": 554.9699999999998,
+      "fresh_gate_pending": true,
+      "live_enabled": false
+    },
+    "FOCUS_CONTEXT": {
+      "passed_historical": false,
+      "checks": [
+        {
+          "corpus": "original",
+          "year": 2023,
+          "failures": []
+        },
+        {
+          "corpus": "original",
+          "year": 2024,
+          "failures": [
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "original",
+          "year": 2025,
+          "failures": [
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2023,
+          "failures": []
+        },
+        {
+          "corpus": "expanded",
+          "year": 2024,
+          "failures": [
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2025,
+          "failures": []
+        }
+      ],
+      "aggregate_stress_improvement": -1093.4699999999998,
+      "fresh_gate_pending": true,
+      "live_enabled": false
+    },
+    "RETURN_AND_TAIL": {
+      "passed_historical": false,
+      "checks": [
+        {
+          "corpus": "original",
+          "year": 2023,
+          "failures": []
+        },
+        {
+          "corpus": "original",
+          "year": 2024,
+          "failures": [
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "original",
+          "year": 2025,
+          "failures": [
+            "base_NOT_PROFITABLE",
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2023,
+          "failures": []
+        },
+        {
+          "corpus": "expanded",
+          "year": 2024,
+          "failures": [
+            "base_NOT_PROFITABLE",
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        },
+        {
+          "corpus": "expanded",
+          "year": 2025,
+          "failures": [
+            "base_NOT_PROFITABLE",
+            "stress_NOT_PROFITABLE",
+            "PROFIT_REGRESSION"
+          ]
+        }
+      ],
+      "aggregate_stress_improvement": -9632.43,
+      "fresh_gate_pending": true,
+      "live_enabled": false
+    }
+  },
+  "return_head": {
+    "input_sha256": "8417a2fcb4735bec55703fcef3775fe4dfd44c28b67ff7e050cb4a643eaf1907",
+    "model": {
+      "return_model": {
+        "mean": [
+          0.6332389948980341,
+          0.2996847320659962,
+          0.20040215689074917,
+          -0.12803390088670627,
+          4.276669122570845,
+          0.08974358974358974,
+          0.21172974403214198,
+          0.27909088532710863,
+          0.6067384855179127,
+          0.27104736608155505,
+          0.9641186807179761,
+          0.29945054945054944,
+          0.4432234432234432,
+          0.17032967032967034
+        ],
+        "scale": [
+          1.2921484116487663,
+          0.9408765725821028,
+          0.7971865959516489,
+          0.12800047906677972,
+          5.479979956379922,
+          0.28581406166163775,
+          0.20039449716046812,
+          0.2195694750177499,
+          0.2835365999399498,
+          0.9265992272115889,
+          0.8116605863501433,
+          0.4580173772732996,
+          0.49676596360922476,
+          0.37592216446367355
+        ],
+        "weights": [
+          0.004866525750778947,
+          0.0028931847040037212,
+          -0.0013785242892280084,
+          0.00868945730632466,
+          -0.0013942291913690225,
+          0.0034117534955994703,
+          -0.00970054278376619,
+          0.004191978359343926,
+          0.0008852132804148833,
+          0.005950620064593066,
+          0.0019706809305452986,
+          -0.002493771856428529,
+          -0.0020540840769195184,
+          0.008459323124658523
+        ],
+        "bias": -0.005114649756805293,
+        "features": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "fit": "RIDGE_POLICY_NET_RETURN",
+        "penalty": 0.5,
+        "training_samples": 1092,
+        "training_latest_label": "2025-12-04"
+      },
+      "policy_profitable": {
+        "mean": [
+          0.6332389948980341,
+          0.2996847320659962,
+          0.20040215689074917,
+          -0.12803390088670627,
+          4.276669122570845,
+          0.08974358974358974,
+          0.21172974403214198,
+          0.27909088532710863,
+          0.6067384855179127,
+          0.27104736608155505,
+          0.9641186807179761,
+          0.29945054945054944,
+          0.4432234432234432,
+          0.17032967032967034
+        ],
+        "scale": [
+          1.2921484116487663,
+          0.9408765725821028,
+          0.7971865959516489,
+          0.12800047906677972,
+          5.479979956379922,
+          0.28581406166163775,
+          0.20039449716046812,
+          0.2195694750177499,
+          0.2835365999399498,
+          0.9265992272115889,
+          0.8116605863501433,
+          0.4580173772732996,
+          0.49676596360922476,
+          0.37592216446367355
+        ],
+        "weights": [
+          -0.01995200348045839,
+          0.05334378890906614,
+          0.018507373787248663,
+          -0.024180968861179812,
+          0.022132134384141536,
+          -0.003167252206258133,
+          -0.01607853820243253,
+          -0.05538760046098083,
+          0.019478747923584883,
+          0.05450952924052568,
+          0.02498037646195997,
+          -0.060917179564023934,
+          -0.05549297740299946,
+          0.06416495055318856
+        ],
+        "bias": 0.04144514858888371,
+        "features": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ]
+      },
+      "tail_loss": {
+        "mean": [
+          0.6332389948980341,
+          0.2996847320659962,
+          0.20040215689074917,
+          -0.12803390088670627,
+          4.276669122570845,
+          0.08974358974358974,
+          0.21172974403214198,
+          0.27909088532710863,
+          0.6067384855179127,
+          0.27104736608155505,
+          0.9641186807179761,
+          0.29945054945054944,
+          0.4432234432234432,
+          0.17032967032967034
+        ],
+        "scale": [
+          1.2921484116487663,
+          0.9408765725821028,
+          0.7971865959516489,
+          0.12800047906677972,
+          5.479979956379922,
+          0.28581406166163775,
+          0.20039449716046812,
+          0.2195694750177499,
+          0.2835365999399498,
+          0.9265992272115889,
+          0.8116605863501433,
+          0.4580173772732996,
+          0.49676596360922476,
+          0.37592216446367355
+        ],
+        "weights": [
+          0.015779363367227194,
+          0.021991933297619847,
+          0.025705970501111158,
+          -0.0614581835544392,
+          0.0928312543948414,
+          -0.005865891670858928,
+          0.20562662129729684,
+          0.03981636137974332,
+          0.03177860547536288,
+          0.014796550693444986,
+          0.07576772650640567,
+          0.042261184504301545,
+          0.00882883162861368,
+          -0.08589976275039758
+        ],
+        "bias": -3.029671352136501,
+        "features": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ]
+      },
+      "dump_20pct_occurs": {
+        "mean": [
+          0.6332389948980341,
+          0.2996847320659962,
+          0.20040215689074917,
+          -0.12803390088670627,
+          4.276669122570845,
+          0.08974358974358974,
+          0.21172974403214198,
+          0.27909088532710863,
+          0.6067384855179127,
+          0.27104736608155505,
+          0.9641186807179761,
+          0.29945054945054944,
+          0.4432234432234432,
+          0.17032967032967034
+        ],
+        "scale": [
+          1.2921484116487663,
+          0.9408765725821028,
+          0.7971865959516489,
+          0.12800047906677972,
+          5.479979956379922,
+          0.28581406166163775,
+          0.20039449716046812,
+          0.2195694750177499,
+          0.2835365999399498,
+          0.9265992272115889,
+          0.8116605863501433,
+          0.4580173772732996,
+          0.49676596360922476,
+          0.37592216446367355
+        ],
+        "weights": [
+          0.14352796319768277,
+          0.056657873807923774,
+          0.060477210756328316,
+          -0.026213571156716742,
+          0.0806571258447007,
+          0.031030523856605024,
+          0.16984276363122558,
+          0.03513569739631913,
+          0.07405021859084322,
+          0.07702935882078037,
+          0.1231725497854275,
+          0.07834583414747559,
+          0.0069982305910479894,
+          -0.005403608951827906
+        ],
+        "bias": -2.283849487836363,
+        "features": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ]
+      },
+      "live_enabled": false,
+      "confidence_sizing_enabled": false,
+      "score_semantics": "RESEARCH_EXPECTED_RETURN_AND_UNCALIBRATED_RISK_RANKS"
+    },
+    "return_threshold": 0.02,
+    "features": [
+      "return21",
+      "return5",
+      "return1",
+      "drawdown21",
+      "volume_ratio",
+      "failed_low",
+      "range",
+      "prior_upper_wick",
+      "prior_close_location",
+      "return3",
+      "recent_volume_trend",
+      "focus_auditor",
+      "focus_underwriter",
+      "focus_counsel"
+    ],
+    "training_samples": 1092,
+    "training_latest_label": "2025-12-04"
+  },
+  "source_sha256": {
+    "smg/entry_shadow.py": "dc008df0c87c0733d666d95a385aa388ef6b1e201f1b094b4d34211bdcf2787b",
+    "smg/entry_features.py": "98507731498c034365e5bcfb2c34353ede445d1fb22939a9df9bad29989accbd",
+    "smg/action_learning.py": "57b2f0efd0937b7e7803c13cc79597d8c6050de37f5578a0b641c764b4572784",
+    "smg/ranked_firm.py": "9b56f6c8bd6729834a2d7aec845bf8a5cf96147799f24490f4f07657d5c283b7",
+    "smg/sentiment.py": "15153dd0ac9e899d4cf43b70eceb27c2f38e19431d9109d9a91031289620ab60",
+    "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92",
+    "smg/timing_shadow.py": "c7a09ef4b1a54d7a82625fed89fd8fc4a5e9844dc755f89175fe7f44a71e0c01",
+    "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70"
+  },
+  "fresh_requirement": {
+    "matured_nonoverlapping": 50,
+    "issuers": 10,
+    "sessions": 20,
+    "kept": 20,
+    "rejected": 10,
+    "both_chronological_halves_positive": true
+  },
+  "limits": [
+    "No orders/messages/automatic promotion",
+    "Sparse news is audit-only, not a learned negative feature",
+    "Return/tail scores are not calibrated probabilities",
+    "Historical borrow and game eligibility remain unknown"
+  ]
+}

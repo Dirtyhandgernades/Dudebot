@@ -9,7 +9,7 @@ NOW=datetime(2025,12,3,20,40,tzinfo=timezone.utc)
 def test_intraday_news_and_firm_evidence_cannot_use_later_content_or_edits():
     old={'headline':'trial update','created_at':(NOW-timedelta(hours=2)).isoformat(),'updated_at':(NOW-timedelta(hours=1)).isoformat()}
     future={**old,'updated_at':(NOW+timedelta(minutes=1)).isoformat()}
-    assert before_news([old,future],NOW)==[old]
+    assert before_news([old,future,{'created_at':None}],NOW)==[old]
     entries=EntityList({'underwriter':{'High-Suspicion Focus Group':['Cathay Securities']}}).entries
     match={'name':'Cathay Securities','role':'underwriter','evidence':{'url':'https://example.com'}}
     rows=[{'decision_at':(NOW+timedelta(minutes=1)).isoformat(),'firm_matches':[match]}]
@@ -43,3 +43,18 @@ def test_missing_chart_and_unknown_profit_cannot_pass_promotion_gate():
     result=gates(rows)['CHART_CONFIRMED']
     assert result['passed_historical'] is False and result['aggregate_stress_improvement'] is None
     assert 'CHART_DATA_UNAVAILABLE' in result['checks'][0]['failures']
+
+
+def test_exact_twenty_percent_target_exits_at_following_close_even_if_it_rebounds():
+    from smg.action_learning import policy_outcome
+    from smg.swing_backtest import simulate
+    from smg.market import calendar
+    days=[str(d.date()) for d in calendar(2025).sessions_in_range('2025-01-02','2025-03-03')]
+    bars={d:{'o':10,'h':10.1,'l':9.9,'c':10,'v':100} for d in days};entry=days[22]
+    bars[days[23]]={**bars[days[23]],'c':8}
+    bars[days[24]]={**bars[days[24]],'c':11}
+    labels=policy_outcome({'ticker':'A','entry_date':entry},{'A':bars},{'A':bars})
+    assert labels['exit_date']==days[24] and labels['policy_net_return']<0
+    result=simulate({'A':bars},{'A':bars},['A'],days,start=entry,end=days[26],hold=3,
+        strategy='FIRM_BASELINE_SHORT',risk_controls=True,signal_share_sizing=True)
+    assert result['trades'][0]['exit_date']==days[24] and result['trades'][0]['pnl']<0

@@ -151,7 +151,7 @@ def portfolio(rows,raw,split,sessions,year,strict=False,cost_bps=30,borrow_rate=
         decision_room=max(0,min(150000,1.5*(decision_equity or 0))-prev_exposure)
         for ticker,p in list(positions.items()):
             prior=split[ticker].get(previous);prior_return=1-prior['c']/p['adjusted_entry'] if prior else None
-            reason='GAME_END' if day==days[-1] else 'THREE_SESSION_LIMIT' if day>=p['planned_exit'] else 'STOP_FROM_PRIOR_CLOSE' if prior_return is not None and prior_return<=-.12 else 'TARGET_FROM_PRIOR_CLOSE' if prior_return is not None and prior_return>=.20 else None
+            reason='GAME_END' if day==days[-1] else 'THREE_SESSION_LIMIT' if day>=p['planned_exit'] else 'STOP_FROM_PRIOR_CLOSE' if prior_return is not None and prior_return<=-.12+1e-10 else 'TARGET_FROM_PRIOR_CLOSE' if prior_return is not None and prior_return>=.20-1e-10 else None
             if reason is None:continue
             if day not in split[ticker]:gaps['MISSING_EXIT_PRICE']+=1;continue
             ratio=split[ticker][day]['c']/p['adjusted_entry'];gross=p['notional']*(1-ratio)

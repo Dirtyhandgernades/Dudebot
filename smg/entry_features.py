@@ -16,7 +16,7 @@ def before_news(rows,at):
             created=datetime.fromisoformat(row['created_at'].replace('Z','+00:00'))
             updated=datetime.fromisoformat((row.get('updated_at') or row['created_at']).replace('Z','+00:00'))
             if created.tzinfo and updated.tzinfo and at-timedelta(days=7)<=created<=at and updated<=at:kept.append(row)
-        except (KeyError,TypeError,ValueError):continue
+        except (KeyError,TypeError,ValueError,AttributeError):continue
     return kept
 
 
@@ -24,7 +24,7 @@ def context(records,at,entities):
     priorities={};links=[]
     for row in records:
         try:stamp=datetime.fromisoformat(row['decision_at'].replace('Z','+00:00'))
-        except (KeyError,TypeError,ValueError):continue
+        except (KeyError,TypeError,ValueError,AttributeError):continue
         if stamp.tzinfo is None or stamp>at:continue
         for m in row.get('firm_matches',[]):
             role='underwriter' if m['role']=='placement_agent' else m['role']
