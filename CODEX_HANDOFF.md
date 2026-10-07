@@ -1,5 +1,47 @@
 # Dudebot continuation handoff
 
+## Verified October 6 balanced rebuild and controlled reruns
+
+The user target is $70k+ PER SEASON, each position held 1–3 trading sessions.
+Balanced run37565427552 SUCCEEDED; control run37565738245 SUCCEEDED on331c9e4.
+304 tests passed in each. Added141 records,74 earlier/new independent source
+dates,540 total symbols,21818 raw daily observations. Initial gather downloaded
+40 documents each for2021–2025.32 new minute requests,16 daily requests; the
+four-cell control rerun made ZERO new market-data requests. First run37564181550
+failed on a calendar bound; calendar2024 covers the late2020warmup. Partial
+caches are explicitly saved for resumption. No reference/friend tickers select
+sources, candidates, training or price requests.
+
+Preclose net2023/24/25: original expanding3373.47/40180.81/75549.15;
+original2year3373.47/40180.81/72151.15; expanded expanding4991.13/42099.89/31865.35;
+expanded2year4991.13/42099.89/29040.32. Old benchmark reproduced exactly.
+Expanded2year higher-cost net2529.15/27567.41/396.75;2025base/stressdrawdown
+36.19%/41.29%, FAILS25%gate. Closedtrades4/20/46.20%three-session filledtrade
+hits1/4,6/20,7/45known(oneunknown). AddedPLRZDecember3short loses35582.01;
+changedLAESOctober6entry loses6940.68. Delayedclosing stops do not prevent
+squeezes before the following closingfill. These losses cannot be removed
+retrospectively. Earlier entry variants still fail someyears/costchecks.
+
+Historical borrow detected4/33/63, executable0, unavailable4/33/63,rejected0;
+do not describe unknown as confirmed unshortable or these as executable profit.
+Historical cap/halts/fullSMGmembership remainunknown. No source/priceimputation.
+3412 source documentsbudget-skipped,965reviewed identityunresolved,2021EFTSHTTP500;
+universe incomplete. No-game-price36/73/129 includes future IPOs/renames/delists.
+Prior2yeartraining250/767/1688; historyrawprice>3symbol-days1776/3091/8277.
+Collection bias was real but does not explain all performance difference.
+
+Friend2025shortticker overlap6/60: CCHH,DTCK,MAGH,NUTR,NVFY,PHOE.42lackindependent
+firm source,11noqualifyingpreclosesignal,1signalnotfilled. Overlap is not matching
+friend timing or actualprofit. ALL230referenceevents are outsideSep–Dec2025;
+do not score them as season misses/detections. New candidate NOTpromoted;
+pinned ranked-v5/original-v6 and daily learner input contracts remain unchanged.
+Read backtest/BALANCED_DATA_RESULTS.md. Actual local artifacts in
+outputs/balanced-research-37565427552 (includes offline trades.csv/friendaudit)
+and outputs/balanced-research-37565738245/balanced/controls.
+Usergoal consistent70k remains UNACHIEVED. Fresh independent live outcomes and
+broader source discovery/squeeze-aware timing/sizing still need validation;
+do not silently retune frozen policies or scale leverage to force the target.
+
 ## October6: confirmed season target and year-balanced source rebuild
 
 User clarified$70k+PERSEASON with eachtradeheld1–3sessions, not$70kin3days.
