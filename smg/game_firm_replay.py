@@ -83,6 +83,8 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority
         if original:shutil.copyfile(original,db)
     searches={}
     for year in range(2021,2026):
+        if max_documents==0:
+            searches[str(year)]={'status':'CACHE_ONLY_NO_SEARCH','pages_this_run':0};continue
         searches[str(year)]=collect_firm_search(state,min(date(year,12,31),date(2025,12,5)),entries,
             start=date(year,1,1),max_pages=12,balanced=True,max_seconds=min(36,max_seconds/10))
     search={'status':'YEAR_BALANCED_SEARCH','years':searches,'page_budget_per_year':12,

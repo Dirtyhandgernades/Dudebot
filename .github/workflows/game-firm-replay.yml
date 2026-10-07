@@ -18,9 +18,6 @@ on:
         type: choice
         options: [earlier_years, balanced]
         default: earlier_years
-  push:
-    branches: [main]
-    paths: [smg/game_firm_replay.py, smg/firm_search.py, smg/live_firms.py, smg/source_replay.py]
 permissions:
   contents: read
   actions: read
