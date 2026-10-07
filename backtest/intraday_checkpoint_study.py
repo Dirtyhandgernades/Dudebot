@@ -39,6 +39,10 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     if event:
         event.update(decision_at=decision.isoformat(),data_cutoff=cutoff.isoformat(),
                      checkpoint_from_open_minutes=(decision-opened).total_seconds()/60)
+        from smg.entry_features import chart
+        index=packet['sessions'].index(day)
+        history=[packet['split'][ticker][d] for d in packet['sessions'][index-22:index]]
+        event['observed_chart']=chart(history,adjusted)
     return event
 
 

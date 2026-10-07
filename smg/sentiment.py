@@ -43,12 +43,17 @@ def collect(ticker, http=None, now=None):
         data=http.text('https://news.google.com/rss/search?q='+quote(ticker+' stock'),headers={'User-Agent':'Mozilla/5.0'})
         root=ET.fromstring(data);items=root.findall('./channel/item')[:20];titles=[(x.findtext('title') or '') for x in items]
         vals=[_news_score(t) for t in titles];scores.extend(v for v in vals if v)
-        stamps=[]
+        stamps=[];retained=[];received=datetime.now(timezone.utc).isoformat()
         for item in items:
-            try:stamps.append(parsedate_to_datetime(item.findtext('pubDate')).astimezone(timezone.utc).isoformat())
+            try:
+                published=parsedate_to_datetime(item.findtext('pubDate')).astimezone(timezone.utc).isoformat();stamps.append(published)
+                if len(retained)<5:retained.append({'headline':(item.findtext('title') or '')[:300],
+                    'url':item.findtext('link'),'created_at':published,'updated_at':received,
+                    'captured_at':received,'source':'google_rss','revision_status':'Content observed at capture; earlier revisions unknown'})
             except (TypeError,ValueError):pass
         out['providers']['news']={'status':'AVAILABLE','observed_at':now.isoformat(),'source':'https://news.google.com/rss/search?q='+quote(ticker+' stock'),
-            'articles':len(titles),'headline_score':sum(vals),'latest_source_timestamp':max(stamps) if stamps else None}
+            'articles':len(titles),'headline_score':sum(vals),'latest_source_timestamp':max(stamps) if stamps else None,
+            'headline_rows':retained}
     except Exception as exc:out['providers']['news']={'status':'UNAVAILABLE','observed_at':now.isoformat(),'error_type':type(exc).__name__}
     if scores:out['score']=round(sum(scores)/len(scores),3)
     else:out['limitations'].append('No provider returned scored sentiment')
