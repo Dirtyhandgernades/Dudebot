@@ -4,7 +4,8 @@ from pathlib import Path
 from collections import Counter
 from smg.transport import Http
 from smg.game_firm_replay import research_entries
-from smg.source_replay import parse_source
+from smg.source_replay import parse_source,source_identity
+from lxml import html as lhtml
 import yaml
 
 
@@ -51,7 +52,10 @@ def main():
                 for day,acc,form,name in selected:
                     url=f"https://www.sec.gov/Archives/edgar/data/{int(hints[ticker]['cik'])}/{acc.replace('-','')}/{name}"
                     raw=fetch(url);candidate,status=parse_source(acc+':'+name,{'ciks':[str(hints[ticker]['cik'])],'file_date':day,'form':form},raw,entries)
-                    finding={'url':url,'filed_at':day,'parser_status':status,'historical_symbol':candidate.ticker if candidate else None}
+                    tree=lhtml.document_fromstring(raw.encode('utf-8'),parser=lhtml.HTMLParser(encoding='utf-8',no_network=True))
+                    historical_symbol,exchange,_=source_identity(tree,' '.join(tree.itertext()))
+                    finding={'url':url,'filed_at':day,'parser_status':status,'historical_symbol':historical_symbol,
+                             'exchange':exchange,'historical_identity_verified':historical_symbol==ticker and exchange in {'XNAS','XNYS'}}
                     if candidate and candidate.ticker==ticker:
                         finding['parties']=[{'name':m.name,'role':m.role,'quote':m.evidence.quote} for m in candidate.matches]
                         finding['historical_identity_verified']=True;row['status']='LABELLED_PRE_ENTRY_FIRM_EVIDENCE_FOUND'
