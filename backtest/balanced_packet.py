@@ -47,7 +47,9 @@ def main():
         cache=Path('backtest/runtime/balanced-bars');cache.mkdir(parents=True,exist_ok=True)
         extra,requests=download(missing,'2020-10-01','2025-12-05',cache)
         alignment=align_early_history(packet,extra)
-    packet['sessions']=[str(d.date()) for d in calendar(2025).sessions_in_range('2020-10-01','2025-12-05')]
+    # calendar2024 covers2020–2025; calendar2025 begins2021 and cannot warm
+    # the first2021feature windows with actual late2020sessions.
+    packet['sessions']=[str(d.date()) for d in calendar(2024).sessions_in_range('2020-10-01','2025-12-05')]
     out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
     with gzip.open(out/'inputs.json.gz','wt',encoding='utf-8') as stream:json.dump(packet,stream)
     summary={'added_records':len(added),'earlier_or_new_independent_dates':improved,'independent_symbols':len(packet['first_dates']),

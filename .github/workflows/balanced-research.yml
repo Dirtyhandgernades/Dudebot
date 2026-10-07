@@ -6,6 +6,10 @@ on:
         description: Equal new-source budget across2021–2025;200means40peryear
         type: number
         default: 200
+      source_run_id:
+        description: Optional prior balanced run to reuse harvested sources and price cache
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -63,7 +67,15 @@ jobs:
           key: balanced-minutes-v1-${{ github.run_id }}
           restore-keys: balanced-minutes-v1-
       - name: Gather independently dated sources with equal year quotas
+        if: inputs.source_run_id == ''
         run: python -u -m smg.game_firm_replay --baseline unused --gather-only --priority-period earlier_years --max-documents ${{ inputs.max_documents }} --max-seconds 360
+      - uses: actions/download-artifact@v4
+        if: inputs.source_run_id != ''
+        with:
+          name: balanced-research-${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: reports
       - name: Merge source chronology and fill missing earlier prices
         run: python -u -m backtest.balanced_packet --packet backtest/runtime/balanced-base/action-inputs/inputs.json.gz --records reports/game-firm-replay/discovery-decisions.json --out reports/balanced --collect
       - name: Replay with the same two-year prior training window for every season
@@ -80,3 +92,23 @@ jobs:
             reports/balanced/
             reports/game-firm-replay/
           retention-days: 90
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/balanced-bars
+          key: balanced-bars-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/balanced-minutes
+          key: balanced-minutes-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/source-replay
+          key: game-sources-v1-balanced-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/game-firm-search
+          key: game-firm-search-v1-balanced-${{ github.run_id }}
