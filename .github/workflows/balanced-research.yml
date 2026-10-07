@@ -1,0 +1,82 @@
+name: Balanced historical sources and three-season replay
+on:
+  workflow_dispatch:
+    inputs:
+      max_documents:
+        description: Equal new-source budget across2021–2025;200means40peryear
+        type: number
+        default: 200
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: game-firm-replay
+  queue: max
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      DISCORD_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: action-policy-37502827341
+          run-id: 37502827341
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/balanced-base
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/source-replay
+          key: game-sources-v1-balanced-${{ github.run_id }}
+          restore-keys: game-sources-v1-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/game-firm-search
+          key: game-firm-search-v1-balanced-${{ github.run_id }}
+          restore-keys: game-firm-search-v1-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/balanced-bars
+          key: balanced-bars-v1-${{ github.run_id }}
+          restore-keys: balanced-bars-v1-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/checkpoint-bars
+          key: checkpoint-bars-v1-balanced-${{ github.run_id }}
+          restore-keys: checkpoint-bars-v1-
+      - uses: actions/cache@v4
+        with:
+          path: backtest/runtime/balanced-minutes
+          key: balanced-minutes-v1-${{ github.run_id }}
+          restore-keys: balanced-minutes-v1-
+      - name: Gather independently dated sources with equal year quotas
+        run: python -u -m smg.game_firm_replay --baseline unused --gather-only --priority-period earlier_years --max-documents ${{ inputs.max_documents }} --max-seconds 360
+      - name: Merge source chronology and fill missing earlier prices
+        run: python -u -m backtest.balanced_packet --packet backtest/runtime/balanced-base/action-inputs/inputs.json.gz --records reports/game-firm-replay/discovery-decisions.json --out reports/balanced --collect
+      - name: Replay with the same two-year prior training window for every season
+        run: python -u -m backtest.balanced_checkpoints --base backtest/runtime/balanced-base/action-inputs/inputs.json.gz --packet reports/balanced/inputs.json.gz --out reports/balanced/checkpoints
+      - name: Compare confirmation rules and measure remaining coverage gaps
+        run: |
+          python -m backtest.firm_timing_study --packet reports/balanced/inputs.json.gz --signals reports/balanced/checkpoints --out reports/balanced/timing
+          python -m backtest.data_coverage --packet reports/balanced/inputs.json.gz --signals reports/balanced/checkpoints --portfolios reports/balanced/checkpoints --out reports/balanced/coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balanced-research-${{ github.run_id }}
+          path: |
+            reports/balanced/
+            reports/game-firm-replay/
+          retention-days: 90

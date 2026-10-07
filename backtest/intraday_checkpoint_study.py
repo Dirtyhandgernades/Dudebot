@@ -42,7 +42,7 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     return event
 
 
-def run(packet,client,out):
+def run(packet,client,out,train_window_years=None):
     out.mkdir(parents=True,exist_ok=True);packet=repair_legacy_volume(packet);packet={**packet,'firm_dates':packet['first_dates']}
     sessions=packet['sessions'];index={d:i for i,d in enumerate(sessions)};results=[];public={}
     for row in packet['records']:
@@ -54,7 +54,7 @@ def run(packet,client,out):
     labels=samples(packet['records'],packet['raw'],packet['split'],sessions,firm_dates=packet['first_dates'])
     cfg=SimpleNamespace(surge_return_min_pct=12)
     for year in (2023,2024,2025):
-        train=matured_before(labels,f'{year}-01-01');model=fit(train)
+        train=matured_before(labels,f'{year}-01-01',f'{year-train_window_years}-01-01' if train_window_years else None);model=fit(train)
         if not model:results.append({'year':year,'status':'TRAINING_UNAVAILABLE'});continue
         threshold=float(np.quantile(predict(model,train),.5));candidate_days={};scores={};gaps=Counter()
         for day in sessions:
@@ -121,15 +121,16 @@ def run(packet,client,out):
                 row[case]={k:p[k] for k in ('net_profit','ending_balance','closed_trades','max_observed_drawdown_pct')}
             row['same_trade_stress']=fixed_trade_cost_sensitivity({**base,'open_positions':base.get('unresolved_positions',{})},packet['split'])
             results.append(row);print(json.dumps(row),flush=True)
-    report={'status':'FOUR_CHECKPOINT_RESEARCH','results':results,'requests':client.requests,
+    report={'status':'FOUR_CHECKPOINT_RESEARCH','results':results,'requests':client.requests,'training_window_years':train_window_years,
             'limits':['Partial independent firm corpus, not verified historical trade eligibility',
                       'Checkpoint comparisons are inspected retrospective hypotheses','No borrow/cap/halt facts imputed']}
     (out/'summary.json').write_text(json.dumps(report,indent=2));return report
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--packet',required=True);parser.add_argument('--out',default='reports/intraday-checkpoints');args=parser.parse_args()
-    run(json.loads(gzip.decompress(Path(args.packet).read_bytes())),Bars('backtest/runtime/checkpoint-bars',max_requests=500),Path(args.out))
+    parser=argparse.ArgumentParser();parser.add_argument('--packet',required=True);parser.add_argument('--out',default='reports/intraday-checkpoints')
+    parser.add_argument('--train-window-years',type=int,choices=[2,3]);args=parser.parse_args()
+    run(json.loads(gzip.decompress(Path(args.packet).read_bytes())),Bars('backtest/runtime/checkpoint-bars',max_requests=500),Path(args.out),args.train_window_years)
 
 
 if __name__=='__main__':main()

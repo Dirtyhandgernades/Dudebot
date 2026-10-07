@@ -30,7 +30,7 @@ def query_text(entries):
     return ' OR '.join('"'+name.replace('"','')+'"' for name in sorted(variants))
 
 
-def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1)):
+def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1),balanced=False,max_seconds=360):
     from .backtest import fingerprint
     agent=os.environ.get('SEC_USER_AGENT','')
     if '@' not in agent:return {'status':'NOT_RUN','reason':'SEC_USER_AGENT_MISSING'}
@@ -49,8 +49,9 @@ def collect_firm_search(state,end,entries,max_pages=200,*,start=date(2001,1,1)):
     # pending ranges progress. One server outage must not pin the whole cursor.
     with db:db.execute("UPDATE queries SET status='PENDING' WHERE key LIKE ? AND status='ERROR'",(version+':%',))
     try:
-        while pages<max_pages and time.monotonic()-started<360:
-            item=db.execute("SELECT key,start,end,offset FROM queries WHERE key LIKE ? AND status='PENDING' ORDER BY start DESC LIMIT 1",(version+':%',)).fetchone()
+        while pages<max_pages and time.monotonic()-started<max_seconds:
+            order='offset ASC,start ASC' if balanced else 'start DESC'
+            item=db.execute("SELECT key,start,end,offset FROM queries WHERE key LIKE ? AND status='PENDING' ORDER BY "+order+" LIMIT 1",(version+':%',)).fetchone()
             if not item:break
             key,first,last,offset=item
             try:

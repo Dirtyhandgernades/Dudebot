@@ -1,5 +1,42 @@
 # Dudebot continuation handoff
 
+## October6: confirmed season target and year-balanced source rebuild
+
+User clarified$70k+PERSEASON with eachtradeheld1–3sessions, not$70kin3days.
+Current source/price audit shows real asymmetry:2023/24/25knownfirm symbols
+189/268/515; source records327/324/657; priortraining141/686/1730.
+Completehistory symbol-days9255/12830/22963, ofwhichrawpriorprice>3 only
+1706/2753/7720 (18.4%/21.5%/33.6%). No-game-price counts31/52/125 include
+not-yet-listed/renamed/delisted/invalidsymbols, not all pure download failures.
+Matched pre2023 sourcecohort2025profit~$11.7k vsfull75.5k: newer issuers/dated
+discoveries drive much ofthegain; do not claim missingdataalonecausedall gaps.
+
+Found concretecollectionbias: game_firm_replay's nightly gather searchedNEW
+2025filings only and depended on old cached sources for prior years. It now
+gives2021–2025independent resumable querycursors,12pages/year,balanced slices,
+roundrobin sourceprocessing andequalnewdoc quotas(maxdocs//5). Reportsactual
+per-yeardownloads/reviews andpendingcoverage. Gather-only no longerdownloads
+unused/expiringhistorical baselineartifacts. Existinglive rules/weights unchanged.
+
+Research-only entries extendD.Boral toEFHuttonLLC/E.F.HuttonLLC (samelegalentity
+rebrandNov8,2024,officialD.Boralnotice) and WWCpunctuation. Rawsourcepartyname
+retained, duplicatesdeduped; no unrelated1980sHuttonbrand, no liveentitiesedit.
+This is disclosed retrospective identity research, not a claim the2024identity
+noticewas known2021. Existing hard exclusions remain. New balanced_packet
+quarantines conflictingCIKs/tickerreuse, retains earliest actually sourced
+dates, fillsmissingolderprices with rawrevision/splitunit checks. References/
+friendtickers NEVERselectnew sources/prices.
+
+New balanced-research.yml collects200documents(40/year), mergesindependent
+sources with existingpacket, fills earliertraininghistory, replays2023–25
+with SAME trailing2yearlookback, tests allcheckpoint/timing variants andaudits
+remainingcoverage. Cached old minute queries primepersymbol caches so changing
+auniverse doesn't force everyalready-fetchedsymbol toredownload. Max500new
+minute requests; no Discord/order secrets or live policy change. Pinned live
+benchmark/corpus remain untouched until validation. Tests304expectedafter
+finalcheck; source rebuild/replay resultsnotyet available. Usertarget NOTyet
+consistentlyvalidated. See outputs/backtest/year-coverage/summary.json.
+
 ## Verified final hosted repair cycle
 
 On5c059e4: full evidence/archive37558699573 SUCCEEDED (legacy alert included),
