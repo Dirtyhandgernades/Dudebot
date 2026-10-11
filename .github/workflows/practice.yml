@@ -1,4 +1,4 @@
-name: One practice Discord reference check # Existing receipt is reformatted into an embed; no second ping.
+name: One practice Discord reference check
 on:
   push:
     branches: [main]
@@ -19,7 +19,7 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       DISCORD_ENABLED: ${{ vars.DISCORD_ENABLED || 'true' }}
       # One durable, mention-free end-to-end receipt for the repaired live path.
-      PRACTICE_RECEIPT_ID: practice-workflow-repair-2026-10-11-v1
+      PRACTICE_RECEIPT_ID: practice-workflow-repair-2026-10-11-v2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,6 +29,16 @@ jobs:
           cache-dependency-path: requirements-tested.txt
       - run: python -m pip install -e . -c requirements-tested.txt
       - run: python -m smg.cli practice
+      - name: Require an actual confirmed Discord receipt
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt=json.loads(Path('reports/practice.json').read_text())['receipt']
+          if receipt.get('status')!='SENT' or not str(receipt.get('message_id','')).isdigit():
+              raise SystemExit('Discord practice is not confirmed: '+str(receipt.get('status')))
+          print('Confirmed Discord practice message '+str(receipt['message_id']))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
