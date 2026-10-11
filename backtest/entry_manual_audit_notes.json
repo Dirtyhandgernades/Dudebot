@@ -1,0 +1,27 @@
+{
+  "scope": "LABELLED_MANUAL_AUDIT_ONLY_NOT_SELECTION_INPUT",
+  "cases": [
+    {
+      "ticker": "OCTO",
+      "cik": "1892492",
+      "company": "Eightco Holdings Inc.",
+      "historical_identity": "Nasdaq common stock OCTO identified in the2025annualreport registrationtable",
+      "filed_at": "2025-04-15",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1892492/000164117225004802/form10-k.htm",
+      "publication_proof": "https://www.sec.gov/Archives/edgar/data/1892492/0001641172-25-004802-index.htm",
+      "auditors_in_sample": [
+        "Stephano Slack LLC",
+        "Morison Cogen LLP"
+      ],
+      "limit": "Identity resolved manually; no exhaustive party search and no backtest inclusion"
+    },
+    {
+      "ticker": "PLRZ",
+      "issuer_news_published_at": "2025-12-03T14:28:00+00:00",
+      "paper_signal_at": "2025-12-03T20:40:00+00:00",
+      "source_url": "https://www.globenewswire.com/news-release/2025/12/03/3199003/0/en/Polyrizon-Reports-Positive-Mucoadhesion-Results-for-Intranasal-Naloxone-Hydrogel-Compared-to-Marketed-Intranasal-Naloxone-product.html",
+      "finding": "Publisher reports positive preclinical news before the paper signal; missing from earlier archived news",
+      "limit": "Retrospective coverage diagnosis only. Original text revisions are not archived and this selected article is not inserted into model data."
+    }
+  ]
+}

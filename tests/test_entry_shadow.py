@@ -48,3 +48,20 @@ def test_trial_cannot_enable_promotion_or_use_future_prior_features(tmp_path):
     spec['automatic_promotion']=True
     (root/'config/entry_quality_trial.json').write_text(json.dumps(spec))
     with pytest.raises(ValueError,match='CANNOT_PROMOTE'):contract(root)
+
+
+def test_replacing_capture_policy_does_not_orphan_previous_paper_outcomes(tmp_path):
+    from smg.market import calendar,session_bounds
+    from datetime import date
+    root,store,e,spec=setup(tmp_path);capture(store,root,NOW)
+    days=[str(d.date()) for d in calendar(NOW.year).sessions_in_range(str(NOW.date()),str((NOW+timedelta(days=10)).date()))][:4]
+    series={d:{'c':v} for d,v in zip(days,[10,9,9,9])}
+    store.put('ranked_daily_history',{'raw':{e.candidate.ticker:series},'split':{e.candidate.ticker:series}})
+    original=store.items('entry_quality_decision:')[0][1]
+    spec={**spec,'id':'replacement'}
+    (root/'config/entry_quality_trial.json').write_text(json.dumps(spec))
+    result=review(store,root,session_bounds(date.fromisoformat(days[-1]))[1]+timedelta(minutes=17))
+    old=next(r for r in result['reports'] if r['contract_id']=='trial')
+    assert old['matured_nonoverlapping']==1 and old['automatic_promotion'] is False
+    assert store.items('entry_quality_decision:')[0][1]==original
+    assert len(store.items('entry_quality_outcome:trial:'))==1

@@ -1,5 +1,25 @@
 # Dudebot continuation handoff
 
+## October 11 workflow reliability repair
+
+User reported GitHub failure emails arriving in Gmail. Verified GitHub502/504
+read failures and Friday postclose Alpaca403 failures. Cloudflare's numeric1-5
+was Sunday-Thursday; replace withMON-FRI plus New York weekday/time guard.
+Bounded GET5xx retries and SHA-reconciled state write retry preserve concurrency
+and uncertain Discord protection. Daily SIP end never exceeds now-minus16min.
+Pending postcheckpoint delivery freshness/close revalidation is included.
+340Python and25Cloudflare tests pass locally. Hosted verification is required
+separately. Read backtest/WORKFLOW_REPAIR_2026_10_11.md for exact runs/steps.
+
+New prospective contracts startOct12: ranked-firm-2026-10-12-v1,
+firm-shadow-2026-10-12-v1, entry-quality-2026-10-12-v1(research-only).
+Exact actual deployed rankedOct7v7/originalv8/entryv1 archived. Pendinglocal
+Oct7rankedv8/entryv2 were NEVERdeployed. Allweights, exposurelimits andhard
+exclusions preserved. Oldentrytrials remainreviewed againsttheir frozen
+decisions whenoutcomeimplementation unchanged. No newmodel promoted.
+Entry-qualityresults/labelledmanualaudits nowdocumented separately, never
+merged intoselection. October7full3sessionoutcomes earliestOct12.
+
 ## October 6 exposure repair
 
 User requested fixing all exposed risks after the balanced replay. New

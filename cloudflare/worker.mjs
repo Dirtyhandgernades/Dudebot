@@ -13,8 +13,8 @@ async function authorized(request,env) {
 }
 export default {
   async scheduled(controller,env) {
-    const result=await dispatchScan(env);
-    if(result.status!=='DISPATCHED')console.warn('GitHub cron dispatch:',result.status);
+    const result=await dispatchScan(env,fetch,controller.scheduledTime);
+    if(result.status==='TOKEN_NOT_CONFIGURED')console.warn('GitHub cron dispatch:',result.status);
   },
   async fetch(request,env) {
     const path=new URL(request.url).pathname;

@@ -21,6 +21,8 @@ class Http:
             except requests.RequestException:
                 if method=='GET' and attempt<2:time.sleep(2*(attempt+1));continue
                 raise ProviderError(host) from None
+            if method=='GET' and r.status_code in (500,502,503,504) and attempt<2:
+                time.sleep(2*(attempt+1));continue
             message=''
             if host=='api.github.com' and r.status_code in (403,409):
                 try:message=str(r.json().get('message','')).lower()

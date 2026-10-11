@@ -2,7 +2,7 @@ from datetime import datetime,timedelta,timezone
 from zoneinfo import ZoneInfo
 import hashlib,json,re
 from urllib.parse import urlsplit
-from .market import snapshot_window
+from .market import snapshot_window,session_bounds
 from .game_rules import eligibility
 UTC=timezone.utc
 
@@ -165,6 +165,8 @@ class DiscordSender:
         return claim['status']
 
     def _valid_trade(self,e,cfg,now):
+        bounds=session_bounds(now.date())
+        if not bounds or not bounds[0]<=now<bounds[1]:return False
         if e.status!='QUALIFIED' or not e.halt or e.halt.status!='CLEAR' or not e.snapshot:return False
         if eligibility(e.snapshot,cfg,now)[0]:return False
         from .shortability import executable_short
@@ -202,7 +204,7 @@ class DiscordSender:
                 if definitive:self.store.delete(state_key)
                 continue
             phase=self._phase(e,cfg);prior=self.store.get(state_key)
-            if prior and prior.get('phase')==phase:continue
+            if prior and prior.get('phase')==phase and prior.get('status')!='EXPIRED_BEFORE_DELIVERY':continue
             if (e.signal_side or cfg.live_signal_side)=='SHORT':
                 from .exposure import reserve,POLICY
                 from .trade_card import position_guide,strength
@@ -226,15 +228,29 @@ class DiscordSender:
         if not new:return 'NO_NEW_TRADES'
         self.checkpoint(self.store)
         payloads=digest(new,now,cfg,presorted=True)
-        for (key,claim),payload in zip(claims,payloads):
+        for (key,claim),payload,e in zip(claims,payloads,new):
+            current=self.clock()
+            if not self._valid_trade(e,cfg,current):
+                # Avoid using a pre-checkpoint timestamp as permission to post
+                # a now-stale or after-close trade. No HTTP request was made.
+                claim.update(status='EXPIRED_BEFORE_DELIVERY',checked_at=current.isoformat())
+                if e.signal_side=='SHORT':
+                    from .exposure import POLICY
+                    reservations=self.store.get('paper_exposure_reservations',{}) or {}
+                    reservations.pop(POLICY['id']+':'+claim['claimed_at'][:10]+':'+claim['ticker'],None)
+                    self.store.put('paper_exposure_reservations',reservations)
+                self.store.put(key,claim);self.checkpoint(self.store);continue
             try:
                 data=self.http.json(self.webhook,method='POST',params={'wait':'true'},body=payload,timeout=8)
                 claim.update(status='SENT',message_id=data['id'],sent_at=self.clock().isoformat())
                 self.store.put('trade_alert_history:'+claim['sent_at'][:10]+':'+claim['ticker'],claim)
             except (ProviderError,KeyError):claim['status']='DELIVERY_UNCERTAIN'
             self.store.put(key,claim);self.checkpoint(self.store)
-        return {'status':'SENT' if all(c['status']=='SENT' for _,c in claims) else 'DELIVERY_UNCERTAIN',
-            'new_trades':len(new),'tickers':[e.candidate.ticker for e in new]}
+        return {'status':'SENT' if all(c['status']=='SENT' for _,c in claims) else
+                'DELIVERY_UNCERTAIN' if any(c['status']=='DELIVERY_UNCERTAIN' for _,c in claims) else 'EXPIRED_BEFORE_DELIVERY',
+            'new_trades':len(new),'sent_trades':sum(c['status']=='SENT' for _,c in claims),
+            'expired_trades':sum(c['status']=='EXPIRED_BEFORE_DELIVERY' for _,c in claims),
+            'tickers':[e.candidate.ticker for e in new]}
 
     def send_daily_no_trade(self,evaluations,cfg):
         """Send one mention-free close-of-day summary when no trade was sent.

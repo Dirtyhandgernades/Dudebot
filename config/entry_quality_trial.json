@@ -1,7 +1,7 @@
 {
-  "id": "entry-quality-2026-10-07-v1",
-  "parent_policy": "ranked-firm-2026-10-07-v7",
-  "published_at": "2026-10-07T04:27:52.099056+00:00",
+  "id": "entry-quality-2026-10-12-v1",
+  "parent_policy": "ranked-firm-2026-10-12-v1",
+  "published_at": "2026-10-11T19:32:53.456399+00:00",
   "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
   "live_enabled": false,
   "automatic_promotion": false,
@@ -455,10 +455,10 @@
     "training_latest_label": "2025-12-04"
   },
   "source_sha256": {
-    "smg/entry_shadow.py": "dc008df0c87c0733d666d95a385aa388ef6b1e201f1b094b4d34211bdcf2787b",
-    "smg/entry_features.py": "98507731498c034365e5bcfb2c34353ede445d1fb22939a9df9bad29989accbd",
+    "smg/entry_shadow.py": "d2d4dd594bc6373c26068a4c14ad497a53154ae6c08b58761a7f6490139df4a1",
+    "smg/entry_features.py": "c7d2261e173e6d5811d2dcc4f648c0f639b2d11b1df4d6ff09e6bed23c47f047",
     "smg/action_learning.py": "57b2f0efd0937b7e7803c13cc79597d8c6050de37f5578a0b641c764b4572784",
-    "smg/ranked_firm.py": "9b56f6c8bd6729834a2d7aec845bf8a5cf96147799f24490f4f07657d5c283b7",
+    "smg/ranked_firm.py": "d4e3d4f5267b14496df8fc5556230532603a7f703468f6d2af4f8898fbf36c6c",
     "smg/sentiment.py": "15153dd0ac9e899d4cf43b70eceb27c2f38e19431d9109d9a91031289620ab60",
     "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92",
     "smg/timing_shadow.py": "c7a09ef4b1a54d7a82625fed89fd8fc4a5e9844dc755f89175fe7f44a71e0c01",
@@ -477,5 +477,7 @@
     "Sparse news is audit-only, not a learned negative feature",
     "Return/tail scores are not calibrated probabilities",
     "Historical borrow and game eligibility remain unknown"
-  ]
+  ],
+  "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged.",
+  "parent_trial": "entry-quality-2026-10-07-v1"
 }

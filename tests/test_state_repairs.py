@@ -140,6 +140,56 @@ def test_transient_read_retries_and_secondary_limit_is_not_reported_as_permissio
     assert http.session.calls==1
 
 
+@pytest.mark.parametrize('status',[500,502,503,504])
+def test_temporary_http_reads_retry_but_mutations_do_not(monkeypatch,status):
+    monkeypatch.setattr('smg.transport.time.sleep',lambda _:None)
+    class Session:
+        def __init__(self):self.calls=0
+        def request(self,*a,**kw):
+            self.calls+=1
+            return SimpleNamespace(status_code=status if self.calls==1 else 200,headers={})
+    http=Http();http.session=Session()
+    assert http.response('https://api.github.com/test').status_code==200 and http.session.calls==2
+    http.session=Session()
+    with pytest.raises(ProviderError):http.response('https://api.github.com/test',method='PUT')
+    assert http.session.calls==1
+
+
+def test_read_retry_budget_and_genuine_denial_remain_visible(monkeypatch):
+    monkeypatch.setattr('smg.transport.time.sleep',lambda _:None)
+    class Session:
+        def __init__(self,status):self.status=status;self.calls=0
+        def request(self,*a,**kw):
+            self.calls+=1
+            return SimpleNamespace(status_code=self.status,headers={},json=lambda:{})
+    http=Http();http.session=Session(504)
+    with pytest.raises(ProviderError,match='504'):http.response('https://api.github.com/test')
+    assert http.session.calls==3
+    http.session=Session(403)
+    with pytest.raises(ProviderError,match='ACCESS_DENIED'):http.response('https://data.alpaca.markets/test')
+    assert http.session.calls==1
+
+
+@pytest.mark.parametrize('status',[None,500,502,503,504])
+@pytest.mark.parametrize('concurrent',[False,True])
+def test_failed_checkpoint_reconciles_remote_before_guarded_retry(tmp_path,status,concurrent):
+    store=Store(tmp_path/'state');store.put('claim','new')
+    class HTTP:
+        def __init__(self):self.puts=[]
+        def json(self,url,**kw):
+            if kw.get('method')=='PUT':
+                self.puts.append(kw['body']['sha'])
+                if len(self.puts)==1:raise ProviderError('api.github.com',status)
+                return {'content':{'sha':'accepted'}}
+            return {'sha':'other-writer' if concurrent else 'old'}
+    http=HTTP();b=GitHubState(http,'o/r','fixture');b.sha='old';b.branch_exists=True
+    if concurrent:
+        with pytest.raises(ProviderError):b.checkpoint(store)
+        assert http.puts==['old'] and b.sha=='old'
+    else:
+        b.checkpoint(store);assert http.puts==['old','old'] and b.sha=='accepted'
+
+
 def test_compressed_git_state_write_keeps_other_files_and_never_force_pushes(tmp_path,monkeypatch):
     store=Store(tmp_path/'runtime/state.sqlite');store.put('value',1)
     b=GitHubState(None,'o/r','fixture');b.sha='old';content=store.path.read_bytes();desired=b.blob_sha(content);calls=[]

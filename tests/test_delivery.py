@@ -70,6 +70,30 @@ def test_event_delivery_sends_new_phase_once_without_noon_gate(tmp_path):
     assert sender.send_new(items,Config())=='NO_NEW_TRADES' and len(http.calls)==calls
     assert checkpoints and http.calls[0]['body']['content'].startswith('@everyone')
 
+
+def test_checkpoint_delay_cannot_post_a_trade_after_actual_market_close(tmp_path):
+    from smg.market import session_bounds
+    from tests.test_ranked_firm import evaluate,NOW as RANKED_NOW
+    e=evaluate();closed=session_bounds(RANKED_NOW.date())[1];at=closed-timedelta(seconds=30)
+    e.snapshot.asof=at-timedelta(minutes=16);e.snapshot.price_time=e.snapshot.asof
+    e.snapshot.market_cap_observed_at=at;e.halt.checked_at=at
+    clock=[at];store=Store(tmp_path/'deadline.db');http=FakeHttp()
+    def checkpoint(_):clock[0]=closed+timedelta(seconds=1)
+    sender=DiscordSender(http,URL,store,checkpoint,clock=lambda:clock[0])
+    assert sender._valid_trade(e,Config(),at)
+    result=sender.send_new([e],Config())
+    assert result['status']=='EXPIRED_BEFORE_DELIVERY' and result['sent_trades']==0
+    assert not http.calls and not store.get('paper_exposure_reservations')
+    # Definitively unposted expirations can retry after a new valid scan;
+    # ambiguous posted requests retain the existing no-retry protection.
+    from smg.market import calendar
+    next_day=calendar(RANKED_NOW.year).next_session(str(RANKED_NOW.date())).date()
+    fresh=session_bounds(next_day)[1]-timedelta(minutes=5);clock[0]=fresh
+    e.snapshot.asof=fresh-timedelta(minutes=16);e.snapshot.price_time=e.snapshot.asof
+    e.snapshot.market_cap_observed_at=fresh;e.halt.checked_at=fresh
+    sender.checkpoint=lambda _:None
+    assert sender.send_new([e],Config())['status']=='SENT' and len(http.calls)==1
+
 def test_daily_no_trade_embed_sends_once_after_close_without_mention(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();at=NOW+timedelta(hours=1)
     items=demo()
@@ -130,9 +154,13 @@ def test_zero_fresh_firms_reports_a_coverage_failure_without_claiming_no_setups(
 
 def test_two_discovery_lanes_do_not_duplicate_same_ticker_trade(tmp_path):
     store=Store(tmp_path/'s.db');http=FakeHttp();items=[e for e in demo() if e.status=='QUALIFIED'][:1]
+    at=NOW-timedelta(minutes=30)
+    for item in items:
+        item.snapshot.asof=at;item.snapshot.price_time=at-timedelta(minutes=1)
+        item.snapshot.market_cap_observed_at=at;item.halt.checked_at=at
     duplicate=items[0].model_copy(deep=True);duplicate.candidate.pipeline='VOLATILITY_WATCH';duplicate.candidate.event_id='VOLATILITY'
     duplicate.reasons=['NO_LISTED_FIRM_MATCH','PUMP_FAILURE_SHORT'];duplicate.matches=[];duplicate.rank=[1,9,0,-5,-10,-2,-30]
-    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:NOW)
+    sender=DiscordSender(http,URL,store,lambda s:None,clock=lambda:at)
     result=sender.send_new(items+[duplicate],Config())
     assert result['new_trades']==1 and len(http.calls)==1
 

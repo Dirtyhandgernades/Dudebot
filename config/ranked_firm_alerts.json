@@ -1,7 +1,7 @@
 {
-  "id": "ranked-firm-2026-10-07-v7",
+  "id": "ranked-firm-2026-10-12-v1",
   "enabled": true,
-  "first_session": "2026-10-07",
+  "first_session": "2026-10-12",
   "confidence_sizing_enabled": false,
   "entry_policy": "PRECLOSE_ONLY",
   "position_target": 50000,
@@ -48,16 +48,16 @@
   },
   "rank_threshold": 0.43827250876096624,
   "implementation_sha256": {
-    "smg/ranked_firm.py": "9b56f6c8bd6729834a2d7aec845bf8a5cf96147799f24490f4f07657d5c283b7",
+    "smg/ranked_firm.py": "d4e3d4f5267b14496df8fc5556230532603a7f703468f6d2af4f8898fbf36c6c",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/firm_first.py": "1c828d32391914dcc7c7094e8c6c7a9966bdffd3b1c786fc56ece432951c9f9d",
     "smg/game_rules.py": "abd50e0de104f3c537f14ddf26701f442daa2fa1ee2b510e57b062c120870691",
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
-    "smg/notify.py": "2f66f8469261bbd44a840db7374daedfb7a06ba1df054ef1a2c60c226bec162b",
-    "smg/storage.py": "ef2d8890968a6536b4da6f968838867b99f679c9a4e5642675dedbe1f5c433f6",
-    "smg/transport.py": "8f2a52082456cbaa6c471c8849c9e75dac4d0586be1f52c55798490acf0d81a0",
+    "smg/notify.py": "5eb19c9287eac56036dab5676b544867b661e83390d61b05e0e006f9192fef63",
+    "smg/storage.py": "d64e4c2c00c17e744655e88b0b3d59eb3fa9b6f7925e366bd04622738bdf8ae8",
+    "smg/transport.py": "eba513f708770f7697a1c4acfe6e5ce1cbb90f45d5c9762f77cac802103ec4c2",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
     "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
@@ -69,10 +69,10 @@
     "smg/trade_card.py": "19cecf7f20cb563c0a7e79df3628989362f83a638665cf775ec2624c34865eaa",
     "smg/drop_probability.py": "b8f7f46706ba9de68b7078129c2c918aa19efd6d518d1e63e61116b507d82fd1",
     "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92",
-    "smg/entry_features.py": "98507731498c034365e5bcfb2c34353ede445d1fb22939a9df9bad29989accbd"
+    "smg/entry_features.py": "c7d2261e173e6d5811d2dcc4f648c0f639b2d11b1df4d6ff09e6bed23c47f047"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
-  "published_at": "2026-10-07T04:27:52.099056+00:00",
+  "published_at": "2026-10-11T19:32:53.456399+00:00",
   "training_latest_label": "2025-12-05",
   "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
   "validation": {
@@ -153,9 +153,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-07-v6",
+  "parent_contract_id": "ranked-firm-2026-10-07-v7",
   "automatic_improvement_enabled": true,
-  "version_reason": "Exact stop/target boundary arithmetic repair and source-dated entry diagnostics. Weights, selection, exposure limits and first-session dates unchanged. Entry-quality models remain research-only.",
+  "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",

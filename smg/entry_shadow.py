@@ -60,10 +60,28 @@ def capture(store,root,now):
 def review(store,root,now):
     spec=contract(root)
     if not spec:return {'status':'NOT_STAGED'}
+    reports=[]
+    for key,registered in store.items('entry_quality_contract:'):
+        saved=registered['spec'];digest=hashlib.sha256(json.dumps(saved,sort_keys=True).encode()).hexdigest()
+        if key!='entry_quality_contract:'+saved['id'] or digest!=registered['sha256']:
+            raise ValueError('ENTRY_TRIAL_UNKNOWN_CONTRACT')
+        # Capture code may evolve, but old fixed decisions remain reviewable
+        # only with the same outcome calculation and exchange calendar.
+        outcome_sources=('smg/action_learning.py','smg/market.py')
+        if any(p in saved['source_sha256'] and hashlib.sha256((root/p).read_text(encoding='utf-8').encode()).hexdigest()!=saved['source_sha256'][p] for p in outcome_sources):
+            reports.append({'contract_id':saved['id'],'status':'OUTCOME_IMPLEMENTATION_CHANGED','live_changed':False});continue
+        reports.append({'contract_id':saved['id'],**_review_contract(store,root,now,saved)})
+    current=next((r for r in reports if r['contract_id']==spec['id']),None)
+    return {**(current or _review_contract(store,root,now,spec)),'reports':reports,'automatic_promotion':False,'live_changed':False}
+
+
+def _review_contract(store,root,now,spec):
     registered=store.get('entry_quality_contract:'+spec['id']);known=[];unknown=0
     cache=store.get('ranked_daily_history',{})
     for _,row in store.items('entry_quality_decision:'+spec['id']+':'):
         if not registered or row['contract_sha256']!=registered['sha256']:raise ValueError('ENTRY_TRIAL_UNKNOWN_CONTRACT')
+        observed=datetime.fromisoformat(row['observed_at']);captured=datetime.fromisoformat(row['captured_at']);published=datetime.fromisoformat(spec['published_at'])
+        if not observed.tzinfo or not captured.tzinfo or not published<=observed<=captured<=now:raise ValueError('ENTRY_TRIAL_INVALID_TIMESTAMP')
         key='entry_quality_outcome:'+spec['id']+':'+row['entry_date']+':'+row['ticker'];labels=store.get(key)
         if not labels:
             labels=policy_outcome(row,cache.get('split',{}),cache.get('raw',{}))

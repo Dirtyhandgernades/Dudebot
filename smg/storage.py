@@ -183,7 +183,7 @@ class GitHubState:
         except ProviderError as exc:
             # Read-only reconciliation is not a blind mutation retry. A lost
             # acknowledgement may already have committed EXACTLY these bytes.
-            # Otherwise retry a409 once only when the remote blob is still the
+            # Otherwise retry transient errors or a409 once only when the remote blob is still the
             # SAME expected snapshot; retain its SHA guard. Never adopt a
             # different writer's SHA to overwrite their state.
             try:
@@ -196,7 +196,7 @@ class GitHubState:
                     import os
                     if os.environ.get('GITHUB_ACTIONS')!='true':raise exc
                     self.git_checkpoint(store,content);return
-                if exc.status==409 and self.sha and actual==self.sha:
+                if exc.status in (None,409,500,502,503,504) and self.sha and actual==self.sha:
                     data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
                 else:raise exc
             except ProviderError as final:

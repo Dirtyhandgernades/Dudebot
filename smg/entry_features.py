@@ -33,7 +33,8 @@ def context(records,at,entities):
             priorities[role]=min(priorities.get(role,99),party['priority'])
             links.append({'name':m['name'],'role':role,'priority':party['priority'],
                           'public_at':stamp.isoformat(),'url':m.get('evidence',{}).get('url') or row.get('source_url'),
-                          'relationship':m.get('relationship','source-dated; engagement unconfirmed')})
+                          'relationship':'Source-dated association; current engagement unconfirmed',
+                          'source_reported_relationship':m.get('relationship','not retained')})
     return priorities,links
 
 

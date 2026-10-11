@@ -38,9 +38,12 @@ def daily_history(store,http,symbols,now):
     if cache.get('date')!=str(today) or cache.get('through')!=prior:cache={'date':str(today),'through':prior,'raw':{},'split':{}}
     missing=[t for t in symbols if t not in cache['raw'] or t not in cache['split']];requests=0
     headers={'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')}
+    # Free SIP rejects requests extending into the recent/future window, even
+    # when a completed daily bar is already available after the close.
+    end=min(datetime.fromisoformat(prior+'T23:59:59+00:00'),now-timedelta(minutes=16))
     for mode in ('raw','split'):
         query={'symbols':','.join(missing),'timeframe':'1Day','start':str(today-timedelta(days=90)),
-               'end':prior+'T23:59:59Z','adjustment':mode,'asof':'-','feed':'sip','limit':10000}
+               'end':end.isoformat().replace('+00:00','Z'),'adjustment':mode,'asof':'-','feed':'sip','limit':10000}
         seen=set()
         while missing:
             data=http.json('https://data.alpaca.markets/v2/stocks/bars',params=query,headers=headers);requests+=1
@@ -63,6 +66,18 @@ def valid_policy(spec,root,now):
     if spec.get('confidence_sizing_enabled'):raise ValueError('Confidence sizing cannot be enabled')
     if spec.get('first_session') and now.date().isoformat()<spec['first_session']:return False
     return bool(spec.get('enabled'))
+
+
+def provider_preflight(http,now):
+    """One bounded SIP probe, even on closed days or with a warm cache."""
+    cutoff=now-timedelta(minutes=16)
+    data=http.json('https://data.alpaca.markets/v2/stocks/bars',params={
+        'symbols':'SPY','timeframe':'1Day','start':str((now-timedelta(days=7)).date()),
+        'end':cutoff.isoformat().replace('+00:00','Z'),'feed':'sip','adjustment':'raw','asof':'-','limit':10},
+        headers={'APCA-API-KEY-ID':required_env('ALPACA_API_KEY'),'APCA-API-SECRET-KEY':required_env('ALPACA_SECRET_KEY')})
+    count=len(data.get('bars',{}).get('SPY',[]))
+    if not count:raise ValueError('SIP_PREFLIGHT_NO_COMPLETED_BARS')
+    return {'status':'VERIFIED','feed':'sip','deliberate_delay_minutes':16,'completed_probe_bars':count,'requests':1}
 
 
 def association_structure(candidate,cfg,entities,now):
@@ -152,12 +167,13 @@ def main():
     if args.preflight and args.send:parser.error('Preflight cannot send messages')
     root=Path.cwd();now=datetime.now(UTC);spec=json.loads((root/'config/ranked_firm_alerts.json').read_text())
     active=valid_policy(spec,root,now)
-    if not active and not (args.preflight and spec.get('enabled')):print('RANKED_FIRM_POLICY_NOT_ACTIVE');return
+    if not active and not ((args.preflight or args.collect_only or args.prepare) and spec.get('enabled')):print('RANKED_FIRM_POLICY_NOT_ACTIVE');return
     cfg,entries=settings(root);entities=EntityList(entries);http=Http();backend=None;path=root/'runtime/state.sqlite'
     if os.environ.get('GITHUB_ACTIONS')=='true':
         backend=GitHubState(http,required_env('GITHUB_REPOSITORY'),required_env('GITHUB_TOKEN'),cfg.state_branch);backend.restore(path)
     store=Store(path);checkpoint=backend.checkpoint if backend else lambda _:None
     try:
+        provider_check=provider_preflight(http,now) if args.preflight else None
         digest=hashlib.sha256(json.dumps(spec,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         prior_contract=store.get('ranked_contract:'+spec['id'])
         if prior_contract and prior_contract['sha256']!=digest:raise ValueError('RANKED_POLICY_CHANGED; publish a new version')
@@ -180,7 +196,11 @@ def main():
             context['firm_shortlist_symbols']=preferred;store.put('broad_discovery',context)
             print(json.dumps({'prepared_firms':len(preferred),'daily_requests':requests}));return
         bounds=session_bounds(now.date())
-        if not bounds or not bounds[0]+timedelta(minutes=90)<=now<bounds[1]:print('RANKED_MARKET_WINDOW_CLOSED');return
+        if not bounds or not bounds[0]+timedelta(minutes=90)<=now<bounds[1]:
+            output={'status':'RANKED_MARKET_WINDOW_CLOSED','policy_id':spec['id'],'asof':now.isoformat(),
+                    'policy_active':active,'provider_check':provider_check,'daily_requests':requests,'orders_placed':0,'messages_sent':0}
+            folder=root/'reports';folder.mkdir(exist_ok=True)
+            (folder/'ranked-firm-alerts.json').write_text(json.dumps(output,indent=2));print(json.dumps(output));return
         structural=[c for c in candidates if c.ticker in histories and association_structure(c,cfg,entities,now).status=='STRUCTURAL_MATCH']
         symbols=[c.ticker for c in structural];client=Bars('runtime/ranked-minute-bars',max_requests=16)
         raw=client.get(symbols,bounds[0],now-timedelta(minutes=16),'raw');split=client.get(symbols,bounds[0],now-timedelta(minutes=16),'split')
@@ -228,7 +248,7 @@ def main():
                         'reasons':result.reasons,'rank_score':context['rank_score']})
         folder=root/'reports';folder.mkdir(exist_ok=True)
         output={'policy_id':spec['id'],'asof':now.isoformat(),'results':[r.model_dump(mode='json') for r in results],
-                'daily_requests':requests,'intraday_requests':client.requests,'orders_placed':0}
+                'daily_requests':requests,'intraday_requests':client.requests,'provider_check':provider_check,'orders_placed':0}
         if args.send and os.environ.get('DISCORD_ENABLED')=='true' and datetime.now(UTC)<bounds[1]:
             webhook=required_env('DISCORD_WEBHOOK_URL')
             output['delivery']=DiscordSender(http,webhook,store,checkpoint).send_new(results,cfg)

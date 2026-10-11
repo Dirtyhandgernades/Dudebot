@@ -69,5 +69,7 @@ def test_enabled_published_policy_implementation_fingerprints_match():
     from smg.ranked_firm import valid_policy
     root=Path(__file__).resolve().parents[1]
     spec=json.loads((root/'config/ranked_firm_alerts.json').read_text())
-    assert valid_policy(spec,root,datetime(2026,10,7,16,tzinfo=timezone.utc)) is True
+    start=datetime.fromisoformat(spec['first_session']).replace(hour=16,tzinfo=timezone.utc)
+    assert valid_policy(spec,root,start) is True
+    assert valid_policy(spec,root,start-timedelta(days=1)) is False
     assert spec['confidence_sizing_enabled'] is False and spec['entry_policy']=='PRECLOSE_ONLY'
