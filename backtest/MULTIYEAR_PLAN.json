@@ -1,5 +1,7 @@
 {
-  "id": "eight-season-prior-only-2026-10-11-v1",
+  "id": "eight-season-prior-only-2026-10-11-v2",
+  "preclose_offsets_minutes": [20,15,10,5],
+  "timing_control_reason": "20minute benchmark;15minute quarter-hour scan;10/5minute queue-delay controls. Every offset retained; no per-year winner selection.",
   "seasons": [2018,2019,2020,2021,2022,2023,2024,2025],
   "season_start": "09-08",
   "season_end": "12-05",

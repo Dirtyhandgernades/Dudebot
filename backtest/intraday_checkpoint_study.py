@@ -20,9 +20,10 @@ from smg.history_identity import repair_legacy_volume
 from backtest.repair_study import fixed_trade_cost_sensitivity
 
 
-def points(day):
+def points(day,preclose_offset_minutes=20):
+    if preclose_offset_minutes not in (5,10,15,20):raise ValueError('Unsupported fixed preclose offset')
     opened,closed=session_bounds(date.fromisoformat(day))
-    values={opened+timedelta(minutes=x) for x in (90,210,330)}|{closed-timedelta(minutes=20)}
+    values={opened+timedelta(minutes=x) for x in (90,210,330)}|{closed-timedelta(minutes=preclose_offset_minutes)}
     return sorted(p for p in values if opened+timedelta(minutes=30)<=p<closed)
 
 
@@ -46,7 +47,7 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     return event
 
 
-def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policies=None):
+def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policies=None,preclose_offset_minutes=20):
     out.mkdir(parents=True,exist_ok=True);packet=repair_legacy_volume(packet);packet={**packet,'firm_dates':packet['first_dates']}
     sessions=packet['sessions'];index={d:i for i,d in enumerate(sessions)};results=[];public={}
     for row in packet['records']:
@@ -88,7 +89,7 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
             indexed[mode]=grouped
         early={};late={};confirmed_then_late={};all_events={};point_counts=Counter()
         for day,tickers in candidate_days.items():
-            early[day]=[];late[day]=[];confirmed_then_late[day]=[];all_events[day]=[];checkpoints=points(day)
+            early[day]=[];late[day]=[];confirmed_then_late[day]=[];all_events[day]=[];checkpoints=points(day,preclose_offset_minutes)
             for ticker in tickers:
                 chosen=None;confirmed=None;late_fallback=None
                 for point in checkpoints:
@@ -126,7 +127,7 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
                 row[case]={k:p[k] for k in ('net_profit','ending_balance','closed_trades','max_observed_drawdown_pct')}
             row['same_trade_stress']=fixed_trade_cost_sensitivity({**base,'open_positions':base.get('unresolved_positions',{})},packet['split'])
             results.append(row);print(json.dumps(row),flush=True)
-    report={'status':'FOUR_CHECKPOINT_RESEARCH','results':results,'requests':client.requests,'training_window_years':train_window_years,
+    report={'status':'FOUR_CHECKPOINT_RESEARCH','results':results,'requests':client.requests,'training_window_years':train_window_years,'preclose_offset_minutes':preclose_offset_minutes,
             'limits':['Partial independent firm corpus, not verified historical trade eligibility',
                       'Checkpoint comparisons are inspected retrospective hypotheses','No borrow/cap/halt facts imputed']}
     (out/'summary.json').write_text(json.dumps(report,indent=2));return report

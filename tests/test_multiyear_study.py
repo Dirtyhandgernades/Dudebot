@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date,timedelta
 import pytest
-from smg.market import calendar
+from smg.market import calendar,session_bounds
 from smg.swing_backtest import simulate
 from smg.intraday_replay import decision_window,STRATEGY
 from backtest.multiyear_study import hold_outcome,allocation,consistency,YEARS,full_sessions
@@ -64,3 +64,11 @@ def test_holding_and_allocation_heads_cannot_train_on_future_labels_or_held_issu
     rows=[row,{**row,'label_end':'2026-01-02'},{**row,'held_issuer':True},{**row,'signal_date':'2023-09-12'}]
     _,_,counts=training_heads(rows,p,2026)
     assert counts=={1:1,2:1,3:1} and all(len(r)==1 for r in captured)
+
+
+def test_scheduler_alignment_and_early_close_preserve_the_actual_delay():
+    from backtest.intraday_checkpoint_study import points
+    for day in ['2025-09-12','2025-11-28']:
+        closed=session_bounds(date.fromisoformat(day))[1]
+        for offset in (20,15,10,5):
+            assert points(day,offset)[-1]==closed-timedelta(minutes=offset)

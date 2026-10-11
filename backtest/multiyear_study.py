@@ -205,9 +205,18 @@ def main():
         except RuntimeError as exc:
             if str(exc)!='REQUEST_BUDGET':raise
         client.provider.max_requests=500
-        check=checkpoints(packet,client,folder,train_window_years=2,years=YEARS,policies=['PRECLOSE_ONLY'])
-        write(out/'checkpoint-coverage.json',check)
-    replay(packet,folder,out/'portfolios')
+        controls=[];reports=[]
+        for offset in (20,15,10,5):
+            directory=folder/str(offset)
+            check=checkpoints(packet,client,directory,train_window_years=2,years=YEARS,policies=['PRECLOSE_ONLY'],preclose_offset_minutes=offset)
+            write(out/f'checkpoint-coverage-{offset}.json',check)
+            report=replay(packet,directory,out/f'portfolios-{offset}')
+            reports.append(report)
+            controls.extend({**r,'variant':r['variant']+f'_PRECLOSE_{offset}','preclose_offset_minutes':offset} for r in report['results'])
+        write(out/'summary.json',{'status':'EIGHT_SEASON_TIMING_CONTROLS','results':controls,'consistency':consistency(controls),
+              'source_and_price_requests':client.requests,'live_changed':False,'automatic_promotion':False,
+              'limits':reports[0]['limits'],'timing_offsets_before_close':[20,15,10,5]})
+    else:replay(packet,folder,out/'portfolios')
 
 
 if __name__=='__main__':main()
