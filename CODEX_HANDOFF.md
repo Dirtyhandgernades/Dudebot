@@ -2,6 +2,15 @@
 
 ## October 11 workflow reliability repair
 
+Verified hosted: CI38169141883, Cloudflare38168587936, fullscan38168903747,
+SIPpreflight38168928648, dailyresearch38168930388 allSUCCEEDED. Actualpractice
+38169141797 SENTmessage1558928175986245844 atOct11 14:43Chicago, two
+mention-free embeds. Earlierpracticev1 remainsCLAIMED, notdeliveryproof; doNOT
+retryuncertainstockclaims. PracticeworkflowrequiresSENTreceipt now.
+DailyFROZEN_CHALLENGER_STAGED,active_model_id null, zero newhistoricalrequests.
+FreeSIPprobe VERIFIED5completedbars. Detailsbacktest/WORKFLOW_VERIFICATION_2026_10_11.json.
+
+
 User reported GitHub failure emails arriving in Gmail. Verified GitHub502/504
 read failures and Friday postclose Alpaca403 failures. Cloudflare's numeric1-5
 was Sunday-Thursday; replace withMON-FRI plus New York weekday/time guard.

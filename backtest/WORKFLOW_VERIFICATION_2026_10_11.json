@@ -1,0 +1,48 @@
+{
+  "verified_at": "2026-10-11T19:45:22.327863+00:00",
+  "source_commit": "60c191eef59a725487dcf258d244975447730e7e",
+  "practice_workflow_commit": "397798181c969d2676e2994f8605baf601ae736d",
+  "tests": {
+    "python": 344,
+    "cloudflare": 25
+  },
+  "runs": {
+    "ci": 38169141883,
+    "cloudflare_deploy": 38168587936,
+    "full_scan": 38168903747,
+    "free_sip_preflight": 38168928648,
+    "daily_research": 38168930388,
+    "discord_practice": 38169141797
+  },
+  "run_conclusions": "All listed completed successfully",
+  "discord_receipt": {
+    "status": "SENT",
+    "claimed_at": "2026-10-11T19:43:45.270405+00:00",
+    "message_id": "1558928175986245844",
+    "channel_id": "1546733107846324254",
+    "format_version": "embed-v1"
+  },
+  "sip_probe": {
+    "status": "VERIFIED",
+    "feed": "sip",
+    "deliberate_delay_minutes": 16,
+    "completed_probe_bars": 5,
+    "requests": 1
+  },
+  "daily_research": {
+    "status": "FROZEN_CHALLENGER_STAGED",
+    "active_model_id": null,
+    "new_historical_provider_requests": 0
+  },
+  "contracts": [
+    "ranked-firm-2026-10-12-v2",
+    "firm-shadow-2026-10-12-v2",
+    "entry-quality-2026-10-12-v2"
+  ],
+  "limits": [
+    "Sunday closed-market verification; no live trade or brokerage order claimed",
+    "Persistent provider errors remain visible",
+    "Previously committed incomplete claim was not retried as a stock alert",
+    "No strategy/profit improvement claimed"
+  ]
+}
