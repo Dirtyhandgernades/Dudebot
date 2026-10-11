@@ -46,7 +46,7 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     return event
 
 
-def run(packet,client,out,train_window_years=None):
+def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policies=None):
     out.mkdir(parents=True,exist_ok=True);packet=repair_legacy_volume(packet);packet={**packet,'firm_dates':packet['first_dates']}
     sessions=packet['sessions'];index={d:i for i,d in enumerate(sessions)};results=[];public={}
     for row in packet['records']:
@@ -57,7 +57,7 @@ def run(packet,client,out,train_window_years=None):
     ends={r['old_symbol']:r['effective_date'] for r in packet.get('renames',[]) if r.get('status')=='STITCHED_RENAME'}
     labels=samples(packet['records'],packet['raw'],packet['split'],sessions,firm_dates=packet['first_dates'])
     cfg=SimpleNamespace(surge_return_min_pct=12)
-    for year in (2023,2024,2025):
+    for year in years:
         train=matured_before(labels,f'{year}-01-01',f'{year-train_window_years}-01-01' if train_window_years else None);model=fit(train)
         if not model:results.append({'year':year,'status':'TRAINING_UNAVAILABLE'});continue
         threshold=float(np.quantile(predict(model,train),.5));candidate_days={};scores={};gaps=Counter()
@@ -110,6 +110,7 @@ def run(packet,client,out,train_window_years=None):
         scaled,_=scaled_hybrid_events(packet,early)
         for policy,events in [('PRECLOSE_ONLY',late),('FIRST_INTRADAY_SIGNAL',early),('FIRST_SIGNAL_UPMOVE_HALF_SIZE',scaled),
                               ('CONFIRMED_EARLY_OR_DEFERRED_HALF',confirmed_then_late)]:
+            if policies is not None and policy not in policies:continue
             (out/f'{year}-{policy}-signals.json').write_text(json.dumps(events,indent=2))
             row={'year':year,'policy':policy,'candidate_symbols':len(symbols),'candidate_symbol_days':sum(map(len,candidate_days.values())),
                  'rank_threshold':threshold,'training_latest_label':max(r['label_end'] for r in train),

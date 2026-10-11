@@ -1,5 +1,5 @@
 {
-  "id": "ranked-firm-2026-10-12-v2",
+  "id": "ranked-firm-2026-10-12-v3",
   "enabled": true,
   "first_session": "2026-10-12",
   "confidence_sizing_enabled": false,
@@ -63,7 +63,7 @@
     "smg/adaptive_firm.py": "c53d24ac8385a7e3dd4c565936296141e5d51afe68569138793a4c3ad8488fde",
     "smg/action_learning.py": "57b2f0efd0937b7e7803c13cc79597d8c6050de37f5578a0b641c764b4572784",
     "backtest/daily_adaptive_study.py": "1181600766ef88d6518851508f23b36e1577f719ec914839fa0f426e0b3cfbf5",
-    "smg/swing_backtest.py": "c13de036e32ec759596017dd1f8701b65f76d06f18f42327950332dca7612bc0",
+    "smg/swing_backtest.py": "29582f0ce285ffcb3109f22118812e9cca0b9b9c0bed68494e1f42818efec902",
     "smg/history_identity.py": "e219d9aa28fabfefb26dc12a45ede2df8605a9ec55f22ad2491ba6a08caee3f5",
     "backtest/repair_study.py": "7fc222fc37809f854890cf69e59f109c8202fe1fcf1e5b85ce791200397485ae",
     "smg/trade_card.py": "19cecf7f20cb563c0a7e79df3628989362f83a638665cf775ec2624c34865eaa",
@@ -72,7 +72,7 @@
     "smg/entry_features.py": "c7d2261e173e6d5811d2dcc4f648c0f639b2d11b1df4d6ff09e6bed23c47f047"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
-  "published_at": "2026-10-11T19:37:33.780975+00:00",
+  "published_at": "2026-10-11T19:57:18.928080+00:00",
   "training_latest_label": "2025-12-05",
   "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
   "validation": {
@@ -153,9 +153,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-12-v1",
+  "parent_contract_id": "ranked-firm-2026-10-12-v2",
   "automatic_improvement_enabled": true,
-  "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged.",
+  "version_reason": "Add optional research-only per-entry1-3-session simulator holds. Default simulator behavior, live weights, signal timing, hard gates and exposure limits unchanged. Expanded eight-year allocation research cannot promote or send trades.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",

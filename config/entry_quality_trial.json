@@ -1,7 +1,7 @@
 {
-  "id": "entry-quality-2026-10-12-v2",
-  "parent_policy": "ranked-firm-2026-10-12-v2",
-  "published_at": "2026-10-11T19:37:33.780975+00:00",
+  "id": "entry-quality-2026-10-12-v3",
+  "parent_policy": "ranked-firm-2026-10-12-v3",
+  "published_at": "2026-10-11T19:57:18.928080+00:00",
   "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
   "live_enabled": false,
   "automatic_promotion": false,
@@ -478,6 +478,6 @@
     "Return/tail scores are not calibrated probabilities",
     "Historical borrow and game eligibility remain unknown"
   ],
-  "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged.",
-  "parent_trial": "entry-quality-2026-10-12-v1"
+  "version_reason": "Add optional research-only per-entry1-3-session simulator holds. Default simulator behavior, live weights, signal timing, hard gates and exposure limits unchanged. Expanded eight-year allocation research cannot promote or send trades.",
+  "parent_trial": "entry-quality-2026-10-12-v2"
 }

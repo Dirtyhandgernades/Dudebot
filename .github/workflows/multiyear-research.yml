@@ -1,0 +1,105 @@
+name: Eight-season timing and capital research
+on:
+  workflow_dispatch:
+    inputs:
+      max_documents:
+        description: Equal source quota across2016–2025;0reuses sources only
+        type: string
+        default: '400'
+  schedule:
+    - cron: '15 0 * * 0'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: game-firm-replay
+  queue: max
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    env:
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      DISCORD_ENABLED: 'false'
+      OPENBLAS_NUM_THREADS: '1'
+      MAX_DOCUMENTS: ${{ inputs.max_documents || '200' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: balanced-research-37570684442
+          run-id: 37570684442
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/multiyear-base
+      - uses: actions/cache/restore@v4
+        id: sources
+        with:
+          path: |
+            backtest/runtime/source-replay
+            backtest/runtime/game-firm-search
+          key: multiyear-sources-v1-${{ github.run_id }}
+          restore-keys: |
+            multiyear-sources-v1-
+      - uses: actions/cache/restore@v4
+        if: steps.sources.outputs.cache-matched-key == ''
+        with:
+          path: backtest/runtime/source-replay
+          key: game-sources-v1-balanced-37570684442
+          restore-keys: game-sources-v1-
+      - uses: actions/cache/restore@v4
+        if: steps.sources.outputs.cache-matched-key == ''
+        with:
+          path: backtest/runtime/game-firm-search
+          key: game-firm-search-v1-balanced-37570684442
+          restore-keys: game-firm-search-v1-
+      - uses: actions/cache/restore@v4
+        id: prices
+        with:
+          path: |
+            backtest/runtime/multiyear-daily
+            backtest/runtime/multiyear-minutes
+            backtest/runtime/checkpoint-bars
+          key: multiyear-prices-v1-${{ github.run_id }}
+          restore-keys: multiyear-prices-v1-
+      - uses: actions/cache/restore@v4
+        if: steps.prices.outputs.cache-matched-key == ''
+        with:
+          path: backtest/runtime/checkpoint-bars
+          key: checkpoint-bars-v1-balanced-37570684442
+          restore-keys: checkpoint-bars-v1-
+      - name: Fixed eight-year discovery, delayed signals, holding and sizing sweep
+        run: >-
+          python -u -m backtest.multiyear_study
+          --packet backtest/runtime/multiyear-base/balanced/news/inputs.json.gz
+          --collect --max-documents "$MAX_DOCUMENTS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multiyear-research-${{ github.run_id }}
+          path: reports/multiyear/
+          retention-days: 90
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            backtest/runtime/source-replay
+            backtest/runtime/game-firm-search
+          key: multiyear-sources-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            backtest/runtime/multiyear-daily
+            backtest/runtime/multiyear-minutes
+            backtest/runtime/checkpoint-bars
+          key: multiyear-prices-v1-${{ github.run_id }}

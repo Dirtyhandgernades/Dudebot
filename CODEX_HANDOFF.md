@@ -1,5 +1,27 @@
 # Dudebot continuation handoff
 
+## October11 eight-season consistency research
+
+User requests many years, correct1–3sessionholds/dropintervals andprior-only
+largerallocations, withconsistency acrossyears. Frozenplan backtest/MULTIYEAR_PLAN.json;
+module backtest.multiyear_study; hosted multiyear-research.yml weeklybounded
+newsourcebudget200, equal2016–2025quotas, cachedprices. Testseasons2018–2025,
+prior2yeartraining, source-datedfirmuniverse, actualdelayedpreclosesignals.
+All1/2/3holds plusprior-onlyadaptiveperstock choice, bounded/aggressive
+researchallocations, bothcostcases. Everyvariant/lossretained; missingyears,
+cashinterest-onlyperiods,sparse<10trades,losses,>25%DD failconsistency.
+Historicalborrow/cap/halts/gameeligibility remainunknown. Dropintervals are
+followingclosingprices; actualintradaydumptime remainsunknown.
+
+Simulatoroptionalresearch_hold_by_entry leavesdefault/live3sessionbehavior
+unchanged; testsverifyFri->Mon sessionsand1/2/3exitdates. Prospectivehash
+contracts ranked-firm-2026-10-12-v3 /firm-shadow-2026-10-12-v3 /entry-quality
+2026-10-12-v3 archiveactualv2. Nochange toliveweights, exposurelimits, gates,
+oralerttiming. 350tests pass. Research cannotpromoteincreasedsizes byitself.
+Cached2023/24/25aggressiveadaptive net8852.92/-1019.84/13197.21;
+stress7172.27/-4989.04/5762.30. FAILSconsistency; no70kclaim.
+Newsourcegather+eight-seasonreplay mustcompletebeforeclaimingolder-yearresults.
+
 ## October 11 workflow reliability repair
 
 Verified hosted: CI38169141883, Cloudflare38168587936, fullscan38168903747,

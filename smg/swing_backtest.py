@@ -216,7 +216,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None):
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None,research_hold_by_entry=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -237,6 +237,9 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
     if strategy in preclose_strategies and (intraday_signals is None or firm_dates is None or not signal_share_sizing):
         raise ValueError('Intraday research requires dated signals, firm evidence and decision-price share sizing')
     if intraday_signals is not None and strategy not in preclose_strategies:raise ValueError('Unexpected intraday signals')
+    if research_hold_by_entry is not None and (strategy not in preclose_strategies or
+            any(type(v) is not int or not 1<=v<=3 for v in research_hold_by_entry.values())):
+        raise ValueError('Research holds require dated intraday signals and1–3 sessions')
     fee=cost_bps/10000;cooldowns={}
     for day_position,day in enumerate(days):
         i=index[day]
@@ -378,6 +381,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                     gaps['ORDER_REJECTED_BUYING_POWER_AT_FILL']+=1;continue
                 cash-=notional+entry_fee
                 selected_hold = (1 if strategy=='ADAPTIVE_COLLAPSE_SHORT' and structure_score>=90 else hold)
+                if research_hold_by_entry is not None:selected_hold=research_hold_by_entry.get(day+':'+ticker,selected_hold)
                 planned=sessions[min(i+selected_hold,index[days[-1]] if liquidate_at_end else len(sessions)-1)]
                 positions[ticker]=dict(signal_date=signal_day,entry_date=day,planned_exit=planned,entry_price=entry['c'],adjusted_entry=adj['c'],shares=shares,notional=notional,entry_fee=entry_fee,dump_structure_score=structure_score,timing_trigger=trigger,position_scale=position_scale)
                 if exposure_policy:positions[ticker]['exposure_envelope']=envelope

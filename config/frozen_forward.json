@@ -1,6 +1,6 @@
 {
-  "id": "firm-shadow-2026-10-12-v2",
-  "frozen_at": "2026-10-11T19:37:33.780975+00:00",
+  "id": "firm-shadow-2026-10-12-v3",
+  "frozen_at": "2026-10-11T19:57:18.928080+00:00",
   "start_date": "2026-10-12",
   "end_date": "2026-12-05",
   "target_drop_fraction": 0.2,
@@ -87,7 +87,7 @@
     "smg/validation.py": "7e988b1b152d04dc8b640ce984d9595f73b61c7d64afa7a2d5f51fe442375c4f",
     "smg/risk_model.py": "3b6d4bf82b1e88447314a17742f73f431b0ef739bdaf57d1baf02b9a91d92d8d",
     "smg/intraday_replay.py": "c7ca0b98ae37b380d0b1ec4e6cdc364e84be4dc55b01fe03872b3af343812ee4",
-    "smg/swing_backtest.py": "c13de036e32ec759596017dd1f8701b65f76d06f18f42327950332dca7612bc0",
+    "smg/swing_backtest.py": "29582f0ce285ffcb3109f22118812e9cca0b9b9c0bed68494e1f42818efec902",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
     "smg/models.py": "74da1afe7ce2354c17323a70c879c90ab72f00e2ce44aa9fad6e8c7277725139",
     "smg/providers.py": "f1b353234e2845858868e000f0a558accf1b64905143eed9a94030c5e4809d6c",
@@ -113,6 +113,6 @@
     "minimum_positive_outcomes": 10,
     "minimum_distinct_tickers": 5
   },
-  "parent_contract_id": "firm-shadow-2026-10-12-v1",
-  "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged."
+  "parent_contract_id": "firm-shadow-2026-10-12-v2",
+  "version_reason": "Add optional research-only per-entry1-3-session simulator holds. Default simulator behavior, live weights, signal timing, hard gates and exposure limits unchanged. Expanded eight-year allocation research cannot promote or send trades."
 }

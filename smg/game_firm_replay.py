@@ -73,7 +73,8 @@ def interleave_years(items):
     return result
 
 
-def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority_period='balanced'):
+def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority_period='balanced',start_year=2021,end_year=2025):
+    if not 2016<=start_year<=end_year<=2025:raise ValueError('Historical source years must be within2016–2025')
     entries=research_entries(entries)
     state=root/'backtest/runtime/game-firm-search'
     state.mkdir(parents=True,exist_ok=True)
@@ -82,15 +83,15 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority
         original=next((root/'backtest/runtime/independent-checkpoint').rglob('firm-search.sqlite'),None)
         if original:shutil.copyfile(original,db)
     searches={}
-    for year in range(2021,2026):
+    for year in range(start_year,end_year+1):
         if max_documents==0:
             searches[str(year)]={'status':'CACHE_ONLY_NO_SEARCH','pages_this_run':0};continue
-        searches[str(year)]=collect_firm_search(state,min(date(year,12,31),date(2025,12,5)),entries,
+        searches[str(year)]=collect_firm_search(state,min(date(year,12,31),date(end_year,12,5)),entries,
             start=date(year,1,1),max_pages=12,balanced=True,max_seconds=min(36,max_seconds/10))
     search={'status':'YEAR_BALANCED_SEARCH','years':searches,'page_budget_per_year':12,
             'complete':all(v.get('status')=='SEARCH_INDEX_COMPLETE' for v in searches.values())}
     if not db.exists():return [],{'search':search,'status':'SEARCH_NOT_RUN'}
-    selected=select_sources(db,start=date(2021,1,1),end=date(2025,12,5))
+    selected=select_sources(db,start=date(start_year,1,1),end=date(end_year,12,5))
     cache=root/'backtest/runtime/source-replay';cache.mkdir(parents=True,exist_ok=True)
     def source_order(item):
         identifier,src=item;accession,filename=identifier.split(':',1)
@@ -114,7 +115,7 @@ def discover(root, cfg, entries, *, max_documents=1200, max_seconds=600,priority
         (later if cik in seen else first).append(item);seen.add(cik)
     selected=interleave_years(first+later)
     http=Http();started=time.monotonic();downloaded=0;candidates=[];sources=[]
-    entities=EntityList(entries);year_downloads=Counter();year_reviews=Counter();quota=max_documents//5
+    entities=EntityList(entries);year_downloads=Counter();year_reviews=Counter();quota=max_documents//(end_year-start_year+1)
     for identifier,src in selected:
         if time.monotonic()-started>=max_seconds:break
         accession,filename=identifier.split(':',1)
