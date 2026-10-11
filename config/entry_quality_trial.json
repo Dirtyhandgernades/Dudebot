@@ -1,7 +1,7 @@
 {
-  "id": "entry-quality-2026-10-12-v1",
-  "parent_policy": "ranked-firm-2026-10-12-v1",
-  "published_at": "2026-10-11T19:32:53.456399+00:00",
+  "id": "entry-quality-2026-10-12-v2",
+  "parent_policy": "ranked-firm-2026-10-12-v2",
+  "published_at": "2026-10-11T19:37:33.780975+00:00",
   "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
   "live_enabled": false,
   "automatic_promotion": false,
@@ -479,5 +479,5 @@
     "Historical borrow and game eligibility remain unknown"
   ],
   "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged.",
-  "parent_trial": "entry-quality-2026-10-07-v1"
+  "parent_trial": "entry-quality-2026-10-12-v1"
 }

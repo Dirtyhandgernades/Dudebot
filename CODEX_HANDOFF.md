@@ -8,11 +8,11 @@ was Sunday-Thursday; replace withMON-FRI plus New York weekday/time guard.
 Bounded GET5xx retries and SHA-reconciled state write retry preserve concurrency
 and uncertain Discord protection. Daily SIP end never exceeds now-minus16min.
 Pending postcheckpoint delivery freshness/close revalidation is included.
-340Python and25Cloudflare tests pass locally. Hosted verification is required
+344Python and25Cloudflare tests pass locally. Hosted verification is required
 separately. Read backtest/WORKFLOW_REPAIR_2026_10_11.md for exact runs/steps.
 
-New prospective contracts startOct12: ranked-firm-2026-10-12-v1,
-firm-shadow-2026-10-12-v1, entry-quality-2026-10-12-v1(research-only).
+New prospective contracts startOct12: ranked-firm-2026-10-12-v2,
+firm-shadow-2026-10-12-v2, entry-quality-2026-10-12-v2(research-only).
 Exact actual deployed rankedOct7v7/originalv8/entryv1 archived. Pendinglocal
 Oct7rankedv8/entryv2 were NEVERdeployed. Allweights, exposurelimits andhard
 exclusions preserved. Oldentrytrials remainreviewed againsttheir frozen

@@ -172,7 +172,8 @@ def test_read_retry_budget_and_genuine_denial_remain_visible(monkeypatch):
 
 @pytest.mark.parametrize('status',[None,500,502,503,504])
 @pytest.mark.parametrize('concurrent',[False,True])
-def test_failed_checkpoint_reconciles_remote_before_guarded_retry(tmp_path,status,concurrent):
+def test_failed_checkpoint_reconciles_remote_before_guarded_retry(tmp_path,monkeypatch,status,concurrent):
+    monkeypatch.setenv('GITHUB_ACTIONS','false')
     store=Store(tmp_path/'state');store.put('claim','new')
     class HTTP:
         def __init__(self):self.puts=[]
@@ -211,3 +212,48 @@ def test_compressed_git_state_write_keeps_other_files_and_never_force_pushes(tmp
     assert pushes==[['push','--quiet','origin','commit:refs/heads/smg-state']]
     assert all('--force' not in a for a,_ in calls)
     assert any('GIT_INDEX_FILE' in kw['env'] for a,kw in calls if a[0]=='read-tree')
+
+
+@pytest.mark.parametrize('changed',[False,True])
+def test_compressed_git_read_verifies_blob_and_preserves_checkout(tmp_path,monkeypatch,changed):
+    source=Store(tmp_path/'source');source.put('known',1);content=source.path.read_bytes()
+    digest=GitHubState.blob_sha(content);calls=[]
+    def run(command,**kwargs):
+        args=command[1:];calls.append(args)
+        value=b''
+        if args[:3]==['remote','get-url','origin']:value=b'https://github.com/o/r.git'
+        elif args[0]=='rev-parse':value=digest.encode()
+        elif args[0]=='cat-file':value=content
+        return SimpleNamespace(returncode=0,stdout=value,stderr=b'')
+    monkeypatch.setattr('subprocess.run',run);b=GitHubState(None,'o/r','fixture');path=tmp_path/'runtime/state.sqlite';path.parent.mkdir();path.write_bytes(b'preserve')
+    if changed:
+        with pytest.raises(ProviderError,match='STATE_SHA_CONFLICT'):b.git_restore(path,'a'*40)
+        assert path.read_bytes()==b'preserve'
+    else:
+        b.git_restore(path,digest);assert path.read_bytes()==content and b.sha==digest and b.writer_transport=='git'
+    assert not any(a[0] in ['checkout','reset','push'] for a in calls)
+
+
+def test_hosted_transient_api_restore_uses_compressed_fallback_only_for_transients(tmp_path,monkeypatch):
+    monkeypatch.setenv('GITHUB_ACTIONS','true');calls=[]
+    monkeypatch.setattr(GitHubState,'git_restore',lambda self,path,expected:calls.append(expected))
+    class HTTP:
+        status=504
+        def json(self,*a,**kw):raise ProviderError('api.github.com',self.status)
+        def response(self,*a,**kw):raise AssertionError('unexpected')
+    http=HTTP();b=GitHubState(http,'o/r','fixture');b.restore(tmp_path/'s.db');assert calls==[None]
+    http.status=403
+    with pytest.raises(ProviderError):b.restore(tmp_path/'s.db')
+    assert calls==[None]
+
+
+def test_hosted_failed_write_can_reconcile_by_git_when_contents_api_is_unavailable(tmp_path,monkeypatch):
+    monkeypatch.setenv('GITHUB_ACTIONS','true');calls=[]
+    store=Store(tmp_path/'state');store.put('claim','new')
+    class HTTP:
+        def json(self,*a,**kw):
+            assert kw['method']=='PUT';raise ProviderError('api.github.com',504)
+    def reconcile(self,store,content):calls.append(self.sha)
+    monkeypatch.setattr(GitHubState,'git_checkpoint',reconcile)
+    b=GitHubState(HTTP(),'o/r','fixture');b.sha='original';b.branch_exists=True;b.checkpoint(store)
+    assert calls==['original']

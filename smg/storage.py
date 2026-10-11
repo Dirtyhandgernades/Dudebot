@@ -92,6 +92,8 @@ class GitHubState:
                     read_url='https://api.github.com/repos/'+self.repo+'/git/blobs/'+expected;params=None
                 r=self.http.response(read_url,params=params,headers={**self.headers,'Accept':'application/vnd.github.raw+json'})
             except ProviderError as exc:
+                if os.environ.get('GITHUB_ACTIONS')=='true' and exc.status in (None,500,502,503,504):
+                    self.git_restore(path,expected);return
                 if exc.status!=404:raise
                 return
             content=r.content
@@ -126,6 +128,28 @@ class GitHubState:
     def blob_sha(content):
         import hashlib
         return hashlib.sha1(b'blob '+str(len(content)).encode()+b'\x00'+content).hexdigest()
+    def git_restore(self,path,expected=None):
+        """Read-only compressed fallback; never checkout/reset the live branch."""
+        import subprocess,re
+        from urllib.parse import urlsplit
+        from .transport import ProviderError
+        local=Path(path);root=local.resolve().parent.parent
+        def git(args):
+            result=subprocess.run(['git',*args],cwd=root,capture_output=True,timeout=90)
+            if result.returncode:raise ProviderError('github.com',reason='STATE_GIT_READ_REJECTED')
+            return result.stdout
+        remote=urlsplit(git(['remote','get-url','origin']).decode().strip())
+        if remote.scheme!='https' or remote.hostname!='github.com' or remote.path.strip('/').removesuffix('.git').lower()!=self.repo.lower():
+            raise ValueError('Git state remote does not match the authenticated repository')
+        git(['fetch','--quiet','--no-tags','--depth=1','origin',self.branch])
+        actual=git(['rev-parse','FETCH_HEAD:runtime/state.sqlite']).decode().strip()
+        if not re.fullmatch('[a-f0-9]{40}',actual):raise ValueError('Invalid state blob SHA')
+        if expected and actual!=expected:raise ProviderError('github.com',409,'STATE_SHA_CONFLICT')
+        content=git(['cat-file','blob',actual])
+        if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
+        if self.blob_sha(content)!=actual:raise ValueError('GitHub state blob checksum mismatch')
+        local.parent.mkdir(parents=True,exist_ok=True);local.write_bytes(content)
+        self.sha=actual;self.branch_exists=True;self.writer_transport='git';self.remember_local(path)
     def git_checkpoint(self,store,content):
         """Compressed transfer with the SAME checkout token and no force push.
 
@@ -181,6 +205,13 @@ class GitHubState:
         try:
             data=self.http.json(self.url,method='PUT',headers=self.headers,body=body)
         except ProviderError as exc:
+            # The compressed writer itself reconciles exact desired content
+            # or the original expected SHA before any ordinary guarded push.
+            # This also works when the Contents reconciliation GET times out.
+            import os
+            if os.environ.get('GITHUB_ACTIONS')=='true' and self.sha and exc.status in (None,500,502,503,504):
+                try:self.git_checkpoint(store,content);return
+                except ProviderError as final:self.checkpoint_error=final;raise
             # Read-only reconciliation is not a blind mutation retry. A lost
             # acknowledgement may already have committed EXACTLY these bytes.
             # Otherwise retry transient errors or a409 once only when the remote blob is still the

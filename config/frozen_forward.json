@@ -1,6 +1,6 @@
 {
-  "id": "firm-shadow-2026-10-12-v1",
-  "frozen_at": "2026-10-11T19:32:53.456399+00:00",
+  "id": "firm-shadow-2026-10-12-v2",
+  "frozen_at": "2026-10-11T19:37:33.780975+00:00",
   "start_date": "2026-10-12",
   "end_date": "2026-12-05",
   "target_drop_fraction": 0.2,
@@ -104,7 +104,7 @@
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
-    "smg/storage.py": "d64e4c2c00c17e744655e88b0b3d59eb3fa9b6f7925e366bd04622738bdf8ae8",
+    "smg/storage.py": "e1a838ad30f8d02538fcba403b38a492d4b36c9e8dd68084b101bbb1b256b878",
     "smg/transport.py": "eba513f708770f7697a1c4acfe6e5ce1cbb90f45d5c9762f77cac802103ec4c2",
     "smg/exposure.py": "b6f2a4177f6c3c35af159a0d5f500eb137ff36ef38eefc28d610a15901c87b92"
   },
@@ -113,6 +113,6 @@
     "minimum_positive_outcomes": 10,
     "minimum_distinct_tickers": 5
   },
-  "parent_contract_id": "firm-shadow-2026-10-07-v8",
+  "parent_contract_id": "firm-shadow-2026-10-12-v1",
   "version_reason": "Repair Cloudflare weekday cadence, bounded read retries, guarded state reconciliation, free SIP request cutoff, and delivery deadline revalidation. Model weights, gates and exposure limits unchanged."
 }
