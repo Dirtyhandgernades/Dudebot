@@ -1,5 +1,12 @@
 # Firm coverage and entry-quality results
 
+October11 deployment correction: the October7ranked-v8/entry-v2 definitions
+described at the end were local drafts and were never deployed. Actual older
+deployed versions were ranked-v7/original-v8/entry-v1. Current prospective
+versions are ranked-firm-2026-10-12-v3, firm-shadow-2026-10-12-v3 and research-only
+entry-quality-2026-10-12-v3. Default live weights, timing and exposure limits
+are unchanged. Historical tables below remain diagnostic results.
+
 All four requested work streams now have implementations and measured status: source-gap review, premature-entry diagnostics, net-return learning, and prospective validation. None of the new entry policies passed the complete historical gate. The current base selection weights and exposure limits remain in place. The $70,000 seasonal target is not established.
 
 ## Independent discovery and benchmark audit

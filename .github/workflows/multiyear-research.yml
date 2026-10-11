@@ -7,7 +7,7 @@ on:
         type: string
         default: '400'
   schedule:
-    - cron: '15 0 * * 0'
+    - cron: '15 5 * * *'
 permissions:
   contents: read
   actions: read
@@ -25,7 +25,7 @@ jobs:
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       DISCORD_ENABLED: 'false'
       OPENBLAS_NUM_THREADS: '1'
-      MAX_DOCUMENTS: ${{ inputs.max_documents || '200' }}
+      MAX_DOCUMENTS: ${{ inputs.max_documents || '100' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

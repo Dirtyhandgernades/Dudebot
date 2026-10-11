@@ -4,8 +4,8 @@
 
 User requests many years, correct1–3sessionholds/dropintervals andprior-only
 largerallocations, withconsistency acrossyears. Frozenplan backtest/MULTIYEAR_PLAN.json;
-module backtest.multiyear_study; hosted multiyear-research.yml weeklybounded
-newsourcebudget200, equal2016–2025quotas, cachedprices. Testseasons2018–2025,
+module backtest.multiyear_study; hosted multiyear-research.yml dailybounded
+newsourcebudget100, equal2016–2025quotas, cachedprices. Testseasons2018–2025,
 prior2yeartraining, source-datedfirmuniverse, actualdelayedpreclosesignals.
 All1/2/3holds plusprior-onlyadaptiveperstock choice, bounded/aggressive
 researchallocations, bothcostcases. Everyvariant/lossretained; missingyears,
@@ -17,10 +17,21 @@ Simulatoroptionalresearch_hold_by_entry leavesdefault/live3sessionbehavior
 unchanged; testsverifyFri->Mon sessionsand1/2/3exitdates. Prospectivehash
 contracts ranked-firm-2026-10-12-v3 /firm-shadow-2026-10-12-v3 /entry-quality
 2026-10-12-v3 archiveactualv2. Nochange toliveweights, exposurelimits, gates,
-oralerttiming. 350tests pass. Research cannotpromoteincreasedsizes byitself.
+oralerttiming. 351tests pass. Research cannotpromoteincreasedsizes byitself.
 Cached2023/24/25aggressiveadaptive net8852.92/-1019.84/13197.21;
 stress7172.27/-4989.04/5762.30. FAILSconsistency; no70kclaim.
-Newsourcegather+eight-seasonreplay mustcompletebeforeclaimingolder-yearresults.
+Completed38170255426 initial/38170602612 timingcontrols. 400newdocs40/sourceyear,
+128addedrecords,69670rawdailyobservations.30daily+500minute requests firstpass;
+secondpass0newdocs/0daily/230minute requests filled2025budgetgap.44combinations,
+8years,bothcostcases=704portfolios; ZEROconsistencypasses. Observedholding
+periodsall<=3sessions. First20minbenchmark and15/10/5minute scheduling/delay
+controlsretained. At15minutes-beforeclose aggressiveadaptive2020–25net
+-5503.73/-6738.88/353.96/-3915.91/-5193.62/7384.88;2025stress-229.89.
+2018/19zerotrades,interestonly. Earliercoverage20–32firmtickersversus592by2025;
+NOTfullmarketcoverage. Target70kperseasonUNACHIEVED; donotpromote failedsizes.
+Currentlivecaps/weights unchanged; researchrepeatdaily05:15UTC100newdocs,
+noDiscordwrites/noautomaticallocationpromotion. Readbacktest/MULTIYEAR_RESULTS_2026_10_11.json.
+CI38170542179(351tests) andlivearchive38170254864and swing38170254838SUCCEEDED.
 
 ## October 11 workflow reliability repair
 
