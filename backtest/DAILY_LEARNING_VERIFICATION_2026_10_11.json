@@ -1,0 +1,43 @@
+{
+  "verified_at": "2026-10-12T03:11:41.394056+00:00",
+  "chicago_date": "2026-10-11",
+  "code_commit": "8fa3dd5f88425b190c624935eadfc27c21bd24a3",
+  "runs": {
+    "ci": 38198293446,
+    "evidence_scan": 38198293454,
+    "daily_learning": 38198293821,
+    "closed_market_preflight": 38198295311
+  },
+  "conclusions": "All completed successfully",
+  "tests": {
+    "python": 372,
+    "cloudflare": 25
+  },
+  "daily": {
+    "status": "FROZEN_CHALLENGER_STAGED",
+    "fit_status": "TRAINED_FROM_READY_OUTCOMES",
+    "fresh_training_outcomes": 0,
+    "new_mature_outcomes": 0,
+    "staged_model_id": "adaptive-52216c0a89d0d3641584",
+    "active_model_id": null,
+    "provider_requests": 0,
+    "orders_placed": 0
+  },
+  "historical_gate": {
+    "passed": true,
+    "failures": [],
+    "aggregate_stressed_profit_improvement": 560.8299999999995,
+    "fresh_prospective_validation_also_required": true
+  },
+  "contracts": [
+    "ranked-firm-2026-10-12-v4",
+    "firm-shadow-2026-10-12-v4",
+    "entry-quality-2026-10-12-v4"
+  ],
+  "limits": [
+    "Closed market; no new stock delivery or SIP quote probe claimed",
+    "Challenger staged, not promoted; first prospective sessionOctober12",
+    "No new mature live outcomes, no orders or larger allocation",
+    "Consistent70kseason target remains unestablished"
+  ]
+}

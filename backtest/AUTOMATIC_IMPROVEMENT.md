@@ -42,6 +42,18 @@ failure. It cannot automatically increase allocation, enable longs, change entry
 timing or rewrite code. Research and daily evaluation are automatic; better
 returns are not guaranteed, and the incumbent stays in place when gates fail.
 
+Hosted verification on `8fa3dd5`: [daily learning 38198293821](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38198293821),
+[evidence scan 38198293454](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38198293454),
+[closed-market preflight 38198295311](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38198295311)
+and [CI 38198293446](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38198293446)
+all succeeded. CI passed 372 Python and 25 Cloudflare checks. The nightly result
+is `FROZEN_CHALLENGER_STAGED`, ID `adaptive-52216c0a89d0d3641584`, with active model
+null, zero newly matured live outcomes, zero historical provider requests and
+zero orders. A first ready historical fit was made under the repaired context;
+this is not new live learning or a promotion. The preflight correctly reported
+the market closed; it did not perform a new live quote probe or send a trade.
+Detailed verification is `DAILY_LEARNING_VERIFICATION_2026_10_11.json`.
+
 The hosted daily workflow runs at 23:55 UTC each weekday. It refreshes completed live outcome prices, trains candidates, replays the 2023–2025 game seasons from cached historical data, and decides whether to stage, promote, retain or roll back a model. It requires no running Windows PC and no daily user approval. Existing source discovery and bounded news/fundamental enrichment continue during the day.
 
 Research is automatic, but a new fit does not become a live policy merely because it is new. The frozen challenger records its decisions before the next three sessions finish. It must pass the multi-year cost tests and the fresh prospective tests before automatic promotion. Missing prices and historical borrow/cap/halt/security membership remain explicit gaps. These are paper signals and conditional simulations, not brokerage orders or certified profit.

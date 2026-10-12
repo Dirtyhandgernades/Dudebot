@@ -17,7 +17,14 @@ ProspectiveOct12contractsnowranked-firm-2026-10-12-v4 /firm-shadow-v4 /entry-
 quality-v4; exactv3archivespreserved. No weights/sizing/eligibility/timingchanges;
 earlierOct7actualobservationsremainrankedv7/originalv8/entryv1. Readbacktest/
 AUTOMATIC_IMPROVEMENT.md latestsection. Local371tests beforeCIKfix/16targeted
-adaptive testsafter; hosted/fullverificationpendinguntilrecordedbelow.
+adaptive testsafter; hostedCI38198293446passed372Python/25Cloudflare.
+Evidence38198293454,daily38198293821,closed-marketpreflight38198295311all
+SUCCEEDED. DailyFROZEN_CHALLENGER_STAGEDid adaptive-52216c0a89d0d3641584,
+active_model_id null,fresh/newmatured0,providerrequests0,orders0. Firstready
+historicalfit undernewcontext; NOTfreshlivelearning orpromotion. Preflight
+RANKED_MARKET_WINDOW_CLOSED; no newSIPprobe/stockdeliveryclaim. Readbacktest/
+DAILY_LEARNING_VERIFICATION_2026_10_11.json. Existinglocalfollowup prompt
+updatedtov4anddailyreports/knownissuer/bothcost-half/stressrollback checks.
 
 ## October 11 controlled profit bridge and additional matched training
 
