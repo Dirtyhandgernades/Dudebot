@@ -82,6 +82,16 @@ jobs:
           python -u -m backtest.multiyear_study
           --packet backtest/runtime/multiyear-base/balanced/news/inputs.json.gz
           --collect --max-documents "$MAX_DOCUMENTS"
+      - name: Cached breakdown confirmation and entry-exit failure attribution
+        run: >-
+          python -u -m backtest.entry_failure_audit
+          --packet reports/multiyear/inputs.json.gz
+          --checkpoints reports/multiyear/checkpoints
+      - name: Prior-only matched-candle return and holding research
+        run: >-
+          python -u -m backtest.checkpoint_learning
+          --packet reports/multiyear/inputs.json.gz
+          --checkpoints reports/multiyear/checkpoints
       - uses: actions/upload-artifact@v4
         if: always()
         with:

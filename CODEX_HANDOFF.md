@@ -1,5 +1,27 @@
 # Dudebot continuation handoff
 
+## October 11 entry-loss attribution and matched checkpoint learning
+
+User requests repeated improvements, correct entries/exits and fewer losses.
+Read backtest/ENTRY_FAILURE_RESULTS_2026_10_11.md. Archived Oct2 primary loss
+is $189510.63 across season/85closedtrades, NOT one3sessionaccount window;
+SMX alone lost167915.33. Archive is paper, not execution. New cached module
+backtest.entry_failure_audit runs480fixedconfirmation/hold/cost/timing portfolios
+across2018-25; ZEROconsistency passes, ZEROholding overruns, ZEROprovidercalls.
+Bounded2025baseline53trades:5drop20hitswithin3,12firstdropssessions4-10,
+33no20lowerclosewithincomplete10,3laterwindowsunknown. Five losers could
+have profitable shorter exits in hindsight; diagnostics do NOTselectexits.
+New backtest.checkpoint_learning matches actual delayed candle features to
+prior matured policy outcomes; same-offset prior2years, nonoverlappingissuer
+windows, heldissuersexcluded, missingidentityunknown. Only2025has>=30prior
+examples(35/36). H1at15min2025net4389.39/stress2264.88;5minnet1779.82/
+stress-410.73. Adaptive15min2756.32/stress-592.67;5min-788.18/-4085.10.
+NO consistent candidate, no targetclaim, NOlivechanges or increasedsizes.
+Daily multiyear workflow adds bothcached research steps; no extra provider
+requests or live promotions. 361Python tests pass. Reports underoutputs/
+backtest/entry-failure-2026-10-11 andcheckpoint-learning-2026-10-11.
+Existinglive prospectiveOct12v3 contracts/fingerprints remainunchanged.
+
 ## October11 eight-season consistency research
 
 User requests many years, correct1–3sessionholds/dropintervals andprior-only
