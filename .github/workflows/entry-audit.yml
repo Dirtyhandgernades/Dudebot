@@ -1,0 +1,54 @@
+name: Cached firm entry and exit audit
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_run:
+        description: Completed multiyear-research run to reuse unchanged
+        type: string
+        default: '38170602612'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cached-entry-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    env:
+      DISCORD_ENABLED: 'false'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-tested.txt
+      - run: python -m pip install -e '.[test]' -c requirements-tested.txt
+      - run: python -m pytest -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: multiyear-research-${{ inputs.dataset_run }}
+          run-id: ${{ inputs.dataset_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: backtest/runtime/frozen-entry-audit
+      - name: Fixed confirmation, holding, and failure attribution
+        run: >-
+          python -u -m backtest.entry_failure_audit
+          --packet backtest/runtime/frozen-entry-audit/inputs.json.gz
+          --checkpoints backtest/runtime/frozen-entry-audit/checkpoints
+          --out reports/entry-audit/confirmation
+      - name: Prior-only matched checkpoint learning
+        run: >-
+          python -u -m backtest.checkpoint_learning
+          --packet backtest/runtime/frozen-entry-audit/inputs.json.gz
+          --checkpoints backtest/runtime/frozen-entry-audit/checkpoints
+          --out reports/entry-audit/learning
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: entry-audit-${{ github.run_id }}
+          path: reports/entry-audit/
+          retention-days: 90

@@ -103,6 +103,11 @@ the artifact. Existing live policies, sizing and separate prospective promotion
 gates remain unchanged. Long alerts remain disabled/review-only; a losing short
 is not evidence to reverse the trade into a long.
 
+The manual `entry-audit.yml` workflow can reuse an existing completed
+`multiyear-research` artifact without repeating discovery, price downloads or
+the unchanged eight-season allocation sweep. It receives no market-data or
+Discord secrets. This makes the targeted research verification inexpensive.
+
 Historical borrow, caps, halts, full game membership and exact intraday dump
 times remain unknown. Costs are the existing disclosed $5 each order, 30/100
 bps each side and assumed 10%/100% annual borrow. Entry/exit fills are closes;
