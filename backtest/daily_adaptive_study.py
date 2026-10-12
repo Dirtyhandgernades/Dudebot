@@ -6,12 +6,14 @@ It can evaluate an EXTRA filter, not a broader replacement universe/model.
 import gzip
 import json
 import hashlib
+import math
 from pathlib import Path
 import numpy as np
 from smg.action_learning import add_outcomes
 from smg.risk_model import samples,fit,predict,feature_row,matured_before
 from smg.swing_backtest import simulate
 from smg.history_identity import repair_legacy_volume
+from smg.exposure import POLICY
 from backtest.repair_study import fixed_trade_cost_sensitivity
 
 
@@ -22,13 +24,20 @@ def gate(results):
     for r in results:
         for case in ('base','stress','same_trade_stress'):
             base=r['incumbent'][case];new=r['challenger'][case]
-            if new.get('net_profit') is None or new['net_profit']<=0:failures.append(f"{r['year']}_{case}_NOT_PROFITABLE")
-            if new.get('max_observed_drawdown_pct',0)>25:failures.append(f"{r['year']}_{case}_DRAWDOWN_ABOVE_25")
-            if new.get('net_profit') is None or base.get('net_profit') is None or new['net_profit']<base['net_profit']*.90:
+            profit=new.get('net_profit');parent_profit=base.get('net_profit')
+            interest=new.get('interest_pnl',0);drawdown=new.get('max_observed_drawdown_pct',0)
+            if (not isinstance(profit,(int,float)) or not math.isfinite(profit) or
+                not isinstance(interest,(int,float)) or not math.isfinite(interest) or profit-interest<=0):
+                failures.append(f"{r['year']}_{case}_NOT_PROFITABLE")
+            if not isinstance(drawdown,(int,float)) or not math.isfinite(drawdown) or drawdown>25:
+                failures.append(f"{r['year']}_{case}_DRAWDOWN_ABOVE_25_OR_UNKNOWN")
+            if (not isinstance(profit,(int,float)) or not math.isfinite(profit) or
+                not isinstance(parent_profit,(int,float)) or not math.isfinite(parent_profit) or profit<parent_profit*.90):
                 failures.append(f"{r['year']}_{case}_REGRESSES_MORE_THAN_10_PERCENT")
         if r['challenger']['base']['closed_trades']<2:failures.append(f"{r['year']}_SPARSE_TRADES")
-        improvement+=r['challenger']['stress']['net_profit'] or 0
-        improvement-=r['incumbent']['stress']['net_profit'] or 0
+        values=[r[n]['stress'].get('net_profit') for n in ('challenger','incumbent')]
+        if all(isinstance(v,(int,float)) and math.isfinite(v) for v in values):improvement+=values[0]-values[1]
+        else:failures.append(f"{r['year']}_STRESS_COMPARISON_UNAVAILABLE")
     if improvement<500:failures.append('AGGREGATE_STRESSED_IMPROVEMENT_BELOW_500')
     return {'passed':not failures,'failures':failures,'aggregate_stressed_profit_improvement':improvement,
             'fresh_prospective_validation_also_required':True}
@@ -58,14 +67,15 @@ def compare(packet,rows,signals_folder,out,penalty):
                 portfolio=simulate(packet['raw'],packet['split'],symbols,packet['sessions'],start=f'{year}-09-08',end=f'{year}-12-05',
                     strategy='FIRM_HYBRID_EXHAUSTION_RESEARCH',hold=3,firm_dates=packet['first_dates'],
                     intraday_signals=events,signal_share_sizing=True,risk_controls=True,position_target=50000,
-                    buying_power=150000,max_position_equity_fraction=.30,decision_price_buffer=1.2,
-                    smg_cash_interest=True,cost_bps=bps,borrow_rate=rate)
+                    buying_power=150000,max_position_equity_fraction=POLICY['max_position_fraction'],decision_price_buffer=1.2,
+                    smg_cash_interest=True,cost_bps=bps,borrow_rate=rate,exposure_policy=POLICY)
                 (out/f'{year}-{name}-{case}.json').write_text(json.dumps(portfolio,indent=2))
-                row[name][case]={k:portfolio[k] for k in ('net_profit','ending_balance','closed_trades','max_observed_drawdown_pct')}
+                row[name][case]={k:portfolio[k] for k in ('net_profit','interest_pnl','ending_balance','closed_trades','max_observed_drawdown_pct')}
                 if case=='base':base=portfolio
             row[name]['same_trade_stress']=fixed_trade_cost_sensitivity({**base,'open_positions':base.get('unresolved_positions',{})},packet['split'])
         results.append(row)
     report={'status':'DAILY_THREE_YEAR_FILTER_REPLAY','l2':penalty,'years':[2023,2024,2025],'results':results,
+            'exposure_policy':POLICY,'cash_interest_is_not_trading_profit':True,
             'provider_requests':0,'promotion_gate':gate(results),
             'limits':['Repeatedly inspected seasons are reused diagnostics, not untouched holdouts',
                       'Timestamped setup corpus is restricted by historical incumbent rank; only an additional filter is evaluated',

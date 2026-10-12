@@ -1,5 +1,24 @@
 # Dudebot continuation handoff
 
+## October 11 strengthened automatic daily learning
+
+User asksdailyself-improvement. Verifiedpromotionbugs: historicaladaptive
+replayusedunprotected30%researchsize; prospectivehalfcheckonlybasecosts.
+Now backtest.daily_adaptive_study usesPOLICYandtradingprofitexcludinginterest;
+smg.adaptive_firm requireskept/pairedpositivebothhalves/base+stress, rejects
+nonfinite/unknownoutcomes andknownnormalizedCIKforindependentcounts.
+Stress-onlypairedregressioncanrollback. Unchangedreadytrainingreusesvalid
+frozenfit;newlabelsrefit. DurabledailyChicago reports/auditrecordactualnew
+outcomes/status/modelIDs/gates; no guaranteeofdailybetterperformance.
+BoundedL2.5 historicalgatepassesaggregate560.83stressimprovement;base2023/24/25
+432.27/6020.65/7039.98. Otherrecipesfail. Stillneeds50nonoverlapfreshdecisions,
+10knownissuers,20sessions,20kept/10rejected andbothcost/halfchecks.
+ProspectiveOct12contractsnowranked-firm-2026-10-12-v4 /firm-shadow-v4 /entry-
+quality-v4; exactv3archivespreserved. No weights/sizing/eligibility/timingchanges;
+earlierOct7actualobservationsremainrankedv7/originalv8/entryv1. Readbacktest/
+AUTOMATIC_IMPROVEMENT.md latestsection. Local371tests beforeCIKfix/16targeted
+adaptive testsafter; hosted/fullverificationpendinguntilrecordedbelow.
+
 ## October 11 controlled profit bridge and additional matched training
 
 User feels earlier results closer to70k. Readbacktest/PROFIT_BRIDGE_2026_10_11.md

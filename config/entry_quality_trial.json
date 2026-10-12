@@ -1,7 +1,7 @@
 {
-  "id": "entry-quality-2026-10-12-v3",
-  "parent_policy": "ranked-firm-2026-10-12-v3",
-  "published_at": "2026-10-11T19:57:18.928080+00:00",
+  "id": "entry-quality-2026-10-12-v4",
+  "parent_policy": "ranked-firm-2026-10-12-v4",
+  "published_at": "2026-10-12T02:59:59.679480+00:00",
   "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
   "live_enabled": false,
   "automatic_promotion": false,
@@ -478,6 +478,6 @@
     "Return/tail scores are not calibrated probabilities",
     "Historical borrow and game eligibility remain unknown"
   ],
-  "version_reason": "Add optional research-only per-entry1-3-session simulator holds. Default simulator behavior, live weights, signal timing, hard gates and exposure limits unchanged. Expanded eight-year allocation research cannot promote or send trades.",
-  "parent_trial": "entry-quality-2026-10-12-v2"
+  "version_reason": "Prospective automatic-learning repair: historical gates now use current bounded exposure and exclude cash-interest-only profit; prospective kept and paired returns must pass base/stress chronological halves; stress rollback, unchanged-fit reuse and durable daily learning records. Base weights, eligibility, entry timing, three-session maximum and sizes unchanged.",
+  "parent_trial": "entry-quality-2026-10-12-v3"
 }

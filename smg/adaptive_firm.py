@@ -12,6 +12,7 @@ import math
 import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import numpy as np
 from .action_learning import policy_outcome
 from .risk_model import fit, predict, FEATURES
@@ -20,12 +21,19 @@ from .storage import Store, GitHubState
 from .transport import Http
 
 UTC=timezone.utc
-RECIPE='PROFITABLE_POLICY_MEDIAN_FILTER_V1'
+RECIPE='PROFITABLE_POLICY_MEDIAN_FILTER_V2_BOUNDED_BOTH_COST_HALVES'
 PENALTIES=(.02,.1,.5)
 
 
 def digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+
+
+def issuer_id(row):
+    value=row.get('cik')
+    if (type(value) is int or isinstance(value,str) and value.isdigit()) and int(value)>0:
+        return 'CIK:'+str(int(value))
+    return None
 
 
 def context(spec):
@@ -65,6 +73,19 @@ def make_candidate(rows,spec,now,penalty=.02):
           'threshold':float(np.quantile(predict(model,known),.5)),
           'training_latest_label':max(r['label_end'] for r in known),'training_samples':len(known)}
     return {**body,'id':'adaptive-'+digest(body)[:20],'created_at':now.isoformat()}
+
+
+def cached_candidate(store,rows,spec,now,penalty):
+    ready=[r for r in rows if r.get('policy_net_return') is not None and r['label_end']<str(now.date())
+           and len(r.get('x',[]))==7 and all(math.isfinite(v) for v in r['x'])]
+    signature=digest({'context':context(spec),'l2':penalty,'ready':[
+        {k:r.get(k) for k in ('ticker','entry_date','x','label_end','policy_profitable')} for r in ready]})
+    cache=store.get('adaptive_fit_cache',{})
+    if cache.get('signature')==signature and (cache.get('candidate') is None or valid_model(cache['candidate'],spec,now)):
+        return cache.get('candidate'),'REUSED_UNCHANGED_MATURE_TRAINING'
+    candidate=make_candidate(rows,spec,now,penalty)
+    store.put('adaptive_fit_cache',{'signature':signature,'candidate':candidate,'built_at':now.isoformat()})
+    return candidate,'TRAINED_FROM_READY_OUTCOMES' if candidate else 'INSUFFICIENT_READY_TRAINING'
 
 
 def record_decision(store,candidate,result,spec,now):
@@ -120,8 +141,8 @@ def base_training(store,spec,now):
                 or not bounds[1]-timedelta(minutes=20)<=observed<bounds[1] or observed-cutoff<timedelta(minutes=16)
                 or len(days)!=22 or days!=sorted(set(days)) or days[-1]>=r['entry_date']
                 or len(r['x'])!=7 or not all(math.isfinite(v) for v in r['x'])):continue
-            outcome=mature_outcome(store,r,spec,now);issuer=r.get('cik') or r['ticker']
-            if outcome['policy_net_return'] is None or r['entry_date']<=ends.get(issuer,''):continue
+            outcome=mature_outcome(store,r,spec,now);issuer=issuer_id(r)
+            if issuer is None or outcome['policy_net_return'] is None or r['entry_date']<=ends.get(issuer,''):continue
             rows.append({**r,**outcome});ends[issuer]=outcome['label_end']
         except (ValueError,TypeError,KeyError):continue
     return rows
@@ -166,7 +187,9 @@ def observed_pairs(store,candidate,spec,now,since=None):
             bounds_end=session_bounds(date.fromisoformat(outcome['label_end']))
             if bounds_end[1]+timedelta(minutes=16)>now:
                 gaps['OUTCOME_NOT_MATURE']=gaps.get('OUTCOME_NOT_MATURE',0)+1;continue
-            issuer=r.get('cik') or r['ticker']
+            issuer=issuer_id(r)
+            if issuer is None:
+                gaps['UNKNOWN_ISSUER_IDENTITY']=gaps.get('UNKNOWN_ISSUER_IDENTITY',0)+1;continue
             if r['entry_date']<=ends.get(issuer,''):continue
             known.append({**r,**outcome});ends[issuer]=outcome['label_end']
         except (ValueError,KeyError,TypeError):gaps['INVALID_DECISION']=gaps.get('INVALID_DECISION',0)+1
@@ -174,8 +197,14 @@ def observed_pairs(store,candidate,spec,now,since=None):
 
 
 def paired_gate(rows,incumbent_flags=None):
+    rows=sorted(rows,key=lambda r:(r['entry_date'],r['ticker']))
+    if any(not isinstance(r.get(k),(int,float)) or not math.isfinite(r[k])
+           for r in rows for k in ('policy_net_return','stress_policy_net_return')):
+        return {'passed':False,'failures':['COSTED_OUTCOMES_UNAVAILABLE_OR_NONFINITE'],
+                'matured':len(rows),'semantics':'UNKNOWN_OUTCOMES_CANNOT_PASS'}
     failures=[];kept=[r for r in rows if r['keep']];rejected=[r for r in rows if not r['keep']]
-    issuers={r.get('cik') or r['ticker'] for r in rows}
+    issuers={issuer_id(r) for r in rows}-{None}
+    if any(issuer_id(r) is None for r in rows):failures.append('KNOWN_ISSUER_IDENTITY_REQUIRED')
     if len(rows)<50:failures.append('NEED_50_MATURE_NONOVERLAPPING_DECISIONS')
     if len(issuers)<10:failures.append('NEED_10_DISTINCT_ISSUERS')
     if len({r['entry_date'] for r in rows})<20:failures.append('NEED_20_DECISION_SESSIONS')
@@ -193,8 +222,11 @@ def paired_gate(rows,incumbent_flags=None):
     if stressed<=.05 or sum((r.get('stress_policy_net_return') or 0) for r in kept)<=0:failures.append('STRESSED_PAIRED_RETURNS_NOT_IMPROVED')
     # Require positive paired improvement in both chronological halves.
     for half in (rows[:len(rows)//2],rows[len(rows)//2:]):
-        if sum(r['policy_net_return']*(int(r['keep'])-int(parent(r) or False)) for r in half)<=0:
-            failures.append('CHRONOLOGICAL_HALF_NOT_IMPROVED');break
+        for key,label in [('policy_net_return','BASE'),('stress_policy_net_return','STRESS')]:
+            if sum(r[key]*(int(r['keep'])-int(parent(r) or False)) for r in half)<=0:
+                failures.append('CHRONOLOGICAL_HALF_NOT_IMPROVED_'+label)
+            if sum(r[key] for r in half if r['keep'])<=0:
+                failures.append('CHRONOLOGICAL_KEPT_HALF_NOT_PROFITABLE_'+label)
     return {'passed':not failures,'failures':failures,'matured':len(rows),'issuers':len(issuers),
             'kept':len(kept),'rejected':len(rejected),'paired_net_return_improvement':improvement,
             'paired_stress_return_improvement':stressed,
@@ -214,9 +246,12 @@ def nightly(store,spec,study,training,now):
     if active:
         rows,gaps=observed_pairs(store,active,spec,now)
         after=[r for r in rows if r['observed_at']>active['promoted_at']][-20:]
-        if len(after)>=10 and -sum(r['policy_net_return'] for r in after if not r['keep'])<-.10:
+        base_regression=len(after)>=10 and -sum(r['policy_net_return'] for r in after if not r['keep'])<-.10
+        stress_known=all(isinstance(r.get('stress_policy_net_return'),(int,float)) and math.isfinite(r['stress_policy_net_return']) for r in after)
+        stress_regression=len(after)>=10 and stress_known and -sum(r['stress_policy_net_return'] for r in after if not r['keep'])<-.10
+        if base_regression or stress_regression:
             store.observe('adaptive_lifecycle',active['id'],now,'local:nightly',{'action':'ROLLBACK_PAIRED_REGRESSION'})
-            store.put('adaptive_retired:'+active['id'],{'reason':'PAIRED_REGRESSION','at':now.isoformat()})
+            store.put('adaptive_retired:'+active['id'],{'reason':'PAIRED_REGRESSION','cost_case':'base' if base_regression else 'stress','at':now.isoformat()})
             store.delete('adaptive_active');report['rollback']='PAIRED_REGRESSION';active=None
     staged=store.get('adaptive_staged')
     if staged and not valid_model(staged,spec,now):
@@ -250,7 +285,8 @@ def nightly(store,spec,study,training,now):
     store.put('drop_probability_live',{'context':context(spec),'reference':reference,'built_at':now.isoformat()})
     report['drop_probability']=reference
     report['fresh_training_outcomes']=len(fresh)
-    candidate=make_candidate(training+fresh,spec,now,study['selected_l2'])
+    candidate,fit_status=cached_candidate(store,training+fresh,spec,now,study['selected_l2'])
+    report['fit_status']=fit_status
     report['daily_candidate']=candidate
     refreshed=not active or (candidate and candidate['id']!=active['id'] and candidate['training_samples']>=active['training_samples']+25)
     if spec.get('automatic_improvement_enabled') and not staged and refreshed and candidate and study['promotion_gate']['passed']:
@@ -259,7 +295,17 @@ def nightly(store,spec,study,training,now):
             store.observe('adaptive_lifecycle',candidate['id'],now,'local:nightly',{'action':'STAGED'})
     report['active_model_id']=(active or {}).get('id')
     if not study['promotion_gate']['passed']:report['status']='HISTORICAL_GATE_REJECTED_INCUMBENT_UNCHANGED'
-    store.put('adaptive_last_review',{'asof':now.isoformat(),'status':report['status'],'active_model_id':report['active_model_id']})
+    prior=store.get('adaptive_last_review',{})
+    report['new_mature_outcomes']=max(0,len(fresh)-prior.get('fresh_training_outcomes',0)) if prior.get('context')==context(spec) else len(fresh)
+    report['staged_model_id']=(store.get('adaptive_staged') or {}).get('id')
+    day=str(now.astimezone(ZoneInfo('America/Chicago')).date())
+    daily={k:report.get(k) for k in ('asof','status','active_model_id','staged_model_id','fit_status','fresh_training_outcomes','new_mature_outcomes','rollback')}
+    daily.update(context=context(spec),chicago_date=day,historical_gate_passed=study['promotion_gate']['passed'],
+                 prospective=report.get('prospective'),scope='DAILY_RESEARCH_NOT_ORDERS_OR_GUARANTEED_IMPROVEMENT')
+    store.put('adaptive_daily_report:'+context(spec)+':'+day,daily)
+    store.observe('adaptive_daily_learning',context(spec),now,'local:nightly',daily)
+    store.put('adaptive_last_review',{'asof':now.isoformat(),'context':context(spec),'status':report['status'],
+                                    'active_model_id':report['active_model_id'],'fresh_training_outcomes':len(fresh)})
     return report
 
 

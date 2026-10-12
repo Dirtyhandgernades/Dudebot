@@ -76,7 +76,7 @@ def prospective(store,c,s,monkeypatch,good=True):
         day=days[i//2];observed=session_bounds(date.fromisoformat(day))[1]-timedelta(minutes=20)
         keep=i%5!=0;x=[1 if keep else -1]+[0]*6
         from smg.risk_model import predict
-        r={'model_id':c['id'],'context':c['context'],'ticker':'TEST'+str(i),'cik':str(i),
+        r={'model_id':c['id'],'context':c['context'],'ticker':'TEST'+str(i),'cik':str(i+1),
            'entry_date':day,'observed_at':observed.isoformat(),'data_cutoff':(observed-timedelta(minutes=16)).isoformat(),
            'base_eligible':True,'keep':keep,'score':predict(c['model'],[{'x':x}])[0],'x':x}
         store.put('adaptive_decision:'+c['id']+':'+day+':'+r['ticker'],r)
@@ -136,9 +136,85 @@ def test_regressing_active_filter_rolls_back_without_reactivating_it(tmp_path,mo
 
 
 def test_better_than_original_is_not_better_than_current_promoted_model():
-    rows=[{'ticker':str(i),'entry_date':'2026-10-'+str(7+i//2),
+    rows=[{'ticker':str(i),'cik':str(i+1),'entry_date':'2026-10-'+str(7+i//2),
            'keep':i%5!=0,'policy_net_return':.1 if i%5 else -.1,
            'stress_policy_net_return':.08 if i%5 else -.08} for i in range(50)]
     assert paired_gate(rows)['passed']
     identical_parent={(r['entry_date'],r['ticker']):r['keep'] for r in rows}
     assert not paired_gate(rows,identical_parent)['passed']
+
+
+def test_positive_aggregate_stress_cannot_hide_a_losing_chronological_half():
+    rows=[{'ticker':str(i),'cik':str(i+1),'entry_date':f'2026-10-{7+i//2:02}',
+           'keep':i%5!=0,'policy_net_return':.1 if i%5 else -.1,
+           'stress_policy_net_return':.08 if i%5 else (.1 if i<25 else -.3)} for i in range(50)]
+    gate=paired_gate(rows)
+    assert gate['paired_stress_return_improvement']>0
+    assert not gate['passed'] and 'CHRONOLOGICAL_HALF_NOT_IMPROVED_STRESS' in gate['failures']
+
+
+def test_unknown_or_nonfinite_costed_outcomes_fail_promotion():
+    row={'ticker':'ABC','entry_date':'2026-10-07','keep':True,'policy_net_return':.1,'stress_policy_net_return':.1}
+    for value in (None,float('nan'),float('inf')):
+        gate=paired_gate([{**row,'stress_policy_net_return':value}])
+        assert not gate['passed'] and 'COSTED_OUTCOMES_UNAVAILABLE_OR_NONFINITE' in gate['failures']
+
+
+def test_unchanged_ready_training_reuses_frozen_fit_and_new_labels_refit(tmp_path,monkeypatch):
+    from smg.adaptive_firm import cached_candidate
+    store=Store(tmp_path/'state');s=spec();now=datetime(2026,10,12,23,tzinfo=UTC);calls=[]
+    c=candidate(s)
+    monkeypatch.setattr('smg.adaptive_firm.make_candidate',lambda *args:calls.append(args) or c)
+    row={'ticker':'ABC','entry_date':'2025-10-01','x':[1]*7,'label_end':'2025-10-06','policy_net_return':.1,'policy_profitable':1}
+    first,status=cached_candidate(store,[row],s,now,.5)
+    again,status=cached_candidate(store,[row],s,now+timedelta(days=1),.5)
+    assert first==again and len(calls)==1 and status=='REUSED_UNCHANGED_MATURE_TRAINING'
+    cached_candidate(store,[row,{**row,'ticker':'DEF','x':[2]*7}],s,now+timedelta(days=1),.5)
+    assert len(calls)==2
+
+
+def test_historical_gate_excludes_interest_and_rejects_nonfinite_profit():
+    from backtest.daily_adaptive_study import gate
+    metric={'net_profit':1000,'interest_pnl':0,'closed_trades':3,'max_observed_drawdown_pct':1}
+    rows=[{'year':y,'incumbent':{k:metric.copy() for k in ('base','stress','same_trade_stress')},
+           'challenger':{k:{**metric,'net_profit':2000} for k in ('base','stress','same_trade_stress')}} for y in (2023,2024,2025)]
+    assert gate(rows)['passed']
+    rows[0]['challenger']['base']['interest_pnl']=2100
+    assert not gate(rows)['passed']
+    rows[0]['challenger']['base']['interest_pnl']=0;rows[0]['challenger']['base']['net_profit']=float('nan')
+    assert not gate(rows)['passed']
+
+
+def test_stress_only_regression_rolls_back_active_model(tmp_path,monkeypatch):
+    store=Store(tmp_path/'state');s=spec();c=candidate(s)
+    c['promoted_at']='2026-10-06T23:05:00+00:00';store.put('adaptive_active',c)
+    prospective(store,c,s,monkeypatch)
+    original=__import__('smg.adaptive_firm',fromlist=['mature_outcome']).mature_outcome
+    def outcome(store,row,spec,now):
+        r=original(store,row,spec,now)
+        return {**r,'stress_policy_net_return':.1}
+    monkeypatch.setattr('smg.adaptive_firm.mature_outcome',outcome)
+    report=nightly(store,s,study(),[],datetime(2026,12,1,23,tzinfo=UTC))
+    assert report['rollback']=='PAIRED_REGRESSION'
+    assert store.get('adaptive_retired:'+c['id'])['cost_case']=='stress'
+
+
+def test_daily_learning_report_distinguishes_research_from_promotion(tmp_path):
+    store=Store(tmp_path/'state');s=spec();now=datetime(2026,10,12,1,tzinfo=UTC)
+    report=nightly(store,s,study(False),[],now)
+    daily=store.items('adaptive_daily_report:')[0][1]
+    assert daily['chicago_date']=='2026-10-11'
+    assert daily['active_model_id'] is None and daily['new_mature_outcomes']==0
+    assert daily['historical_gate_passed'] is False and report['orders_placed']==0
+
+
+def test_ticker_aliases_or_missing_identity_cannot_supply_distinct_issuers():
+    from smg.adaptive_firm import issuer_id
+    assert issuer_id({'cik':'00000123'})==issuer_id({'cik':123})
+    assert issuer_id({'ticker':'ABC'}) is None
+    rows=[{'ticker':str(i),'entry_date':f'2026-10-{7+i//2:02}',
+           'keep':i%5!=0,'policy_net_return':.1 if i%5 else -.1,
+           'stress_policy_net_return':.08 if i%5 else -.08} for i in range(50)]
+    gate=paired_gate(rows)
+    assert not gate['passed'] and gate['issuers']==0
+    assert 'KNOWN_ISSUER_IDENTITY_REQUIRED' in gate['failures']

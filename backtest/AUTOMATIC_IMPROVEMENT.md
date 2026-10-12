@@ -1,5 +1,47 @@
 # Daily automatic improvement
 
+## October 11 daily-learning repair
+
+The current prospective contract is `ranked-firm-2026-10-12-v4`, with the matching
+original and entry-quality v4 contracts. Exact v3 definitions are archived. The
+actual October 7 observations remain under ranked v7, original v8 and entry v1;
+none are relabelled. Base ranking weights, eligibility, current exposure limits,
+preclose timing and maximum three-session horizon are unchanged. This repair
+changes validation and learning bookkeeping, not a live model promotion.
+
+Two promotion defects were corrected. Historical challenger replays previously
+used larger research sizing instead of the current bounded exposure envelope.
+They now use the same bounds as the incumbent, and cash interest cannot pass a
+trading-profit check. Fresh paired tests previously checked chronological halves
+only at base costs. Both kept returns and paired improvement must now be positive
+in both halves under base and higher costs. Unknown/nonfinite outcomes cannot pass.
+Active filters can also roll back after a verified higher-cost paired regression.
+Known, normalized SEC issuer identities are required for independent prospective
+counts; ticker aliases and unknown CIKs cannot manufacture ten different issuers.
+
+The bounded original three-season diagnostic retains all recipes. L2 0.02 and
+0.10 fail; L2 0.50 passes the historical gate with $560.83 aggregate higher-cost
+improvement. Its base profits are $432.27/$6,020.65/$7,039.98 for 2023–2025,
+compared with the incumbent's $432.27/$5,601.23/$7,328.97. This is a small,
+reused-data comparison, not the $70k seasonal goal or fresh validation.
+The earlier large-sizing table below is archived research, superseded for
+automatic promotion by these bounded results.
+
+Each hosted daily review now records its Chicago date, completed independent
+outcome count, newly matured count, fit status, staged/active IDs, historical and
+prospective gates, and any rollback. State keys `adaptive_daily_report` and the
+`adaptive_daily_learning` audit trail persist these records. Repeated runs with
+unchanged ready labels reuse a valid frozen fit; new ready labels trigger a fit.
+Unavailable labels remain unknown and never count as learning or wins. Same-day
+labels still wait for the existing conservative training-date maturity rule.
+
+The nightly job learns from qualified live decisions and evaluates an additional
+rank filter. The separate daily eight-season research collects bounded source
+and spring checkpoint data, tests timing/hold alternatives and retains every
+failure. It cannot automatically increase allocation, enable longs, change entry
+timing or rewrite code. Research and daily evaluation are automatic; better
+returns are not guaranteed, and the incumbent stays in place when gates fail.
+
 The hosted daily workflow runs at 23:55 UTC each weekday. It refreshes completed live outcome prices, trains candidates, replays the 2023–2025 game seasons from cached historical data, and decides whether to stage, promote, retain or roll back a model. It requires no running Windows PC and no daily user approval. Existing source discovery and bounded news/fundamental enrichment continue during the day.
 
 Research is automatic, but a new fit does not become a live policy merely because it is new. The frozen challenger records its decisions before the next three sessions finish. It must pass the multi-year cost tests and the fresh prospective tests before automatic promotion. Missing prices and historical borrow/cap/halt/security membership remain explicit gaps. These are paper signals and conditional simulations, not brokerage orders or certified profit.
