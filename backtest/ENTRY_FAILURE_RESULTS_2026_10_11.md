@@ -105,8 +105,10 @@ is not evidence to reverse the trade into a long.
 
 The manual `entry-audit.yml` workflow can reuse an existing completed
 `multiyear-research` artifact without repeating discovery, price downloads or
-the unchanged eight-season allocation sweep. It receives no market-data or
-Discord secrets. This makes the targeted research verification inexpensive.
+the unchanged eight-season allocation sweep. Its default makes no market-data
+requests and receives no market-data or Discord secrets. A later optional
+`warmup_requests` input supplies Alpaca secrets only to a bounded training-data
+step, never Discord credentials. This keeps cached verification inexpensive.
 
 Historical borrow, caps, halts, full game membership and exact intraday dump
 times remain unknown. Costs are the existing disclosed $5 each order, 30/100

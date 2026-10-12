@@ -47,7 +47,11 @@ def at_point(packet,ticker,day,raw_rows,split_rows,decision,cfg):
     return event
 
 
-def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policies=None,preclose_offset_minutes=20):
+def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policies=None,preclose_offset_minutes=20,
+        season_start='09-08',season_end='12-05'):
+    if not '01-01'<=season_start<=season_end<='12-31':raise ValueError('Invalid fixed research period')
+    for year in years:
+        date.fromisoformat(f'{year}-{season_start}');date.fromisoformat(f'{year}-{season_end}')
     out.mkdir(parents=True,exist_ok=True);packet=repair_legacy_volume(packet);packet={**packet,'firm_dates':packet['first_dates']}
     sessions=packet['sessions'];index={d:i for i,d in enumerate(sessions)};results=[];public={}
     for row in packet['records']:
@@ -63,7 +67,7 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
         if not model:results.append({'year':year,'status':'TRAINING_UNAVAILABLE'});continue
         threshold=float(np.quantile(predict(model,train),.5));candidate_days={};scores={};gaps=Counter()
         for day in sessions:
-            if not f'{year}-09-08'<=day<=f'{year}-12-05':continue
+            if not f'{year}-{season_start}'<=day<=f'{year}-{season_end}':continue
             i=index[day];candidate_days[day]=[]
             for ticker,first in packet['first_dates'].items():
                 if first>day or day>=ends.get(ticker,'9999-99-99') or is_excluded_symbol(ticker) or (len(ticker)==5 and ticker.isalpha()):continue
@@ -76,7 +80,8 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
                 if score<threshold:continue
                 candidate_days[day].append(ticker);scores[(day,ticker)]=score
         symbols=sorted({t for ts in candidate_days.values() for t in ts})
-        start=datetime(year,9,1,tzinfo=timezone.utc);end=datetime(year,12,6,tzinfo=timezone.utc)
+        start=datetime.fromisoformat(f'{year}-{season_start[:2]}-01T00:00:00+00:00')
+        end=datetime.fromisoformat(f'{year}-{season_end}T00:00:00+00:00')+timedelta(days=1)
         try:
             raw=client.get(symbols,start,end,'raw');adjusted=client.get(symbols,start,end,'split')
         except RuntimeError as exc:
@@ -117,7 +122,7 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
                  'rank_threshold':threshold,'training_latest_label':max(r['label_end'] for r in train),
                  'first_checkpoint_counts_utc_minutes':dict(point_counts),'gaps':dict(gaps),'live_enabled':False}
             for case,bps,borrow in [('base',30,.1),('stress',100,1.)]:
-                p=simulate(packet['raw'],packet['split'],symbols,sessions,start=f'{year}-09-08',end=f'{year}-12-05',
+                p=simulate(packet['raw'],packet['split'],symbols,sessions,start=f'{year}-{season_start}',end=f'{year}-{season_end}',
                     strategy='FIRM_HYBRID_EXHAUSTION_RESEARCH',hold=3,firm_dates=packet['first_dates'],
                     intraday_signals=events,signal_share_sizing=True,risk_controls=True,position_target=50000,
                     buying_power=150000,max_position_equity_fraction=.30,decision_price_buffer=1.2,
@@ -128,6 +133,7 @@ def run(packet,client,out,train_window_years=None,years=(2023,2024,2025),policie
             row['same_trade_stress']=fixed_trade_cost_sensitivity({**base,'open_positions':base.get('unresolved_positions',{})},packet['split'])
             results.append(row);print(json.dumps(row),flush=True)
     report={'status':'FOUR_CHECKPOINT_RESEARCH','results':results,'requests':client.requests,'training_window_years':train_window_years,'preclose_offset_minutes':preclose_offset_minutes,
+            'research_period':[season_start,season_end],
             'limits':['Partial independent firm corpus, not verified historical trade eligibility',
                       'Checkpoint comparisons are inspected retrospective hypotheses','No borrow/cap/halt facts imputed']}
     (out/'summary.json').write_text(json.dumps(report,indent=2));return report

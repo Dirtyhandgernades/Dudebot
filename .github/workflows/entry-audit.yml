@@ -6,6 +6,10 @@ on:
         description: Completed multiyear-research run to reuse unchanged
         type: string
         default: '38170602612'
+      warmup_requests:
+        description: Optional bounded spring-training data pages;0is fully cached
+        type: string
+        default: '0'
 permissions:
   contents: read
   actions: read
@@ -46,6 +50,34 @@ jobs:
           --packet backtest/runtime/frozen-entry-audit/inputs.json.gz
           --checkpoints backtest/runtime/frozen-entry-audit/checkpoints
           --out reports/entry-audit/learning
+      - uses: actions/cache/restore@v4
+        if: inputs.warmup_requests != '0'
+        with:
+          path: backtest/runtime/multiyear-warmup-minutes
+          key: matched-warmup-v1-${{ github.run_id }}
+          restore-keys: matched-warmup-v1-
+      - name: Collect bounded earlier spring training candles
+        if: inputs.warmup_requests != '0'
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          WARMUP_REQUESTS: ${{ inputs.warmup_requests }}
+        run: >-
+          python -u -m backtest.checkpoint_warmup
+          --packet backtest/runtime/frozen-entry-audit/inputs.json.gz
+          --max-requests "$WARMUP_REQUESTS" --out reports/entry-audit/warmup
+      - name: Repeat same season test with additional earlier training
+        if: inputs.warmup_requests != '0'
+        run: >-
+          python -u -m backtest.checkpoint_learning
+          --packet backtest/runtime/frozen-entry-audit/inputs.json.gz
+          --checkpoints backtest/runtime/frozen-entry-audit/checkpoints
+          --warmup reports/entry-audit/warmup --out reports/entry-audit/learning-with-warmup
+      - uses: actions/cache/save@v4
+        if: always() && inputs.warmup_requests != '0'
+        with:
+          path: backtest/runtime/multiyear-warmup-minutes
+          key: matched-warmup-v1-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

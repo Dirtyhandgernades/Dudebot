@@ -92,6 +92,23 @@ jobs:
           python -u -m backtest.checkpoint_learning
           --packet reports/multiyear/inputs.json.gz
           --checkpoints reports/multiyear/checkpoints
+          --out reports/multiyear/checkpoint-learning-season-only
+      - uses: actions/cache/restore@v4
+        with:
+          path: backtest/runtime/multiyear-warmup-minutes
+          key: matched-warmup-v1-${{ github.run_id }}
+          restore-keys: matched-warmup-v1-
+      - name: Gather at most twenty new spring-training pages
+        run: >-
+          python -u -m backtest.checkpoint_warmup
+          --packet reports/multiyear/inputs.json.gz --max-requests 20
+      - name: Compare matched learning with additional prior spring data
+        run: >-
+          python -u -m backtest.checkpoint_learning
+          --packet reports/multiyear/inputs.json.gz
+          --checkpoints reports/multiyear/checkpoints
+          --warmup reports/multiyear/warmup
+          --out reports/multiyear/checkpoint-learning-with-warmup
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,3 +130,8 @@ jobs:
             backtest/runtime/multiyear-minutes
             backtest/runtime/checkpoint-bars
           key: multiyear-prices-v1-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backtest/runtime/multiyear-warmup-minutes
+          key: matched-warmup-v1-${{ github.run_id }}

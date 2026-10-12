@@ -61,8 +61,8 @@ def eligible(score):
             score['return_rank'] > 0 and score['profitability_rank'] >= .5 and score['tail_loss_rank'] <= .25)
 
 
-def run(packet, checkpoints, out):
-    plan = {'id': 'matched-checkpoint-learning-2026-10-11-v1', 'years': list(YEARS),
+def run(packet, checkpoints, out, warmup=None):
+    plan = {'id': 'matched-checkpoint-learning-2026-10-11-v2' if warmup else 'matched-checkpoint-learning-2026-10-11-v1', 'years': list(YEARS),
             'offsets': list(OFFSETS), 'current_features': list(CURRENT_FEATURES),
             'prior_features': 'Seven completed daily price/volume features',
             'training': 'Same-offset earlier two-year matured signals; nonoverlapping issuer windows; held issuers excluded',
@@ -71,14 +71,20 @@ def run(packet, checkpoints, out):
             'adaptive': 'Largest prior expected return minus .25*tail rank; tie favors shorter hold',
             'exposure': POLICY, 'provider_requests': 0, 'live_changed': False,
             'automatic_promotion': False, 'scores_are_probabilities': False}
+    plan['additional_training_period'] = 'April1–June30, earlier years only' if warmup else None
     write(out/'experiment.json', plan); results = []; ledgers = []; model_counts = []
     for offset in OFFSETS:
         events_by_year = {}; samples = []; missing = 0
         for year in YEARS:
             source = checkpoints / str(offset) / f'{year}-PRECLOSE_ONLY-signals.json'
-            if not source.exists(): continue
-            events_by_year[year] = json.loads(source.read_text(encoding='utf-8'))
-            for day, group in events_by_year[year].items():
+            if source.exists(): events_by_year[year] = json.loads(source.read_text(encoding='utf-8'))
+            training_events = dict(events_by_year.get(year, {}))
+            extra = warmup/str(offset)/f'{year}-PRECLOSE_ONLY-signals.json' if warmup else None
+            if extra is not None and extra.exists():
+                spring = json.loads(extra.read_text(encoding='utf-8'))
+                if any(not f'{year}-04-01'<=d<=f'{year}-06-30' for d in spring):raise ValueError('Warmup contains a test-season decision')
+                training_events.update(spring)
+            for day, group in training_events.items():
                 for event in group:
                     validate_event(event, day); x = checkpoint_x(packet, event, day)
                     if x is None: missing += 1; continue
@@ -142,9 +148,9 @@ def run(packet, checkpoints, out):
 
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--packet', required=True); parser.add_argument('--checkpoints', required=True)
-    parser.add_argument('--out', default='reports/multiyear/checkpoint-learning'); args = parser.parse_args()
+    parser.add_argument('--out', default='reports/multiyear/checkpoint-learning'); parser.add_argument('--warmup'); args = parser.parse_args()
     packet = json.loads(gzip.decompress(Path(args.packet).read_bytes()))
-    run(packet, Path(args.checkpoints), Path(args.out))
+    run(packet, Path(args.checkpoints), Path(args.out), Path(args.warmup) if args.warmup else None)
 
 
 if __name__ == '__main__': main()

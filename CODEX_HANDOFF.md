@@ -1,5 +1,24 @@
 # Dudebot continuation handoff
 
+## October 11 controlled profit bridge and additional matched training
+
+User feels earlier results closer to70k. Readbacktest/PROFIT_BRIDGE_2026_10_11.md
+andJSON.48controlled portfolios reproduced75549.15 exactly onoriginal20min
+signals/currentcode. Originalbounded7328.97. Original2yearunprotected72151.15,
+bounded6062.44;balanced2year29040.32/bounded3408.07;expanded8year20min
+19976.41/bounded3494.65(stress-730.72). Smaller exposure is a major profit
+reduction; source expansion independently reveals weak entries. Paths aren't
+additive; no75kconsistent/all-yearclaim orrestoredunprotectedallocations.
+New checkpoint_warmup.py collectsfixedApr-Jun2018-24,20new-pageglobalbudget,
+equalper-yearquotas, completeindividualraw/split pairs with resumablecache.
+Unavailablepairs stayunknown. Addedresearchperiod arguments incheckpoint
+study preserveoriginalfall defaults/cachekeys; original75549 reproduced.
+checkpoint_learning optionalwarmup isexplicitresearchv2; strictlypriorJan1
+matured2yearlabels,issuerholdout/nonoverlap. Springonlytraining, neverfallPnL;
+sameyear springcannottrainthatyear. Dailyworkflowsretainseason-onlyvswarmup
+comparisonandallfailures. ExistingliveOct12v3fingerprintsunchanged.
+365tests pass; hostedcollection verification stillpendinguntilrecordedbelow.
+
 ## October 11 entry-loss attribution and matched checkpoint learning
 
 User requests repeated improvements, correct entries/exits and fewer losses.
