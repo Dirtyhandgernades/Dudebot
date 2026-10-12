@@ -17,7 +17,14 @@ checkpoint_learning optionalwarmup isexplicitresearchv2; strictlypriorJan1
 matured2yearlabels,issuerholdout/nonoverlap. Springonlytraining, neverfallPnL;
 sameyear springcannottrainthatyear. Dailyworkflowsretainseason-onlyvswarmup
 comparisonandallfailures. ExistingliveOct12v3fingerprintsunchanged.
-365tests pass; hostedcollection verification stillpendinguntilrecordedbelow.
+365tests pass. HostedCI38188726316 andspringaudit38188747804(14pages) and
+38189015165(98pages)SUCCEEDEDonccc6b05. Firstspringpass0signals;second15/18
+checkpointsignals(overlapacrossoffsets),2025independenttrain35/36->37/38.
+Earliertrainingstill<30. NewH1at15minnet3628.51/stress1287.13 vsold4389.39/
+2264.88;5min912.35/stress-1109.90. EvidenceWORSENSdiagnostic,0consistent
+passes, no promotion. Bothbaselineandnewresultsretained. Dailycollector20
+newpages only, cachesfinishedpairs; unknown2018–24paircounts4/1/2/20/12/30/55.
+Do NOT claim spring collectionimprovedprofits or33independentnewexamples.
 
 ## October 11 entry-loss attribution and matched checkpoint learning
 

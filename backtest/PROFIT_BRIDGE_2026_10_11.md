@@ -70,3 +70,38 @@ automatic allocation increase or model promotion. Live October 12 v3 contracts,
 hard exclusions, current borrow/halt/cap gates and free Alpaca delay are preserved.
 Historical borrow/cap/halts/game membership remain unknown. Longs remain
 review-only, and all inspected-year results require fresh validation.
+
+## Verified first collection and comparison
+
+[Initial bounded audit 38188747804](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38188747804)
+succeeded with fourteen new provider pages and no qualifying spring checkpoints
+yet. Those empty signal sets did not invent outcomes or improve the fitted
+models. [Initial larger audit 38189015165](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38189015165)
+then succeeded with 98 additional provider pages under its 100-page budget,
+fourteen per source year. Completed pairs were saved for subsequent runs.
+
+The second pass produced fifteen spring checkpoint events at the fifteen-minute
+offset and eighteen at five minutes. These overlap across offsets and are not
+33 independent issuers. Independent prior training counts for 2025 increased
+from 35/36 to 37/38. Earlier models remain under the fixed thirty-example
+minimum. Price coverage is still incomplete in all seven warmup years; the
+remaining unavailable symbol-pair counts are 4/1/2/20/12/30/55 for 2018–2024.
+
+| 2025 one-session learned candidate | Before spring samples | After spring samples |
+|---|---:|---:|
+| Fifteen-minute base | $4,389.39 | $3,628.51 |
+| Fifteen-minute stress | $2,264.88 | $1,287.13 |
+| Five-minute delay-control base | $1,779.82 | $912.35 |
+| Five-minute delay-control stress | -$410.73 | -$1,109.90 |
+
+The added samples worsened this diagnostic. Both the previous and new models,
+decisions and complete portfolios are retained; neither candidate is promoted.
+The twenty-page daily collector continues adding previously unavailable pairs
+without repeating completed downloads. More evidence can expose weakness;
+collection and testing do not guarantee steadily increasing profits.
+
+[CI 38188726316](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38188726316)
+passed 365 Python and 25 Cloudflare checks on `ccc6b05`. Both hosted audits
+completed all collection, comparison, cache and artifact steps successfully.
+All October 12 v3 live policy fingerprints still match. No Discord message,
+stock order, leverage increase or live model change occurred in these audits.
