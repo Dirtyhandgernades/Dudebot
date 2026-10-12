@@ -114,3 +114,16 @@ bps each side and assumed 10%/100% annual borrow. Entry/exit fills are closes;
 stops and targets observed at one close execute at the following close. No loss
 is clipped or exited at an intraday low. All results are conditional paper
 simulations on inspected data; fresh prospective evidence remains necessary.
+
+## Hosted verification
+
+On code commit `cc7ce6b`, [cached audit 38187881008](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38187881008)
+and [CI 38187880733](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38187880733)
+completed successfully. The audit reproduces the local results: 480 fixed-rule
+portfolios plus 16 matched-learning portfolios (earlier learned years remain
+training-unavailable), zero passing consistency variants, zero observed holds
+over three sessions and zero provider requests. CI passed 361 Python and 25
+Cloudflare checks. Its `entry-audit-38187881008` artifact retains all results,
+attribution, trade ledgers, prior weights and decisions. It sent no Discord
+messages and changed no live model. All three current October 12 v3 contract
+source fingerprints still match.
