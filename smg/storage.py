@@ -52,6 +52,13 @@ class Store:
         row=self.db.execute('SELECT observed_at,source,value FROM observations WHERE kind=? AND subject=? ORDER BY observed_at DESC LIMIT 1',
             (kind,subject.upper())).fetchone()
         return dict(observed_at=row[0],source=row[1],value=json.loads(row[2])) if row else None
+    def compact_if_wasteful(self):
+        """Reclaim unused SQLite pages without deleting any record or claim."""
+        if self.path.stat().st_size<8*1024*1024:return False
+        pages=self.db.execute('PRAGMA page_count').fetchone()[0]
+        unused=self.db.execute('PRAGMA freelist_count').fetchone()[0]
+        if unused<1024 or unused/max(1,pages)<.25:return False
+        self.db.commit();self.db.execute('VACUUM');self.db.commit();return True
 
 class GitHubState:
     """GitHub contents API with SHA guards. Never catches a conflicting write and overwrites."""
@@ -61,11 +68,22 @@ class GitHubState:
         self.headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Cache-Control':'no-cache'}
     @property
     def url(self): return 'https://api.github.com/repos/'+self.repo+'/contents/runtime/state.sqlite'
+    @staticmethod
+    def encode_state(content):
+        import gzip
+        return gzip.compress(content,mtime=0) if len(content)>=8*1024*1024 else content
+    @staticmethod
+    def decode_state(content):
+        import gzip
+        if content.startswith(b'\x1f\x8b'):content=gzip.decompress(content)
+        if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
+        return content
     def remember_local(self,path):
         import os
         run=os.environ.get('GITHUB_RUN_ID')
         if run:
-            Path(path).with_suffix('.remote.json').write_text(json.dumps({'run':run,'repo':self.repo,'branch':self.branch,'sha':self.sha,'transport':self.writer_transport}))
+            local_sha=self.blob_sha(Path(path).read_bytes())
+            Path(path).with_suffix('.remote.json').write_text(json.dumps({'run':run,'repo':self.repo,'branch':self.branch,'sha':self.sha,'local_sha':local_sha,'transport':self.writer_transport}))
     def restore(self,path):
         import base64
         import os
@@ -74,7 +92,7 @@ class GitHubState:
         if run and local.exists() and memo.exists():
             try:cached=json.loads(memo.read_text())
             except (ValueError,OSError):cached={}
-            if (cached.get('run'),cached.get('repo'),cached.get('branch'))==(run,self.repo,self.branch) and cached.get('sha')==self.blob_sha(local.read_bytes()):
+            if (cached.get('run'),cached.get('repo'),cached.get('branch'))==(run,self.repo,self.branch) and cached.get('local_sha',cached.get('sha'))==self.blob_sha(local.read_bytes()):
                 # Serialized state-writer workflow commands share the last
                 # successful checkpoint. The next write still uses its SHA
                 # and rejects a concurrent external update before any send.
@@ -89,6 +107,8 @@ class GitHubState:
                     expected=metadata['sha']
                     import re
                     if not re.fullmatch('[a-f0-9]{40}',expected):raise ValueError('Invalid state blob SHA')
+                    if os.environ.get('GITHUB_ACTIONS')=='true' and metadata.get('size',0)>=8*1024*1024:
+                        self.git_restore(path,expected);return
                     read_url='https://api.github.com/repos/'+self.repo+'/git/blobs/'+expected;params=None
                 r=self.http.response(read_url,params=params,headers={**self.headers,'Accept':'application/vnd.github.raw+json'})
             except ProviderError as exc:
@@ -97,9 +117,9 @@ class GitHubState:
                 if exc.status!=404:raise
                 return
             content=r.content
-            if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
             if expected and self.blob_sha(content)!=expected:raise ValueError('GitHub state blob checksum mismatch')
             self.sha=self.blob_sha(content);self.branch_exists=True
+            content=self.decode_state(content)
             Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_bytes(content)
             self.remember_local(path)
             return
@@ -112,6 +132,7 @@ class GitHubState:
             data=self.http.json('https://api.github.com/repos/'+self.repo+'/git/blobs/'+data['sha'],headers=self.headers)
         if data.get('encoding')!='base64':raise ValueError('Unsupported state encoding')
         content=base64.b64decode(data['content']);self.sha=data['sha']
+        content=self.decode_state(content)
         Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_bytes(content)
     def ensure_branch(self):
         if self.branch_exists:return
@@ -146,8 +167,8 @@ class GitHubState:
         if not re.fullmatch('[a-f0-9]{40}',actual):raise ValueError('Invalid state blob SHA')
         if expected and actual!=expected:raise ProviderError('github.com',409,'STATE_SHA_CONFLICT')
         content=git(['cat-file','blob',actual])
-        if not content.startswith(b'SQLite format 3\x00'):raise ValueError('GitHub state is not a SQLite database')
         if self.blob_sha(content)!=actual:raise ValueError('GitHub state blob checksum mismatch')
+        content=self.decode_state(content)
         local.parent.mkdir(parents=True,exist_ok=True);local.write_bytes(content)
         self.sha=actual;self.branch_exists=True;self.writer_transport='git';self.remember_local(path)
     def git_checkpoint(self,store,content):
@@ -193,9 +214,12 @@ class GitHubState:
         import base64
         from .transport import ProviderError
         if self.checkpoint_error:raise self.checkpoint_error
-        content=store.path.read_bytes()
+        if hasattr(store,'compact_if_wasteful'):store.compact_if_wasteful()
+        raw_content=store.path.read_bytes();content=self.encode_state(raw_content)
         if self.sha==self.blob_sha(content):return
-        if self.writer_transport=='git':
+        import os
+        large_hosted=os.environ.get('GITHUB_ACTIONS')=='true' and self.sha and len(raw_content)>=8*1024*1024
+        if self.writer_transport=='git' or large_hosted:
             try:self.git_checkpoint(store,content);return
             except ProviderError as exc:self.checkpoint_error=exc;raise
         self.ensure_branch()

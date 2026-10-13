@@ -257,3 +257,86 @@ def test_hosted_failed_write_can_reconcile_by_git_when_contents_api_is_unavailab
     monkeypatch.setattr(GitHubState,'git_checkpoint',reconcile)
     b=GitHubState(HTTP(),'o/r','fixture');b.sha='original';b.branch_exists=True;b.checkpoint(store)
     assert calls==['original']
+
+
+def test_large_hosted_write_uses_same_guarded_git_transport_without_api_put(tmp_path,monkeypatch):
+    monkeypatch.setenv('GITHUB_ACTIONS','true');calls=[]
+    class HTTP:
+        def json(self,*a,**kw):raise AssertionError('Large body must not use Contents PUT')
+    data=b'SQLite format 3\0'+b'x'*(8*1024*1024)
+    path=tmp_path/'state.sqlite';path.write_bytes(data)
+    store=SimpleNamespace(path=path)
+    def save(self,store,content):
+        assert GitHubState.decode_state(content)==data
+        calls.append((self.sha,len(content)));self.sha=self.blob_sha(content);self.writer_transport='git'
+    monkeypatch.setattr(GitHubState,'git_checkpoint',save)
+    backend=GitHubState(HTTP(),'o/r','fixture');backend.sha='expected';backend.branch_exists=True
+    backend.checkpoint(store);assert calls==[('expected',len(GitHubState.encode_state(data)))]
+    backend.checkpoint(store);assert len(calls)==1
+
+
+def test_large_restore_fetches_compressed_snapshot_with_pinned_sha(tmp_path,monkeypatch):
+    monkeypatch.setenv('GITHUB_ACTIONS','true');calls=[]
+    class HTTP:
+        def json(self,*a,**kw):return {'sha':'a'*40,'size':42*1024*1024}
+        def response(self,*a,**kw):raise AssertionError('Do not transfer large raw body')
+    monkeypatch.setattr(GitHubState,'git_restore',lambda self,path,expected:calls.append(expected))
+    GitHubState(HTTP(),'o/r','fixture').restore(tmp_path/'state.sqlite')
+    assert calls==['a'*40]
+
+
+def test_large_write_conflict_is_latched_and_cannot_retry_or_post(tmp_path,monkeypatch):
+    monkeypatch.setenv('GITHUB_ACTIONS','true');calls=[]
+    path=tmp_path/'state.sqlite';path.write_bytes(b'x'*(8*1024*1024))
+    def reject(self,store,content):
+        calls.append(self.sha);raise ProviderError('github.com',409,'STATE_SHA_CONFLICT')
+    monkeypatch.setattr(GitHubState,'git_checkpoint',reject)
+    backend=GitHubState(None,'o/r','fixture');backend.sha='expected';backend.branch_exists=True
+    with pytest.raises(ProviderError,match='STATE_SHA_CONFLICT'):backend.checkpoint(SimpleNamespace(path=path))
+    with pytest.raises(ProviderError):backend.checkpoint(SimpleNamespace(path=path))
+    assert calls==['expected'] and backend.sha=='expected'
+
+
+def test_lossless_compaction_keeps_claims_forecasts_and_observations(tmp_path):
+    store=Store(tmp_path/'state.sqlite')
+    store.put('uncertain_claim',{'status':'CLAIMED'})
+    store.put('frozen_forecast',{'contract':'original','x':[1,2,3]})
+    store.observe('borrow','ABC','2026-10-12T13:00:00+00:00','fixture',{'status':'UNKNOWN'})
+    store.put('unused_fixture','x'*(9*1024*1024));store.delete('unused_fixture')
+    before=store.path.stat().st_size
+    assert store.compact_if_wasteful()
+    assert store.path.stat().st_size<before
+    assert store.get('uncertain_claim')=={'status':'CLAIMED'}
+    assert store.get('frozen_forecast')=={'contract':'original','x':[1,2,3]}
+    assert store.observations('borrow')[0]['value']=={'status':'UNKNOWN'}
+
+
+def test_422_is_validation_rejection_not_rate_limit_and_is_not_retried(monkeypatch):
+    monkeypatch.setattr('smg.transport.time.sleep',lambda _:None)
+    class Session:
+        calls=0
+        def request(self,*a,**kw):
+            self.calls+=1
+            return SimpleNamespace(status_code=422,headers={},json=lambda:{'message':'Validation Failed'})
+    http=Http();http.session=Session()
+    with pytest.raises(ProviderError,match='API_VALIDATION_REJECTED'):http.response('https://api.github.com/test',method='PUT')
+    assert http.session.calls==1
+
+
+def test_compressed_state_restore_and_same_run_reuse_keep_both_sha_guards(tmp_path,monkeypatch):
+    import gzip
+    monkeypatch.setenv('GITHUB_RUN_ID','compressed-fixture')
+    source=Store(tmp_path/'original.sqlite');source.put('uncertain_claim',{'status':'CLAIMED'})
+    raw=source.path.read_bytes();encoded=gzip.compress(raw,mtime=0);calls=[]
+    class HTTP:
+        def json(self,*a,**kw):calls.append('metadata');return {'sha':GitHubState.blob_sha(encoded)}
+        def response(self,*a,**kw):calls.append('body');return SimpleNamespace(content=encoded)
+    http=HTTP();path=tmp_path/'restore.sqlite';backend=GitHubState(http,'o/r','fixture')
+    backend.restore(path)
+    assert path.read_bytes()==raw and backend.sha==backend.blob_sha(encoded)
+    again=GitHubState(http,'o/r','fixture');again.restore(path)
+    assert calls==['metadata','body'] and again.sha==backend.sha
+    store=Store(path);assert store.get('uncertain_claim')['status']=='CLAIMED'
+    store.put('unsaved',1)
+    GitHubState(http,'o/r','fixture').restore(path)
+    assert calls==['metadata','body','metadata','body'] and path.read_bytes()==raw

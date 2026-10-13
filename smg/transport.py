@@ -24,7 +24,7 @@ class Http:
             if method=='GET' and r.status_code in (500,502,503,504) and attempt<2:
                 time.sleep(2*(attempt+1));continue
             message=''
-            if host=='api.github.com' and r.status_code in (403,409):
+            if host=='api.github.com' and r.status_code in (403,409,422):
                 try:message=str(r.json().get('message','')).lower()
                 except (ValueError,AttributeError,TypeError):pass
             secondary='secondary rate' in message or 'abuse detection' in message
@@ -39,7 +39,7 @@ class Http:
                 # The next scheduled run handles long rate-limit windows.
                 if 0<=delay<=30:time.sleep(max(delay,1));continue
             if not 200<=r.status_code<300:
-                reason='SECONDARY_RATE_LIMIT' if secondary else 'RATE_LIMIT' if limited else 'STATE_SHA_CONFLICT' if r.status_code==409 and 'sha' in message else 'ACCESS_DENIED' if r.status_code==403 else None
+                reason='SECONDARY_RATE_LIMIT' if secondary else 'RATE_LIMIT' if limited else 'STATE_SHA_CONFLICT' if r.status_code==409 and 'sha' in message else 'ACCESS_DENIED' if r.status_code==403 else 'API_VALIDATION_REJECTED' if host=='api.github.com' and r.status_code==422 else None
                 raise ProviderError(host,r.status_code,reason)
             return r
         raise ProviderError(host,429)

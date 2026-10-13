@@ -1,5 +1,23 @@
 # Dudebot continuation handoff
 
+## October 12 live-session state-save failure and transport repair
+
+Heartbeat found repeated GitHub422 state checkpoints from38258106254(13:46UTC)
+through38319996184(23:02UTC), afterlastsuccess38256344361(13:32UTC). Preparation,
+archive,enrichment,ranked-send failed; normalalert skipped. NOTGmail/ratelimit
+orproofzeroopportunities. Stateblob4f2b5ad3b74c68cc1250d3f487f7d3b34015f338
+42094592bytes verified via5906123bytecompressedarchive;rawAPIreadincomplete.
+Readbacktest/WORKFLOW_REPAIR_2026_10_12.md. Backendnowlosslesslygzip-encodes
+largestate(legacySqlitereadable),usesguardedcompressedGit forlarge transfers,
+separatelocaldecoded/remoteencodedSHAmemo,compactsunusedpageswithoutdeleting
+rows. HTTP422 API_VALIDATION_REJECTED, no blindmutation/Discord retry.
+FirstprospectiveOctober13v5 contractsarchiveactualOctober12v4. No stockmodel,
+sizing,gates,entryclock,outcomemathchange. Dailyworkflowaddsread-onlyaction
+outcomereportafterfreshprices. 378tests pass;hostedverificationpendingbelow.
+Pre-repair39rankedobservationsallpaper_eligiblefalse/0adaptivebasequalified.
+OneactualSENTwatchCDOctober8at11:05Chicago,message1557786002737729560;
+notqualified/order,full3sessionwindowendsOct13. IntradayOct12gapunknown.
+
 ## October 11 strengthened automatic daily learning
 
 User asksdailyself-improvement. Verifiedpromotionbugs: historicaladaptive
