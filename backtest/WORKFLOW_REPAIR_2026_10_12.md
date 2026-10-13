@@ -56,3 +56,40 @@ Local verification: 378 Python tests passed, including compressed/legacy
 restore, dual SHA memo, exact-content checks, conflicts preventing retries,
 lossless compaction and HTTP422 classification. Hosted verification is recorded
 below when complete; no restoration of live delivery is assumed from tests alone.
+
+## Verified recovery and completed candidate review
+
+On `a7328c3`, [full scan 38325434353](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38325434353),
+[daily learning 38325434130](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38325434130),
+[preflight 38325436059](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38325436059)
+and [CI 38325434400](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/38325434400)
+all completed successfully. All scan checkpoint stages passed. CI verified 378
+Python and 25 Cloudflare checks. Preflight verified five completed free SIP bars
+with the sixteen-minute delay. Its market window was closed and it sent no trade.
+The observed persisted compressed blob was 5,749,586 bytes. No historical row or
+uncertain claim was deleted. The exact old validation rejection body remains
+unavailable; successful guarded transfer verifies recovery from the save failure.
+
+The nightly review refreshed closing prices and reviewed the actual old
+`ranked-firm-2026-10-07-v7` observations: twenty October 7 candidate windows are
+complete, with no invalid forecasts. All twenty have `paper_eligible=false`.
+CD and MSGY reached a twenty-percent lower close within the following three
+sessions. CD's earliest recorded evaluation lacked an exhaustion setup; MSGY
+was below the trained rank threshold. These are tracked-candidate declines,
+not two delivered qualified trade detections or certified executable misses.
+No qualified paper trading profit is demonstrated. The diagnostic labels assume
+an October 7 closing entry, fixed $25k research notional, $5 each order, 30 bps
+each side, 10% assumed annual borrow and delayed closing stop/target execution;
+they are not an executed portfolio or the user's holdings.
+
+Nineteen October 8 candidate windows still lack the October 13 third closing
+session. The verified CD research watch was sent October 8, so its own complete
+three-session result remains pending. The local follow-up remains active for
+that outcome rather than declaring it complete prematurely.
+
+Daily status is a newly frozen challenger under the transport context, active
+model null and zero newly matured qualified training outcomes. There was no
+model promotion, allocation increase or new stock Discord message in this
+closed-market recovery check. Full verification and per-candidate diagnostics
+are in `WORKFLOW_VERIFICATION_2026_10_12.json`. Missing October 12 intraday records
+and unverified historical borrow/cap/halt/game eligibility remain unknown.

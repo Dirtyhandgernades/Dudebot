@@ -1,0 +1,241 @@
+{
+  "verified_at": "2026-10-13T00:20:30.680650+00:00",
+  "chicago_date": "2026-10-12",
+  "code_commit": "a7328c3d4c06fdf766634c1ffebb7102c7c639c1",
+  "runs": {
+    "scan": 38325434353,
+    "daily": 38325434130,
+    "preflight": 38325436059,
+    "ci": 38325434400
+  },
+  "all_conclusions": "success",
+  "tests": {
+    "python": 378,
+    "cloudflare": 25
+  },
+  "failure": {
+    "first_inspected_failed_run": 38258106254,
+    "latest_inspected_failed_run": 38319996184,
+    "error": "GitHub HTTP422 state-save validation rejection; detailed old response unavailable",
+    "data_gaps": "IntradayOct12observations after08:32Chicago last success are unrecorded; not reconstructed"
+  },
+  "state": {
+    "previous_blob": "4f2b5ad3b74c68cc1250d3f487f7d3b34015f338",
+    "previous_bytes": 42094592,
+    "verified_post_repair_blob": "207e130ec7596fa3d6d271c4efcab200c73a4ed6",
+    "verified_post_repair_bytes": 5749586,
+    "encoding": "Taggedlosslessgzip; localSQLite decoded; legacyraw readable",
+    "rows_deleted": false,
+    "sha_guards_preserved": true
+  },
+  "daily": {
+    "status": "FROZEN_CHALLENGER_STAGED",
+    "active_model_id": null,
+    "staged_model_id": "adaptive-948273c7358830d1bd71",
+    "fit_status": "TRAINED_FROM_READY_OUTCOMES",
+    "new_mature_outcomes": 0,
+    "fresh_training_outcomes": 0,
+    "orders_placed": 0
+  },
+  "preflight": {
+    "feed": "sip",
+    "status": "VERIFIED",
+    "delay_minutes": 16,
+    "completed_probe_bars": 5,
+    "requests": 1,
+    "market_window": "closed"
+  },
+  "october7_review": {
+    "contract": "ranked-firm-2026-10-07-v7",
+    "known_candidate_windows": 20,
+    "qualified_entries": 0,
+    "conditional20pct_hits": [
+      "CD",
+      "MSGY"
+    ],
+    "candidate_diagnostics": [
+      {
+        "ticker": "DBGI",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.18449110696320664,
+        "drop20": 0
+      },
+      {
+        "ticker": "TJGC",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.07992115333627912,
+        "drop20": 0
+      },
+      {
+        "ticker": "CD",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.28571880693704027,
+        "drop20": 1
+      },
+      {
+        "ticker": "STFS",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.00959232074129469,
+        "drop20": 0
+      },
+      {
+        "ticker": "EDHL",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.02675021346813707,
+        "drop20": 0
+      },
+      {
+        "ticker": "PRE",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.05070499234900716,
+        "drop20": 0
+      },
+      {
+        "ticker": "MAMA",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.037407499094569543,
+        "drop20": 0
+      },
+      {
+        "ticker": "ENGS",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.07125087567192637,
+        "drop20": 0
+      },
+      {
+        "ticker": "MSGY",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.36543943931188266,
+        "drop20": 1
+      },
+      {
+        "ticker": "CYCU",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.06913748522911277,
+        "drop20": 0
+      },
+      {
+        "ticker": "SMX",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.06424039339655775,
+        "drop20": 0
+      },
+      {
+        "ticker": "TP",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.005529829680365321,
+        "drop20": 0
+      },
+      {
+        "ticker": "BMHL",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.12337299412915854,
+        "drop20": 0
+      },
+      {
+        "ticker": "PDC",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.01350589456205886,
+        "drop20": 0
+      },
+      {
+        "ticker": "BOXL",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.007336454575166575,
+        "drop20": 0
+      },
+      {
+        "ticker": "FTFT",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.031227026566394686,
+        "drop20": 0
+      },
+      {
+        "ticker": "RPGL",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.16398835503351133,
+        "drop20": 0
+      },
+      {
+        "ticker": "EPOW",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": -0.07587480128530341,
+        "drop20": 0
+      },
+      {
+        "ticker": "ADVB",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.1432454348929035,
+        "drop20": 0
+      },
+      {
+        "ticker": "SDOT",
+        "entry_date": "2026-10-07",
+        "exit_date": "2026-10-12",
+        "paper_eligible": false,
+        "conditional_policy_net_return": 0.08635627220325397,
+        "drop20": 0
+      }
+    ],
+    "net_qualified_paper_profit_demonstrated": false,
+    "sizing_basis": "No qualified orders or portfolio; diagnostic fixed25knotional,5dollarorders,30bpseachside,assumed10percentannualborrow, closingentryOct7anddelayedclosingexits; not actualholdings"
+  },
+  "actual_watch_receipt": {
+    "ticker": "CD",
+    "day": "2026-10-08",
+    "at_chicago": "11:05",
+    "status": "SENT",
+    "message_id": "1557786002737729560",
+    "full_window_ends": "2026-10-13",
+    "is_qualified_trade": false
+  },
+  "contracts_next_session": [
+    "ranked-firm-2026-10-13-v5",
+    "firm-shadow-2026-10-13-v5",
+    "entry-quality-2026-10-13-v5"
+  ],
+  "limits": [
+    "No new stock Discord message sent during closed-market verification",
+    "No qualified alert or executed profit inferred from a tracked candidate decline",
+    "Actualholdings, historicalborrow/cap/halt/gameeligibility andlostintradayobservations remainunknown",
+    "Local followup staysactive untilcompletedrequestedoutcomereport; hostedjobscontinue independently"
+  ]
+}
