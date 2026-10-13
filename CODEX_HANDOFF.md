@@ -9,7 +9,14 @@ timeoutsnowclassified/latchfailedcheckpoint; failedpushacknowledgementreconciles
 onlyexactdesiredremotecontent,read-only,no repeatedpush/Discord. Disableuseless
 delta packingofgzipstate. PreserveoriginalSHAguard/claims/rows. ExactOctober13v5
 archives,prospectiveOctober14v6 contracts; noweights/sizes/gates/timingchanges.
-383localtests pass. Hostedverificationpending. Current14:33Chicago rankedscan
+383localtests pass. Scan38467161860,daily38467184995,CI38467240754success;
+hosted383Python/25Cloudflare. Freshpractice38467240544 SENTmessage1559672690099359887
+at16:02Chicago,nottrade. ReadWORKFLOW_VERIFICATION_2026_10_13.json. ActualCDOct8
+watchcomplete:20pctdropwithin3,conditionalclosing-entry25knet8385.45;unqualified,
+notaccountprofit. Old39allunqualified:38priceoutcomes+1rawentryreject,21nonoverlap.
+20newOct13v5awaitOct16. DailySTAGEDactive null/fresh0/orders0;nopromotion.
+Completedfirst-watchlocalfollowupdeleted;hostedworkflowscontinueindependently.
+Current14:33Chicago rankedscan
 97candidates:32priorpricescope/57currentpriceunavailable/8noqualifyingsetup-rank;
 olderlane17borrowrejections. Data gaps do not become executable trades.
 

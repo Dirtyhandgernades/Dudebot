@@ -1,0 +1,88 @@
+{
+  "verified_at": "2026-10-13T21:01:48.621188+00:00",
+  "timezone": "America/Chicago",
+  "source_commit": "625fb1e12c33c29fd5cf2f9db0110153670a9293",
+  "practice_commit": "85de83c123efe000d8c0aa5c3c6ca865df0f1d97",
+  "repair_runs": {
+    "scan": 38467161860,
+    "daily": 38467184995,
+    "ci": 38467240754,
+    "practice": 38467240544
+  },
+  "tests": {
+    "python": 383,
+    "cloudflare": 25
+  },
+  "practice": {
+    "status": "SENT",
+    "claimed_at": "2026-10-13T21:02:20.773662+00:00",
+    "message_id": "1559672690099359887",
+    "channel_id": "1546733107846324254",
+    "format_version": "embed-v1"
+  },
+  "actual_stock_watch": {
+    "ticker": "CD",
+    "contract": "ranked-firm-2026-10-07-v7",
+    "sent_at": "2026-10-08T16:05:19.020814+00:00",
+    "message_id": "1557786002737729560",
+    "qualified": false,
+    "assumed_closing_entry_diagnostic": {
+      "ticker": "CD",
+      "signal_date": "2026-10-08",
+      "entry_date": "2026-10-08",
+      "x": [
+        1.891737891737892,
+        0.6902581182348044,
+        0.21995192307692313,
+        -0.013768376458699771,
+        1.4222436087818104,
+        0.0,
+        0.24449261083743845
+      ],
+      "paper_eligible": false,
+      "feature_basis": "PROVIDER_DAILY_COMPLETED_BEFORE_ENTRY",
+      "status": "POLICY_OUTCOME_OBSERVED",
+      "exit_date": "2026-10-12",
+      "exit_reason": "TARGET_FROM_PRIOR_CLOSE",
+      "policy_net_return": 0.33541795010233166,
+      "policy_profitable": 1,
+      "tail_loss": 0,
+      "max_adverse_close_return": 0.0,
+      "dump_20pct_occurs": 1,
+      "label_end": "2026-10-13",
+      "commission_notional_assumption": 25000
+    },
+    "paper_notional_assumption": 25000,
+    "conditional_net_paper_pnl": 8385.45,
+    "not_executed_or_portfolio_profit": true
+  },
+  "old_contract_review": {
+    "observations": 39,
+    "oct7_observed": 20,
+    "oct8_observed": 18,
+    "oct8_entry_price_rejected": 1,
+    "nonoverlapping_mature": 21,
+    "qualified_observations": 0
+  },
+  "daily": {
+    "status": "FROZEN_CHALLENGER_STAGED",
+    "fit_status": "TRAINED_FROM_READY_OUTCOMES",
+    "active_model_id": null,
+    "staged_model_id": "adaptive-71a6b7350dc45d9a1f82",
+    "fresh_training_outcomes": 0,
+    "new_mature_outcomes": 0,
+    "provider_requests": 0,
+    "orders_placed": 0
+  },
+  "limitations": [
+    "Current missing/stale five-minute price windows remain unavailable; borrow rejects remain rejects.",
+    "October12 failed intraday capture cannot be reconstructed as live forecasts.",
+    "Historical borrow/cap/halts/full SMG membership unknown.",
+    "October13 v5 outcomes not mature until October16.",
+    "No qualified paper account profit or consistent70kseason target demonstrated."
+  ],
+  "intentionally_cancelled_duplicate_runs": [
+    38467181694,
+    38467188371
+  ]
+}
