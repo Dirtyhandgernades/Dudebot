@@ -156,7 +156,8 @@ class GitHubState:
         from .transport import ProviderError
         local=Path(path);root=local.resolve().parent.parent
         def git(args):
-            result=subprocess.run(['git',*args],cwd=root,capture_output=True,timeout=90)
+            try:result=subprocess.run(['git',*args],cwd=root,capture_output=True,timeout=90)
+            except subprocess.TimeoutExpired:raise ProviderError('github.com',reason='STATE_GIT_READ_TIMEOUT') from None
             if result.returncode:raise ProviderError('github.com',reason='STATE_GIT_READ_REJECTED')
             return result.stdout
         remote=urlsplit(git(['remote','get-url','origin']).decode().strip())
@@ -186,7 +187,8 @@ class GitHubState:
              'GIT_COMMITTER_NAME':'github-actions[bot]',
              'GIT_COMMITTER_EMAIL':'41898282+github-actions[bot]@users.noreply.github.com'}
         def git(args,data=None):
-            result=subprocess.run(['git',*args],cwd=root,env=env,input=data,capture_output=True,timeout=90)
+            try:result=subprocess.run(['git',*args],cwd=root,env=env,input=data,capture_output=True,timeout=90)
+            except subprocess.TimeoutExpired:raise ProviderError('github.com',reason='STATE_GIT_WRITE_TIMEOUT') from None
             if result.returncode:raise ProviderError('github.com',reason='STATE_GIT_TRANSFER_REJECTED')
             return result.stdout.decode().strip()
         from urllib.parse import urlsplit
@@ -205,7 +207,19 @@ class GitHubState:
             git(['read-tree',head]);git(['update-index','--add','--cacheinfo','100644',blob,'runtime/state.sqlite'])
             tree=git(['write-tree']);commit=git(['commit-tree',tree,'-p',head],b'Update SMG notifier state\n')
             # A remote change after fetch rejects this ordinary fast-forward.
-            git(['push','--quiet','origin',commit+':refs/heads/'+self.branch])
+            # Gzip snapshots cannot use useful Git deltas. Avoid spending the
+            # upload deadline comparing them against previous large snapshots.
+            try:git(['-c','pack.window=0','-c','pack.threads=1','push','--quiet','origin',commit+':refs/heads/'+self.branch])
+            except ProviderError as exc:
+                # A timed-out/rejected acknowledgement may still have saved
+                # this exact snapshot. Read only; never repeat the push or
+                # adopt another writer's state. An unresolved claim stays so.
+                try:
+                    remote=self.http.json(self.url,params={'ref':self.branch},
+                        headers={**self.headers,'Accept':'application/vnd.github.object+json'})
+                except (ProviderError,AttributeError):raise exc
+                actual=remote.get('sha') if isinstance(remote,dict) else None
+                if actual!=desired:raise exc
             self.sha=desired;self.writer_transport='git';self.remember_local(store.path)
         finally:
             for owned in (index,Path(str(index)+'.lock')):

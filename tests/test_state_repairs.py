@@ -208,8 +208,8 @@ def test_compressed_git_state_write_keeps_other_files_and_never_force_pushes(tmp
     b.git_checkpoint(store,content)
     assert b.sha==desired and b.writer_transport=='git'
     assert any(a[:2]==['read-tree','head'] for a,_ in calls)
-    pushes=[a for a,_ in calls if a[0]=='push']
-    assert pushes==[['push','--quiet','origin','commit:refs/heads/smg-state']]
+    pushes=[a for a,_ in calls if 'push' in a]
+    assert pushes==[['-c','pack.window=0','-c','pack.threads=1','push','--quiet','origin','commit:refs/heads/smg-state']]
     assert all('--force' not in a for a,_ in calls)
     assert any('GIT_INDEX_FILE' in kw['env'] for a,kw in calls if a[0]=='read-tree')
 
@@ -340,3 +340,53 @@ def test_compressed_state_restore_and_same_run_reuse_keep_both_sha_guards(tmp_pa
     store.put('unsaved',1)
     GitHubState(http,'o/r','fixture').restore(path)
     assert calls==['metadata','body','metadata','body'] and path.read_bytes()==raw
+
+
+@pytest.mark.parametrize('remote',['desired','original','other','unavailable'])
+def test_git_push_timeout_reconciles_only_exact_content_and_never_repushes(tmp_path,monkeypatch,remote):
+    import subprocess,json
+    monkeypatch.setenv('GITHUB_RUN_ID','timeout-fixture')
+    store=Store(tmp_path/'runtime/state.sqlite');store.put('uncertain_claim',{'status':'CLAIMED'})
+    content=store.path.read_bytes();desired=GitHubState.blob_sha(content);calls=[]
+    class HTTP:
+        reads=0
+        def json(self,*args,**kwargs):
+            self.reads+=1
+            assert 'method' not in kwargs
+            if remote=='unavailable':raise ProviderError('api.github.com',504)
+            return {'sha':desired if remote=='desired' else remote}
+    def run(command,**kwargs):
+        args=command[1:];calls.append(args);value=''
+        if 'push' in args:raise subprocess.TimeoutExpired(command,90,stderr=b'sensitive fixture')
+        if args[:3]==['remote','get-url','origin']:value='https://github.com/o/r.git'
+        elif args[:2]==['rev-parse','FETCH_HEAD']:value='head'
+        elif args[0]=='rev-parse':value='original'
+        elif args[0]=='hash-object':value=desired
+        elif args[0]=='write-tree':value='tree'
+        elif args[0]=='commit-tree':value='commit'
+        return SimpleNamespace(returncode=0,stdout=value.encode(),stderr=b'')
+    monkeypatch.setattr('subprocess.run',run)
+    http=HTTP();backend=GitHubState(http,'o/r','fixture');backend.sha='original';backend.writer_transport='git'
+    if remote=='desired':
+        backend.checkpoint(store)
+        memo=json.loads(store.path.with_suffix('.remote.json').read_text())
+        assert backend.sha==memo['sha']==desired and memo['local_sha']==desired
+        backend.checkpoint(store)
+    else:
+        for _ in range(2):
+            with pytest.raises(ProviderError,match='STATE_GIT_WRITE_TIMEOUT') as error:backend.checkpoint(store)
+            assert 'sensitive fixture' not in str(error.value)
+        assert backend.sha=='original'
+    assert len([a for a in calls if 'push' in a])==1 and http.reads==1
+    assert not list(store.path.parent.glob('state-index-*'))
+    assert store.get('uncertain_claim')=={'status':'CLAIMED'}
+
+
+def test_git_read_timeout_is_classified_without_replacing_local_state(tmp_path,monkeypatch):
+    import subprocess
+    path=tmp_path/'runtime/state.sqlite';path.parent.mkdir();path.write_bytes(b'preserve')
+    def run(command,**kwargs):raise subprocess.TimeoutExpired(command,90)
+    monkeypatch.setattr('subprocess.run',run)
+    with pytest.raises(ProviderError,match='STATE_GIT_READ_TIMEOUT'):
+        GitHubState(None,'o/r','fixture').git_restore(path)
+    assert path.read_bytes()==b'preserve'

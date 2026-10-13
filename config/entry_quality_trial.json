@@ -1,7 +1,7 @@
 {
-  "id": "entry-quality-2026-10-13-v5",
-  "parent_policy": "ranked-firm-2026-10-13-v5",
-  "published_at": "2026-10-12T23:54:57.989193+00:00",
+  "id": "entry-quality-2026-10-14-v6",
+  "parent_policy": "ranked-firm-2026-10-14-v6",
+  "published_at": "2026-10-13T20:58:18.774015+00:00",
   "status": "PROSPECTIVE_RESEARCH_ONLY_HISTORICAL_GATES_FAILED",
   "live_enabled": false,
   "automatic_promotion": false,
@@ -478,6 +478,6 @@
     "Return/tail scores are not calibrated probabilities",
     "Historical borrow and game eligibility remain unknown"
   ],
-  "version_reason": "Transport-only repair for repeated GitHub422writes on42MBstate: lossless tagged gzip persistence (legacy SQLite readable), guarded compressed Git for large transfers, dual local/remote SHA memo, unused-page reclamation and explicit validation-error classification. No weights, timing, eligibility, shares or outcome math changed. PreserveOctober12v4observations.",
-  "parent_trial": "entry-quality-2026-10-12-v4"
+  "version_reason": "Classify and latch Git timeouts, reconcile only an exact remotely committed snapshot after a lost push acknowledgement, and disable useless Git delta packing of gzip state. Transport only; base weights, sizing, exclusions, entry windows and three-session holds unchanged.",
+  "parent_trial": "entry-quality-2026-10-13-v5"
 }

@@ -1,5 +1,18 @@
 # Dudebot continuation handoff
 
+## October 13 intermittent Git timeout repair
+
+Most scans now succeed, but inspected38431336767/38457550051 failed with
+unclassifiedTimeoutExpired followedby STATE_SHA_CONFLICT. ExactGitcommand
+unavailableinoldlogs. Readbacktest/WORKFLOW_REPAIR_2026_10_13.md. Gitread/write
+timeoutsnowclassified/latchfailedcheckpoint; failedpushacknowledgementreconciles
+onlyexactdesiredremotecontent,read-only,no repeatedpush/Discord. Disableuseless
+delta packingofgzipstate. PreserveoriginalSHAguard/claims/rows. ExactOctober13v5
+archives,prospectiveOctober14v6 contracts; noweights/sizes/gates/timingchanges.
+383localtests pass. Hostedverificationpending. Current14:33Chicago rankedscan
+97candidates:32priorpricescope/57currentpriceunavailable/8noqualifyingsetup-rank;
+olderlane17borrowrejections. Data gaps do not become executable trades.
+
 ## October 12 live-session state-save failure and transport repair
 
 Heartbeat found repeated GitHub422 state checkpoints from38258106254(13:46UTC)

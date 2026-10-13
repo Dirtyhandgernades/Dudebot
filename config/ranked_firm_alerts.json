@@ -1,7 +1,7 @@
 {
-  "id": "ranked-firm-2026-10-13-v5",
+  "id": "ranked-firm-2026-10-14-v6",
   "enabled": true,
-  "first_session": "2026-10-13",
+  "first_session": "2026-10-14",
   "confidence_sizing_enabled": false,
   "entry_policy": "PRECLOSE_ONLY",
   "position_target": 50000,
@@ -56,7 +56,7 @@
     "smg/shortability.py": "9e4519c31314283d3b9821e83a9d6873929d7ef5b4707e5816b77fcd92e6610f",
     "smg/market.py": "aada47ee5aa4b8001f0476768b89091fe3ebfc9b8338f52b4f01f920f7de486c",
     "smg/notify.py": "5eb19c9287eac56036dab5676b544867b661e83390d61b05e0e006f9192fef63",
-    "smg/storage.py": "ddc8fdbcf2d16fc0ce092899c84b7caed84b41d488327df2d59c44dbec9465d7",
+    "smg/storage.py": "2fc49e2c99226980bd97c6a7a3073944c7909c1fce78df964ced275df1d89949",
     "smg/transport.py": "91bb9d2888d8d7b2d237d92caf85045f0939f6aceb60c41cd3e7afdeef76433c",
     "config/entities.yaml": "42a2d8f2473cdebd808c812041897c2c890ecc657479aac482cc681d8a671a70",
     "config/smg_excluded_symbols.txt": "4c3bca45aab56aa5afc5acfa905504502bdbe69ba1be1ff2caa409dd76a957b0",
@@ -72,7 +72,7 @@
     "smg/entry_features.py": "c7d2261e173e6d5811d2dcc4f648c0f639b2d11b1df4d6ff09e6bed23c47f047"
   },
   "status": "APPROVED_FOR_GATED_ADVISORY_ALERTS",
-  "published_at": "2026-10-12T23:54:57.989193+00:00",
+  "published_at": "2026-10-13T20:58:18.774015+00:00",
   "training_latest_label": "2025-12-05",
   "selection_reason": "Only tested checkpoint policy profitable in every year under base, full stress and identical-trade cost stress, with stressed observed drawdown below 25%.",
   "validation": {
@@ -153,9 +153,9 @@
     "live_orders_enabled": false,
     "percent_confidence_enabled": false
   },
-  "parent_contract_id": "ranked-firm-2026-10-12-v4",
+  "parent_contract_id": "ranked-firm-2026-10-13-v5",
   "automatic_improvement_enabled": true,
-  "version_reason": "Transport-only repair for repeated GitHub422writes on42MBstate: lossless tagged gzip persistence (legacy SQLite readable), guarded compressed Git for large transfers, dual local/remote SHA memo, unused-page reclamation and explicit validation-error classification. No weights, timing, eligibility, shares or outcome math changed. PreserveOctober12v4observations.",
+  "version_reason": "Classify and latch Git timeouts, reconcile only an exact remotely committed snapshot after a lost push acknowledgement, and disable useless Git delta packing of gzip state. Transport only; base weights, sizing, exclusions, entry windows and three-session holds unchanged.",
   "adaptive_research_inputs": {
     "packet_sha256": "1ca2883e0a0a997b7a7f10d90e536d7ecdc6e42fc3099732a1fcad14da3b2ecd",
     "signals_sha256": "099980bf8117ae98a35635694c344b30da14a0b48b8597144b714d32ac6275f0",
