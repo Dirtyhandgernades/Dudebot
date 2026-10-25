@@ -22,6 +22,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Retrieve original historical replay artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_conclusion: success
+          run_id: 37386241124
+          name: pre-close-firm-37386241124
+          path: outputs/backtest/hybrid-37386241124
+          if_no_artifact_found: fail
+      - name: Verify required replay files
+        run: |
+          find outputs/backtest/hybrid-37386241124 -maxdepth 3 -type f | head -50
+          test -f outputs/backtest/hybrid-37386241124/firm-timing-inputs.json.gz
+          for year in 2023 2024 2025; do
+            test -f outputs/backtest/hybrid-37386241124/$year-hybrid-signals.json
+            test -f outputs/backtest/hybrid-37386241124/$year-intraday-audit.json
+          done
       - name: Audit cached replay inputs (fail closed)
         run: |
           mkdir -p outputs/backtest
