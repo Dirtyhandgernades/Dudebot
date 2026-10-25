@@ -68,7 +68,18 @@ jobs:
           else
             run_id="${artifact_name#obsidian-recovery-}"
             echo "Restoring $artifact_name from run $run_id"
-            gh run download "$run_id" --repo "$GH_REPO" --name "$artifact_name" --dir outputs/backtest/obsidian-recovery
+            restored=false
+            for attempt in 1 2 3 4 5; do
+              if gh run download "$run_id" --repo "$GH_REPO" --name "$artifact_name" --dir outputs/backtest/obsidian-recovery; then
+                restored=true
+                break
+              fi
+              echo "Artifact download attempt $attempt failed; retrying transient storage errors."
+              rm -rf outputs/backtest/obsidian-recovery
+              mkdir -p outputs/backtest/obsidian-recovery
+              sleep $((attempt * 8))
+            done
+            [[ "$restored" == true ]] || { echo "Checkpoint download failed after retries"; exit 1; }
             test -s outputs/backtest/obsidian-recovery/checkpoint.json || { echo "Incomplete checkpoint artifact"; exit 1; }
           fi
       - name: Recover missing/stale split windows (bounded probe)
