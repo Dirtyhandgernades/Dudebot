@@ -112,4 +112,4 @@ jobs:
           path: outputs/backtest/obsidian-data-audit.json
           if-no-files-found: warn
           retention-days: 30
-# Research-only batch trigger: 2026-10-25T05:44:58-0500
+# Research-only batch trigger: 2026-10-25T06:48:40-0500
