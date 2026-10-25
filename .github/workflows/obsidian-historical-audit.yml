@@ -1,0 +1,38 @@
+name: OBSIDIAN historical data audit (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/obsidian_data_audit.py'
+      - 'backtest/obsidian_early_rug.py'
+      - '.github/workflows/obsidian-historical-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Audit cached replay inputs (fail closed)
+        run: |
+          mkdir -p outputs/backtest
+          python -m backtest.obsidian_data_audit \
+            --source outputs/backtest/hybrid-37386241124 \
+            --output outputs/backtest/obsidian-data-audit.json
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-historical-audit-${{ github.run_id }}
+          path: outputs/backtest/obsidian-data-audit.json
+          if-no-files-found: warn
+          retention-days: 30
