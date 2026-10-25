@@ -15,6 +15,7 @@ from smg.intraday_replay import confirmed_hybrid_events
 from smg.models import Config
 from smg.swing_backtest import simulate
 from backtest.confirmation_comparison import drop_timing
+from backtest.obsidian_data_audit import load_checked
 
 # Frozen before outcomes are inspected in this experiment.
 # More negative thresholds select early weakness; positive permits rallies.
@@ -25,7 +26,9 @@ def run(source, out):
     source, out = Path(source), Path(out)
     out.mkdir(parents=True, exist_ok=True)
     packet_file = source / 'firm-timing-inputs.json.gz'
-    packet = json.loads(gzip.decompress(packet_file.read_bytes()))
+    packet, integrity = load_checked(source)
+    if integrity['warnings']:
+        raise RuntimeError('INCOMPLETE_REPLAY_DATA: '+ '; '.join(integrity['warnings']) + '. Review audit before running; never report these results as complete.')
     cfg = Config(**packet['config'])
     results = []
     for year in (2023, 2024, 2025):
@@ -67,7 +70,8 @@ def run(source, out):
                 })
     report = {
         'status': 'REUSED_DATA_ABLATION_NOT_VALIDATED',
-        'source_sha256': hashlib.sha256(packet_file.read_bytes()).hexdigest(),
+        'source_sha256': integrity['packet_sha256'],
+        'data_integrity': integrity,
         'thresholds': THRESHOLDS,
         'results': results,
         'production_changed': False,
