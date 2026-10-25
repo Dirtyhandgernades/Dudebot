@@ -21,7 +21,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -79,10 +79,10 @@ jobs:
           python -m backtest.obsidian_recover_windows \
             --source outputs/backtest/hybrid-37386241124 \
             --out outputs/backtest/obsidian-recovery \
-            --max-requests 120
+            --max-requests 400
       - name: Verify recovery progress accounting
         run: |
-          python -c 'import json,pathlib; r=json.loads(pathlib.Path("outputs/backtest/obsidian-recovery/recovery.json").read_text()); assert r["total_candidate_windows"] == r["windows_checked_cumulative"] + r["remaining_unchecked"]; assert sum(r["counts"].values()) == r["windows_checked_cumulative"]; assert r["requests_this_run"] <= 120; print("Recovery accounting invariants verified")'
+          python -c 'import json,pathlib; r=json.loads(pathlib.Path("outputs/backtest/obsidian-recovery/recovery.json").read_text()); assert r["total_candidate_windows"] == r["windows_checked_cumulative"] + r["remaining_unchecked"]; assert sum(r["counts"].values()) == r["windows_checked_cumulative"]; assert r["requests_this_run"] <= 400; print("Recovery accounting invariants verified")'
       - name: Upload recovery evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -101,3 +101,4 @@ jobs:
           path: outputs/backtest/obsidian-data-audit.json
           if-no-files-found: warn
           retention-days: 30
+# Research-only batch trigger: 2026-10-25T01:50-0500
