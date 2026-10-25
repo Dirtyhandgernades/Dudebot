@@ -49,16 +49,50 @@ jobs:
             --output outputs/backtest/obsidian-data-audit.json
       - name: Install replay dependencies
         run: python -m pip install -e .
-      - name: Restore previous recovery checkpoint and bar cache
-        uses: dawidd6/action-download-artifact@v6
-        continue-on-error: true
+      - name: Restore newest completed recovery checkpoint and bar cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/backtest/obsidian-recovery
+          artifact=$(gh api --paginate "repos/$GH_REPO/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("obsidian-recovery-"))) | [.created_at, .workflow_run.id, .name] | @tsv' | sort -r | head -n 1 || true)
+          if [[ -z "$artifact" ]]; then
+            echo "No prior recovery artifact; bootstrapping a fresh checkpoint."
+          else
+            IFS=      - name: Recover missing/stale split windows (bounded probe)
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_recover_windows \
+            --source outputs/backtest/hybrid-37386241124 \
+            --out outputs/backtest/obsidian-recovery \
+            --max-requests 120
+      - name: Upload recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_conclusion: success
-          run_id: 40165972316
-          name: obsidian-recovery-40165972316
-          path: outputs/backtest/obsidian-recovery
-          if_no_artifact_found: warn
+          name: obsidian-recovery-${{ github.run_id }}
+          path: |
+            outputs/backtest/obsidian-recovery/recovery.json
+            outputs/backtest/obsidian-recovery/checkpoint.json
+            outputs/backtest/obsidian-recovery/bar-cache/
+          if-no-files-found: warn
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-historical-audit-${{ github.run_id }}
+          path: outputs/backtest/obsidian-data-audit.json
+          if-no-files-found: warn
+          retention-days: 30
+\t' read -r created run_id artifact_name <<< "$artifact"
+            echo "Restoring $artifact_name from run $run_id ($created)"
+            gh run download "$run_id" --repo "$GH_REPO" --name "$artifact_name" --dir outputs/backtest/obsidian-recovery
+            test -s outputs/backtest/obsidian-recovery/checkpoint.json || { echo "Artifact missing checkpoint; refusing silent restart"; exit 1; }
+          fi
       - name: Recover missing/stale split windows (bounded probe)
         env:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
