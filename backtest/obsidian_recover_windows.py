@@ -32,10 +32,11 @@ def main():
         audit = json.loads((source/f'{year}-intraday-audit.json').read_text())
         for day_record in audit['sessions']:
             day = day_record.get('day')
-            if not day or 'candidate_audit' not in day_record:
+            if not day:
                 continue
-            names = [row['ticker'] for row in day_record['candidate_audit']
-                     if row.get('status') == 'SPLIT_WINDOW_UNAVAILABLE']
+            # Recompute candidate universe from the frozen point-in-time packet.
+            # Some original audits do not include per-ticker candidate_audit rows.
+            names = candidates(packet, day)
             if not names:
                 continue
             opened, _, _, cutoff = decision_window(day)
@@ -67,6 +68,12 @@ def main():
                 if status == 'DEFERRED_REQUEST_BUDGET':
                     print(json.dumps({'status': 'BUDGET_REACHED', 'counts': dict(totals)}))
                     return
+    (out/'recovery.json').write_text(json.dumps({
+        'status': 'PROBE_COMPLETE_NOT_REPLAY_REPAIRED',
+        'counts': dict(totals), 'requests': client.requests,
+        'records': results,
+        'warning': 'Original gaps require cross-check and regenerated replay before clearing',
+    }, indent=2))
     print(json.dumps({'status': 'PROBE_COMPLETE', 'counts': dict(totals)}))
 
 
