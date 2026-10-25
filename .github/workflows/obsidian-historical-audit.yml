@@ -14,6 +14,10 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: obsidian-recovery-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -57,7 +61,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p outputs/backtest/obsidian-recovery
-          artifact_name=$(gh api --paginate "repos/$GH_REPO/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("obsidian-recovery-"))) | [.created_at, .name] | join(" ")' | sort -r | head -n 1 | cut -d' ' -f2 || true)
+          gh api --paginate "repos/$GH_REPO/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("obsidian-recovery-"))) | [.created_at, .name] | join(" ")' > "$RUNNER_TEMP/obsidian-artifacts.txt"
+          artifact_name=$(sort -r "$RUNNER_TEMP/obsidian-artifacts.txt" | head -n 1 | cut -d' ' -f2)
           if [[ -z "$artifact_name" ]]; then
             echo "No prior recovery artifact; bootstrapping."
           else
@@ -75,6 +80,9 @@ jobs:
             --source outputs/backtest/hybrid-37386241124 \
             --out outputs/backtest/obsidian-recovery \
             --max-requests 120
+      - name: Verify recovery progress accounting
+        run: |
+          python -c 'import json,pathlib; r=json.loads(pathlib.Path("outputs/backtest/obsidian-recovery/recovery.json").read_text()); assert r["total_candidate_windows"] == r["windows_checked_cumulative"] + r["remaining_unchecked"]; assert sum(r["counts"].values()) == r["windows_checked_cumulative"]; assert r["requests_this_run"] <= 120; print("Recovery accounting invariants verified")'
       - name: Upload recovery evidence
         if: always()
         uses: actions/upload-artifact@v4
