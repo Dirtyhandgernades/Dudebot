@@ -57,4 +57,4 @@ jobs:
           path: outputs/backtest/obsidian-prospective/${{ github.run_id }}/
           if-no-files-found: warn
           retention-days: 90
-# Research-only capture trigger: unarmed; future push only within Central close window.
+# Research-only capture trigger: one-time 2026-10-26 14:47 America/Chicago read-only session capture.
