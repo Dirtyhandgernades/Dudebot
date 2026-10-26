@@ -1,0 +1,243 @@
+"""Research-only as-of Alpaca universe/snapshot capture; never places orders.
+
+Independent of the historical firm cohort. Retains every returned active NYSE/
+NASDAQ US-equity asset in a raw universe ledger, including unclassified names,
+missing snapshots and ineligible securities. Price-only A/B *watches* feed the
+frozen prospective journal; C reversals need independently observed structure.
+No source establishes historical shares, SMG borrow or actual executable fills.
+"""
+import argparse
+import hashlib
+import json
+import math
+import os
+import re
+from datetime import datetime, timedelta, timezone, time
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+CENTRAL = ZoneInfo("America/Chicago")
+EASTERN = ZoneInfo("America/New_York")
+ASSETS_URL = "https://api.alpaca.markets/v2/assets"
+SNAPSHOTS_URL = "https://data.alpaca.markets/v2/stocks/snapshots"
+PROVIDER_SCOPE = "ALPACA_ACTIVE_US_EQUITY_NYSE_NASDAQ_NOT_ALL_SMG_SECURITIES"
+BATCH_SIZE = 100
+
+
+def now_utc():
+    return datetime.now(timezone.utc)
+
+
+def asof(value):
+    if not isinstance(value, str):
+        return None
+    try:
+        at = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return at if at.utcoffset() is not None else None
+
+
+def finite_price(value):
+    return isinstance(value, (float, int)) and not isinstance(value, bool) and math.isfinite(value) and value > 0
+
+
+def in_window(at):
+    local = at.astimezone(CENTRAL)
+    return local.weekday() < 5 and time(14, 45) <= local.time().replace(tzinfo=None) <= time(14, 58)
+
+
+class AlpacaReadOnly:
+    """Only GETs public-market metadata and SIP snapshots. No trading endpoints."""
+    def __init__(self):
+        import requests
+        self.session = requests.Session()
+        self.session.headers.update({
+            "APCA-API-KEY-ID": os.environ["ALPACA_API_KEY"],
+            "APCA-API-SECRET-KEY": os.environ["ALPACA_SECRET_KEY"],
+        })
+
+    def get(self, url, params):
+        response = self.session.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        return response.json()
+
+    def assets(self):
+        return self.get(ASSETS_URL, {"status": "active", "asset_class": "us_equity"})
+
+    def snapshots(self, tickers):
+        result = self.get(SNAPSHOTS_URL, {"symbols": ",".join(tickers), "feed": "sip"})
+        if not isinstance(result, dict) or not isinstance(result.get("snapshots"), dict):
+            raise ValueError("INVALID_SIP_SNAPSHOT_RESPONSE")
+        return result["snapshots"]
+
+
+def candidate(asset, snap, at, screen_id, asset_at=None):
+    """Use only fields in the received as-of snapshot; unknowns remain blocked."""
+    ticker = asset["symbol"]
+    asset_at = asset_at or at
+    trade = snap.get("latestTrade") or {}
+    prior = snap.get("prevDailyBar") or {}
+    minute = snap.get("minuteBar") or {}
+    price, previous = trade.get("p"), prior.get("c")
+    trade_at, previous_at, minute_at = asof(trade.get("t")), asof(prior.get("t")), asof(minute.get("t"))
+    if not finite_price(price) or not finite_price(previous):
+        return None, "MISSING_OR_INVALID_PRICE"
+    if trade_at is None or trade_at > at or at - trade_at > timedelta(minutes=5):
+        return None, "STALE_OR_FUTURE_TRADE"
+    if previous_at is None or previous_at.astimezone(EASTERN).date() >= at.astimezone(EASTERN).date():
+        return None, "INVALID_PREVIOUS_SESSION"
+    change = price / previous - 1
+    if -.15 <= change <= -.02:
+        category = "A"
+    elif change <= -.25:
+        category = "B"
+    else:
+        return None, "NO_PRICE_ONLY_A_OR_B_SETUP"
+    # Last trade is not proof of executable bid/borrow; bar timestamp is bar start.
+    cutoff = at - timedelta(microseconds=1)
+    last_complete = minute_at + timedelta(minutes=1) if minute_at else None
+    if last_complete is None or last_complete > cutoff:
+        last_complete = None
+    row = {
+        "screen_id": screen_id, "ticker": ticker, "direction": "SHORT",
+        "category": category, "session_date": at.astimezone(CENTRAL).date().isoformat(),
+        "decision_at": at.isoformat(), "exchange": asset.get("exchange"),
+        "security_type": "UNKNOWN", "halted": None,
+        "corporate_actions_clear": None, "decision_price": price,
+        "previous_close": previous, "shares_outstanding": None,
+        "borrow_available": None, "smg_short_available": None,
+        "cutoff_at": cutoff.isoformat() if last_complete else None,
+        "last_complete_at": last_complete.isoformat() if last_complete else None,
+        "screen_verified": True, "screen_url": ASSETS_URL,
+        "screen_at": asset_at.isoformat(),
+        "quote_verified": True, "quote_url": SNAPSHOTS_URL,
+        "quote_at": trade_at.isoformat(),
+        "previous_close_verified": True, "previous_close_url": SNAPSHOTS_URL,
+        "previous_close_at": previous_at.isoformat(),
+        "listing_verified": asset.get("exchange") in ("NYSE", "NASDAQ"),
+        "listing_url": ASSETS_URL, "listing_at": asset_at.isoformat(),
+        "shares_verified": False, "corporate_actions_verified": False,
+        "borrow_verified": False, "smg_short_verified": False,
+        "research_setup": "PRICE_ONLY_WATCH_NOT_CONFIRMED_BREAKDOWN",
+        "provider_previous_bar_timestamp_semantics": "BAR_START_NOT_CAPTURE_TIME",
+    }
+    return row, "PRICE_ONLY_WATCH"
+
+
+def collect(provider, clock=now_utc, max_requests=150):
+    started = clock()
+    if started.utcoffset() is None or not in_window(started):
+        raise RuntimeError("OUTSIDE_1445_1458_CENTRAL_CAPTURE_WINDOW")
+    assets = provider.assets()
+    assets_received = clock()
+    if assets_received < started or assets_received.utcoffset() is None:
+        raise ValueError("INVALID_ASSET_CAPTURE_CLOCK")
+    if not isinstance(assets, list) or not assets:
+        raise ValueError("EMPTY_OR_INVALID_ASSET_UNIVERSE")
+    selected = []
+    seen = set()
+    for asset in assets:
+        if not isinstance(asset, dict):
+            raise ValueError("INVALID_ASSET_RECORD")
+        if asset.get("exchange") not in ("NYSE", "NASDAQ") or asset.get("status") != "active":
+            continue
+        ticker = asset.get("symbol")
+        if not isinstance(ticker, str) or not ticker or ticker in seen:
+            raise ValueError("DUPLICATE_OR_INVALID_ASSET_SYMBOL")
+        seen.add(ticker)
+        selected.append(asset)
+    if not selected:
+        raise ValueError("EMPTY_NYSE_NASDAQ_UNIVERSE")
+    selected.sort(key=lambda a: a["symbol"])
+    if (len(selected) + BATCH_SIZE - 1) // BATCH_SIZE > max_requests:
+        raise RuntimeError("SNAPSHOT_REQUEST_BUDGET_EXCEEDED")
+    scan_id = "alpaca-sip-" + started.strftime("%Y%m%dT%H%M%S%fZ")
+    universe, watches = [], []
+    for i in range(0, len(selected), BATCH_SIZE):
+        batch = selected[i:i+BATCH_SIZE]
+        symbols = [a["symbol"] for a in batch]
+        snaps = provider.snapshots(symbols)
+        if set(snaps) - set(symbols):
+            raise ValueError("UNREQUESTED_SNAPSHOT_SYMBOL")
+        received = clock()
+        if received < started or received.utcoffset() is None:
+            raise ValueError("INVALID_CAPTURE_CLOCK")
+        for asset in batch:
+            ticker = asset["symbol"]
+            snap = snaps.get(ticker)
+            status = "MISSING_SNAPSHOT" if not isinstance(snap, dict) else "UNCLASSIFIED"
+            row = None
+            if not re.fullmatch(r"[A-Z]{1,5}", ticker):
+                status = "UNSUPPORTED_JOURNAL_TICKER_FORMAT"
+            elif isinstance(snap, dict):
+                row, status = candidate(asset, snap, received, scan_id, assets_received)
+            universe.append({"ticker": ticker, "asset": asset, "snapshot": snap,
+                             "received_at": received.isoformat(), "screen_status": status})
+            if row is not None:
+                watches.append(row)
+    finished = clock()
+    if finished < started:
+        raise ValueError("INVALID_FINISH_CLOCK")
+    counts = {}
+    for row in universe:
+        status = row["screen_status"]
+        counts[status] = counts.get(status, 0) + 1
+    return universe, watches, {
+        "status": "AS_OF_PROVIDER_UNIVERSE_CAPTURE_NOT_FULL_MARKET_PROOF",
+        "research_only": True, "trade_authorized": False,
+        "screen_id": scan_id, "provider_scope": PROVIDER_SCOPE,
+        "source_assets": ASSETS_URL, "source_snapshots": SNAPSHOTS_URL,
+        "capture_started_at": started.isoformat(),
+        "assets_received_at": assets_received.isoformat(),
+        "capture_finished_at": finished.isoformat(),
+        "asset_universe_count": len(selected), "asset_api_total_count": len(assets),
+        "screened_count": len(universe), "watch_count": len(watches),
+        "status_counts": counts, "snapshot_missing_count": counts.get("MISSING_SNAPSHOT", 0),
+        "not_verified": ["common_stock_type", "shares_outstanding", "market_cap", "corporate_actions", "halts", "smg_borrow", "smg_order_acceptance", "executable_bid", "next_session_outcomes"],
+        "limitations": ["Asset API coverage is not proof of the complete SMG-eligible universe.",
+                        "A/B classification is price-only watch; C requires separately verified structure.",
+                        "Provider previous-bar timestamp denotes bar start, not collection time.",
+                        "Missing snapshots and unsupported ticker formats remain in the denominator."],
+    }
+
+
+def persist(universe, watches, report, destination):
+    """Write-once capture. No overwrites, no synthetic records, no outcome join."""
+    from backtest.obsidian_prospective_journal import write_journal
+    dest = Path(destination)
+    dest.mkdir(parents=True, exist_ok=False)
+    def write_lines(name, rows):
+        data = "".join(json.dumps(row, sort_keys=True, allow_nan=False) + "\n" for row in rows)
+        path = dest / name
+        with path.open("x", encoding="utf-8") as f:
+            f.write(data)
+        return hashlib.sha256(data.encode()).hexdigest()
+    report["universe_sha256"] = write_lines("universe.jsonl", universe)
+    report["candidate_sha256"] = write_lines("candidates.jsonl", watches)
+    if watches:
+        report["journal_summary"] = write_journal(dest / "candidates.jsonl", dest / "journal.jsonl")
+    else:
+        report["journal_summary"] = {"preserved": 0, "blocked": 0, "reason": "NO_CANDIDATES"}
+    with (dest / "manifest.json").open("x", encoding="utf-8") as f:
+        json.dump(report, f, sort_keys=True, indent=2, allow_nan=False)
+    return report
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--out", required=True)
+    p.add_argument("--max-requests", type=int, default=150)
+    args = p.parse_args()
+    if args.max_requests < 1:
+        p.error("max requests must be positive")
+    if not in_window(now_utc()):
+        print(json.dumps({"status": "NO_CAPTURE_OUTSIDE_CENTRAL_WINDOW", "research_only": True}))
+        return
+    provider = AlpacaReadOnly()
+    report = persist(*collect(provider, max_requests=args.max_requests), destination=args.out)
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
