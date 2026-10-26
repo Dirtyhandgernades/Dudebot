@@ -8,6 +8,8 @@ on:
       - 'backtest/obsidian_early_rug.py'
       - 'backtest/obsidian_recover_windows.py'
       - 'backtest/obsidian_reconcile_coverage.py'
+      - 'backtest/obsidian_matched_comparison.py'
+      - 'tests/test_obsidian_matched_comparison.py'
       - '.github/workflows/obsidian-historical-audit.yml'
   workflow_dispatch:
 
@@ -101,6 +103,22 @@ jobs:
             --source outputs/backtest/hybrid-37386241124 \
             --recovery outputs/backtest/obsidian-recovery \
             --output outputs/backtest/obsidian-coverage-reconciliation.json
+      - name: Unit test research-only matched comparison
+        run: python -m unittest discover -s tests -p test_obsidian_matched_comparison.py -v
+      - name: Compare existing hybrid versus fixed early weakness (reused years only)
+        run: |
+          python -m backtest.obsidian_matched_comparison \
+            --source outputs/backtest/hybrid-37386241124 \
+            --recovery outputs/backtest/obsidian-recovery \
+            --out outputs/backtest/obsidian-matched-comparison
+      - name: Upload paired diagnostic (not validated returns)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-matched-comparison-${{ github.run_id }}
+          path: outputs/backtest/obsidian-matched-comparison/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Upload recovery evidence
         if: always()
         uses: actions/upload-artifact@v4
