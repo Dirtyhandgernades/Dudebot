@@ -16,6 +16,8 @@ on:
       - 'tests/test_obsidian_prospective_watchlist.py'
       - 'backtest/obsidian_historical_watchlist_manifest_2026_10_26.json'
       - 'tests/test_obsidian_prospective_watchlist_manifest.py'
+      - 'backtest/obsidian_afterhours_catchability.py'
+      - 'tests/test_obsidian_prospective_afterhours.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
   workflow_dispatch:
 
