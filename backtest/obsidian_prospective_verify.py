@@ -100,8 +100,10 @@ def verify_capture(directory):
         received = asof(source["received_at"])
         if not re.fullmatch(r"[A-Z]{1,5}", symbol):
             expected_row, expected_status = None, "UNSUPPORTED_JOURNAL_TICKER_FORMAT"
-        elif not isinstance(snap, dict):
+        elif snap is None:
             expected_row, expected_status = None, "MISSING_SNAPSHOT"
+        elif not isinstance(snap, dict):
+            expected_row, expected_status = None, "MALFORMED_SNAPSHOT"
         else:
             expected_row, expected_status = candidate(
                 source["asset"], snap, received, manifest["screen_id"],

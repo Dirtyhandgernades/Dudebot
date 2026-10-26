@@ -72,6 +72,32 @@ class VerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidCapture, "CANDIDATE_REPLAY_MISMATCH"):
             verify_capture(self.root)
 
+    def test_malformed_snapshot_rehashed_as_missing_is_rejected(self):
+        # Even coordinated hash/status-count tampering must not hide provider corruption.
+        other = Path(self.temp.name) / "malformed"
+        provider = Provider()
+        original = provider.snapshots
+        provider.snapshots = lambda symbols: {
+            symbol: (["malformed"] if symbol == "AAAA" else original([symbol])[symbol])
+            for symbol in symbols
+        }
+        persist(*collect(provider, clock=lambda: AT), destination=other)
+        rows = [json.loads(line) for line in (other / "universe.jsonl").read_text().splitlines()]
+        malformed = next(row for row in rows if row["ticker"] == "AAAA")
+        self.assertEqual(malformed["screen_status"], "MALFORMED_SNAPSHOT")
+        malformed["screen_status"] = "MISSING_SNAPSHOT"
+        data = "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows).encode()
+        (other / "universe.jsonl").write_bytes(data)
+        manifest_path = other / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["universe_sha256"] = hashlib.sha256(data).hexdigest()
+        manifest["status_counts"].pop("MALFORMED_SNAPSHOT")
+        manifest["status_counts"]["MISSING_SNAPSHOT"] = 1
+        manifest["snapshot_missing_count"] = 1
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(InvalidCapture, "SCREEN_STATUS_NOT_REPRODUCIBLE"):
+            verify_capture(other)
+
     def test_rehashed_universe_missingness_rejected(self):
         rows = [json.loads(line) for line in (self.root / "universe.jsonl").read_text().splitlines()]
         rows[0]["screen_status"] = "NO_PRICE_ONLY_A_OR_B_SETUP"

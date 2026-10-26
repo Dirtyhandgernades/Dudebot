@@ -219,7 +219,11 @@ def collect(provider, clock=now_utc, max_requests=150):
         for asset in batch:
             ticker = asset["symbol"]
             snap = snaps.get(ticker)
-            status = "MISSING_SNAPSHOT" if not isinstance(snap, dict) else "UNCLASSIFIED"
+            # A provider-returned malformed value is not an absent snapshot.
+            # Keep it separate from missingness for honest coverage denominators.
+            status = ("MISSING_SNAPSHOT" if snap is None else
+                      "MALFORMED_SNAPSHOT" if not isinstance(snap, dict) else
+                      "UNCLASSIFIED")
             row = None
             if not re.fullmatch(r"[A-Z]{1,5}", ticker):
                 status = "UNSUPPORTED_JOURNAL_TICKER_FORMAT"

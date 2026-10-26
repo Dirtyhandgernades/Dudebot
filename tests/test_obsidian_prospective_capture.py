@@ -48,6 +48,23 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(report["snapshot_missing_count"], 3)
         self.assertEqual(len(watches), 1)
 
+    def test_malformed_top_level_snapshot_is_not_counted_as_missing(self):
+        # Provider corruption and provider omission must have distinct denominators.
+        provider = Fake()
+        provider._snapshots["AAAA"] = ["invalid provider payload"]
+        provider._snapshots["BBBB"] = None
+        universe, watches, report = collect(provider, clock=lambda: AT)
+        statuses = {row["ticker"]: row["screen_status"] for row in universe}
+        self.assertEqual(statuses["AAAA"], "MALFORMED_SNAPSHOT")
+        self.assertEqual(statuses["BBBB"], "MISSING_SNAPSHOT")
+        self.assertEqual(report["snapshot_missing_count"], 1)
+        self.assertEqual(report["status_counts"]["MALFORMED_SNAPSHOT"], 1)
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "capture"
+            persist(universe, watches, report, destination)
+            from backtest.obsidian_prospective_verify import verify_capture
+            self.assertEqual(verify_capture(destination)["missing_snapshot_count"], 1)
+
     def test_malformed_nested_provider_fields_censor_one_asset_only(self):
         for field in ("latestTrade", "prevDailyBar", "minuteBar"):
             with self.subTest(field=field):
