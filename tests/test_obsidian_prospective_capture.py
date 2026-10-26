@@ -167,6 +167,35 @@ class CaptureTests(unittest.TestCase):
             collect(provider, clock=lambda: next(times))
         self.assertEqual(provider.called, 2)
 
+    def test_asset_response_naive_clock_is_rejected(self):
+        provider = Fake()
+        times = iter((AT, datetime(2026, 10, 26, 14, 50)))
+        with self.assertRaisesRegex(ValueError, "INVALID_ASSET_CAPTURE_CLOCK"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 1)
+
+    def test_snapshot_request_clock_regression_is_rejected_before_network(self):
+        provider = Fake()
+        times = iter((AT, AT.replace(second=2), AT.replace(second=1)))
+        with self.assertRaisesRegex(ValueError, "NONMONOTONIC_SNAPSHOT_REQUEST_CLOCK"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 1)
+
+    def test_snapshot_response_clock_regression_is_rejected(self):
+        provider = Fake()
+        times = iter((AT, AT.replace(second=1), AT.replace(second=3), AT.replace(second=2)))
+        with self.assertRaisesRegex(ValueError, "NONMONOTONIC_SNAPSHOT_RESPONSE_CLOCK"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 2)
+
+    def test_finished_capture_clock_regression_is_rejected(self):
+        provider = Fake()
+        times = iter((AT, AT.replace(second=1), AT.replace(second=2),
+                      AT.replace(second=3), AT.replace(second=2)))
+        with self.assertRaisesRegex(ValueError, "NONMONOTONIC_FINISH_CLOCK"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 2)
+
     def test_request_budget_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "BUDGET"):
             collect(Fake(), clock=lambda: AT, max_requests=0)
