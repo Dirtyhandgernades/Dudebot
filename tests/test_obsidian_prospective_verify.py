@@ -54,8 +54,8 @@ class VerificationTests(unittest.TestCase):
         self.assertFalse(result["trade_authorized"])
 
     def test_tampered_universe_hash_rejected(self):
-        with (self.root / "universe.jsonl").open("ab") as f:
-            f.write(b"\n")
+        path = self.root / "universe.jsonl"
+        path.write_bytes(path.read_bytes().replace(b"\n", b" \n", 1))
         with self.assertRaisesRegex(InvalidCapture, "UNIVERSE_HASH_MISMATCH"):
             verify_capture(self.root)
 
