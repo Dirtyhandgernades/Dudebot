@@ -222,5 +222,26 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(list(Path(temp).iterdir()), [])
 
 
+    def test_candidate_price_not_in_raw_snapshot_cannot_be_published(self):
+        universe, watches, report = collect(Fake(), clock=lambda: AT)
+        watches[0]["decision_price"] = 8.0
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "capture"
+            with self.assertRaisesRegex(ValueError, "CANDIDATE_PROVENANCE_MISMATCH"):
+                persist(universe, watches, report, destination)
+            self.assertFalse(destination.exists())
+            self.assertEqual(list(Path(temp).iterdir()), [])
+
+    def test_missingness_denominator_mismatch_cannot_be_published(self):
+        universe, watches, report = collect(Fake(), clock=lambda: AT)
+        report["screened_count"] += 1
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "capture"
+            with self.assertRaisesRegex(ValueError, "UNIVERSE_COUNT_MISMATCH"):
+                persist(universe, watches, report, destination)
+            self.assertFalse(destination.exists())
+            self.assertEqual(list(Path(temp).iterdir()), [])
+
+
 if __name__ == "__main__":
     unittest.main()
