@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Check Alpaca credential authentication and SIP entitlement (GET only)
         env:
-          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
-          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
         shell: bash
         run: |
           python - <<'PY'
