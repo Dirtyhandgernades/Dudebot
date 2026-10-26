@@ -160,7 +160,7 @@ def collect(provider, clock=now_utc, max_requests=150):
     assets = provider.assets()
     assets_received = clock()
     assets_url = getattr(provider, "assets_url", ASSETS_URL)
-    if assets_received < started or assets_received.utcoffset() is None:
+    if not isinstance(assets_received, datetime) or assets_received.utcoffset() is None or assets_received < started:
         raise ValueError("INVALID_ASSET_CAPTURE_CLOCK")
     if not in_window(assets_received):
         raise RuntimeError("ASSET_RESPONSE_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
@@ -185,20 +185,27 @@ def collect(provider, clock=now_utc, max_requests=150):
         raise RuntimeError("SNAPSHOT_REQUEST_BUDGET_EXCEEDED")
     scan_id = "alpaca-sip-" + started.strftime("%Y%m%dT%H%M%S%fZ")
     universe, watches = [], []
+    last_observed_clock = assets_received
     for i in range(0, len(selected), BATCH_SIZE):
         batch = selected[i:i+BATCH_SIZE]
         symbols = [a["symbol"] for a in batch]
+        # Reject clock regressions: a later request cannot be recorded as earlier
+        # than the asset response or the preceding batch's response.
+        request_at = clock()
+        if not isinstance(request_at, datetime) or request_at.utcoffset() is None or request_at < last_observed_clock:
+            raise ValueError("NONMONOTONIC_SNAPSHOT_REQUEST_CLOCK")
         # A scan begun in the window is not permission to query after it closes.
-        if not in_window(clock()):
+        if not in_window(request_at):
             raise RuntimeError("SNAPSHOT_REQUEST_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
         snaps = provider.snapshots(symbols)
         if set(snaps) - set(symbols):
             raise ValueError("UNREQUESTED_SNAPSHOT_SYMBOL")
         received = clock()
-        if received < started or received.utcoffset() is None:
-            raise ValueError("INVALID_CAPTURE_CLOCK")
+        if not isinstance(received, datetime) or received.utcoffset() is None or received < request_at:
+            raise ValueError("NONMONOTONIC_SNAPSHOT_RESPONSE_CLOCK")
         if not in_window(received):
             raise RuntimeError("SNAPSHOT_RESPONSE_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
+        last_observed_clock = received
         for asset in batch:
             ticker = asset["symbol"]
             snap = snaps.get(ticker)
@@ -213,8 +220,8 @@ def collect(provider, clock=now_utc, max_requests=150):
             if row is not None:
                 watches.append(row)
     finished = clock()
-    if finished < started:
-        raise ValueError("INVALID_FINISH_CLOCK")
+    if not isinstance(finished, datetime) or finished.utcoffset() is None or finished < last_observed_clock:
+        raise ValueError("NONMONOTONIC_FINISH_CLOCK")
     if not in_window(finished):
         raise RuntimeError("CAPTURE_FINISHED_OUTSIDE_CENTRAL_WINDOW")
     counts = {}
