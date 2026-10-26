@@ -7,10 +7,11 @@ A successful verification NEVER establishes SMG eligibility or tradability.
 import argparse
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
-from backtest.obsidian_prospective_capture import asof, in_window, PROVIDER_SCOPE
+from backtest.obsidian_prospective_capture import asof, candidate, in_window, PROVIDER_SCOPE
 from backtest.obsidian_prospective_journal import audit
 
 
@@ -89,6 +90,29 @@ def verify_capture(directory):
     require(counts["MISSING_SNAPSHOT"] == manifest.get("snapshot_missing_count"),
             "MISSING_SNAPSHOT_COUNT_MISMATCH")
     require(len(watch_universe) == len(candidates), "UNMATCHED_WATCH_UNIVERSE")
+    # Recompute the price-only classifier from every retained raw provider row.
+    # Hashes and matching prices alone do not prove that the screening status,
+    # A/B category, timestamps or blocked candidate metadata were preserved.
+    expected_watches = {}
+    for source in universe:
+        symbol = source["ticker"]
+        snap = source.get("snapshot")
+        received = asof(source["received_at"])
+        if not re.fullmatch(r"[A-Z]{1,5}", symbol):
+            expected_row, expected_status = None, "UNSUPPORTED_JOURNAL_TICKER_FORMAT"
+        elif not isinstance(snap, dict):
+            expected_row, expected_status = None, "MISSING_SNAPSHOT"
+        else:
+            expected_row, expected_status = candidate(
+                source["asset"], snap, received, manifest["screen_id"],
+                assets_at, manifest.get("source_assets")
+            )
+        require(source["screen_status"] == expected_status,
+                "SCREEN_STATUS_NOT_REPRODUCIBLE")
+        if expected_row is not None:
+            expected_watches[symbol] = expected_row
+    require(set(expected_watches) == set(watch_universe),
+            "WATCH_SET_NOT_REPRODUCIBLE")
     seen = set()
     for row in candidates:
         symbol = row.get("ticker")
@@ -96,6 +120,7 @@ def verify_capture(directory):
                 "CANDIDATE_NOT_IN_PRICE_ONLY_UNIVERSE")
         seen.add(symbol)
         original = watch_universe[symbol]
+        require(row == expected_watches[symbol], "CANDIDATE_REPLAY_MISMATCH")
         require(row.get("screen_id") == manifest.get("screen_id")
                 and row.get("decision_at") == original["received_at"]
                 and row.get("screen_at") == manifest["assets_received_at"]
