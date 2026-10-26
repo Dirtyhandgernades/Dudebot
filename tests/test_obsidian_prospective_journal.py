@@ -52,6 +52,29 @@ class JournalTests(unittest.TestCase):
         row["decision_at"] = "2026-10-26T15:10:00-05:00"
         self.assertIn("OUTSIDE_CENTRAL_EXECUTION_WINDOW", audit(row)["blockers"])
 
+    def test_weekend_preclose_clock_is_blocked(self):
+        row = sample()
+        row["decision_at"] = "2026-10-31T14:50:00-05:00"
+        row["session_date"] = "2026-10-31"
+        row["cutoff_at"] = "2026-10-31T14:48:00-05:00"
+        row["last_complete_at"] = "2026-10-31T14:47:00-05:00"
+        for key in ("screen", "quote", "shares", "listing", "corporate_actions", "borrow", "smg_short"):
+            row[key + "_at"] = "2026-10-31T14:49:00-05:00"
+        row["previous_close_at"] = "2026-10-30T15:00:00-05:00"
+        self.assertIn("NONTRADING_WEEKDAY", audit(row)["blockers"])
+
+    def test_stale_screen_evidence_is_blocked(self):
+        row = sample()
+        row["screen_at"] = "2026-10-26T14:30:00-05:00"
+        self.assertIn("STALE_SCREEN_EVIDENCE", audit(row)["blockers"])
+
+    def test_stale_or_previous_session_candle_is_blocked(self):
+        row = sample()
+        row["last_complete_at"] = "2026-10-26T14:30:00-05:00"
+        self.assertIn("STALE_OR_NONSESSION_CANDLE", audit(row)["blockers"])
+        row["last_complete_at"] = "2026-10-23T14:47:00-05:00"
+        self.assertIn("STALE_OR_NONSESSION_CANDLE", audit(row)["blockers"])
+
     def test_cap_and_type_block(self):
         row = sample(); row["shares_outstanding"] = 1000; row["security_type"] = "ETF"
         self.assertIn("MARKET_CAP_UNKNOWN_OR_BELOW_25M", audit(row)["blockers"])
