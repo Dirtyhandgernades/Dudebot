@@ -44,6 +44,9 @@ def finite_price(value):
 
 
 def in_window(at):
+    # A naive datetime can silently be interpreted in the runner's local timezone.
+    if not isinstance(at, datetime) or at.utcoffset() is None:
+        return False
     local = at.astimezone(CENTRAL)
     return local.weekday() < 5 and time(14, 45) <= local.time().replace(tzinfo=None) <= time(14, 58)
 
@@ -103,6 +106,12 @@ def candidate(asset, snap, at, screen_id, asset_at=None, assets_url=ASSETS_URL):
         return None, "STALE_OR_FUTURE_TRADE"
     if previous_at is None or previous_at.astimezone(EASTERN).date() >= at.astimezone(EASTERN).date():
         return None, "INVALID_PREVIOUS_SESSION"
+    # A prior bar can be several sessions old for suspended or illiquid names.
+    # Allow ordinary weekends and a one-day market holiday; longer gaps are
+    # censored rather than misclassified as a fresh day-over-day decline.
+    previous_age_days = (at.astimezone(EASTERN).date() - previous_at.astimezone(EASTERN).date()).days
+    if previous_age_days > 4:
+        return None, "STALE_PREVIOUS_CLOSE_BAR"
     change = price / previous - 1
     if -.15 <= change <= -.02:
         category = "A"
