@@ -95,9 +95,12 @@ def candidate(asset, snap, at, screen_id, asset_at=None, assets_url=ASSETS_URL):
     """Use only fields in the received as-of snapshot; unknowns remain blocked."""
     ticker = asset["symbol"]
     asset_at = asset_at or at
-    trade = snap.get("latestTrade") or {}
-    prior = snap.get("prevDailyBar") or {}
-    minute = snap.get("minuteBar") or {}
+    # Malformed nested provider fields must censor only this security, not
+    # crash the full-universe capture and discard unrelated observations.
+    fields = [snap.get(name) for name in ("latestTrade", "prevDailyBar", "minuteBar")]
+    if any(value is not None and not isinstance(value, dict) for value in fields):
+        return None, "MALFORMED_NESTED_SNAPSHOT"
+    trade, prior, minute = (value or {} for value in fields)
     price, previous = trade.get("p"), prior.get("c")
     trade_at, previous_at, minute_at = asof(trade.get("t")), asof(prior.get("t")), asof(minute.get("t"))
     if not finite_price(price) or not finite_price(previous):
