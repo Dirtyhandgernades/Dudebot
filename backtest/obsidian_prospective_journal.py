@@ -45,6 +45,10 @@ def audit(row):
     if local.year < 2026 or row.get("session_date") != local.date().isoformat():
         raise ValueError("INVALID_PROSPECTIVE_CENTRAL_SESSION")
     blockers = []
+    # A time-of-day check alone would incorrectly accept Saturday/Sunday signals.
+    # Exchange holidays still require separate market-calendar verification.
+    if local.weekday() >= 5:
+        blockers.append("NONTRADING_WEEKDAY")
     if not time(14, 45) <= local.time().replace(tzinfo=None) <= time(14, 58):
         blockers.append("OUTSIDE_CENTRAL_EXECUTION_WINDOW")
     evidence = ["screen", "quote", "previous_close", "shares", "listing", "corporate_actions"]
@@ -57,7 +61,7 @@ def audit(row):
         at = timestamp(when, name + "_at")
         if at > decision:
             raise ValueError("FUTURE_" + name.upper() + "_EVIDENCE")
-        if name in ("quote", "borrow", "smg_short", "smg_long") and decision - at > timedelta(minutes=5):
+        if name in ("screen", "quote", "borrow", "smg_short", "smg_long") and decision - at > timedelta(minutes=5):
             blockers.append("STALE_" + name.upper() + "_EVIDENCE")
         if name == "previous_close" and at.astimezone(CENTRAL).date() >= local.date():
             raise ValueError("PREVIOUS_CLOSE_NOT_PREVIOUS_SESSION")
@@ -81,6 +85,11 @@ def audit(row):
         cutoff, observed = timestamp(row["cutoff_at"], "cutoff_at"), timestamp(row["last_complete_at"], "last_complete_at")
         if not observed <= cutoff < decision:
             raise ValueError("FUTURE_OR_INVALID_CUTOFF")
+        # A valid ordering is insufficient: a days-old candle is not evidence
+        # of the current pre-close tape, even alongside a fresh last trade.
+        if (observed.astimezone(CENTRAL).date() != local.date()
+                or decision - observed > timedelta(minutes=5)):
+            blockers.append("STALE_OR_NONSESSION_CANDLE")
     change = price / previous - 1 if positive(price) and positive(previous) else None
     return {
         "policy_id": POLICY_ID, "research_only": True, "trade_authorized": False,
