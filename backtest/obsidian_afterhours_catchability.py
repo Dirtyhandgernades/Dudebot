@@ -42,14 +42,14 @@ def classify_missed_move(*, decision_cutoff, outcome_observed_at,
         status = "SCREENED_REJECTED_REQUIRES_ORIGINAL_REASON"
     elif board_state == "INELIGIBLE":
         status = "INELIGIBLE_NOT_A_TRADE"
+    elif catalyst_public_at is not None and catalyst_public_at > decision_cutoff:
+        status = "CATALYST_AFTER_CUTOFF"
     elif preclose_signal_at is None:
         status = "WATCH_OR_EVENT_ONLY_NO_PREDECISION_SIGNAL"
     elif preclose_signal_at > decision_cutoff:
         status = "SIGNAL_AFTER_CUTOFF_NO_RETROACTIVE_TRADE"
     elif quote_asof is None or quote_asof > decision_cutoff:
         status = "NO_VERIFIED_PRECLOSE_QUOTE"
-    elif catalyst_public_at is not None and catalyst_public_at > decision_cutoff:
-        status = "CATALYST_AFTER_CUTOFF"
     elif smg_eligibility_verified is not True or smg_platform_borrow_verified is not True:
         status = "SMG_ELIGIBILITY_OR_BORROW_UNVERIFIED"
     elif preclose_execution_evidence is not True:
