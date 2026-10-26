@@ -1,0 +1,67 @@
+name: OBSIDIAN Alpaca connection diagnostic (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - '.github/workflows/obsidian-alpaca-connection-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  alpaca-read-only-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Alpaca credential authentication and SIP entitlement (GET only)
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import urllib.request
+          import urllib.error
+
+          key = os.environ.get("ALPACA_API_KEY", "")
+          secret = os.environ.get("ALPACA_SECRET_KEY", "")
+          if not key or not secret:
+              print("RESULT: MISSING_GITHUB_ACTIONS_CREDENTIAL")
+              raise SystemExit(1)
+
+          headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
+          endpoints = [
+              ("PAPER_ASSETS", "https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
+              ("LIVE_ASSETS", "https://api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
+              ("SIP_SPY_SNAPSHOT", "https://data.alpaca.markets/v2/stocks/SPY/snapshot?feed=sip"),
+          ]
+          results = {}
+          for label, url in endpoints:
+              request = urllib.request.Request(url, headers=headers, method="GET")
+              try:
+                  with urllib.request.urlopen(request, timeout=15) as response:
+                      status = response.status
+              except urllib.error.HTTPError as error:
+                  status = error.code
+              except Exception as error:
+                  print(f"{label}: TRANSPORT_ERROR_{type(error).__name__}")
+                  results[label] = None
+                  continue
+              results[label] = status
+              if status == 200:
+                  print(f"{label}: AUTHORIZED_HTTP_200")
+              elif status == 401:
+                  print(f"{label}: UNAUTHORIZED_HTTP_401")
+              elif status == 403:
+                  print(f"{label}: FORBIDDEN_HTTP_403")
+              else:
+                  print(f"{label}: HTTP_{status}")
+          assets_ok = results.get("PAPER_ASSETS") == 200 or results.get("LIVE_ASSETS") == 200
+          sip_ok = results.get("SIP_SPY_SNAPSHOT") == 200
+          print("RESULT:", "READ_ONLY_CONNECTION_OK" if assets_ok and sip_ok else
+                "ASSET_AUTH_BLOCKED" if not assets_ok else "SIP_DATA_ACCESS_BLOCKED")
+          raise SystemExit(0 if assets_ok and sip_ok else 1)
+          PY
