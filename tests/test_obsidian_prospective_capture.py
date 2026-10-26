@@ -108,6 +108,34 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(calls, [ASSETS_URL, ALTERNATE_ASSETS_URL])
         self.assertEqual(client.assets_url, ALTERNATE_ASSETS_URL)
 
+    def test_asset_response_after_cutoff_fails_before_snapshots(self):
+        provider = Fake()
+        times = iter((AT, datetime(2026, 10, 26, 19, 59, tzinfo=timezone.utc)))
+        with self.assertRaisesRegex(RuntimeError, "ASSET_RESPONSE_OUTSIDE"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 1)
+
+    def test_snapshot_request_after_cutoff_never_calls_provider(self):
+        provider = Fake()
+        times = iter((AT, AT, datetime(2026, 10, 26, 19, 59, tzinfo=timezone.utc)))
+        with self.assertRaisesRegex(RuntimeError, "SNAPSHOT_REQUEST_OUTSIDE"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 1)
+
+    def test_snapshot_response_after_cutoff_is_rejected(self):
+        provider = Fake()
+        times = iter((AT, AT, AT, datetime(2026, 10, 26, 19, 59, tzinfo=timezone.utc)))
+        with self.assertRaisesRegex(RuntimeError, "SNAPSHOT_RESPONSE_OUTSIDE"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 2)
+
+    def test_finished_capture_after_cutoff_is_rejected(self):
+        provider = Fake()
+        times = iter((AT, AT, AT, AT, datetime(2026, 10, 26, 19, 59, tzinfo=timezone.utc)))
+        with self.assertRaisesRegex(RuntimeError, "CAPTURE_FINISHED_OUTSIDE"):
+            collect(provider, clock=lambda: next(times))
+        self.assertEqual(provider.called, 2)
+
     def test_request_budget_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "BUDGET"):
             collect(Fake(), clock=lambda: AT, max_requests=0)
