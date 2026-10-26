@@ -56,6 +56,21 @@ class RegularCloseIntegrityTests(unittest.TestCase):
                 reports=[row("a",7),row("a",8),row("b",7.5)])
         self.assertIn("SAME_PROVIDER_CLOSE_CONFLICT",r["issues"])
 
+    def test_same_provider_threshold_crossing_cannot_be_averaged_away(self):
+        # The two a reports are within the general 2% tolerance, but one
+        # sits above the -20% boundary. The provider mean would conceal it.
+        r=check(symbol="X",session_date=D,previous_close=10,observed_at=T,
+                reports=[row("a",7.99),row("a",8.01),row("b",7.99)])
+        self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
+        self.assertIn("SOURCES_STRADDLE_20PCT_THRESHOLD",r["issues"])
+        self.assertNotIn("SAME_PROVIDER_CLOSE_CONFLICT",r["issues"])
+
+    def test_two_provider_threshold_crossing_still_unverified(self):
+        r=check(symbol="X",session_date=D,previous_close=10,observed_at=T,
+                reports=[row("a",7.99),row("b",8.01)])
+        self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
+        self.assertIn("SOURCES_STRADDLE_20PCT_THRESHOLD",r["issues"])
+
     def test_invalid_input_rejected(self):
         with self.assertRaises(ValueError):
             check(symbol="X",session_date=D,previous_close=0,observed_at=T,reports=[])
