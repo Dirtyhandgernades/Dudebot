@@ -1,0 +1,29 @@
+name: OBSIDIAN prospective journal tests (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/obsidian_prospective_journal.py'
+      - 'tests/test_obsidian_prospective_journal.py'
+      - '.github/workflows/obsidian-prospective-journal-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-prospective-tests-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prospective-journal-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate frozen prospective research journal (no network, no orders)
+        run: python -m unittest discover -s tests -p test_obsidian_prospective_journal.py -v
