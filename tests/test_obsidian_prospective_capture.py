@@ -227,7 +227,7 @@ class CaptureTests(unittest.TestCase):
         watches[0]["decision_price"] = 8.0
         with tempfile.TemporaryDirectory() as temp:
             destination = Path(temp) / "capture"
-            with self.assertRaisesRegex(ValueError, "CANDIDATE_PROVENANCE_MISMATCH"):
+            with self.assertRaisesRegex(ValueError, "CANDIDATE_REPLAY_MISMATCH"):
                 persist(universe, watches, report, destination)
             self.assertFalse(destination.exists())
             self.assertEqual(list(Path(temp).iterdir()), [])
