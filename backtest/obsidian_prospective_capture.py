@@ -248,25 +248,44 @@ def collect(provider, clock=now_utc, max_requests=150):
 
 
 def persist(universe, watches, report, destination):
-    """Write-once capture. No overwrites, no synthetic records, no outcome join."""
+    """Atomically publish a complete write-once capture, never partial evidence."""
+    from tempfile import TemporaryDirectory
     from backtest.obsidian_prospective_journal import write_journal
+
     dest = Path(destination)
-    dest.mkdir(parents=True, exist_ok=False)
-    def write_lines(name, rows):
-        data = "".join(json.dumps(row, sort_keys=True, allow_nan=False) + "\n" for row in rows)
-        path = dest / name
-        with path.open("x", encoding="utf-8") as f:
-            f.write(data)
-        return hashlib.sha256(data.encode()).hexdigest()
-    report["universe_sha256"] = write_lines("universe.jsonl", universe)
-    report["candidate_sha256"] = write_lines("candidates.jsonl", watches)
-    if watches:
-        report["journal_summary"] = write_journal(dest / "candidates.jsonl", dest / "journal.jsonl")
-    else:
-        report["journal_summary"] = {"preserved": 0, "blocked": 0, "reason": "NO_CANDIDATES"}
-    with (dest / "manifest.json").open("x", encoding="utf-8") as f:
-        json.dump(report, f, sort_keys=True, indent=2, allow_nan=False)
-    return report
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists():
+        raise FileExistsError(f"CAPTURE_DESTINATION_ALREADY_EXISTS: {dest}")
+
+    # Build and validate everything in a sibling temporary directory. An
+    # invalid candidate, malformed provider payload or disk error must never
+    # leave a partially uploaded universe that resembles a completed capture.
+    with TemporaryDirectory(prefix=f".{dest.name}.partial-", dir=dest.parent) as temporary:
+        staged = Path(temporary)
+        manifest = dict(report)
+
+        def write_lines(name, rows):
+            data = "".join(json.dumps(row, sort_keys=True, allow_nan=False) + "\\n" for row in rows)
+            with (staged / name).open("x", encoding="utf-8") as f:
+                f.write(data)
+            return hashlib.sha256(data.encode()).hexdigest()
+
+        manifest["universe_sha256"] = write_lines("universe.jsonl", universe)
+        manifest["candidate_sha256"] = write_lines("candidates.jsonl", watches)
+        if watches:
+            manifest["journal_summary"] = write_journal(
+                staged / "candidates.jsonl", staged / "journal.jsonl"
+            )
+        else:
+            manifest["journal_summary"] = {
+                "preserved": 0, "blocked": 0, "reason": "NO_CANDIDATES"
+            }
+        with (staged / "manifest.json").open("x", encoding="utf-8") as f:
+            json.dump(manifest, f, sort_keys=True, indent=2, allow_nan=False)
+        if dest.exists():
+            raise FileExistsError(f"CAPTURE_DESTINATION_ALREADY_EXISTS: {dest}")
+        staged.rename(dest)
+    return manifest
 
 
 def main():
