@@ -201,5 +201,26 @@ class CaptureTests(unittest.TestCase):
             collect(Fake(), clock=lambda: AT, max_requests=0)
 
 
+    def test_failed_journal_validation_leaves_no_partial_capture(self):
+        universe, watches, report = collect(Fake(), clock=lambda: AT)
+        watches[0]["session_date"] = "2026-10-25"
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "capture"
+            with self.assertRaisesRegex(ValueError, "INVALID_PROSPECTIVE_CENTRAL_SESSION"):
+                persist(universe, watches, report, destination)
+            self.assertFalse(destination.exists())
+            self.assertEqual(list(Path(temp).iterdir()), [])
+
+    def test_nonfinite_provider_payload_leaves_no_partial_capture(self):
+        universe, watches, report = collect(Fake(), clock=lambda: AT)
+        universe[0]["snapshot"]["latestTrade"]["p"] = float("nan")
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "capture"
+            with self.assertRaises(ValueError):
+                persist(universe, watches, report, destination)
+            self.assertFalse(destination.exists())
+            self.assertEqual(list(Path(temp).iterdir()), [])
+
+
 if __name__ == "__main__":
     unittest.main()
