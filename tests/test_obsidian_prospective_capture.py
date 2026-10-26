@@ -91,11 +91,33 @@ class CaptureTests(unittest.TestCase):
         self.assertIsNone(row)
         self.assertEqual(status, "STALE_PREVIOUS_CLOSE_BAR")
 
-    def test_four_day_holiday_gap_keeps_watch_but_not_verified_trade(self):
-        s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-22T04:00:00Z"
-        row, status = candidate({"symbol": "AAAA"}, s, AT, "id")
+    def test_normal_friday_to_monday_previous_session_is_accepted(self):
+        row, status = candidate({"symbol": "AAAA"}, snap(9.5), AT, "id")
         self.assertEqual(status, "PRICE_ONLY_WATCH")
         self.assertEqual(row["security_type"], "UNKNOWN")
+
+    def test_thursday_bar_on_normal_monday_is_censored_not_a_fresh_signal(self):
+        # Friday was a weekday; a Thursday bar is not independently proven
+        # to be the immediately preceding trading session.
+        s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-22T04:00:00Z"
+        row, status = candidate({"symbol": "AAAA"}, s, AT, "id")
+        self.assertIsNone(row)
+        self.assertEqual(status, "UNVERIFIED_PREVIOUS_TRADING_SESSION")
+
+    def test_holiday_length_gap_is_censored_without_exchange_calendar(self):
+        # A Tuesday after a Monday holiday needs independent calendar proof;
+        # the collector must not guess whether Monday traded.
+        tuesday = datetime(2026, 10, 27, 19, 50, tzinfo=timezone.utc)
+        s = snap(9.5, trade_at="2026-10-27T19:49:00Z")
+        row, status = candidate({"symbol": "AAAA"}, s, tuesday, "id")
+        self.assertIsNone(row)
+        self.assertEqual(status, "UNVERIFIED_PREVIOUS_TRADING_SESSION")
+
+    def test_weekend_dated_previous_bar_is_censored(self):
+        s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-25T04:00:00Z"
+        row, status = candidate({"symbol": "AAAA"}, s, AT, "id")
+        self.assertIsNone(row)
+        self.assertEqual(status, "UNVERIFIED_PREVIOUS_TRADING_SESSION")
 
     def test_naive_clock_never_opens_capture_window(self):
         self.assertFalse(in_window(datetime(2026, 10, 26, 14, 50)))
