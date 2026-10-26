@@ -71,10 +71,10 @@ def reconcile_extended_quote(*, symbol, observed_at, ranked_close=None,
         issues.append("NO_TWO_INDEPENDENT_FRESH_SOURCES")
     elif max(accepted.values()) / min(accepted.values()) - 1 > MAX_INDEPENDENT_DIVERGENCE:
         issues.append("INDEPENDENT_SOURCES_DISAGREE")
-    if _price(ranked_close) and _price(ranked_extended) and ranked_extended / ranked_close - 1 <= -EXTREME_MOVE:
+    if _price(ranked_close) and _price(ranked_extended) and ranked_extended <= ranked_close * (1 - EXTREME_MOVE):
         if "NO_TWO_INDEPENDENT_FRESH_SOURCES" in issues or "INDEPENDENT_SOURCES_DISAGREE" in issues:
             issues.append("EXTREME_RANKED_DROP_UNCORROBORATED")
-    if _price(individual_close) and _price(individual_extended) and individual_extended / individual_close - 1 <= -EXTREME_MOVE:
+    if _price(individual_close) and _price(individual_extended) and individual_extended <= individual_close * (1 - EXTREME_MOVE):
         if "NO_TWO_INDEPENDENT_FRESH_SOURCES" in issues or "INDEPENDENT_SOURCES_DISAGREE" in issues:
             issues.append("EXTREME_INDIVIDUAL_DROP_UNCORROBORATED")
     # Even clean quotes are NOT proof of actual SMG eligibility or borrow.
