@@ -1,0 +1,1376 @@
+{
+  "generated_at": "2026-10-26T19:48:00Z",
+  "purpose": "Historical watchlist retention, NOT a current-market scan or an executable trade list",
+  "source_limitations": "Recovered from previous SMG Master Watchlist automation prompt plus nine explicit user examples; may not contain every ticker from all older conversations.",
+  "screened_count": 0,
+  "unverified_count": 113,
+  "source_counts": {
+    "master": 86,
+    "firm": 24,
+    "explicit": 9
+  },
+  "records": [
+    {
+      "ticker": "ADVB",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AEHL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AIBZ",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AIFU",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AKAM",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AMD",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "APUS",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "ARTL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AVBP",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "AVX",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "BDRX",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "BENF",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "BMGL",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "BNC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "BOXL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "CD",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "CPIX",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "CRML",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "CURX",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "DBGI",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "DFDV",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "EDHL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "EMAT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "ENGS",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "EOSE",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "FMFC",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "FTFT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "GCDT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "GCTK",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "GLND",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "GRML",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "GYGY",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "HCAI",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "HUBC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "IMC",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "INTC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "IPDN",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "JAGX",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "JDZG",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "JXG",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "KITT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "KOSS",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "KPLT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "LGCY",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "LHSW",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MAMA",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MBRX",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MELI",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MKDW",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MRNA",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MSGY",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MSS",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "MTC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NAUT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NCI",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NCPL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NEOV",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NIVF",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NTRB",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NUR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "NWGL",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "OMH",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "ONDS",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "P",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PBM",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PCLA",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PDC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PFSA",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PLRZ",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PRE",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PRME",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "PURR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "QNME",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "QTTB",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "RBNE",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "RETO",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "RGC",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "RTB",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SBFM",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SCHL",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SDGR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SECZ",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SGMT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SKYQ",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SMTK",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SRZN",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SST",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "STFS",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SVRN",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SWRD",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "SXTC",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TCRT",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TJGC",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TLSI",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TNGX",
+      "source_groups": [
+        "USER_EXPLICIT_2026_10_26"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TP",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TRBG",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TRT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TVGN",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "TWG",
+      "source_groups": [
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "USAR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "USDE",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "VEEE",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION",
+        "HISTORICAL_FIRM_RESEARCH_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "VKTX",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "VWAV",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WCT",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WETO",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WHLR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WSHP",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WTTR",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "WYY",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "XHLD",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    },
+    {
+      "ticker": "ZSTK",
+      "source_groups": [
+        "HISTORICAL_MASTER_AUTOMATION"
+      ],
+      "audit_status": "NOT_SCREENED",
+      "last_verified_price_at": null,
+      "last_verified_eligibility_at": null,
+      "latest_scan_id": null,
+      "structural_watch_retained": true,
+      "notes": "Historical symbol identity and current market eligibility NOT verified; do not infer no opportunity."
+    }
+  ]
+}
