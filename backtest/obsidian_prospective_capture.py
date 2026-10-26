@@ -48,6 +48,10 @@ def in_window(at):
     return local.weekday() < 5 and time(14, 45) <= local.time().replace(tzinfo=None) <= time(14, 58)
 
 
+class ProviderAuthError(RuntimeError):
+    pass
+
+
 class AlpacaReadOnly:
     """Only GETs public-market metadata and SIP snapshots. No trading endpoints."""
     def __init__(self):
@@ -60,19 +64,19 @@ class AlpacaReadOnly:
 
     def get(self, url, params):
         response = self.session.get(url, params=params, timeout=30)
+        if response.status_code in (401, 403):
+            raise ProviderAuthError("ALPACA_READ_ONLY_AUTH_REJECTED")
         response.raise_for_status()
         return response.json()
 
     def assets(self):
-        from requests import HTTPError
         params = {"status": "active", "asset_class": "us_equity"}
         try:
             data = self.get(ASSETS_URL, params)
             self.assets_url = ASSETS_URL
             return data
-        except HTTPError as exc:
-            if exc.response is None or exc.response.status_code not in (401, 403):
-                raise
+        except ProviderAuthError:
+            pass
         data = self.get(ALTERNATE_ASSETS_URL, params)
         self.assets_url = ALTERNATE_ASSETS_URL
         return data
