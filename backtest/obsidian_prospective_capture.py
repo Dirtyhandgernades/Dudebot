@@ -110,11 +110,21 @@ def candidate(asset, snap, at, screen_id, asset_at=None, assets_url=ASSETS_URL):
     if previous_at is None or previous_at.astimezone(EASTERN).date() >= at.astimezone(EASTERN).date():
         return None, "INVALID_PREVIOUS_SESSION"
     # A prior bar can be several sessions old for suspended or illiquid names.
-    # Allow ordinary weekends and a one-day market holiday; longer gaps are
-    # censored rather than misclassified as a fresh day-over-day decline.
-    previous_age_days = (at.astimezone(EASTERN).date() - previous_at.astimezone(EASTERN).date()).days
+    # Do not assume a four-day gap means a market holiday: on a normal Monday,
+    # a Thursday bar is stale because Friday traded. Without an independently
+    # verified exchange-holiday calendar, require the immediately preceding
+    # WEEKDAY. Real holiday gaps are conservatively censored and counted as
+    # unknown instead of being misclassified as fresh day-over-day weakness.
+    eastern_today = at.astimezone(EASTERN).date()
+    previous_day = previous_at.astimezone(EASTERN).date()
+    previous_age_days = (eastern_today - previous_day).days
     if previous_age_days > 4:
         return None, "STALE_PREVIOUS_CLOSE_BAR"
+    expected_previous = eastern_today - timedelta(days=1)
+    while expected_previous.weekday() >= 5:
+        expected_previous -= timedelta(days=1)
+    if previous_day != expected_previous:
+        return None, "UNVERIFIED_PREVIOUS_TRADING_SESSION"
     change = price / previous - 1
     if -.15 <= change <= -.02:
         category = "A"
