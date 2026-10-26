@@ -69,7 +69,7 @@ class VerificationTests(unittest.TestCase):
         rows = [json.loads(line) for line in (self.root / "candidates.jsonl").read_text().splitlines()]
         rows[0]["decision_price"] = 4
         self.rewrite_jsonl("candidates.jsonl", rows, "candidate_sha256")
-        with self.assertRaisesRegex(InvalidCapture, "CANDIDATE_PROVENANCE_MISMATCH"):
+        with self.assertRaisesRegex(InvalidCapture, "CANDIDATE_REPLAY_MISMATCH"):
             verify_capture(self.root)
 
     def test_rehashed_universe_missingness_rejected(self):
@@ -77,6 +77,41 @@ class VerificationTests(unittest.TestCase):
         rows[0]["screen_status"] = "NO_PRICE_ONLY_A_OR_B_SETUP"
         self.rewrite_jsonl("universe.jsonl", rows, "universe_sha256")
         with self.assertRaisesRegex(InvalidCapture, "STATUS_COUNTS_MISMATCH"):
+            verify_capture(self.root)
+
+    def test_rehashed_forged_category_and_matching_journal_rejected(self):
+        # Old verifier accepted this: source price and previous close still match.
+        rows = [json.loads(line) for line in (self.root / "candidates.jsonl").read_text().splitlines()]
+        rows[0]["category"] = "B" if rows[0]["category"] == "A" else "A"
+        self.rewrite_jsonl("candidates.jsonl", rows, "candidate_sha256")
+        journal = [json.loads(line) for line in (self.root / "journal.jsonl").read_text().splitlines()]
+        journal[0]["as_screened"] = rows[0]
+        self.rewrite_jsonl("journal.jsonl", journal)
+        with self.assertRaisesRegex(InvalidCapture, "CANDIDATE_REPLAY_MISMATCH"):
+            verify_capture(self.root)
+
+    def test_rehashed_forged_universe_status_and_counts_rejected(self):
+        # A no-setup stock cannot be relabeled as a missing provider snapshot.
+        rows = [json.loads(line) for line in (self.root / "universe.jsonl").read_text().splitlines()]
+        no_setup = next(row for row in rows if row["screen_status"] == "NO_PRICE_ONLY_A_OR_B_SETUP")
+        no_setup["screen_status"] = "MISSING_SNAPSHOT"
+        self.rewrite_jsonl("universe.jsonl", rows, "universe_sha256")
+        manifest_path = self.root / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["status_counts"]["NO_PRICE_ONLY_A_OR_B_SETUP"] -= 1
+        del manifest["status_counts"]["NO_PRICE_ONLY_A_OR_B_SETUP"]
+        manifest["status_counts"]["MISSING_SNAPSHOT"] = 1
+        manifest["snapshot_missing_count"] = 1
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(InvalidCapture, "SCREEN_STATUS_NOT_REPRODUCIBLE"):
+            verify_capture(self.root)
+
+    def test_rehashed_raw_minute_bar_timestamp_rejected(self):
+        # Replayed candidate candle evidence must match the original snapshot.
+        rows = [json.loads(line) for line in (self.root / "universe.jsonl").read_text().splitlines()]
+        rows[0]["snapshot"]["minuteBar"]["t"] = "2026-10-26T19:47:00Z"
+        self.rewrite_jsonl("universe.jsonl", rows, "universe_sha256")
+        with self.assertRaisesRegex(InvalidCapture, "CANDIDATE_REPLAY_MISMATCH"):
             verify_capture(self.root)
 
     def test_modified_frozen_journal_rejected(self):
