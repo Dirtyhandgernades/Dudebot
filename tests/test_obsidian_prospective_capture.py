@@ -52,13 +52,18 @@ class CaptureTests(unittest.TestCase):
         # Provider corruption and provider omission must have distinct denominators.
         provider = Fake()
         provider._snapshots["AAAA"] = ["invalid provider payload"]
-        provider._snapshots["BBBB"] = None
+        provider._snapshots["BBBB"] = None  # Explicit null is malformed.
+        del provider._snapshots["CCCC"]      # Absent key is missing.
         universe, watches, report = collect(provider, clock=lambda: AT)
         statuses = {row["ticker"]: row["screen_status"] for row in universe}
         self.assertEqual(statuses["AAAA"], "MALFORMED_SNAPSHOT")
-        self.assertEqual(statuses["BBBB"], "MISSING_SNAPSHOT")
+        self.assertEqual(statuses["BBBB"], "MALFORMED_SNAPSHOT")
+        self.assertEqual(statuses["CCCC"], "MISSING_SNAPSHOT")
         self.assertEqual(report["snapshot_missing_count"], 1)
-        self.assertEqual(report["status_counts"]["MALFORMED_SNAPSHOT"], 1)
+        self.assertEqual(report["status_counts"]["MALFORMED_SNAPSHOT"], 2)
+        presence = {row["ticker"]: row["snapshot_present"] for row in universe}
+        self.assertTrue(presence["BBBB"])
+        self.assertFalse(presence["CCCC"])
         with tempfile.TemporaryDirectory() as temp:
             destination = Path(temp) / "capture"
             persist(universe, watches, report, destination)
