@@ -97,10 +97,13 @@ def verify_capture(directory):
     for source in universe:
         symbol = source["ticker"]
         snap = source.get("snapshot")
+        present = source.get("snapshot_present")
+        require(type(present) is bool, "INVALID_SNAPSHOT_PRESENCE")
+        require(present or snap is None, "ABSENT_SNAPSHOT_HAS_PAYLOAD")
         received = asof(source["received_at"])
         if not re.fullmatch(r"[A-Z]{1,5}", symbol):
             expected_row, expected_status = None, "UNSUPPORTED_JOURNAL_TICKER_FORMAT"
-        elif snap is None:
+        elif not present:
             expected_row, expected_status = None, "MISSING_SNAPSHOT"
         elif not isinstance(snap, dict):
             expected_row, expected_status = None, "MALFORMED_SNAPSHOT"
