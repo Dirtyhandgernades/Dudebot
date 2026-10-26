@@ -68,7 +68,12 @@ def audit_regular_close_outcome(*, symbol, session_date, previous_close,
     if len(provider_prices) >= 2 and max(provider_prices) / min(provider_prices) - 1 > MAX_CLOSE_DIVERGENCE:
         issues.append("INDEPENDENT_CLOSE_SOURCES_DISAGREE")
     threshold = previous_close * (1 - EXTREME_DROP)
-    if provider_prices and min(provider_prices) <= threshold < max(provider_prices):
+    # Preserve every accepted observation at the decision threshold. Averaging
+    # same-provider pages can hide a threshold conflict even when their prices
+    # differ by less than the general cross-vendor tolerance.
+    all_accepted_prices = [price for prices in accepted.values() for price in prices]
+    if (all_accepted_prices and min(all_accepted_prices) <= threshold
+            < max(all_accepted_prices)):
         issues.append("SOURCES_STRADDLE_20PCT_THRESHOLD")
     verified = not issues
     if verified:
