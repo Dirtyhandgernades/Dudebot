@@ -218,10 +218,11 @@ def collect(provider, clock=now_utc, max_requests=150):
         last_observed_clock = received
         for asset in batch:
             ticker = asset["symbol"]
+            snapshot_present = ticker in snaps
             snap = snaps.get(ticker)
-            # A provider-returned malformed value is not an absent snapshot.
-            # Keep it separate from missingness for honest coverage denominators.
-            status = ("MISSING_SNAPSHOT" if snap is None else
+            # An explicitly returned null is malformed, not an absent key.
+            # Preserve key presence so missingness is reproducible from raw data.
+            status = ("MISSING_SNAPSHOT" if not snapshot_present else
                       "MALFORMED_SNAPSHOT" if not isinstance(snap, dict) else
                       "UNCLASSIFIED")
             row = None
@@ -230,6 +231,7 @@ def collect(provider, clock=now_utc, max_requests=150):
             elif isinstance(snap, dict):
                 row, status = candidate(asset, snap, received, scan_id, assets_received, assets_url)
             universe.append({"ticker": ticker, "asset": asset, "snapshot": snap,
+                             "snapshot_present": snapshot_present,
                              "received_at": received.isoformat(), "screen_status": status})
             if row is not None:
                 watches.append(row)
