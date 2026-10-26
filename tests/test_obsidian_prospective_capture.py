@@ -48,6 +48,18 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(report["snapshot_missing_count"], 3)
         self.assertEqual(len(watches), 1)
 
+    def test_malformed_nested_provider_fields_censor_one_asset_only(self):
+        for field in ("latestTrade", "prevDailyBar", "minuteBar"):
+            with self.subTest(field=field):
+                provider = Fake()
+                provider._snapshots["AAAA"][field] = ["invalid provider shape"]
+                universe, watches, report = collect(provider, clock=lambda: AT)
+                self.assertEqual(len(universe), 4)
+                self.assertEqual(universe[0]["screen_status"], "MALFORMED_NESTED_SNAPSHOT")
+                self.assertEqual(report["status_counts"]["MALFORMED_NESTED_SNAPSHOT"], 1)
+                self.assertEqual([(w["ticker"], w["category"]) for w in watches], [("BBBB", "B")])
+                self.assertEqual(audit(watches[0])["status"], "BLOCKED")
+
     def test_stale_trade_does_not_become_candidate(self):
         row, status = candidate({"symbol": "AAAA", "exchange": "NASDAQ"}, snap(9.5, trade_at="2026-10-26T19:40:00Z"), AT, "id")
         self.assertIsNone(row)
