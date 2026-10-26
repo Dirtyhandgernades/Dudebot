@@ -1,5 +1,7 @@
 # OBSIDIAN matched early-weakness diagnostic — 2026-10-26
 
+> **Superseded historical diagnostic pending rerun:** The table below is the verified output of run 40256403008 **before** the research-only look-ahead fix in commit `462d5fd66b9a24fe23c6fb5fbbcf6e772bd07b65`. That version improperly required the **future full-session close > $3** when choosing a pre-close candidate. The corrected gate uses only decision-time price and previous close. Do not reuse the table as corrected results until new CI artifacts are inspected. Even corrected numbers remain development-set, coverage-conditional and non-executable.
+
 **Research branch only:** `research/obsidian-early-rug-20261025`. Validation: [GitHub Actions run 40256403008](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40256403008), success. Reproducible output: artifact `obsidian-matched-comparison-40256403008`. Six unit tests passed.
 
 ## Frozen comparison
