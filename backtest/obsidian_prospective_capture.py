@@ -282,6 +282,11 @@ def persist(universe, watches, report, destination):
             }
         with (staged / "manifest.json").open("x", encoding="utf-8") as f:
             json.dump(manifest, f, sort_keys=True, indent=2, allow_nan=False)
+        # Verify the entire staged capture, including hashes, candidate-to-
+        # universe provenance, timestamps, and the frozen journal, BEFORE the
+        # atomic publish. A valid JSONL file alone is not sufficient evidence.
+        from backtest.obsidian_prospective_verify import verify_capture
+        verify_capture(staged)
         if dest.exists():
             raise FileExistsError(f"CAPTURE_DESTINATION_ALREADY_EXISTS: {dest}")
         staged.rename(dest)
