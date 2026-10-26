@@ -10,6 +10,10 @@ on:
       - 'tests/test_obsidian_prospective_capture.py'
       - 'backtest/obsidian_prospective_verify.py'
       - 'tests/test_obsidian_prospective_verify.py'
+      - 'backtest/obsidian_early_mechanism_audit.py'
+      - 'tests/test_obsidian_prospective_mechanism.py'
+      - 'backtest/obsidian_watchlist_reconcile.py'
+      - 'tests/test_obsidian_prospective_watchlist.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
   workflow_dispatch:
 
