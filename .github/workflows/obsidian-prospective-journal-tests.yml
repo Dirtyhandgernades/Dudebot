@@ -1,4 +1,4 @@
-name: OBSIDIAN prospective journal tests (research only)
+name: OBSIDIAN prospective journal and capture tests (research only)
 on:
   push:
     branches:
@@ -6,6 +6,8 @@ on:
     paths:
       - 'backtest/obsidian_prospective_journal.py'
       - 'tests/test_obsidian_prospective_journal.py'
+      - 'backtest/obsidian_prospective_capture.py'
+      - 'tests/test_obsidian_prospective_capture.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
   workflow_dispatch:
 
@@ -25,5 +27,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate frozen prospective research journal (no network, no orders)
-        run: python -m unittest discover -s tests -p test_obsidian_prospective_journal.py -v
+      - name: Validate frozen prospective journal and independent capture (offline)
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -v
