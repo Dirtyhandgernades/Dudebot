@@ -150,6 +150,8 @@ def collect(provider, clock=now_utc, max_requests=150):
     assets_url = getattr(provider, "assets_url", ASSETS_URL)
     if assets_received < started or assets_received.utcoffset() is None:
         raise ValueError("INVALID_ASSET_CAPTURE_CLOCK")
+    if not in_window(assets_received):
+        raise RuntimeError("ASSET_RESPONSE_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
     if not isinstance(assets, list) or not assets:
         raise ValueError("EMPTY_OR_INVALID_ASSET_UNIVERSE")
     selected = []
@@ -174,12 +176,17 @@ def collect(provider, clock=now_utc, max_requests=150):
     for i in range(0, len(selected), BATCH_SIZE):
         batch = selected[i:i+BATCH_SIZE]
         symbols = [a["symbol"] for a in batch]
+        # A scan begun in the window is not permission to query after it closes.
+        if not in_window(clock()):
+            raise RuntimeError("SNAPSHOT_REQUEST_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
         snaps = provider.snapshots(symbols)
         if set(snaps) - set(symbols):
             raise ValueError("UNREQUESTED_SNAPSHOT_SYMBOL")
         received = clock()
         if received < started or received.utcoffset() is None:
             raise ValueError("INVALID_CAPTURE_CLOCK")
+        if not in_window(received):
+            raise RuntimeError("SNAPSHOT_RESPONSE_OUTSIDE_CENTRAL_CAPTURE_WINDOW")
         for asset in batch:
             ticker = asset["symbol"]
             snap = snaps.get(ticker)
@@ -196,6 +203,8 @@ def collect(provider, clock=now_utc, max_requests=150):
     finished = clock()
     if finished < started:
         raise ValueError("INVALID_FINISH_CLOCK")
+    if not in_window(finished):
+        raise RuntimeError("CAPTURE_FINISHED_OUTSIDE_CENTRAL_WINDOW")
     counts = {}
     for row in universe:
         status = row["screen_status"]
