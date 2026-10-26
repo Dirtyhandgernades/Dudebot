@@ -62,8 +62,12 @@ def matched_events(packet, events, records, year):
                 audit["CENSORED_MISSING_DAILY_BAR"] += 1
                 continue
             price = event.get("decision_price")
+            # Never use the full-session current close to decide a pre-close
+            # candidate: it is unavailable at decision_at and leaks the future.
+            # raw_today/split_today above are required ONLY to evaluate modeled
+            # outcomes, which makes this a coverage-conditional diagnostic.
             if (not isinstance(price, (int, float)) or price <= 3
-                    or raw_prior["c"] <= 3 or raw_today["c"] <= 3):
+                    or raw_prior["c"] <= 3):
                 audit["CENSORED_PRICE_GATE"] += 1
                 continue
             # Price-only gate: cap/borrow/security-type verification remains UNKNOWN.
