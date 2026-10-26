@@ -20,7 +20,7 @@ def hard():
         "market_cap": p(40_000_000), "halt_clear": p(True),
         "corporate_actions_clear": p(True), "liquidity_sufficient": p(True),
         "buying_power": p(50_000), "equity": p(100_000),
-        "exposure_within_limits": p(True),
+        "exposure_within_limits": p(True), "market_session_open": p(True),
         "smg_short_available": p(True), "smg_platform_short_available": p(True),
     }
 def plan():
@@ -109,6 +109,27 @@ class TierTests(unittest.TestCase):
     def test_unverified_halt_blocks(self):
         h=hard(); h["halt_clear"]=p(False)
         self.assertEqual(evaluate(obs(hard=h,soft=full_short()))["tier"],"HARD_BLOCKED")
+    def test_market_holiday_clock_does_not_authorize_session(self):
+        h=hard(); h["market_session_open"]=p(False)
+        x=evaluate(obs(hard=h,soft=full_short()))
+        self.assertEqual(x["tier"],"HARD_BLOCKED")
+        self.assertFalse(x["decision_window_open"])
+        self.assertIn("MARKET_SESSION_NOT_VERIFIED_OPEN",x["hard_blockers"])
+    def test_missing_exchange_session_evidence_blocks_eod(self):
+        h=hard(); del h["market_session_open"]
+        x=evaluate(obs(hard=h,soft=full_short()))
+        self.assertEqual(x["tier"],"HARD_BLOCKED")
+        self.assertFalse(x["decision_window_open"])
+    def test_stale_buying_power_blocks(self):
+        h=hard(); h["buying_power"]=p(50_000,when=T-timedelta(minutes=20))
+        x=evaluate(obs(hard=h,soft=full_short()))
+        self.assertEqual(x["tier"],"HARD_BLOCKED")
+        self.assertIn("UNVERIFIED_ASOF_BUYING_POWER",x["hard_blockers"])
+    def test_stale_short_borrow_blocks(self):
+        h=hard(); h["smg_short_available"]=p(True,when=T-timedelta(minutes=20))
+        x=evaluate(obs(hard=h,soft=full_short()))
+        self.assertEqual(x["tier"],"HARD_BLOCKED")
+        self.assertIn("UNVERIFIED_ASOF_SMG_SHORT_AVAILABLE",x["hard_blockers"])
     def test_exposure_and_buying_power_are_hard(self):
         h=hard(); h["buying_power"]=p(0); h["exposure_within_limits"]=p(False)
         x=evaluate(obs(hard=h,soft=full_short()))
