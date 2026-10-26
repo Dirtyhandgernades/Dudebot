@@ -38,7 +38,7 @@
 
 - New `backtest/obsidian_extended_quote_integrity.py` and `tests/test_obsidian_prospective_extended_quote_integrity.py` enforce fail-closed ranked-versus-individual quote consistency, quote timestamp/freshness, two **independent** sources rather than two pages from one vendor, split/corporate-action clearance, and exact >=20% extreme-move boundaries. No inference of actual SMG execution.
 - Updated `backtest/obsidian_afterhours_catchability.py` and regression tests to prioritize post-decision catalyst attribution **even when no preclose signal exists**, and separately reject a catalyst that postdates the observed outcome.
-- CI workflow only `.github/workflows/obsidian-prospective-journal-tests.yml` includes new regression paths; hosted test result must be checked and reported by exact run number, never assumed.
+- CI workflow only `.github/workflows/obsidian-prospective-journal-tests.yml` includes new regression paths. **HOSTED VERIFIED:** [GitHub Actions #47](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40403762920), job 121856109699, commit c2aa4c7c54171ab73714b6e81bab741565bb6c31, passed **143 offline tests** at 21:22 UTC. Intermediate #42–46 failed during implementation; fixed exact -20% floating-point boundary and timing tests. No market-data artifact and no demonstrated edge.
 - No main/production changes, orders, credentials, live alerts or repeated Oct26 capture.
 
 **Next:** obtain genuinely timestamped preclose board and provider authorization for a future session through the authorized owner; require a second independent extended-hours quote feed and venue/volume to resolve ITGR; continue immutable prospective comparisons, counting all misses and false positives. **Verified executable candidates: zero.**
