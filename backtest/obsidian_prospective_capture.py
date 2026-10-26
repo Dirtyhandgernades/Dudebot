@@ -18,7 +18,8 @@ from zoneinfo import ZoneInfo
 
 CENTRAL = ZoneInfo("America/Chicago")
 EASTERN = ZoneInfo("America/New_York")
-ASSETS_URL = "https://api.alpaca.markets/v2/assets"
+ASSETS_URL = "https://paper-api.alpaca.markets/v2/assets"
+ALTERNATE_ASSETS_URL = "https://api.alpaca.markets/v2/assets"
 SNAPSHOTS_URL = "https://data.alpaca.markets/v2/stocks/snapshots"
 PROVIDER_SCOPE = "ALPACA_ACTIVE_US_EQUITY_NYSE_NASDAQ_NOT_ALL_SMG_SECURITIES"
 BATCH_SIZE = 100
@@ -63,7 +64,18 @@ class AlpacaReadOnly:
         return response.json()
 
     def assets(self):
-        return self.get(ASSETS_URL, {"status": "active", "asset_class": "us_equity"})
+        from requests import HTTPError
+        params = {"status": "active", "asset_class": "us_equity"}
+        try:
+            data = self.get(ASSETS_URL, params)
+            self.assets_url = ASSETS_URL
+            return data
+        except HTTPError as exc:
+            if exc.response is None or exc.response.status_code not in (401, 403):
+                raise
+        data = self.get(ALTERNATE_ASSETS_URL, params)
+        self.assets_url = ALTERNATE_ASSETS_URL
+        return data
 
     def snapshots(self, tickers):
         result = self.get(SNAPSHOTS_URL, {"symbols": ",".join(tickers), "feed": "sip"})
@@ -72,7 +84,7 @@ class AlpacaReadOnly:
         return result["snapshots"]
 
 
-def candidate(asset, snap, at, screen_id, asset_at=None):
+def candidate(asset, snap, at, screen_id, asset_at=None, assets_url=ASSETS_URL):
     """Use only fields in the received as-of snapshot; unknowns remain blocked."""
     ticker = asset["symbol"]
     asset_at = asset_at or at
@@ -109,14 +121,14 @@ def candidate(asset, snap, at, screen_id, asset_at=None):
         "borrow_available": None, "smg_short_available": None,
         "cutoff_at": cutoff.isoformat() if last_complete else None,
         "last_complete_at": last_complete.isoformat() if last_complete else None,
-        "screen_verified": True, "screen_url": ASSETS_URL,
+        "screen_verified": True, "screen_url": assets_url,
         "screen_at": asset_at.isoformat(),
         "quote_verified": True, "quote_url": SNAPSHOTS_URL,
         "quote_at": trade_at.isoformat(),
         "previous_close_verified": True, "previous_close_url": SNAPSHOTS_URL,
         "previous_close_at": previous_at.isoformat(),
         "listing_verified": asset.get("exchange") in ("NYSE", "NASDAQ"),
-        "listing_url": ASSETS_URL, "listing_at": asset_at.isoformat(),
+        "listing_url": assets_url, "listing_at": asset_at.isoformat(),
         "shares_verified": False, "corporate_actions_verified": False,
         "borrow_verified": False, "smg_short_verified": False,
         "research_setup": "PRICE_ONLY_WATCH_NOT_CONFIRMED_BREAKDOWN",
@@ -131,6 +143,7 @@ def collect(provider, clock=now_utc, max_requests=150):
         raise RuntimeError("OUTSIDE_1445_1458_CENTRAL_CAPTURE_WINDOW")
     assets = provider.assets()
     assets_received = clock()
+    assets_url = getattr(provider, "assets_url", ASSETS_URL)
     if assets_received < started or assets_received.utcoffset() is None:
         raise ValueError("INVALID_ASSET_CAPTURE_CLOCK")
     if not isinstance(assets, list) or not assets:
@@ -171,7 +184,7 @@ def collect(provider, clock=now_utc, max_requests=150):
             if not re.fullmatch(r"[A-Z]{1,5}", ticker):
                 status = "UNSUPPORTED_JOURNAL_TICKER_FORMAT"
             elif isinstance(snap, dict):
-                row, status = candidate(asset, snap, received, scan_id, assets_received)
+                row, status = candidate(asset, snap, received, scan_id, assets_received, assets_url)
             universe.append({"ticker": ticker, "asset": asset, "snapshot": snap,
                              "received_at": received.isoformat(), "screen_status": status})
             if row is not None:
@@ -187,7 +200,7 @@ def collect(provider, clock=now_utc, max_requests=150):
         "status": "AS_OF_PROVIDER_UNIVERSE_CAPTURE_NOT_FULL_MARKET_PROOF",
         "research_only": True, "trade_authorized": False,
         "screen_id": scan_id, "provider_scope": PROVIDER_SCOPE,
-        "source_assets": ASSETS_URL, "source_snapshots": SNAPSHOTS_URL,
+        "source_assets": assets_url, "source_snapshots": SNAPSHOTS_URL,
         "capture_started_at": started.isoformat(),
         "assets_received_at": assets_received.isoformat(),
         "capture_finished_at": finished.isoformat(),
