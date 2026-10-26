@@ -98,6 +98,15 @@ class VerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidCapture, "SCREEN_STATUS_NOT_REPRODUCIBLE"):
             verify_capture(other)
 
+    def test_rehashed_snapshot_presence_tampering_rejected(self):
+        # Even if the attacker rehashes the file, a raw provider payload
+        # cannot be relabeled as an absent snapshot key.
+        rows = [json.loads(line) for line in (self.root / "universe.jsonl").read_text().splitlines()]
+        rows[0]["snapshot_present"] = False
+        self.rewrite_jsonl("universe.jsonl", rows, "universe_sha256")
+        with self.assertRaisesRegex(InvalidCapture, "ABSENT_SNAPSHOT_HAS_PAYLOAD"):
+            verify_capture(self.root)
+
     def test_rehashed_universe_missingness_rejected(self):
         rows = [json.loads(line) for line in (self.root / "universe.jsonl").read_text().splitlines()]
         rows[0]["screen_status"] = "NO_PRICE_ONLY_A_OR_B_SETUP"
