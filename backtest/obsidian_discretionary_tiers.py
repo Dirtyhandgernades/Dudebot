@@ -7,6 +7,7 @@ All evidence must be independently timestamped at/before decision time.
 """
 from datetime import datetime, timedelta, timezone
 from math import isfinite
+from zoneinfo import ZoneInfo
 from .obsidian_early_mechanism_audit import price_band
 
 POLICY_ID = "OBSIDIAN_DISCRETIONARY_TIERS_V1_2026_10_26"
@@ -19,6 +20,9 @@ HARD_FIELDS = (
     "buying_power", "equity", "exposure_within_limits",
 )
 SHORT_FIELDS = ("smg_short_available", "smg_platform_short_available")
+FRESH_EXECUTION_FIELDS = {"current_price", "halt_clear", "corporate_actions_clear",
+                          "liquidity_sufficient", "buying_power", "exposure_within_limits",
+                          "smg_short_available", "smg_platform_short_available"}
 TAPE_SHORT = ("failed_rebound", "support_loss", "selling_volume", "liquidity")
 TAPE_LONG = ("failed_breakdown", "support_reclaim", "higher_low", "buying_volume")
 CATALYST_SHORT = ("fresh_adverse_disclosure", "verified_saleable_supply")
@@ -45,12 +49,18 @@ def _proof(row, decision, *, fresh=False):
         return False
     return True
 
+def _clock_window(decision):
+    if not _aware(decision):
+        return False
+    local = decision.astimezone(ZoneInfo("America/Chicago"))
+    return local.weekday() < 5 and (14, 45) <= (local.hour, local.minute) <= (14, 58)
+
 def _hard_gate(row, direction, decision):
     evidence = row.get("hard") or {}
     issues = []
-    for field in HARD_FIELDS + (SHORT_FIELDS if direction == "SHORT" else ()):
+    for field in HARD_FIELDS + (SHORT_FIELDS if direction == "SHORT" else ()) + (("market_session_open",) if _clock_window(decision) else ()):
         proof = evidence.get(field)
-        if not _proof(proof, decision, fresh=field == "current_price"):
+        if not _proof(proof, decision, fresh=field in FRESH_EXECUTION_FIELDS or field == "market_session_open"):
             issues.append("UNVERIFIED_ASOF_" + field.upper())
     def value(field):
         proof = evidence.get(field)
@@ -66,6 +76,8 @@ def _hard_gate(row, direction, decision):
             issues.append("PRICE_GATE_" + field.upper())
     if value("prior_session_confirmed") is not True:
         issues.append("PREVIOUS_REGULAR_SESSION_UNVERIFIED")
+    if _clock_window(decision) and value("market_session_open") is not True:
+        issues.append("MARKET_SESSION_NOT_VERIFIED_OPEN")
     shares, cap, current = value("current_shares"), value("market_cap"), value("current_price")
     if not _positive_number(shares):
         issues.append("SHARES_UNVERIFIED")
@@ -171,8 +183,7 @@ def evaluate(observation):
         "invalidation": plan.get("invalidation"),
         "exit_rule": plan.get("exit_rule"),
         "thesis": plan.get("thesis"),
-        "decision_window_open": (_aware(decision) and
-            decision.astimezone(__import__("zoneinfo").ZoneInfo("America/Chicago")).weekday() < 5
-            and (14, 45) <= (decision.astimezone(__import__("zoneinfo").ZoneInfo("America/Chicago")).hour,
-                              decision.astimezone(__import__("zoneinfo").ZoneInfo("America/Chicago")).minute) <= (14, 58)),
+        "decision_window_open": _clock_window(decision) and not any(
+            reason in hard_reasons for reason in
+            ("UNVERIFIED_ASOF_MARKET_SESSION_OPEN", "MARKET_SESSION_NOT_VERIFIED_OPEN")),
     }
