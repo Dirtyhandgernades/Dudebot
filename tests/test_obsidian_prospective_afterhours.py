@@ -19,6 +19,10 @@ class AfterHoursCatchabilityTests(unittest.TestCase):
         r=audit(catalyst_public_at=datetime(2026,10,23,13,5,tzinfo=timezone.utc))
         self.assertEqual(r["catchability"],"WATCH_OR_EVENT_ONLY_NO_PREDECISION_SIGNAL")
         self.assertIsNone(r["hypothetical_profit"])
+    def test_post_cutoff_disclosure_without_preclose_tape_still_post_cutoff(self):
+        r=audit(catalyst_public_at=datetime(2026,10,26,20,40,tzinfo=timezone.utc))
+        self.assertEqual(r["catchability"],"CATALYST_AFTER_CUTOFF")
+        self.assertIsNone(r["hypothetical_profit"])
     def test_afterhours_signal_never_backdated(self):
         r=audit(preclose_signal_at=OUT,quote_asof=BEFORE,
                 smg_eligibility_verified=True,smg_platform_borrow_verified=True)
