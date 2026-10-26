@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone
-from backtest.obsidian_prospective_capture import collect, candidate, in_window, persist
+from backtest.obsidian_prospective_capture import collect, candidate, in_window, persist, AlpacaReadOnly, ASSETS_URL, ALTERNATE_ASSETS_URL, ProviderAuthError
 from backtest.obsidian_prospective_journal import audit
 
 AT = datetime(2026, 10, 26, 19, 50, tzinfo=timezone.utc)
@@ -94,6 +94,19 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(json.loads((dest / "manifest.json").read_text())["screened_count"], 4)
             with self.assertRaises(FileExistsError):
                 persist(universe, watches, report, dest)
+
+    def test_paper_key_auth_fallback_is_read_only(self):
+        client = object.__new__(AlpacaReadOnly)
+        calls = []
+        def get(url, params):
+            calls.append(url)
+            if url == ASSETS_URL:
+                raise ProviderAuthError("paper unauthorized")
+            return [{"symbol": "AAAA"}]
+        client.get = get
+        self.assertEqual(client.assets(), [{"symbol": "AAAA"}])
+        self.assertEqual(calls, [ASSETS_URL, ALTERNATE_ASSETS_URL])
+        self.assertEqual(client.assets_url, ALTERNATE_ASSETS_URL)
 
     def test_request_budget_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "BUDGET"):
