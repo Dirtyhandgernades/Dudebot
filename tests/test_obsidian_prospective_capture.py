@@ -1,7 +1,11 @@
 """Synthetic, offline tests for independent research-only capture."""
 import unittest
+import json
+import tempfile
+from pathlib import Path
 from datetime import datetime, timezone
-from backtest.obsidian_prospective_capture import collect, candidate, in_window
+from backtest.obsidian_prospective_capture import collect, candidate, in_window, persist
+from backtest.obsidian_prospective_journal import audit
 
 AT = datetime(2026, 10, 26, 19, 50, tzinfo=timezone.utc)
 
@@ -75,6 +79,21 @@ class CaptureTests(unittest.TestCase):
                 return {"UNREQUESTED": snap(9.5)}
         with self.assertRaisesRegex(ValueError, "UNREQUESTED"):
             collect(Bad(), clock=lambda: AT)
+
+    def test_journal_integration_blocks_all_unverified_borrow_and_cap(self):
+        universe, watches, report = collect(Fake(), clock=lambda: AT)
+        self.assertTrue(watches)
+        self.assertTrue(all(audit(w)["status"] == "BLOCKED" for w in watches))
+        with tempfile.TemporaryDirectory() as temp:
+            dest = Path(temp) / "capture"
+            manifest = persist(universe, watches, report, dest)
+            self.assertEqual(manifest["journal_summary"]["preserved"], 2)
+            self.assertEqual(manifest["journal_summary"]["blocked"], 2)
+            self.assertEqual(len((dest / "universe.jsonl").read_text().splitlines()), 4)
+            self.assertEqual(len((dest / "journal.jsonl").read_text().splitlines()), 2)
+            self.assertEqual(json.loads((dest / "manifest.json").read_text())["screened_count"], 4)
+            with self.assertRaises(FileExistsError):
+                persist(universe, watches, report, dest)
 
     def test_request_budget_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "BUDGET"):
