@@ -42,6 +42,8 @@ def classify_missed_move(*, decision_cutoff, outcome_observed_at,
         status = "SCREENED_REJECTED_REQUIRES_ORIGINAL_REASON"
     elif board_state == "INELIGIBLE":
         status = "INELIGIBLE_NOT_A_TRADE"
+    elif catalyst_public_at is not None and catalyst_public_at > outcome_observed_at:
+        status = "CATALYST_POSTDATES_OBSERVED_OUTCOME"
     elif catalyst_public_at is not None and catalyst_public_at > decision_cutoff:
         status = "CATALYST_AFTER_CUTOFF"
     elif preclose_signal_at is None:
