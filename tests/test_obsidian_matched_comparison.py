@@ -43,9 +43,15 @@ class MatchedComparisonTests(unittest.TestCase):
 
     def test_early_filter_does_not_see_future_close(self):
         original = matched_events(self.packet, {self.day: [self.event]}, self.records, 2025)
-        self.packet["raw"]["ABC"][self.day]["c"] = 3.01
+        # The final close is not known when a pre-close decision is made.
+        # Cross BELOW the $3 price gate after the decision; neither policy
+        # may retrospectively remove an otherwise qualifying signal.
+        self.packet["raw"]["ABC"][self.day]["c"] = 2.75
         after = matched_events(self.packet, {self.day: [self.event]}, self.records, 2025)
-        self.assertEqual(len(original[1][self.day]), len(after[1][self.day]))
+        self.assertEqual(len(original[0][self.day]), 1)
+        self.assertEqual(len(original[1][self.day]), 1)
+        self.assertEqual(len(after[0][self.day]), 1)
+        self.assertEqual(len(after[1][self.day]), 1)
 
     def test_preclose_observation_after_cutoff_fails_closed(self):
         event = dict(self.event, last_complete_at="2025-11-06T20:30:00+00:00")
