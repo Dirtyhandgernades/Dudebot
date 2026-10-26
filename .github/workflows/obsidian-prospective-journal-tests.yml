@@ -8,6 +8,8 @@ on:
       - 'tests/test_obsidian_prospective_journal.py'
       - 'backtest/obsidian_prospective_capture.py'
       - 'tests/test_obsidian_prospective_capture.py'
+      - 'backtest/obsidian_prospective_verify.py'
+      - 'tests/test_obsidian_prospective_verify.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
   workflow_dispatch:
 
