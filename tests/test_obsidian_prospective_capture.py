@@ -73,6 +73,25 @@ class CaptureTests(unittest.TestCase):
         s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-26T04:00:00Z"
         self.assertEqual(candidate({"symbol": "AAAA"}, s, AT, "id")[1], "INVALID_PREVIOUS_SESSION")
 
+    def test_stale_previous_bar_censored_instead_of_early_signal(self):
+        s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-19T04:00:00Z"
+        row, status = candidate({"symbol": "AAAA"}, s, AT, "id")
+        self.assertIsNone(row)
+        self.assertEqual(status, "STALE_PREVIOUS_CLOSE_BAR")
+
+    def test_four_day_holiday_gap_keeps_watch_but_not_verified_trade(self):
+        s = snap(9.5); s["prevDailyBar"]["t"] = "2026-10-22T04:00:00Z"
+        row, status = candidate({"symbol": "AAAA"}, s, AT, "id")
+        self.assertEqual(status, "PRICE_ONLY_WATCH")
+        self.assertEqual(row["security_type"], "UNKNOWN")
+
+    def test_naive_clock_never_opens_capture_window(self):
+        self.assertFalse(in_window(datetime(2026, 10, 26, 14, 50)))
+        provider = Fake()
+        with self.assertRaisesRegex(RuntimeError, "OUTSIDE"):
+            collect(provider, clock=lambda: datetime(2026, 10, 26, 14, 50))
+        self.assertEqual(provider.called, 0)
+
     def test_snapshot_error_fails_closed(self):
         class Bad(Fake):
             def snapshots(self, symbols):
