@@ -137,9 +137,9 @@ def verify_capture(directory):
     if candidates:
         _, journal = jsonl(journal_path)
         require(len(journal) == len(candidates), "JOURNAL_COUNT_MISMATCH")
-        for recorded, candidate in zip(journal, candidates):
-            require(recorded.get("as_screened") == candidate
-                    and recorded.get("audit") == audit(candidate),
+        for recorded, candidate_row in zip(journal, candidates):
+            require(recorded.get("as_screened") == candidate_row
+                    and recorded.get("audit") == audit(candidate_row),
                     "FROZEN_JOURNAL_MISMATCH")
         require(manifest.get("journal_summary", {}).get("preserved") == len(candidates)
                 and manifest["journal_summary"].get("blocked") == len(candidates),
