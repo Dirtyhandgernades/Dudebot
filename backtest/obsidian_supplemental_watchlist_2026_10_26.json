@@ -1,0 +1,217 @@
+{
+  "created_for": "research-only supplemental watchlist, never replace prior 113-name manifest",
+  "generated_at": "2026-10-26T20:25:03Z",
+  "historical_additions": 22,
+  "new_afterhours_additions": 1,
+  "screened_before_eod": 0,
+  "notes": "Historical names were omitted from the recovered 113-name master+firm manifest. They were mentioned in prior research conversations; do not imply verified prior-date price, screening, eligibility, borrow, actual positions, or missed executable trades. APXC newly observed after close. Reconcile union with original manifest; no training on reference winners.",
+  "records": [
+    {
+      "ticker": "AIOK",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "XRPN",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "WFF",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "SDEV",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "AVTX",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "TTMI",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "VELO",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "RZAI",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "AIFA",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "CIFR",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "SLM",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "PFAI",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "RXRX",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "NGL",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "TC",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "AMTD",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "BMEA",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "MXCT",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "SAFX",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "XLAB",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "XHG",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "BBCI",
+      "source": "PRIOR_OBSIDIAN_CONVERSATION_OR_AUTOMATION_REFERENCE",
+      "status": "HISTORICAL_RETAIN_NOT_SCREENED_AS_OF_2026_10_26",
+      "current_eligibility": "UNVERIFIED",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    },
+    {
+      "ticker": "APXC",
+      "source": "2026_10_26_AFTERHOURS_NEW_DISCOVERY",
+      "status": "NEW_AFTERHOURS_RESEARCH_WATCH",
+      "current_eligibility": "UNVERIFIED_ADS_SECURITY_TYPE_AND_BORROW",
+      "verified_preclose_signal_at": null,
+      "confirmed_holding": false,
+      "retained": true
+    }
+  ]
+}
