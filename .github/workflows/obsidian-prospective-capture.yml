@@ -1,0 +1,58 @@
+name: OBSIDIAN prospective SIP capture (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - '.github/workflows/obsidian-prospective-capture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-prospective-capture-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prospective-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Gate to 2:45-2:58 PM Central on weekdays
+        id: gate
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from backtest.obsidian_prospective_capture import in_window
+          permitted = in_window(datetime.now(timezone.utc))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write(f'capture={str(permitted).lower()}\n')
+          print('Research-only prospective capture gate:', 'OPEN' if permitted else 'CLOSED; no API requests')
+          PY
+      - name: Install read-only market data dependency
+        if: steps.gate.outputs.capture == 'true'
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Capture as-of independent asset universe and SIP snapshots (no orders)
+        if: steps.gate.outputs.capture == 'true'
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_prospective_capture \
+            --out "outputs/backtest/obsidian-prospective/${{ github.run_id }}" \
+            --max-requests 150
+      - name: Upload immutable prospective research snapshot
+        if: always() && steps.gate.outputs.capture == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-prospective-capture-${{ github.run_id }}
+          path: outputs/backtest/obsidian-prospective/${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 90
+# Research-only capture trigger: unarmed; future push only within Central close window.
