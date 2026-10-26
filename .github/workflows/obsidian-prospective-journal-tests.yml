@@ -14,6 +14,8 @@ on:
       - 'tests/test_obsidian_prospective_mechanism.py'
       - 'backtest/obsidian_watchlist_reconcile.py'
       - 'tests/test_obsidian_prospective_watchlist.py'
+      - 'backtest/obsidian_historical_watchlist_manifest_2026_10_26.json'
+      - 'tests/test_obsidian_prospective_watchlist_manifest.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
   workflow_dispatch:
 
