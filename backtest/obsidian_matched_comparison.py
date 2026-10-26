@@ -129,6 +129,14 @@ def run(source, recovery, out):
                     "year": year, "policy": label, "cost_case": cost_name,
                     "signal_count_after_coverage_gate": sum(map(len, signal_set.values())),
                     "net_profit_model_only": result["net_profit"],
+                    "cash_interest_pnl_model_only": result["interest_pnl"],
+                    "net_profit_excluding_cash_interest_model_only": (
+                        round(result["net_profit"] - result["interest_pnl"], 2)
+                        if result["net_profit"] is not None else None
+                    ),
+                    "realized_trade_pnl_model_only": result["realized_profit"],
+                    "unresolved_open_positions": result["unresolved_open_positions"],
+                    "financial_status": result["financial_status"],
                     "closed_trades": result["closed_trades"],
                     "max_observed_drawdown_pct": result["max_observed_drawdown_pct"],
                     "account_insolvent": result["account_insolvent"],
@@ -153,13 +161,14 @@ def run(source, recovery, out):
             "Missingness can correlate with volatility, halts, or poor liquidity; results are selection-biased.",
             "No historical verified SMG market cap, security type, short borrow/locates, actual order fills or exact slippage.",
             "Simulated same-day closing fills and modeled exits are hypothetical, not executed trades.",
+            "Net profit includes modeled interest on cash; zero-trade positive interest is NOT strategy alpha.",
             "The threshold is a fixed diagnostic, not an optimized winner or a production-ready strategy.",
         ],
     }
     (out / "summary.json").write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps({"status": report["status"], "coverage": coverage,
                       "results": [{k: row[k] for k in ("year", "policy", "cost_case",
-                                  "net_profit_model_only", "closed_trades",
+                                  "net_profit_model_only", "realized_trade_pnl_model_only", "closed_trades",
                                   "max_observed_drawdown_pct")} for row in results]},
                      indent=2), flush=True)
     return report
