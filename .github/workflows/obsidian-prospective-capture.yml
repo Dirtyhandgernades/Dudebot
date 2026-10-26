@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Validate frozen journal and prospective capture before provider access (offline)
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -v
       - name: Gate to 2:45-2:58 PM Central on weekdays
         id: gate
         run: |
