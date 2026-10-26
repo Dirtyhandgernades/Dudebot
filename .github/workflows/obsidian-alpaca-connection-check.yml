@@ -34,6 +34,7 @@ jobs:
 
           headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
           endpoints = [
+              ("PAPER_ACCOUNT", "https://paper-api.alpaca.markets/v2/account"),
               ("PAPER_ASSETS", "https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
               ("LIVE_ASSETS", "https://api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
               ("SIP_SPY_SNAPSHOT", "https://data.alpaca.markets/v2/stocks/SPY/snapshot?feed=sip"),
@@ -59,9 +60,11 @@ jobs:
                   print(f"{label}: FORBIDDEN_HTTP_403")
               else:
                   print(f"{label}: HTTP_{status}")
+          account_ok = results.get("PAPER_ACCOUNT") == 200
           assets_ok = results.get("PAPER_ASSETS") == 200 or results.get("LIVE_ASSETS") == 200
           sip_ok = results.get("SIP_SPY_SNAPSHOT") == 200
-          print("RESULT:", "READ_ONLY_CONNECTION_OK" if assets_ok and sip_ok else
-                "ASSET_AUTH_BLOCKED" if not assets_ok else "SIP_DATA_ACCESS_BLOCKED")
-          raise SystemExit(0 if assets_ok and sip_ok else 1)
+          print("RESULT:", "PAPER_ACCOUNT_AUTH_BLOCKED" if not account_ok else
+                "ASSET_ACCESS_BLOCKED" if not assets_ok else
+                "SIP_DATA_ACCESS_BLOCKED" if not sip_ok else "READ_ONLY_CONNECTION_OK")
+          raise SystemExit(0 if account_ok and assets_ok and sip_ok else 1)
           PY
