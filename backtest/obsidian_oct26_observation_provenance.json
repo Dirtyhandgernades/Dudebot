@@ -1,0 +1,191 @@
+{
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "created_for": "Historical observation provenance, not scanned outcomes or training cases",
+  "notice": "All dates are DATE_ONLY report/chat references, not quote timestamps or verified prior preclose signals. Scanner and write-once candidate journal inputs must be supplied separately.",
+  "observations": [
+    {
+      "ticker": "CPIX",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "retained master; Oct23 post-cutoff press release; Monday preclose board unverified",
+      "authenticated": false
+    },
+    {
+      "ticker": "CPIX",
+      "kind": "CHAT_REFERENCE",
+      "source_ref": "2026-10-26 trading desk conversation context",
+      "observation_date": "2026-10-26",
+      "context": "referenced historically; no authenticated decision-timestamp row",
+      "authenticated": false
+    },
+    {
+      "ticker": "AIOK",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_MISSED_MOVES_2026_10_26_1525_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "supplemental; due-bill dividend/registration context; not verified selling",
+      "authenticated": false
+    },
+    {
+      "ticker": "XP",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2019_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "not in manifests; vendor prewindow ~-49%; postclose audit; no preclose capture",
+      "authenticated": false
+    },
+    {
+      "ticker": "XP",
+      "kind": "CHAT_REFERENCE",
+      "source_ref": "2026-10-26 trading desk conversation context",
+      "observation_date": "2026-10-26",
+      "context": "dated retrospective mention; not contemporaneous authenticated scanner evidence",
+      "authenticated": false
+    },
+    {
+      "ticker": "AGBK",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "Brazil-election related close loser, postclose discovery",
+      "authenticated": false
+    },
+    {
+      "ticker": "PICS",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "Brazil-election related close loser, postclose discovery",
+      "authenticated": false
+    },
+    {
+      "ticker": "INTR",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "Brazil-election related close loser, postclose discovery",
+      "authenticated": false
+    },
+    {
+      "ticker": "AFYA",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "Brazil-election related close loser, postclose discovery",
+      "authenticated": false
+    },
+    {
+      "ticker": "STNE",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "Brazil-election related close loser, postclose discovery",
+      "authenticated": false
+    },
+    {
+      "ticker": "APXC",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_MISSED_MOVES_2026_10_26_1525_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "supplemental ADS; afterhours squeeze; common-stock hard block",
+      "authenticated": false
+    },
+    {
+      "ticker": "BRAI",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "retrospective -40% regular and +50% AH; prior-session price not decision-time evidence",
+      "authenticated": false
+    },
+    {
+      "ticker": "EIKN",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_EOD_OUTCOME_CORRECTION_2026_10_26_1747_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "vendor disagreement; >=20% final-close outcome not verified",
+      "authenticated": false
+    },
+    {
+      "ticker": "ITGR",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_FOLLOWUP_2026_10_26_1619_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "conflicting non-synchronized vendor afterhours quotes",
+      "authenticated": false
+    },
+    {
+      "ticker": "DVLT",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "below $3, postclose movement",
+      "authenticated": false
+    },
+    {
+      "ticker": "SPRC",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2125_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "below $3 and afterhours movement",
+      "authenticated": false
+    },
+    {
+      "ticker": "ONCO",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "reverse-split corporate-action quarantine",
+      "authenticated": false
+    },
+    {
+      "ticker": "AEHL",
+      "kind": "CHAT_REFERENCE",
+      "source_ref": "2026-10-26 trading desk conversation context",
+      "observation_date": "2026-10-26",
+      "context": "known structural watch, no verified Oct26 preclose screen",
+      "authenticated": false
+    },
+    {
+      "ticker": "SECZ",
+      "kind": "CHAT_REFERENCE",
+      "source_ref": "2026-10-26 trading desk conversation context",
+      "observation_date": "2026-10-26",
+      "context": "historical recommendation/trade reference, not verified current holding",
+      "authenticated": false
+    },
+    {
+      "ticker": "AVBP",
+      "kind": "CHAT_REFERENCE",
+      "source_ref": "2026-10-26 trading desk conversation context",
+      "observation_date": "2026-10-26",
+      "context": "historical move reference, not verified current screen",
+      "authenticated": false
+    },
+    {
+      "ticker": "SNTI",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "afterhours leaderboard, below $3",
+      "authenticated": false
+    },
+    {
+      "ticker": "WFF",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2125_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "supplemental historical watch, below $3",
+      "authenticated": false
+    },
+    {
+      "ticker": "ARTV",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "public 07:30 ET catalyst, -30% premarket; late-to-initial-drop",
+      "authenticated": false
+    }
+  ]
+}
