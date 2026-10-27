@@ -7,6 +7,7 @@ from pathlib import Path
 
 from backtest.obsidian_iex_prospective import collect, persist
 from backtest.obsidian_iex_outcomes import evaluate
+from backtest.obsidian_iex_corporate_actions import ACTION_FLAGS
 
 AT = datetime(2026, 10, 27, 19, 50, tzinfo=timezone.utc)
 
@@ -31,6 +32,16 @@ def outcome(ticker, close):
             "close_at": "2026-10-27T20:00:00Z",
             "collected_at": "2026-10-27T20:10:00Z",
             "source_url": "https://example.org/verified"}
+    row["corporate_action_review"] = {
+        "status": "NO_ACTIONS_CONFIRMED", "verified": True,
+        "reviewed_sessions": ["2026-10-26", "2026-10-27"],
+        "checked_at": "2026-10-27T20:08:00Z",
+        "source_url": "https://corporate-action-provider.example/independent-review",
+        "prior_symbol": ticker, "current_symbol": ticker,
+        "prior_security_id": "CUSIP-" + ticker,
+        "current_security_id": "CUSIP-" + ticker,
+        "action_flags": {key: False for key in ACTION_FLAGS},
+    }
     row["independent_eod_sources"] = [
         {"source_id": "EOD_VENDOR_A", "url": "https://source-a.example/eod",
          "observed_at": "2026-10-27T20:04:00Z", "verified": True,
@@ -96,6 +107,41 @@ class IEXOutcomeTests(unittest.TestCase):
     def test_late_or_backdated_eod_source_censored(self):
         row = outcome("AAAA", 7)
         row["independent_eod_sources"][1]["observed_at"] = "2026-10-27T19:55:00Z"
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_self_attested_clear_without_review_censored(self):
+        row = outcome("AAAA", 7)
+        del row["corporate_action_review"]
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_spinoff_censored_even_when_both_closes_agree(self):
+        row = outcome("AAAA", 7)
+        row["corporate_action_review"]["action_flags"]["spin_off"] = True
+        self.assertEqual(self.run_rows([row])["verified_20pct_collapses"], 0)
+        self.assertEqual(self.run_rows([row])["outcomes_censored"], 3)
+
+    def test_rename_or_security_id_change_censored(self):
+        row = outcome("AAAA", 7)
+        row["corporate_action_review"]["current_symbol"] = "BBBB"
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+        row = outcome("AAAA", 7)
+        row["corporate_action_review"]["current_security_id"] = "CUSIP-OTHER"
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_split_dividend_rights_and_adr_changes_censored(self):
+        for flag in ("split", "reverse_split", "special_dividend",
+                     "rights_distribution", "adr_ratio_change"):
+            with self.subTest(flag=flag):
+                row = outcome("AAAA", 7)
+                row["corporate_action_review"]["action_flags"][flag] = True
+                self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_missing_action_flag_or_future_review_censored(self):
+        row = outcome("AAAA", 7)
+        del row["corporate_action_review"]["action_flags"]["spin_off"]
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+        row = outcome("AAAA", 7)
+        row["corporate_action_review"]["checked_at"] = "2026-10-27T20:30:00Z"
         self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
 
     def test_duplicate_outcomes_rejected(self):
