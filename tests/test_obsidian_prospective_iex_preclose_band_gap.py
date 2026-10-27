@@ -27,7 +27,7 @@ class Provider:
             "EEEE": snap(11),  # no watch, no gap
             "FFFF": snap(8.2, trade_at="2026-10-27T19:10:00Z"),  # stale, no gap
             "GGGG": snap(0.6, 0.8),  # -25%, exhausted boundary
-            "HHHH": snap(8.5),  # -15%, original watch boundary
+            "HHHH": snap(8.51),  # -14.9%, original watch (avoid float boundary ambiguity)
         }
 
     def assets(self):

@@ -5,6 +5,8 @@ on:
       - research/obsidian-early-rug-20261025
     paths:
       - 'backtest/OBSIDIAN_IEX_PRECLOSE_GAP_REPLAY_TRIGGER_2026_10_27.md'
+      - 'tests/test_obsidian_prospective_iex_preclose_band_gap.py'
+      - 'backtest/obsidian_iex_preclose_band_gap_audit.py'
 
 permissions:
   actions: read
