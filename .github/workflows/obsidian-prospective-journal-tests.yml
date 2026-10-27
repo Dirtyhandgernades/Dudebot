@@ -23,6 +23,8 @@ on:
       - 'backtest/obsidian_delayed_sip_integrity.py'
       - 'tests/test_obsidian_prospective_delayed_sip_integrity.py'
       - 'backtest/obsidian_iex_corporate_actions.py'
+      - 'backtest/obsidian_catalyst_publication_guard.py'
+      - 'tests/test_obsidian_prospective_catalyst_publication.py'
       - 'backtest/obsidian_iex_outcomes.py'
       - 'tests/test_obsidian_prospective_iex_outcomes.py'
       - 'backtest/obsidian_iex_prospective.py'
