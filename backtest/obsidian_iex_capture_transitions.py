@@ -49,7 +49,7 @@ def compare(morning_root, intraday_root):
     e0, e1 = asof(before.get("finished_at")), asof(after.get("finished_at"))
     if (t0 is None or t1 is None or e0 is None or e1 is None
             or before.get("phase") != "MORNING" or after.get("phase") != "INTRADAY"
-            or not t0 < e0 < t1 < e1
+            or not t0 <= e0 < t1 <= e1
             or t0.astimezone(EASTERN).date() != t1.astimezone(EASTERN).date()):
         raise ValueError("INVALID_OR_OVERLAPPING_SAME_SESSION_PHASES")
     for key in ("feed", "provider_scope", "snapshot_source", "asset_source"):
