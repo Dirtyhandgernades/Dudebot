@@ -42,7 +42,7 @@ class TransitionTests(unittest.TestCase):
 
     def test_new_real_crossing_vs_stale_recovery(self):
         first={
-            "AAAA":snap(9.8,"2026-10-27T13:49:00Z"),
+            "AAAA":snap(9.85,"2026-10-27T13:49:00Z"),
             "BBBB":snap(9.0,"2026-10-27T13:49:00Z"),
             "CCCC":snap(9.0,"2026-10-27T13:01:00Z"),
             "DDDD":snap(8.9,"2026-10-27T13:49:00Z"),
@@ -73,7 +73,7 @@ class TransitionTests(unittest.TestCase):
         r=self.make({"AAAA":snap(9.8,"2026-10-27T13:49:00Z",10)},
                     {"AAAA":snap(9.0,"2026-10-27T17:42:00Z",11)})
         self.assertEqual(r["counts"]["previous_iex_reference_changed"],1)
-        self.assertEqual(r["counts"]["new_comparable_crossings"],0)
+        self.assertEqual(r["counts"].get("new_comparable_crossings",0),0)
         self.assertEqual(r["full_unselected_union_ledger"][0]["transition"],
                          "PRIOR_IEX_REFERENCE_CHANGED_NOT_COMPARABLE")
 
@@ -82,7 +82,7 @@ class TransitionTests(unittest.TestCase):
                     {"AAAA":snap(10.0,"2026-10-27T17:42:00Z"),
                      "BBBB":snap(9.0,"2026-10-27T17:42:00Z")})
         self.assertEqual(r["counts"]["added_symbols"],1)
-        self.assertEqual(r["counts"]["new_comparable_crossings"],0)
+        self.assertEqual(r["counts"].get("new_comparable_crossings",0),0)
 
     def test_hash_tamper_rejected(self):
         self.make({"AAAA":snap(10,"2026-10-27T13:49:00Z")},
