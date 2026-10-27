@@ -1,0 +1,101 @@
+"""Independent later-close scoring for immutable IEX-only prospective captures.
+
+Requires externally sourced, independently verified regular-session closes.
+Never treats IEX last trades or previous IEX daily bars as official closes.
+"""
+import argparse
+import json
+from datetime import timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from backtest.obsidian_iex_prospective import verify
+from backtest.obsidian_prospective_capture import asof, finite_price
+from backtest.obsidian_prospective_verify import jsonl
+
+ET = ZoneInfo("America/New_York")
+
+
+def evaluate(capture, outcome_file):
+    verify(capture)
+    root = Path(capture)
+    manifest = json.loads((root / "manifest.json").read_text())
+    _, universe = jsonl(root / "universe.jsonl")
+    _, outcomes = jsonl(Path(outcome_file))
+    session = asof(manifest["started_at"]).astimezone(ET).date()
+    finished = asof(manifest["finished_at"])
+    previous = session - timedelta(days=1)
+    while previous.weekday() >= 5:
+        previous -= timedelta(days=1)
+    symbols = {r["ticker"] for r in universe}
+    mapped = {}
+    for row in outcomes:
+        symbol = row.get("ticker")
+        if symbol not in symbols or symbol in mapped:
+            raise ValueError("DUPLICATE_OR_OUTSIDE_CAPTURE_UNIVERSE")
+        mapped[symbol] = row
+    results = []
+    hits = misses = watch_noncollapses = valid_count = 0
+    for row in universe:
+        symbol = row["ticker"]
+        watched = row["screen_status"] == "IEX_EARLY_WEAKNESS_WATCH_ONLY"
+        outcome = mapped.get(symbol, {})
+        close_at = asof(outcome.get("close_at"))
+        collected_at = asof(outcome.get("collected_at"))
+        prior, close = outcome.get("previous_regular_close"), outcome.get("regular_close")
+        valid = (outcome.get("verified") is True
+                 and outcome.get("regular_session") is True
+                 and outcome.get("provider_conflict") is False
+                 and outcome.get("corporate_actions_clear") is True
+                 and outcome.get("previous_session_date") == previous.isoformat()
+                 and isinstance(outcome.get("source_url"), str)
+                 and outcome["source_url"].startswith("https://")
+                 and finite_price(prior) and finite_price(close)
+                 and close_at is not None and collected_at is not None
+                 and close_at.astimezone(ET).date() == session
+                 and (close_at.astimezone(ET).hour, close_at.astimezone(ET).minute) == (16, 0)
+                 and finished < close_at <= collected_at)
+        change = close / prior - 1 if valid else None
+        collapse = valid and change <= -.20
+        valid_count += bool(valid)
+        hits += bool(collapse and watched)
+        misses += bool(collapse and not watched)
+        watch_noncollapses += bool(valid and watched and not collapse)
+        results.append({"ticker": symbol, "preclose_iex_watch": watched,
+                        "outcome_status": ("CENSORED" if not valid else
+                                           "COLLAPSE_20_PLUS" if collapse else "NON_COLLAPSE"),
+                        "independent_regular_close_return": change})
+    collapses = hits + misses
+    return {"status": "IEX_PROSPECTIVE_PRICE_ONLY_OUTCOME_AUDIT_NOT_SMG_PERFORMANCE",
+            "research_only": True, "trade_authorized": False,
+            "universe_count": len(universe), "outcomes_verified": valid_count,
+            "outcomes_censored": len(universe) - valid_count,
+            "verified_20pct_collapses": collapses, "preclose_iex_watch_hits": hits,
+            "unwatched_collapses": misses, "preclose_iex_watch_noncollapses": watch_noncollapses,
+            "conditional_recall": hits / collapses if collapses else None,
+            "conditional_precision": hits / (hits + watch_noncollapses)
+                                     if hits + watch_noncollapses else None,
+            "verified_smg_eligible_recall": None, "lead_time": None,
+            "after_cost_pnl": None, "actual_fills": None,
+            "limitations": ["IEX is single venue, not consolidated SIP.",
+                            "Outcomes are externally supplied and must be independently verified.",
+                            "No missing or conflicting outcomes are assumed negative.",
+                            "No SMG borrow, eligibility, fills or predictive edge proven."],
+            "rows": results}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--capture", required=True)
+    parser.add_argument("--outcomes", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x") as f:
+        json.dump(evaluate(args.capture, args.outcomes), f, sort_keys=True, indent=2)
+        f.write("\n")
+
+
+if __name__ == "__main__":
+    main()
