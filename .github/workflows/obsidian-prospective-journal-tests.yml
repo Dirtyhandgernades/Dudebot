@@ -20,6 +20,8 @@ on:
       - 'tests/test_obsidian_prospective_discretionary_tiers.py'
       - 'backtest/obsidian_afterhours_catchability.py'
       - 'backtest/obsidian_extended_quote_integrity.py'
+      - 'backtest/obsidian_delayed_sip_integrity.py'
+      - 'tests/test_obsidian_prospective_delayed_sip_integrity.py'
       - 'backtest/obsidian_regular_close_integrity.py'
       - 'tests/test_obsidian_prospective_regular_close_integrity.py'
       - 'tests/test_obsidian_prospective_extended_quote_integrity.py'
