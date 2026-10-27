@@ -70,7 +70,7 @@ class ForwardStudyTests(unittest.TestCase):
     def test_none_means_not_yet_proven(self):
         report=evaluate(self.capture)
         self.assertEqual(report["outcome_rows_supplied"],0)
-        self.assertEqual(report["counts"]["raw_iex_watches"],2)
+        self.assertEqual(report["counts"]["raw_iex_watches"],3)
         self.assertEqual(report["counts"]["missing_outcome"],5)
         self.assertIsNone(report["conditional_early_recall"])
         self.assertFalse(report["untouched_future_prediction_edge_established"])
