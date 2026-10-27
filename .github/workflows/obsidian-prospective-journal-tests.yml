@@ -33,6 +33,8 @@ on:
       - 'backtest/obsidian_prospective_outcomes.py'
       - 'tests/test_obsidian_prospective_outcomes.py'
       - 'backtest/obsidian_regular_close_integrity.py'
+      - 'backtest/obsidian_eod_source_preflight.py'
+      - 'tests/test_obsidian_prospective_eod_source_preflight.py'
       - 'tests/test_obsidian_prospective_regular_close_integrity.py'
       - 'tests/test_obsidian_prospective_extended_quote_integrity.py'
       - 'tests/test_obsidian_prospective_afterhours.py'
