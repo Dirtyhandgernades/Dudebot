@@ -38,6 +38,7 @@ jobs:
               ("PAPER_ASSETS", "https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
               ("LIVE_ASSETS", "https://api.alpaca.markets/v2/assets?status=active&asset_class=us_equity"),
               ("SIP_SPY_SNAPSHOT", "https://data.alpaca.markets/v2/stocks/SPY/snapshot?feed=sip"),
+              ("IEX_SPY_SNAPSHOT", "https://data.alpaca.markets/v2/stocks/SPY/snapshot?feed=iex"),
           ]
           results = {}
           for label, url in endpoints:
@@ -63,8 +64,12 @@ jobs:
           account_ok = results.get("PAPER_ACCOUNT") == 200
           assets_ok = results.get("PAPER_ASSETS") == 200 or results.get("LIVE_ASSETS") == 200
           sip_ok = results.get("SIP_SPY_SNAPSHOT") == 200
+          iex_ok = results.get("IEX_SPY_SNAPSHOT") == 200
+          print("MARKET_DATA_RESULT:", "SIP_AVAILABLE" if sip_ok else
+                "IEX_ONLY_SIP_BLOCKED" if iex_ok else "NO_TESTED_FEED_AVAILABLE")
           print("RESULT:", "PAPER_ACCOUNT_AUTH_BLOCKED" if not account_ok else
                 "ASSET_ACCESS_BLOCKED" if not assets_ok else
-                "SIP_DATA_ACCESS_BLOCKED" if not sip_ok else "READ_ONLY_CONNECTION_OK")
+                "SIP_DATA_ACCESS_BLOCKED_IEX_AVAILABLE" if iex_ok and not sip_ok else
+                "SIP_AND_IEX_DATA_ACCESS_BLOCKED" if not sip_ok else "READ_ONLY_CONNECTION_OK")
           raise SystemExit(0 if account_ok and assets_ok and sip_ok else 1)
           PY
