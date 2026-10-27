@@ -40,6 +40,8 @@ on:
       - 'tests/test_obsidian_prospective_supplemental_watchlist.py'
       - 'backtest/obsidian_early_discovery.py'
       - 'backtest/obsidian_forward_collapse_study.py'
+      - 'backtest/obsidian_iex_capture_transitions.py'
+      - 'tests/test_obsidian_prospective_iex_capture_transitions.py'
       - 'tests/test_obsidian_prospective_forward_collapse_study.py'
       - 'backtest/OBSIDIAN_IEX_FORWARD_STUDY_FROZEN_2026_10_27.md'
       - 'backtest/obsidian_iex_research_discovery.py'
