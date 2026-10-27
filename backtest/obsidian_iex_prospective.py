@@ -13,7 +13,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from backtest.obsidian_prospective_capture import (
-    ASSETS_URL, BATCH_SIZE, CENTRAL, PROVIDER_SCOPE, asof, in_window, now_utc
+    ASSETS_URL, BATCH_SIZE, CENTRAL, EASTERN, asof, in_window, now_utc
 )
 
 IEX_SNAPSHOTS = "https://data.alpaca.markets/v2/stocks/snapshots"
@@ -78,6 +78,13 @@ def classify(snap, received):
         return "STALE_OR_FUTURE_IEX_TRADE"
     if previous_at is None or previous_at >= received:
         return "INVALID_PREVIOUS_BAR"
+    # A prior IEX bar is single-venue, never an official close.
+    session_day = received.astimezone(EASTERN).date()
+    expected_prior = session_day - timedelta(days=1)
+    while expected_prior.weekday() >= 5:
+        expected_prior -= timedelta(days=1)
+    if previous_at.astimezone(EASTERN).date() != expected_prior:
+        return "UNVERIFIED_PREVIOUS_IEX_SESSION"
     # Prior bar may be IEX-only. Its date is NOT proof of official previous close.
     change = price / prior - 1
     if change <= -.25:
