@@ -56,9 +56,15 @@ class IEXReadOnly:
 
     def snapshots(self, symbols):
         response = self._get(IEX_SNAPSHOTS, {"symbols": ",".join(symbols), "feed": "iex"})
-        if not isinstance(response, dict) or not isinstance(response.get("snapshots"), dict):
+        # Alpaca's MULTI-symbol /v2/stocks/snapshots response is a direct
+        # symbol-to-snapshot mapping, NOT {"snapshots": {...}}. Preserve raw
+        # absent symbols for the missingness denominator; never synthesize bars.
+        if (not isinstance(response, dict)
+                or "snapshots" in response
+                or any(not isinstance(symbol, str) or not isinstance(value, (dict, type(None)))
+                       for symbol, value in response.items())):
             raise ValueError("INVALID_IEX_RESPONSE")
-        return response["snapshots"]
+        return response
 
 
 def classify(snap, received):
