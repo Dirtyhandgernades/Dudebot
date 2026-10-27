@@ -16,16 +16,35 @@ from .obsidian_early_discovery import (
 
 _LEAKAGE_PREFIXES = ("future_", "next_close", "outcome_", "realized_", "profit_", "pnl_")
 
+def _reject_future_labels(value):
+    """Fail closed on outcome/forward-label keys anywhere in a research packet."""
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise ValueError("NONSTRING_EVIDENCE_KEY")
+            normalized = key.casefold()
+            if (normalized.startswith(_LEAKAGE_PREFIXES + ("forward_", "subsequent_"))
+                    or normalized in {"winner", "label", "labels", "exit_price",
+                                      "best_future_close"}):
+                raise ValueError("FUTURE_OUTCOME_LEAKAGE_FIELD")
+            _reject_future_labels(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            _reject_future_labels(child)
+
+
 
 def build_packet(packet, master_rows, supplemental_rows, reference_rows=()):
     if not isinstance(packet, dict):
         raise ValueError("EXPECTED_PACKET_OBJECT")
+    _reject_future_labels(packet)
     snapshots = packet.get("snapshots", [])
     if not isinstance(snapshots, list):
         raise ValueError("SNAPSHOTS_MUST_BE_LIST")
     if not isinstance(packet.get("observations", []), list):
         raise ValueError("OBSERVATIONS_MUST_BE_LIST")
     all_observations = list(reference_rows) + packet.get("observations", [])
+    _reject_future_labels(all_observations)
     ledger = reconcile_coverage(
         master_rows, supplemental_rows, all_observations,
         decision_cutoff=packet.get("decision_cutoff"),

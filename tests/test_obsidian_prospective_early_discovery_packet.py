@@ -53,5 +53,27 @@ class PacketTests(unittest.TestCase):
             self.assertEqual(target.read_bytes(), original)
 
 
+    def test_nested_forward_and_realized_fields_rejected(self):
+        nested = [
+            {"quote": {"future_close": 4.2}},
+            {"tape": {"support_loss": {"realized_pnl": 900}}},
+            {"catalyst": {"forward_return": -0.4}},
+            {"metadata": {"outcome_label": "winner"}},
+            {"quote": {"labels": ["future_winner"]}},
+        ]
+        for fields in nested:
+            with self.subTest(fields=fields):
+                with self.assertRaisesRegex(ValueError, "FUTURE_OUTCOME_LEAKAGE_FIELD"):
+                    build_packet({"snapshots": [{"ticker": "CPIX", **fields}]}, [], [])
+
+    def test_root_and_reference_future_labels_rejected(self):
+        with self.assertRaisesRegex(ValueError, "FUTURE_OUTCOME_LEAKAGE_FIELD"):
+            build_packet({"snapshots": [], "forward_close": 3}, [], [])
+        with self.assertRaisesRegex(ValueError, "FUTURE_OUTCOME_LEAKAGE_FIELD"):
+            build_packet({"snapshots": []}, [], [],
+                         [{"ticker": "CPIX", "kind": "CHAT_REFERENCE",
+                           "source_ref": "audit", "future_return": -0.3}])
+
+
 if __name__=="__main__":
     unittest.main()
