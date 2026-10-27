@@ -28,8 +28,18 @@ class DelayedSipIntegrityTests(unittest.TestCase):
         self.assertEqual(check({"message": "ok"})["status"], "INVALID_RESPONSE_SHAPE")
     def test_future_bar_rejected(self):
         self.assertEqual(check(sample(NOW))["status"], "INVALID_OR_DUPLICATE_BAR_TIMESTAMP")
-    def test_bar_outside_request_rejected(self):
-        self.assertEqual(check(sample(END))["status"], "INVALID_OR_DUPLICATE_BAR_TIMESTAMP")
+    def test_inclusive_end_bar_excluded(self):
+        p = sample()
+        p["bars"]["SPY"].append(dict(p["bars"]["SPY"][0], t=END.isoformat()))
+        r = check(p)
+        self.assertEqual(r["status"], "DELAYED_SIP_BAR_CONTENT_VALIDATED_NOT_OFFICIAL_CLOSE")
+        self.assertEqual(r["valid_bars"], 1)
+        self.assertEqual(r["boundary_bars_excluded"], 1)
+    def test_only_boundary_bar_is_not_evidence(self):
+        self.assertEqual(check(sample(END))["status"], "NO_IN_WINDOW_BARS")
+    def test_after_end_rejected(self):
+        self.assertEqual(check(sample(END + timedelta(minutes=1)))["status"],
+                         "INVALID_OR_DUPLICATE_BAR_TIMESTAMP")
     def test_duplicate_timestamp_rejected(self):
         p = sample()
         p["bars"]["SPY"].append(dict(p["bars"]["SPY"][0]))
