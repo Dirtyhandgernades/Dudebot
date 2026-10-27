@@ -7,6 +7,7 @@ import argparse
 import json
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_iex_prospective import verify
@@ -14,6 +15,39 @@ from backtest.obsidian_prospective_capture import asof, finite_price
 from backtest.obsidian_prospective_verify import jsonl
 
 ET = ZoneInfo("America/New_York")
+
+def corroborated(outcome, close_at, collected_at):
+    """Require two distinct timestamped EOD sources, not a self-attested flag."""
+    sources = outcome.get("independent_eod_sources")
+    if not isinstance(sources, list) or len(sources) < 2:
+        return False
+    distinct_ids, distinct_hosts = set(), set()
+    for item in sources:
+        if not isinstance(item, dict) or item.get("verified") is not True:
+            return False
+        source_id, url = item.get("source_id"), item.get("url")
+        observed = asof(item.get("observed_at"))
+        if not isinstance(source_id, str) or not source_id.strip() or source_id == "ALPACA_IEX":
+            return False
+        if not isinstance(url, str) or not url.startswith("https://"):
+            return False
+        host = urlsplit(url).hostname
+        if not host or host in distinct_hosts or source_id in distinct_ids:
+            return False
+        if observed is None or not close_at <= observed <= collected_at:
+            return False
+        # No smoothing across the 20% threshold: disagreeing EOD prints are censored.
+        for key, expected in (("regular_close", outcome.get("regular_close")),
+                              ("previous_regular_close", outcome.get("previous_regular_close"))):
+            if not finite_price(item.get(key)) or not finite_price(expected):
+                return False
+            if abs(item[key] - expected) > 0.005:
+                return False
+        distinct_ids.add(source_id)
+        distinct_hosts.add(host)
+    return len(distinct_ids) >= 2
+
+
 
 
 def evaluate(capture, outcome_file):
@@ -54,7 +88,8 @@ def evaluate(capture, outcome_file):
                  and close_at is not None and collected_at is not None
                  and close_at.astimezone(ET).date() == session
                  and (close_at.astimezone(ET).hour, close_at.astimezone(ET).minute) == (16, 0)
-                 and finished < close_at <= collected_at)
+                 and finished < close_at <= collected_at
+                 and corroborated(outcome, close_at, collected_at))
         change = close / prior - 1 if valid else None
         collapse = valid and change <= -.20
         valid_count += bool(valid)
@@ -78,7 +113,7 @@ def evaluate(capture, outcome_file):
             "verified_smg_eligible_recall": None, "lead_time": None,
             "after_cost_pnl": None, "actual_fills": None,
             "limitations": ["IEX is single venue, not consolidated SIP.",
-                            "Outcomes are externally supplied and must be independently verified.",
+                            "Two distinct timestamped EOD source records required; provenance fields still need source inspection.",
                             "No missing or conflicting outcomes are assumed negative.",
                             "No SMG borrow, eligibility, fills or predictive edge proven."],
             "rows": results}
