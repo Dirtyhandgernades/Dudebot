@@ -1,0 +1,105 @@
+name: OBSIDIAN locked IEX morning-intraday transition replay (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_IEX_TRANSITION_REPLAY_TRIGGER_2026_10_27.md'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  compare-locked-raw-captures:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test provenance-aware cross-capture comparisons
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_iex_capture_transitions.py' -v
+      - name: Retrieve authenticated October 27 morning research artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: obsidian-iex-research-discovery-40516649174
+          run-id: 40516649174
+          github-token: ${{ github.token }}
+          path: outputs/backtest/locked-morning
+      - name: Retrieve authenticated October 27 intraday research artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: obsidian-iex-research-discovery-40553266211
+          run-id: 40553266211
+          github-token: ${{ github.token }}
+          path: outputs/backtest/locked-intraday
+      - name: Verify all original raw capture SHA-256 hashes
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          expected={
+            "locked-morning":{
+              "manifest.json":"58dd06d254f3a63aeca76d15024f6455301dc7f777ccd206bfc08c05b2a11f03",
+              "universe.jsonl":"dad0e857f13fba07089f1b5cb0792eedbd5d58db87f55c3f8905aa59da7fef8f",
+              "attention.json":"239c1c4627a6dd92eb8a520b47a9cac3c03f1bb0ff6d785e00732f2a3b21e45f"},
+            "locked-intraday":{
+              "manifest.json":"0f93a347bf96b4a009841efbad0061603de95007de3d4805576a851335fabe94",
+              "universe.jsonl":"3b27abd9c50bc6ea9e1d17a1a8b4b66727bd2d8531b3f9ad8ae03f111b9b1eb3",
+              "attention.json":"f34d7c81cd21fcc29638d2c8a2c154d0e1476a89a6fdaa8a77a8f112f372f34b"},
+          }
+          for dirname,files in expected.items():
+            for name,digest in files.items():
+              actual=hashlib.sha256((Path("outputs/backtest")/dirname/name).read_bytes()).hexdigest()
+              if actual!=digest:
+                raise SystemExit("IMMUTABLE_CAPTURE_HASH_MISMATCH "+dirname+"/"+name)
+          print("SIX_IMMUTABLE_RAW_CAPTURE_HASHES_VERIFIED")
+          PY
+      - name: Replay full-denominator provenance transitions without EOD labels
+        run: |
+          python -m backtest.obsidian_iex_capture_transitions \
+            --morning outputs/backtest/locked-morning \
+            --intraday outputs/backtest/locked-intraday \
+            --output "outputs/backtest/obsidian-iex-transition-${{ github.run_id }}.json"
+          python - <<'PY'
+          import json,glob
+          from pathlib import Path
+          matches=glob.glob("outputs/backtest/obsidian-iex-transition-*.json")
+          if len(matches)!=1:
+            raise SystemExit("TRANSITION_OUTPUT_NOT_UNIQUE")
+          r=json.loads(Path(matches[0]).read_text())
+          c=r["counts"]
+          expected={
+            "union_symbols":8515,
+            "added_symbols":14,
+            "removed_symbols":0,
+            "morning_watches":164,
+            "intraday_watches":299,
+            "persistent_watches":104,
+            "new_watch_labels":195,
+            "new_comparable_crossings":160,
+            "newly_visible_after_unusable":35,
+            "dropped_watch_labels":60,
+            "previous_iex_reference_changed":1541,
+          }
+          for key,value in expected.items():
+            if c.get(key,0)!=value:
+              raise SystemExit(f"LOCKED_TRANSITION_REPLAY_MISMATCH {key}: {c.get(key,0)} != {value}")
+          if (len(r["full_unselected_union_ledger"])!=8515
+              or r["prospective_20pct_collapse_predictions_proven"] is not False
+              or r["conditional_recall"] is not None
+              or r["after_cost_pnl"] is not None):
+            raise SystemExit("INCOMPLETE_LEDGER_OR_FABRICATED_OUTCOMES")
+          print("LOCKED_TRANSITION_REPLAY_VERIFIED",expected)
+          PY
+      - name: Archive read-only full-denominator transition audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-iex-transition-${{ github.run_id }}
+          path: outputs/backtest/obsidian-iex-transition-${{ github.run_id }}.json
+          if-no-files-found: ignore
+          retention-days: 90
