@@ -200,10 +200,19 @@ def build_attention_packet(rows, manifest, master=(), supplemental=(), reference
                       if stamp is not None and _price(price) else {}),
         }
         snapshots.append(row)
+    # An authenticated GET for every ticker proves that it was *requested*,
+    # not that its price was usable, SMG eligible, or part of a full market.
+    # Preserve the exact requested-universe denominator in the strict ledger.
     packet = {
         "snapshots": snapshots,
         "observations": [],
         "decision_cutoff": manifest["finished_at"],
+        "scan_inventory": [{
+            "authenticated": True,
+            "captured_at": manifest["finished_at"],
+            "scan_id": "alpaca-iex-research-" + manifest["started_at"],
+            "considered_symbols": [row["ticker"] for row in rows],
+        }],
     }
     summary = build_packet(packet, list(master), list(supplemental), list(references))
     summary["single_venue_indicative_attention"] = [
@@ -214,6 +223,8 @@ def build_attention_packet(rows, manifest, master=(), supplemental=(), reference
     summary["source_is_read_only_authenticated_provider"] = True
     summary["separately_verified_prior_close"] = False
     summary["complete_eod_screen"] = False
+    summary["authenticated_provider_symbols_requested"] = len(rows)
+    summary["requested_is_not_usable_or_eligible"] = True
     return summary
 
 
@@ -262,6 +273,9 @@ def verify(root):
     scored = json.loads(attention)
     if scored.get("snapshots_received") != len(rows) or scored.get("snapshots_preserved") != len(rows):
         raise ValueError("ATTENTION_COVERAGE_MISMATCH")
+    if (scored.get("authenticated_provider_symbols_requested") != len(rows)
+            or scored.get("coverage", {}).get("authenticated_screen_evidence_symbols") != len(rows)):
+        raise ValueError("REQUESTED_UNIVERSE_LEDGER_MISMATCH")
     if scored.get("full_market_denominator_verified") is not False or scored.get("early_catch_or_edge_demonstrated") is not False:
         raise ValueError("INVALID_RESEARCH_ASSERTIONS")
     return {
