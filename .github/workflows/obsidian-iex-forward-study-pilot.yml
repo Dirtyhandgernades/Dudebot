@@ -1,0 +1,81 @@
+name: OBSIDIAN locked IEX forward pilot (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_FORWARD_PILOT_TRIGGER_2026_10_27.md'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  score-locked-cohort:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test frozen scorer on independent synthetic data
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_forward_collapse_study.py' -v
+      - name: Download only the previously captured authenticated IEX research cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: obsidian-iex-research-discovery-40516649174
+          run-id: 40516649174
+          github-token: ${{ github.token }}
+          path: outputs/backtest/locked-cohort
+      - name: Verify write-once source integrity against precaptured research lock
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          base=Path('outputs/backtest/locked-cohort')
+          expected={
+              'manifest.json':'58dd06d254f3a63aeca76d15024f6455301dc7f777ccd206bfc08c05b2a11f03',
+              'universe.jsonl':'dad0e857f13fba07089f1b5cb0792eedbd5d58db87f55c3f8905aa59da7fef8f',
+              'attention.json':'239c1c4627a6dd92eb8a520b47a9cac3c03f1bb0ff6d785e00732f2a3b21e45f',
+          }
+          for name, sha in expected.items():
+              data=(base/name).read_bytes()
+              if hashlib.sha256(data).hexdigest()!=sha:
+                  raise SystemExit('LOCKED_CAPTURE_HASH_MISMATCH: '+name)
+          manifest=json.loads((base/'manifest.json').read_text())
+          if manifest['universe_count']!=8501 or manifest['phase']!='MORNING':
+              raise SystemExit('LOCKED_CAPTURE_UNIVERSE_OR_PHASE_MISMATCH')
+          print('LOCKED_AUTHENTICATED_IEX_RESEARCH_COHORT_VERIFIED',manifest['universe_count'])
+          PY
+      - name: Score original complete captured universe with NO invented future closes
+        run: |
+          python -m backtest.obsidian_forward_collapse_study \
+            --capture outputs/backtest/locked-cohort \
+            --output "outputs/backtest/obsidian-forward-pilot-${{ github.run_id }}.json"
+          python - <<'PY'
+          import json, glob
+          from pathlib import Path
+          files=glob.glob('outputs/backtest/obsidian-forward-pilot-*.json')
+          if len(files)!=1:
+              raise SystemExit('EXPECTED_EXACTLY_ONE_PILOT')
+          j=json.loads(Path(files[0]).read_text())
+          counts=j['counts']
+          if (counts['scanned_symbols']!=8501 or counts['raw_iex_watches']!=164
+                  or counts['missing_outcome']!=8501 or
+                  j['conditional_early_recall'] is not None or
+                  j['conditional_early_precision'] is not None or
+                  j['outcomes_input_sha256'] is not None):
+              raise SystemExit('FUTURE_DATA_OR_COVERAGE_FABRICATION_DETECTED')
+          print('FORWARD_PILOT_READY_AWAITING_INDEPENDENT_POSTCLOSE_EOD')
+          print('Research symbols:',counts['scanned_symbols'],'IEX watches:',counts['raw_iex_watches'])
+          PY
+      - name: Upload write-once pilot score without claiming future performance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-forward-pilot-${{ github.run_id }}
+          path: outputs/backtest/obsidian-forward-pilot-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 90
