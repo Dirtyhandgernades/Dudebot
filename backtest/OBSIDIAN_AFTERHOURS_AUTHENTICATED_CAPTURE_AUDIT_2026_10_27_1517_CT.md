@@ -1,0 +1,39 @@
+# OBSIDIAN Oct 27 2026 15:17 CT — authenticated morning-to-preclose reconciliation
+
+**Research only. No live orders, alerts, main, production, secrets, SMG borrow assumptions, or retrospective trade claims.** Original source runs and write-once artifacts below. The 15:22 CT after-hours trigger is explicitly **NOT** authorized in this 15:17 CT audit. Do not create the `...AFTERHOURS.md` marker except in the designated 15:22 CT run after independent exchange-calendar verification.
+
+## Source evidence (already captured, no retroactive price backfill)
+- Oct27 08:57 CT authenticated IEX research run [40516649174](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40516649174), artifact **12740246208**: 8,501 original symbols; 162 IEX indicative early (-2% to -15%), 2 intermediate (-15% to -25%), 1 exhausted; 5,023 stale/future prints; 4 missing snapshots; 107 missing trade/prior pair; 44 unverified previous IEX days; 411 indicative price-floor blocks.
+- Oct27 14:51 CT authenticated IEX **prospective** capture run [40572768800](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40572768800), artifact **12766795149**: 8,515 original symbols, 433 IEX single-venue early-weakness watches, 9 already exhausted, 3,669 no early price-only watch, **4,252 stale/future IEX trades**, 3 missing snapshots, 105 missing trade/prior pairs, 44 unverified previous IEX sessions. Write-once capture **19:51:01.669–19:51:04.119 UTC**; original `universe_sha256=10a3d8f30726759105394dac6eeaf6bccc208932d43e1faa51507809aa8c0bb4`. The workflow and artifact upload completed successfully.
+- Original morning-to-preclose intersection **8,501** symbols; 14 new preclose-only asset symbols. Neither IEX price nor its previous IEX daily reference is a verified official regular-session close, SIP NBBO, actual SMG short borrow or a guaranteed executable print.
+
+## Reconciled machine statuses (the raw IEX reference is NOT official day return)
+Across original 8,501 matched symbols:
+- **105** morning watch -> preclose watch, **48** morning watch -> preclose no-watch, **9** morning watch -> preclose unusable, **2** morning watch -> preclose exhausted. Plus one morning exhausted -> preclose exhausted. Original morning watched denominator 164.
+- **232** morning usable no-watch -> preclose watch, **94** morning unusable -> preclose watch. The 94 are NOT proof the scanner was unaware; morning quotes were unscorable under freshness/other integrity requirements.
+- **5** morning usable no-watch -> preclose exhausted; **1** morning unusable -> preclose exhausted; **1** morning exhausted -> preclose exhausted.
+- Morning-unusable -> preclose-unusable: **4,154**. Morning-unusable -> preclose usable no-watch: **929**. Morning usable no-watch -> preclose-unusable: **233**. Morning usable no-watch -> preclose usable no-watch: **2,688**.
+- All counts are *machine status transitions*, not actual regular-close collapse outcomes, eligibility, or true prospective detection successes.
+
+## Dated examples: real pre-decision observations, but **not** proven successful trades
+| Ticker | 08:57 CT IEX status and trade/reference | 14:51 CT IEX status and trade/reference | Timing audit |
+|---|---|---|---|
+| INOD | Intermediate watch; $47.11 / $59.88 = -21.326% | Exhausted; $44.27 / $59.88 = -26.069% | On board in morning but already >20% down vs *IEX reference*; by preclose only ~18.2% of that observed decline occurred after morning snapshot. **Not** an early 50%-remaining catch under this proxy. |
+| CLW | Intermediate watch; $15.62 / $19.08 = -18.134% | Exhausted; $13.45 / $19.08 = -29.507% | On board in morning; ~38.5% of observed IEX-reference decline happened after morning snapshot. Not an early 50%-remaining catch under this proxy. |
+| ARTV | Already exhausted; $4.40 / $6.17 = -28.687% | Exhausted; $4.26 / $6.17 = -30.956% | Post-catalyst recognition; never claim a new early win. Issuer press release first public **07:30 ET** October 27, before 08:57 CT machine scan, so no retroactive pre-release signal. |
+| WFF | Morning price-floor block; $0.072 / $0.0892 = -19.283% | Exhausted; $0.0599 / $0.0892 = -32.848% | Below user's $3 floor both times; not SMG-eligible just because a sharp price move occurred. |
+| PDC | Morning stale Oct26 trade, **not** usable | Exhausted; $2.03 / $2.91 = -30.241% | Morning provider missing/stale; below $3 at preclose; cannot score as early eligible miss. |
+| ACRS | Early watch; $3.52 / $3.795 = -7.246% | No early watch; $3.73 / $3.795 = -1.713% | Price recovered relative to IEX reference. Candidate false-positive/failed-breakdown research case, not a verified official close. |
+| AEHL | Morning no-watch; $7.92 / $7.88 = +0.508% | Stale IEX trade; $7.47 / $7.88 = -5.203% *if used, but stale* | Preclose state is **unusable**; cannot infer fresh breakdown or trade. |
+| CD / XRPN / AVBP / SECZ | All retained in raw original morning universe | All retained in original preclose universe, no early price-only watch | Historical references **not absent**; none has a new authenticated preclose price-only short signal on this day. |
+| CPIX / XP / AIOK | All retained in raw original morning universe | All retained in original preclose universe, no early price-only short watch | Reconcile as screened but no short weakness watch, not unseen. AIOK was a strong IEX-reference gainer, not a new short signal. |
+
+## Independently timestamped catalyst context
+- **CLW:** Oct26 2026 earnings release and call *before* both Oct27 scans: Q3 net sales $385M vs $399M prior year, operational disruption at Augusta mill, lower pricing. Source https://www.stocktitan.net/news/CLW/clearwater-paper-reports-third-quarter-2026-1fkz7mwy2u5p.html . This is contemporaneous pre-decision adverse-mechanism context, **but the raw scanner did not independently capture or score the catalyst**.
+- **INOD:** India Today story timestamped Oct27 2026 **12:18 IST = 01:48 ET** about reported 550 India layoffs and Philippines job cuts: https://www.indiatoday.in/jobs/story/innodata-layoffs-nearly-550-india-employees-fired-philippines-job-cuts-microsoft-3025864-2026-10-27 . This was public before the 08:57 CT scan; **not a captured machine catalyst** and employee reports do not independently establish client contract cancellation. A later 12:47 ET market article described the price decline: https://www.fool.com/investing/2026/10/27/why-innodata-stock-crashed-today/ .
+- **ARTV:** issuer 07:30 ET Oct27 halted AlloNK and announced ~94% workforce reduction: https://rss.globenewswire.com/news-release/2026/10/27/3388875/0/en/artiva-biotherapeutics-announces-strategic-update-and-discontinues-development-of-allonk.html ; related Oct27 SEC 8-K: https://www.sec.gov/Archives/edgar/data/1817241/000119312526432806/d102135d8k.htm . The machine saw it *after* public release and after most IEX-reference decline.
+
+## Outcome blocker, no fabricated result
+At 15:17 CT the completed Oct27 regular session is only ~17 minutes old. There is no independently sourced, two-provider, timestamped full original-universe EOD outcome JSONL with corporate-action/security-identity review available in this audit. Frozen policy `backtest/OBSIDIAN_IEX_FORWARD_STUDY_FROZEN_2026_10_27.md` and scorer `backtest/obsidian_forward_collapse_study.py` must not be modified/tuned or scored with IEX prior/last trade as if they were official closes. **Verified 20%-collapse hits, conditional recall, conditional precision, squeezes, after-cost P&L and borrow remain unknown.** The Oct27 morning cohort is a seen pilot, not untouched forward proof.
+
+The separately scheduled **15:22 CT** after-hours trigger check remains pending and must not be preempted in this run. No after-hours raw snapshot has been authenticated in this 15:17 CT audit. Avoid claims about actual after-bell movers until their source/timestamps are verified.
