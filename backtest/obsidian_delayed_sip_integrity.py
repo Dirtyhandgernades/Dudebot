@@ -39,15 +39,21 @@ def inspect_delayed_sip(payload, symbol, start, end, received_at):
         result["status"] = "INVALID_BAR_LIST"
         return result
     seen = set()
+    excluded_boundary = 0
     for bar in bars:
         if not isinstance(bar, dict):
             result["status"] = "INVALID_BAR"
             return result
         t = _time(bar.get("t"))
-        if t is None or not (start <= t < end) or t >= received_at or t in seen:
+        if t is None or not (start <= t <= end) or t >= received_at or t in seen:
             result["status"] = "INVALID_OR_DUPLICATE_BAR_TIMESTAMP"
             return result
         seen.add(t)
+        # Alpaca's bars endpoint can include the exact requested end
+        # timestamp. That minute is outside the half-open study interval.
+        if t == end:
+            excluded_boundary += 1
+            continue
         prices = [bar.get(k) for k in ("o", "h", "l", "c")]
         if any(type(x) not in (float, int) or not isfinite(x) or x <= 0 for x in prices):
             result["status"] = "INVALID_OHLC"
@@ -60,6 +66,8 @@ def inspect_delayed_sip(payload, symbol, start, end, received_at):
         if type(volume) not in (float, int) or not isfinite(volume) or volume < 0:
             result["status"] = "INVALID_VOLUME"
             return result
-    result["status"] = "DELAYED_SIP_BAR_CONTENT_VALIDATED_NOT_OFFICIAL_CLOSE"
-    result["valid_bars"] = len(bars)
+    result["boundary_bars_excluded"] = excluded_boundary
+    result["valid_bars"] = len(bars) - excluded_boundary
+    result["status"] = ("DELAYED_SIP_BAR_CONTENT_VALIDATED_NOT_OFFICIAL_CLOSE"
+                        if result["valid_bars"] else "NO_IN_WINDOW_BARS")
     return result
