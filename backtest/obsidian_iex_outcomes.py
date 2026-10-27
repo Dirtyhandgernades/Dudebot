@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_iex_prospective import verify
+from backtest.obsidian_iex_corporate_actions import no_action_comparable
 from backtest.obsidian_prospective_capture import asof, finite_price
 from backtest.obsidian_prospective_verify import jsonl
 
@@ -89,7 +90,8 @@ def evaluate(capture, outcome_file):
                  and close_at.astimezone(ET).date() == session
                  and (close_at.astimezone(ET).hour, close_at.astimezone(ET).minute) == (16, 0)
                  and finished < close_at <= collected_at
-                 and corroborated(outcome, close_at, collected_at))
+                 and corroborated(outcome, close_at, collected_at)
+                 and no_action_comparable(outcome, previous, session, close_at, collected_at))
         change = close / prior - 1 if valid else None
         collapse = valid and change <= -.20
         valid_count += bool(valid)
@@ -115,6 +117,7 @@ def evaluate(capture, outcome_file):
             "limitations": ["IEX is single venue, not consolidated SIP.",
                             "Two distinct timestamped EOD source records required; provenance fields still need source inspection.",
                             "No missing or conflicting outcomes are assumed negative.",
+                            "Explicit independently reviewable no-action, same-security evidence is required; known spin-offs, distributions and identity changes are censored pending entitlement-adjusted research.",
                             "No SMG borrow, eligibility, fills or predictive edge proven."],
             "rows": results}
 
