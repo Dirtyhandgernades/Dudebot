@@ -24,13 +24,22 @@ class Provider:
 
 
 def outcome(ticker, close):
-    return {"ticker": ticker, "verified": True, "regular_session": True,
+    row = {"ticker": ticker, "verified": True, "regular_session": True,
             "provider_conflict": False, "corporate_actions_clear": True,
             "previous_session_date": "2026-10-26",
             "previous_regular_close": 10, "regular_close": close,
             "close_at": "2026-10-27T20:00:00Z",
             "collected_at": "2026-10-27T20:10:00Z",
             "source_url": "https://example.org/verified"}
+    row["independent_eod_sources"] = [
+        {"source_id": "EOD_VENDOR_A", "url": "https://source-a.example/eod",
+         "observed_at": "2026-10-27T20:04:00Z", "verified": True,
+         "regular_close": close, "previous_regular_close": 10},
+        {"source_id": "EOD_VENDOR_B", "url": "https://source-b.example/eod",
+         "observed_at": "2026-10-27T20:07:00Z", "verified": True,
+         "regular_close": close, "previous_regular_close": 10},
+    ]
+    return row
 
 
 class IEXOutcomeTests(unittest.TestCase):
@@ -67,6 +76,26 @@ class IEXOutcomeTests(unittest.TestCase):
     def test_conflicted_eod_censored(self):
         row = outcome("AAAA", 5)
         row["provider_conflict"] = True
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_missing_independent_sources_censored(self):
+        row = outcome("AAAA", 7)
+        del row["independent_eod_sources"]
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_disagreeing_independent_close_censored(self):
+        row = outcome("AAAA", 7)
+        row["independent_eod_sources"][1]["regular_close"] = 7.1
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_same_host_not_independent_censored(self):
+        row = outcome("AAAA", 7)
+        row["independent_eod_sources"][1]["url"] = "https://source-a.example/another"
+        self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
+
+    def test_late_or_backdated_eod_source_censored(self):
+        row = outcome("AAAA", 7)
+        row["independent_eod_sources"][1]["observed_at"] = "2026-10-27T19:55:00Z"
         self.assertEqual(self.run_rows([row])["outcomes_verified"], 0)
 
     def test_duplicate_outcomes_rejected(self):
