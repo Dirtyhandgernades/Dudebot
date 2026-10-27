@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from backtest.obsidian_iex_prospective import collect, persist, verify, classify
+from backtest.obsidian_iex_prospective import collect, persist, verify, classify, IEXReadOnly
 
 AT = datetime(2026, 10, 27, 19, 50, tzinfo=timezone.utc)
 
@@ -30,6 +30,35 @@ class IEXCaptureTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.dest = Path(self.tmp.name) / "prospective"
+
+
+    def test_documented_alpaca_multi_snapshot_top_level_shape(self):
+        # Alpaca's public API example is {"AAPL": {...}, "MSFT": {...}},
+        # NOT {"snapshots": {"AAPL": {...}}}.
+        provider = IEXReadOnly.__new__(IEXReadOnly)
+        calls = []
+        provider._get = lambda url, params: (calls.append((url, params)) or
+                                             {"AAAA": snap(9.3), "BBBB": snap(7)})
+        result = provider.snapshots(["AAAA", "BBBB", "CCCC"])
+        self.assertEqual(set(result), {"AAAA", "BBBB"})
+        self.assertEqual(calls[0][1], {"symbols": "AAAA,BBBB,CCCC", "feed": "iex"})
+
+    def test_nonexistent_snapshots_wrapper_rejected(self):
+        provider = IEXReadOnly.__new__(IEXReadOnly)
+        provider._get = lambda url, params: {"snapshots": {"AAAA": snap(9.3)}}
+        with self.assertRaisesRegex(ValueError, "INVALID_IEX_RESPONSE"):
+            provider.snapshots(["AAAA"])
+
+    def test_malformed_multi_snapshot_payload_rejected(self):
+        provider = IEXReadOnly.__new__(IEXReadOnly)
+        provider._get = lambda url, params: {"AAAA": 17}
+        with self.assertRaisesRegex(ValueError, "INVALID_IEX_RESPONSE"):
+            provider.snapshots(["AAAA"])
+
+    def test_explicit_null_snapshot_preserved_as_raw_missingness(self):
+        provider = IEXReadOnly.__new__(IEXReadOnly)
+        provider._get = lambda url, params: {"AAAA": None}
+        self.assertEqual(provider.snapshots(["AAAA"]), {"AAAA": None})
 
     def test_capture_and_replay(self):
         rows, manifest = collect(Provider(), clock=lambda: AT)
