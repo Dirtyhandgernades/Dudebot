@@ -1,0 +1,60 @@
+name: OBSIDIAN prospective IEX discovery capture (research only)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-iex-prospective-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  iex-preclose-capture:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline prospective research tests
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -q
+      - name: Enforce Chicago 14:45-14:58 weekday gate
+        id: gate
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from backtest.obsidian_prospective_capture import in_window
+          allowed = in_window(datetime.now(timezone.utc))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'allowed={str(allowed).lower()}\n')
+          print('IEX prospective gate:', 'OPEN' if allowed else 'CLOSED')
+          PY
+      - name: Install read-only HTTP dependency
+        if: steps.gate.outputs.allowed == 'true'
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Capture independent single-venue IEX research universe (GET only)
+        if: steps.gate.outputs.allowed == 'true'
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_iex_prospective \
+            --out "outputs/backtest/obsidian-iex-prospective/${{ github.run_id }}"
+          python - <<'PY'
+          import os
+          from backtest.obsidian_iex_prospective import verify
+          path = "outputs/backtest/obsidian-iex-prospective/" + os.environ["GITHUB_RUN_ID"]
+          print(verify(path))
+          PY
+      - name: Upload immutable as-of IEX research evidence
+        if: always() && steps.gate.outputs.allowed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-iex-prospective-${{ github.run_id }}
+          path: outputs/backtest/obsidian-iex-prospective/${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 90
