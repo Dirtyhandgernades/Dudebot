@@ -1,5 +1,10 @@
 name: OBSIDIAN prospective IEX discovery capture (research only)
 on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_IEX_PROSPECTIVE_TRIGGER_*.md'
   workflow_dispatch:
 
 permissions:
