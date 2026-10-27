@@ -89,6 +89,12 @@ jobs:
                                   datetime.now(timezone.utc))
                               if label == "HISTORICAL_SIP_SPY_SAMPLE":
                                   sample_content = inspected["status"] + "_COUNT_" + str(inspected["valid_bars"])
+                                  sample_bars = payload.get("bars", {}).get("SPY", [])
+                                  if isinstance(sample_bars, list):
+                                      print("HISTORICAL_SIP_SAMPLE_RETURNED_BARS:", len(sample_bars))
+                                      print("HISTORICAL_SIP_SAMPLE_TIMESTAMPS:",
+                                            json.dumps([b.get("t") for b in sample_bars[:2]
+                                                        if isinstance(b, dict)]))
                               else:
                                   delayed_content = inspected["status"]
                           except (ValueError, UnicodeError, TypeError):
