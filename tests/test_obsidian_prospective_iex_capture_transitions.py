@@ -70,7 +70,7 @@ class TransitionTests(unittest.TestCase):
         self.assertTrue(all(not row["smg_executable"] for row in r["full_unselected_union_ledger"]))
 
     def test_prior_reference_drift_cannot_be_called_new_onset(self):
-        r=self.make({"AAAA":snap(9.8,"2026-10-27T13:49:00Z",10)},
+        r=self.make({"AAAA":snap(9.85,"2026-10-27T13:49:00Z",10)},
                     {"AAAA":snap(9.0,"2026-10-27T17:42:00Z",11)})
         self.assertEqual(r["counts"]["previous_iex_reference_changed"],1)
         self.assertEqual(r["counts"].get("new_comparable_crossings",0),0)
