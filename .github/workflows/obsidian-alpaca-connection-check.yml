@@ -88,7 +88,8 @@ jobs:
                                   sample_end if label == "HISTORICAL_SIP_SPY_SAMPLE" else end_dt,
                                   datetime.now(timezone.utc))
                               if label == "HISTORICAL_SIP_SPY_SAMPLE":
-                                  sample_content = inspected["status"] + "_COUNT_" + str(inspected["valid_bars"])
+                                  sample_content = (inspected["status"] + "_COUNT_" + str(inspected["valid_bars"])
+                                                    + "_EXCLUDED_END_" + str(inspected.get("boundary_bars_excluded", 0)))
                                   sample_bars = payload.get("bars", {}).get("SPY", [])
                                   if isinstance(sample_bars, list):
                                       print("HISTORICAL_SIP_SAMPLE_RETURNED_BARS:", len(sample_bars))
