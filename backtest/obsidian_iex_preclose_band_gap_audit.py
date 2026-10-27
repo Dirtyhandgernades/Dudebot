@@ -67,7 +67,7 @@ def evaluate(capture):
             "iex_last_trade_at": trade_at.isoformat(),
             "capture_received_at": received.isoformat(),
             "indicative_both_prices_at_least_3": price >= 3 and reference >= 3,
-            "verified_smg_eligible": False,
+            "verified_smg_eligible": None,
             "trade_authorized": False,
         })
     gap.sort(key=lambda x: x["ticker"])

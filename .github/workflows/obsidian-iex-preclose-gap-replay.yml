@@ -1,0 +1,77 @@
+name: OBSIDIAN immutable preclose intermediate-band gap replay (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_IEX_PRECLOSE_GAP_REPLAY_TRIGGER_2026_10_27.md'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  replay-original-preclose:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline regression for shadow gap audit
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_iex_preclose_band_gap.py' -v
+      - name: Download only the ORIGINAL authenticated October 27 protected preclose artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: obsidian-iex-prospective-40572768800
+          run-id: 40572768800
+          github-token: ${{ github.token }}
+          path: outputs/backtest/locked-preclose
+      - name: Replay original raw hash and count
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          base=Path('outputs/backtest/locked-preclose')
+          m=json.loads((base/'manifest.json').read_text())
+          raw=(base/'universe.jsonl').read_bytes()
+          expected='10a3d8f30726759105394dac6eeaf6bccc208932d43e1faa51507809aa8c0bb4'
+          if hashlib.sha256(raw).hexdigest()!=expected or m.get('universe_sha256')!=expected:
+              raise SystemExit('ORIGINAL_PRECLOSE_RAW_HASH_MISMATCH')
+          if m.get('universe_count')!=8515:
+              raise SystemExit('ORIGINAL_PRECLOSE_UNIVERSE_COUNT_MISMATCH')
+          print('IMMUTABLE_ORIGINAL_PRECLOSE_VERIFIED',m['universe_count'])
+          PY
+      - name: Score only the SHADOW 15-to-25 percent label omission
+        run: |
+          python -m backtest.obsidian_iex_preclose_band_gap_audit \
+            --capture outputs/backtest/locked-preclose \
+            --output "outputs/backtest/obsidian-iex-preclose-gap-${{ github.run_id }}.json"
+          python - <<'PY'
+          import json, glob
+          from pathlib import Path
+          files=glob.glob('outputs/backtest/obsidian-iex-preclose-gap-*.json')
+          if len(files)!=1:raise SystemExit('EXPECTED_ONE_SHADOW_REPORT')
+          report=json.loads(Path(files[0]).read_text())
+          if (report['captured_universe']!=8515 or report['original_watch_count']!=433
+                  or report['original_no_watch_count']!=3669
+                  or report['shadow_intermediate_gap_count']!=12
+                  or report['gap_indicative_both_prices_at_least_3']!=2
+                  or report['conditional_precision'] is not None
+                  or report['conditional_recall'] is not None
+                  or report['confirmed_future_20pct_early_hits'] is not None):
+              raise SystemExit('GAP_COUNTS_OR_OUTCOME_PROVENANCE_MISMATCH')
+          if {x['ticker'] for x in report['rows'] if x['indicative_both_prices_at_least_3']}!={'FLXS','AZUL'}:
+              raise SystemExit('INDICATIVE_PRICE_FLOOR_COHORT_MISMATCH')
+          print('SHADOW_GAP_REPLAY_VERIFIED_12_GAPS_2_PRICE_FLOOR_PASS_NO_PREDICTION_CLAIM')
+          PY
+      - name: Upload immutable-source shadow gap report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-iex-preclose-gap-${{ github.run_id }}
+          path: outputs/backtest/obsidian-iex-preclose-gap-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 90
