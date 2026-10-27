@@ -177,8 +177,20 @@ def prioritize_early_discovery(observation):
     def num(v):
         return type(v) in (float, int) and isfinite(v) and v > 0
     quote = observation.get("quote")
-    quote_fresh = _evidence(quote, at, max_age=timedelta(minutes=15))
-    price_valid = num(prior) and num(current) and quote_fresh
+    close_proof = observation.get("prior_regular_close_proof")
+    quote_fresh = (_evidence(quote, at, max_age=timedelta(minutes=15))
+                   and num(quote.get("value"))
+                   and num(current) and abs(quote["value"] - current) <= 0.0001)
+    close_verified = (
+        _evidence(close_proof, at) and num(prior)
+        and num(close_proof.get("value"))
+        and abs(close_proof["value"] - prior) <= 0.0001
+        and close_proof.get("complete_regular_session") is True
+        and close_proof.get("previous_session_confirmed") is True)
+    # A last-quote from the previous calendar day can be stale, or even
+    # from a nontrading holiday; the source must attest the actual prior
+    # regular trading session, not merely the most recent calendar date.
+    price_valid = bool(quote_fresh and close_verified)
     change_pct = round(100 * (current / prior - 1), 4) if price_valid else None
     proofs = observation.get("tape") or {}
     tape_signs = sorted(k for k in TIMING_SIGNALS

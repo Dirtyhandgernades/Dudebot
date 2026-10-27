@@ -17,6 +17,15 @@ def p(t=T, **extra):
             "source_id": "OFFLINE_TEST_SOURCE", **extra}
 
 
+def quote(value, t=T):
+    return p(t, value=value)
+
+
+def prior(value, t=T):
+    return p(t - timedelta(days=3), value=value,
+             complete_regular_session=True, previous_session_confirmed=True)
+
+
 class EarlyDiscoveryTests(unittest.TestCase):
     def test_historical_union_preserved(self):
         master = json.loads((ROOT / "backtest/obsidian_historical_watchlist_manifest_2026_10_26.json").read_text())["records"]
@@ -68,7 +77,7 @@ class EarlyDiscoveryTests(unittest.TestCase):
 
     def test_early_verified_catalyst_and_tape_is_higher_priority_than_price_only(self):
         x = prioritize_early_discovery(dict(ticker="ZZZZ", observed_at=T, phase="PRECLOSE",
-            prior_regular_close=10, observed_price=9.3, quote=p(),
+            prior_regular_close=10, observed_price=9.3, quote=quote(9.3), prior_regular_close_proof=prior(10),
             catalyst=p(type="ADVERSE_SEC_FILING", published_at=(T-timedelta(minutes=40)).isoformat()),
             tape={"failed_rebound":p()}))
         self.assertEqual(x["lane"], "EARLY_ADVERSE_MECHANISM_AND_TAPE")
@@ -77,12 +86,12 @@ class EarlyDiscoveryTests(unittest.TestCase):
 
     def test_small_weakness_without_catalyst_not_promoted(self):
         x = prioritize_early_discovery(dict(ticker="ZZZZ", observed_at=T, phase="PRECLOSE",
-            prior_regular_close=10, observed_price=9.8, quote=p(), tape={"failed_rebound":p()}))
+            prior_regular_close=10, observed_price=9.8, quote=quote(9.8), prior_regular_close_proof=prior(10), tape={"failed_rebound":p()}))
         self.assertEqual(x["lane"], "EARLY_PRICE_ONLY_WATCH")
 
     def test_future_disclosure_cannot_make_past_setup(self):
         x = prioritize_early_discovery(dict(ticker="ZZZZ", observed_at=T, phase="PRECLOSE",
-            prior_regular_close=10, observed_price=9.1, quote=p(),
+            prior_regular_close=10, observed_price=9.1, quote=quote(9.1), prior_regular_close_proof=prior(10),
             catalyst=p(type="ADVERSE_ISSUER_RELEASE",published_at=(T+timedelta(seconds=1)).isoformat()),
             tape={"support_loss":p()}))
         self.assertFalse(x["catalyst_asof_verified"])
@@ -90,14 +99,14 @@ class EarlyDiscoveryTests(unittest.TestCase):
 
     def test_registration_is_not_actual_selling(self):
         x = prioritize_early_discovery(dict(ticker="ZZZZ",observed_at=T,phase="PRECLOSE",
-            prior_regular_close=10,observed_price=9.2,quote=p(),
+            prior_regular_close=10,observed_price=9.2,quote=quote(9.2),prior_regular_close_proof=prior(10),
             catalyst=p(type="VERIFIED_ACTUAL_SALEABLE_SUPPLY", issued=False,legally_saleable=True),
             tape={"selling_volume":p()}))
         self.assertEqual(x["lane"],"EARLY_PRICE_ONLY_WATCH")
 
     def test_30pct_preexisting_collapse_never_ranked_early(self):
         x = prioritize_early_discovery(dict(ticker="XP",observed_at=T,phase="PRECLOSE",
-            prior_regular_close=30,observed_price=15,quote=p(),
+            prior_regular_close=30,observed_price=15,quote=quote(15),prior_regular_close_proof=prior(30),
             catalyst=p(type="PUBLIC_MACRO_SHOCK"),tape={"support_loss":p()}))
         self.assertEqual(x["lane"], "EXHAUSTED_NOT_AN_EARLY_CATCH")
         self.assertIsNone(x["priority_ordinal_not_probability"])
@@ -105,25 +114,54 @@ class EarlyDiscoveryTests(unittest.TestCase):
     def test_afterhours_cannot_promote_trade_timing(self):
         later = T + timedelta(hours=2)
         x = prioritize_early_discovery(dict(ticker="CPIX", observed_at=later, phase="AFTERHOURS",
-            prior_regular_close=10, observed_price=9, quote=p(later),
+            prior_regular_close=10, observed_price=9, quote=quote(9, later), prior_regular_close_proof=prior(10, later),
             catalyst=p(later,type="ADVERSE_ISSUER_RELEASE"), tape={"support_loss":p(later)}))
         self.assertEqual(x["lane"],"AFTERHOURS_DISCOVERY_NOT_PRECLOSE_ENTRY")
         self.assertFalse(x["decision_clock_window_only"])
 
+    def test_absent_prior_close_proof_keeps_candidate_unknown(self):
+        x = prioritize_early_discovery(dict(ticker="CPIX", observed_at=T,
+            phase="PRECLOSE", prior_regular_close=10, observed_price=9,
+            quote=quote(9), catalyst=p(type="ADVERSE_SEC_FILING"),
+            tape={"support_loss": p()}))
+        self.assertEqual(x["lane"], "QUOTE_OR_PRIOR_CLOSE_UNVERIFIED")
+
+    def test_uncompleted_prior_session_rejected(self):
+        proof = prior(10)
+        proof["complete_regular_session"] = False
+        x = prioritize_early_discovery(dict(ticker="CPIX", observed_at=T,
+            phase="PRECLOSE", prior_regular_close=10, observed_price=9,
+            quote=quote(9), prior_regular_close_proof=proof))
+        self.assertIsNone(x["change_from_previous_regular_close_pct"])
+
+    def test_quote_value_mismatch_censored(self):
+        x = prioritize_early_discovery(dict(ticker="XP", observed_at=T,
+            phase="PRECLOSE", prior_regular_close=30, observed_price=27,
+            quote=quote(15), prior_regular_close_proof=prior(30)))
+        self.assertEqual(x["lane"], "QUOTE_OR_PRIOR_CLOSE_UNVERIFIED")
+
+    def test_future_prior_close_publication_rejected(self):
+        proof = prior(10)
+        proof["published_at"] = (T + timedelta(seconds=1)).isoformat()
+        x = prioritize_early_discovery(dict(ticker="XP", observed_at=T,
+            phase="PRECLOSE", prior_regular_close=10, observed_price=9,
+            quote=quote(9), prior_regular_close_proof=proof))
+        self.assertEqual(x["lane"], "QUOTE_OR_PRIOR_CLOSE_UNVERIFIED")
+
     def test_stale_quote_is_unknown_not_negative(self):
         x = prioritize_early_discovery(dict(ticker="CPIX",observed_at=T,phase="PRECLOSE",
-            prior_regular_close=10,observed_price=8,quote=p(T-timedelta(minutes=20))))
+            prior_regular_close=10,observed_price=8,quote=quote(8, T-timedelta(minutes=20)),prior_regular_close_proof=prior(10)))
         self.assertEqual(x["lane"],"QUOTE_OR_PRIOR_CLOSE_UNVERIFIED")
         self.assertIsNone(x["change_from_previous_regular_close_pct"])
 
     def test_corporate_action_quarantine(self):
         x = prioritize_early_discovery(dict(ticker="AIOK",observed_at=T,phase="PRECLOSE",
-            prior_regular_close=10,observed_price=9,quote=p(),corporate_action_unresolved=True))
+            prior_regular_close=10,observed_price=9,quote=quote(9),prior_regular_close_proof=prior(10),corporate_action_unresolved=True))
         self.assertEqual(x["lane"],"CORPORATE_ACTION_REVIEW_REQUIRED")
 
     def test_ineligible_previous_price_hard_block(self):
         x = prioritize_early_discovery(dict(ticker="BRAI",observed_at=T,phase="PRECLOSE",
-            prior_regular_close=2.5,observed_price=3.4,quote=p()))
+            prior_regular_close=2.5,observed_price=3.4,quote=quote(3.4),prior_regular_close_proof=prior(2.5)))
         self.assertEqual(x["lane"],"PRICE_HARD_BLOCK")
 
 

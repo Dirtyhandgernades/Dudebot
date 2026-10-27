@@ -186,6 +186,126 @@
       "observation_date": "2026-10-27",
       "context": "public 07:30 ET catalyst, -30% premarket; late-to-initial-drop",
       "authenticated": false
+    },
+    {
+      "ticker": "HQY",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2125_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "postclose ~10% afterhours quote, no verified issuer disclosure",
+      "authenticated": false
+    },
+    {
+      "ticker": "ZSQR",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "postclose ~10% afterhours, previous shelf is not actual issued/sold",
+      "authenticated": false
+    },
+    {
+      "ticker": "RFAI",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "postclose mover, not a regular closing collapse",
+      "authenticated": false
+    },
+    {
+      "ticker": "ELWT",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_1926_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "afterhours gainer, not regular close collapse",
+      "authenticated": false
+    },
+    {
+      "ticker": "GCTK",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "master retained, afterhours activity not bearish evidence",
+      "authenticated": false
+    },
+    {
+      "ticker": "GCDT",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "master retained, afterhours activity not bearish evidence",
+      "authenticated": false
+    },
+    {
+      "ticker": "MKDW",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_AFTERHOURS_AUDIT_2026_10_26_2218_CT.md",
+      "observation_date": "2026-10-26",
+      "context": "master retained, below $3",
+      "authenticated": false
+    },
+    {
+      "ticker": "INOD",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "source-limited morning watch, mechanism and borrow unverified",
+      "authenticated": false
+    },
+    {
+      "ticker": "MFIC",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "M&A corporate action research, not verified rug",
+      "authenticated": false
+    },
+    {
+      "ticker": "CLRO",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "vendor cap below $25M hard review",
+      "authenticated": false
+    },
+    {
+      "ticker": "ACRS",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "offering price/context, no confirmed timely bearish tape",
+      "authenticated": false
+    },
+    {
+      "ticker": "NAUT",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "board presence does not prove full screened universe",
+      "authenticated": false
+    },
+    {
+      "ticker": "IPDN",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "below $3 morning board",
+      "authenticated": false
+    },
+    {
+      "ticker": "MRNA",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "retained watch, no fresh confirmed mechanism",
+      "authenticated": false
+    },
+    {
+      "ticker": "XLAB",
+      "kind": "DATED_AUDIT",
+      "source_ref": "backtest/OBSIDIAN_MORNING_SCAN_2026_10_27_0813_CT.md",
+      "observation_date": "2026-10-27",
+      "context": "retained watch, price-only morning observation",
+      "authenticated": false
     }
   ]
 }
