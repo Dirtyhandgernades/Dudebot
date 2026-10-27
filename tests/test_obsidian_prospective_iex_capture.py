@@ -52,6 +52,16 @@ class IEXCaptureTests(unittest.TestCase):
         self.assertEqual(classify(snap(9.3, "2026-10-27T19:51:00Z"), AT),
                          "STALE_OR_FUTURE_IEX_TRADE")
 
+    def test_stale_prior_iex_bar_is_censored(self):
+        data = snap(9.3)
+        data["prevDailyBar"]["t"] = "2026-10-23T19:59:00Z"
+        self.assertEqual(classify(data, AT), "UNVERIFIED_PREVIOUS_IEX_SESSION")
+
+    def test_future_prior_iex_bar_is_censored(self):
+        data = snap(9.3)
+        data["prevDailyBar"]["t"] = "2026-10-27T20:00:00Z"
+        self.assertEqual(classify(data, AT), "INVALID_PREVIOUS_BAR")
+
     def test_missing_snapshot_counted(self):
         p = Provider()
         p.snapshots = lambda symbols: {"AAAA": snap(9.3)}
