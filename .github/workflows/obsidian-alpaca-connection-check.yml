@@ -60,21 +60,42 @@ jobs:
           })
           endpoints.append(("DELAYED_SIP_SPY_BARS",
                             "https://data.alpaca.markets/v2/stocks/bars?" + query))
+          # Fixed SPY regular-session sample from Oct 23, NOT an Oct 26
+          # prospective capture retry or a trading signal/backfill.
+          sample_start = datetime(2026, 10, 23, 18, 30, tzinfo=timezone.utc)
+          sample_end = datetime(2026, 10, 23, 18, 45, tzinfo=timezone.utc)
+          sample_query = urlencode({
+              "symbols": "SPY", "timeframe": "1Min",
+              "start": iso(sample_start), "end": iso(sample_end),
+              "feed": "sip", "limit": 100,
+          })
+          endpoints.append(("HISTORICAL_SIP_SPY_SAMPLE",
+                            "https://data.alpaca.markets/v2/stocks/bars?" + sample_query))
           results = {}
           delayed_content = "NOT_CHECKED"
+          sample_content = "NOT_CHECKED"
           for label, url in endpoints:
               request = urllib.request.Request(url, headers=headers, method="GET")
               try:
                   with urllib.request.urlopen(request, timeout=15) as response:
                       status = response.status
-                      if label == "DELAYED_SIP_SPY_BARS" and status == 200:
+                      if label in ("DELAYED_SIP_SPY_BARS", "HISTORICAL_SIP_SPY_SAMPLE") and status == 200:
                           try:
                               payload = json.loads(response.read(2_000_000))
-                              delayed_content = inspect_delayed_sip(
-                                  payload, "SPY", start_dt, end_dt,
-                                  datetime.now(timezone.utc))["status"]
+                              inspected = inspect_delayed_sip(
+                                  payload, "SPY",
+                                  sample_start if label == "HISTORICAL_SIP_SPY_SAMPLE" else start_dt,
+                                  sample_end if label == "HISTORICAL_SIP_SPY_SAMPLE" else end_dt,
+                                  datetime.now(timezone.utc))
+                              if label == "HISTORICAL_SIP_SPY_SAMPLE":
+                                  sample_content = inspected["status"] + "_COUNT_" + str(inspected["valid_bars"])
+                              else:
+                                  delayed_content = inspected["status"]
                           except (ValueError, UnicodeError, TypeError):
-                              delayed_content = "INVALID_RESPONSE_JSON"
+                              if label == "HISTORICAL_SIP_SPY_SAMPLE":
+                                  sample_content = "INVALID_RESPONSE_JSON"
+                              else:
+                                  delayed_content = "INVALID_RESPONSE_JSON"
               except urllib.error.HTTPError as error:
                   status = error.code
               except Exception as error:
@@ -97,6 +118,7 @@ jobs:
           delayed_sip_ok = results.get("DELAYED_SIP_SPY_BARS") == 200
           print("DELAYED_SIP_RESULT:", "ENDPOINT_HTTP_200" if delayed_sip_ok else "NOT_ACCESSIBLE")
           print("DELAYED_SIP_CONTENT:", delayed_content)
+          print("HISTORICAL_SIP_SAMPLE_CONTENT:", sample_content)
           print("MARKET_DATA_RESULT:", "SIP_AVAILABLE" if sip_ok else
                 "IEX_ONLY_SIP_BLOCKED" if iex_ok else "NO_TESTED_FEED_AVAILABLE")
           print("RESULT:", "PAPER_ACCOUNT_AUTH_BLOCKED" if not account_ok else
