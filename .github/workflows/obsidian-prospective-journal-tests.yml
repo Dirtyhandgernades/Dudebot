@@ -53,6 +53,8 @@ on:
       - 'tests/test_obsidian_prospective_forward_collapse_study.py'
       - 'backtest/OBSIDIAN_IEX_FORWARD_STUDY_FROZEN_2026_10_27.md'
       - 'backtest/obsidian_iex_research_discovery.py'
+      - 'backtest/obsidian_exchange_scope_audit.py'
+      - 'tests/test_obsidian_prospective_exchange_scope_audit.py'
       - 'tests/test_obsidian_prospective_iex_research_discovery.py'
       - '.github/workflows/obsidian-iex-research-discovery.yml'
       - 'backtest/obsidian_early_discovery_packet.py'
