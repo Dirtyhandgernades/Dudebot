@@ -1,0 +1,41 @@
+# OBSIDIAN — Autonomous research validation roadmap (October 28, 2026)
+
+**Scope:** `Dirtyhandgernades/Dudebot`, branch `research/obsidian-early-rug-20261025` ONLY. **RESEARCH_ONLY_NOT_AN_ORDER.**
+**Directive:** Continue on existing hourly/weekday scheduled workflows, without asking the user to repeatedly check in. Report only *material independently verified* findings, blockers that require the user's action, and tested milestones. Never assert a future run succeeded until its actual GitHub job and artifact are verified.
+
+## Baseline (verified at roadmap creation)
+- October 28 authorized preclose IEX run **40757495722** completed successfully; original artifact **12846452112**, **8,511** captured symbol rows, **488** original IEX early price-only watches, **10** exhausted, **4,326** stale/future IEX prints. Captured 14:47 CT; **single venue**, NOT full-market SIP/NBBO, official close, official prior close, actual short borrow or fill.
+- October 28 15:26 CT afterhours run **40763211800** completed successfully; artifact **12849591039**, **8,511** captured rows, **8,375 stale/future prints (98.40%)**, thus *not* useful market-wide afterhours coverage.
+- Research CI run **40748516089**: **317 offline tests passed**.
+- Main branch `366faecc0ea49048ec6b66fdc086eb66c866eefb` archive run **40769469333** failed HTTP 401; research account IEX access is distinct and working. **Never change main, production, secrets, trading/orders or failure notifications as a workaround.**
+- Captures and test policies already frozen: `OBSIDIAN_IEX_FORWARD_STUDY_FROZEN_2026_10_27.md`, `OBSIDIAN_DISCRETIONARY_TIERS_FROZEN_2026_10_26.md`, `obsidian_forward_collapse_study.py`, `obsidian_iex_outcomes.py` and original historical raw captures. **Never overwrite or retroactively relabel them.**
+
+## Exact dependency order and acceptance gates
+
+| Order | Work package | Independent deliverable & passing gate | Owner |
+| --- | --- | --- | --- |
+| P0-1 | Verified independent regular-session close evidence | Source contracts for *every* provider's independently observed, exact exchange-session close; 2 independent provider groups, as-of timestamps, complete third-source conflict inventory; previous-session and corporate-action/security-ID proof; fail closed on absent/conflicting. No green status from self-attested flags alone. | After-Hours collects postclose, Engineering builds independent strict research gate |
+| P0-2 | Forward evaluation for 0, +1, +2, +3 **trading sessions** | New **separately registered challenger study**, not post-hoc modifying frozen same-day scorer. Verified calendar, identical original cohort denominator, no future-feature leakage, record early-vs-late (>50% remaining at original decision), unscreened/missing, censoring. Unit tests across holidays, early closes, splits, duplicates, conflicting quotes, multiple scans of same ticker, and outcomes missing. No favorable returns inferred from raw IEX reference prices. | Engineering |
+| P0-3 | Real untouched cohort evaluation | Use original authenticated prospective artifacts collected **after** policies frozen, hash-verified; compare matched baseline/soft challenger on identical time/security universe. Publish only verified completed regular close and per-signal timeliness, precision/recall conditional on outcome coverage, and the complete missingness denominator. **Do not claim edge until enough future sessions mature**. | Engineering + After-Hours |
+| P1-1 | Preclose -15% to -25% blind spot | Preserve original baseline labels, separately preregister a shadow/new challenger for **future** sessions and test paired signal cohorts. Oct27 FLXS/AZUL are diagnostic examples, not retroactive wins. | Engineering |
+| P1-2 | Market coverage | Audit all 136 retained names and off-board references, exchange scope including NYSE American, stale IEX prints, unusable prior bar, 98% stale AH coverage. Version any provider/venue expansion as a **new research-only universe**, never rewrite older 8,511/8,515 denominators. | Morning + Engineering |
+| P1-3 | Early dated catalysts | Research SEC filing/issuer + cross-issuer clinical/event impacts using first-publication timestamps; distinguish announced registration/issued/legally saleable/actually sold. Cases BCAX competitor readout and MGN supply are post-publication diagnostics, not prior predictions. Do not tune on Oct26/27/28 winners. | Morning |
+| P1-4 | Decision-time and SMG execution | Separate **14:35 CT read-only readiness board** from original protected **14:45–14:58 CT** prospective capture; never call later results earlier. Document common stock vs ADR, current/prior >=$3, cap >=$25M, real platform short availability, borrow, halts, depth/liquidity, buying power/exposure. Unknown blocks executable claim; never place orders. | Engineering + Trading Desk research |
+| P1-5 | Durable evidence | Artifacts retain only **90 days**; create retention manifest with original SHA256, run ID, observed timestamp, expiry, full captured denominator and archiving status. Arrange approved longer-lived raw storage without publishing credentials or automatically committing huge raw files to public GitHub. Until a durable destination is verified, mark **BACKUP_UNVERIFIED**. | Engineering |
+| P2-1 | Main-branch failure spam | Read-only diagnosis of the recurring **main** HTTP401 older credentials, isolate failures; *owner* must repair old auth/production or authorize workflow change. No main edits or silence-all notifications. | Engineering, **read-only** |
+| P2-2 | Automation destinations | All three currently active automations have distinct recorded conversation IDs. Common research GitHub is source of truth; don't claim same chat delivery unless future runs show it. Retain their CT schedules and checkpoint dedup/early-start protection. | Engineering |
+| P2-3 | Reporting & safety | Meaningful changes go into dated research notes, verified workflow logs, clear classifications A fresh / B exhausted / C failed breakdown long, known unknowns, and next measurable blockers. Do not flood user with every uneventful hourly run. | All |
+
+## Execution loop (no check-ins)
+1. At each scheduled research pass refresh exact branch head, recent workflows, immutable artifact IDs and existing work (including other scheduled tasks) **before making changes**. Never overwrite newer work or change the protected baseline.
+2. Pick the highest-priority incomplete item that can be safely advanced **without user approval**, implement one independently verifiable change, add regression tests, commit only on the named research branch with expected-head lease, and inspect hosted CI; repair test failures. If CI fails or data cannot be verified, record exact blocker and don't claim a fix.
+3. Check overlapping workflows/marker files before action. Research discovery: 09:12 morning, 12:47 intraday, 15:22 AH. Protected IEX prospective preclose: 14:47 CT **only during 14:45–14:58 CT**, one attempt per genuine open market session, no retry or backfill. Scheduled runs may start a few minutes before nominal checkpoint: apply already approved real time/authoritative schedule safeguards.
+4. Preserve original user Trading Desk instructions, but never assume old covered shorts remain current positions, never infer SMG borrow or share size, and never authorize or submit a trade.
+5. After completing a task, mark evidence in a *new dated GitHub research progress note* or small update to this roadmap, citing commit/Actions run/artifact, without retroactively declaring a model winner.
+6. Continue next scheduled passes, automatically. Ask the user only when a credential, provider consent, storage authorization, production/main modification, or real trade action is indispensable. Avoid routine clarification questions or prompts to check in.
+
+## Explicit limitations
+- Passing offline tests proves software contracts, not profitable forecasts.
+- No independently admissible full-market official-close outcome collection or verified SMG platform borrow has been established.
+- Separate GitHub accounts/data feeds may have different permissions. Do not infer from IEX 200 that main/old SIP 401 is fixed.
+- Research observables are neither an order nor user-selected investment advice.
