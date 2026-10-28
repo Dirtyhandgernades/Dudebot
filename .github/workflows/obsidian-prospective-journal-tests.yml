@@ -35,6 +35,8 @@ on:
       - 'backtest/obsidian_regular_close_integrity.py'
       - 'backtest/obsidian_eod_source_preflight.py'
       - 'backtest/obsidian_forward_source_contract_shadow.py'
+      - 'backtest/obsidian_forward_eod_intake.py'
+      - 'tests/test_obsidian_prospective_forward_eod_intake.py'
       - 'backtest/obsidian_forward_calendar_shadow.py'
       - 'tests/test_obsidian_prospective_forward_calendar_shadow.py'
       - 'tests/test_obsidian_prospective_forward_source_contract_shadow.py'
