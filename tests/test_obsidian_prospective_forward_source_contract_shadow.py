@@ -61,7 +61,7 @@ class ShadowContractTests(unittest.TestCase):
             row, asof(row["close_at"]), asof(row["collected_at"])))
         result = self.check(row)
         self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", result["issues"])
-        self.assertIn("WRONG_SECURITY_SESSION_OR_PRICE_KIND", result["issues"])
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
         self.assertEqual(result["status"], "SHADOW_SOURCE_CONTRACT_BLOCKED")
 
     def test_same_provider_aliases_are_not_independent(self):
