@@ -60,9 +60,13 @@ class ShadowContractTests(unittest.TestCase):
         self.assertTrue(corroborated(
             row, asof(row["close_at"]), asof(row["collected_at"])))
         result = self.check(row)
-        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", result["issues"])
         self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
         self.assertEqual(result["status"], "SHADOW_SOURCE_CONTRACT_BLOCKED")
+
+    def test_missing_source_asof_alone_blocks(self):
+        row = outcome()
+        row["independent_eod_sources"][1].pop("regular_close_asof")
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", self.check(row)["issues"])
 
     def test_same_provider_aliases_are_not_independent(self):
         row = outcome()
