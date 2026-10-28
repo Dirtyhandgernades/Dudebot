@@ -65,6 +65,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         except ValueError:
             host = None
         observed = _aware(report.get("observed_at"))
+        close_asof = _aware(report.get("regular_close_asof"))
         close = _positive(report.get("regular_close"))
         prior = _positive(report.get("previous_regular_close"))
         if (not isinstance(source, str) or not source.strip()
@@ -79,6 +80,12 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
                 or report.get("kind") != "regular_close"
                 or report.get("session_complete") is not True):
             issues.add("WRONG_SECURITY_SESSION_OR_PRICE_KIND")
+            continue
+        # Source publication/collection time is not the time of its price.
+        # A 15:59:35 last trade, even on a page labeled "At Close",
+        # is not independently evidenced as the 16:00 ET regular close.
+        if close_asof is None or close_asof.astimezone(ET) != end:
+            issues.add("NON_1600_ET_REGULAR_CLOSE_SOURCE")
             continue
         if observed is None or not end <= observed <= collection_time:
             issues.add("STALE_OR_UNTIMED_SOURCE")

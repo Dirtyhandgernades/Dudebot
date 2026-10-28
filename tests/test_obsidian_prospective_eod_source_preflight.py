@@ -14,7 +14,8 @@ def row(group, host, close="8.00", prior="10.00", observed="2026-10-27T20:10:00Z
             "session_date": "2026-10-27", "previous_session_date": "2026-10-26",
             "kind": "regular_close", "session_complete": True,
             "regular_close": close, "previous_regular_close": prior,
-            "observed_at": observed}
+            "observed_at": observed,
+            "regular_close_asof": "2026-10-27T20:00:00Z"}
 
 
 class SourcePreflightTests(unittest.TestCase):
@@ -52,6 +53,31 @@ class SourcePreflightTests(unittest.TestCase):
     def test_future_dated_source_is_rejected(self):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), row("two", "two.example", observed="2026-10-28T01:00:00Z")], COLLECTED)
         self.assertIn("STALE_OR_UNTIMED_SOURCE", r["issues"])
+
+    def test_155935_last_trade_cannot_masquerade_as_official_close(self):
+        print_source = row("two", "two.example")
+        print_source["regular_close_asof"] = "2026-10-27T19:59:35Z"
+        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), print_source], COLLECTED)
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", r["issues"])
+        self.assertEqual(r["status"], "BLOCKED_SOURCE_EVIDENCE")
+
+    def test_late_trade_after_close_is_not_close(self):
+        late = row("two", "two.example")
+        late["regular_close_asof"] = "2026-10-27T20:00:01Z"
+        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), late], COLLECTED)
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", r["issues"])
+
+    def test_missing_price_asof_is_not_inferred_from_observed_at(self):
+        missing = row("two", "two.example")
+        missing.pop("regular_close_asof")
+        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), missing], COLLECTED)
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", r["issues"])
+
+    def test_eastern_offset_equivalent_close_asof_is_accepted(self):
+        east = row("two", "two.example")
+        east["regular_close_asof"] = "2026-10-27T16:00:00-04:00"
+        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), east], COLLECTED)
+        self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
 
     def test_half_cent_tolerance_boundary(self):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), row("two", "two.example", close="8.005")], COLLECTED)
