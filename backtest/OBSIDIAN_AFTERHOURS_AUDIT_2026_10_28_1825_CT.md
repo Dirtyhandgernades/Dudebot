@@ -8,7 +8,7 @@ Re-downloaded and rehashed October 28 original GitHub morning (run 40704289113, 
 
 ## NEW material missed-move diagnostic: GBFH
 
-- **Original 08:16 CT MORNING:** `GBFH` present, **STALE_OR_FUTURE_IEX_PRINT**, last IEX trade from **October 27 19:59:21 UTC**; previous IEX reference $17.71, last stale $17.535.
+- **Original 09:16 CT MORNING:** `GBFH` present, **STALE_OR_FUTURE_IEX_PRINT**, last IEX trade from **October 27 19:59:21 UTC**; previous IEX reference $17.71, last stale $17.535.
 - **Original 12:52 CT INTRADAY:** `GBFH` present, **STALE_OR_FUTURE_IEX_PRINT**, last IEX trade **17:34:57 UTC** (12:34:57 CT), $17.535 versus IEX previous $17.535.
 - **Original 14:48 CT PRECLOSE:** `GBFH` present, **STALE_OR_FUTURE_IEX_TRADE**, last IEX trade **19:33:00 UTC (14:33 CT)**, $17.31 versus previous IEX $17.535 (**-1.28% raw IEX-reference**, not official close). Received at 19:48:02 UTC, just beyond the 15-minute freshness gate. **Not an original early weakness watch**, and the stale print cannot be retroactively promoted.
 - **Original 15:26 CT AFTERHOURS:** `GBFH` present, **STALE_OR_FUTURE_IEX_PRINT**, last IEX trade **19:59:25 UTC (15:59:25 ET)**, $17.07 versus previous IEX $17.535. This is a pre-16:00 ET regular-session print, not an authenticated after-hours observation.
