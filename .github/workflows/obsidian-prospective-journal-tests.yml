@@ -34,6 +34,8 @@ on:
       - 'tests/test_obsidian_prospective_outcomes.py'
       - 'backtest/obsidian_regular_close_integrity.py'
       - 'backtest/obsidian_eod_conflict_inventory.py'
+      - 'backtest/obsidian_eod_action_identity_shadow.py'
+      - 'tests/test_obsidian_prospective_eod_action_identity_shadow.py'
       - 'tests/test_obsidian_prospective_eod_conflict_inventory.py'
       - 'backtest/obsidian_eod_source_preflight.py'
       - 'backtest/obsidian_forward_source_contract_shadow.py'
