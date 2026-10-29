@@ -1,0 +1,42 @@
+[
+  {
+    "session_date": "2026-10-29",
+    "previous_regular_session": "2026-10-28",
+    "regular_close_at": "2026-10-29T20:00:00+00:00",
+    "session_open": true,
+    "independently_checked": true,
+    "source_url": "https://www.nyse.com/markets/hours-calendars",
+    "source_checked_at": "2026-10-29T17:51:11.311453+00:00",
+    "interpretation": "Scheduled normal exchange session reviewed against NYSE/Nasdaq holiday pages; not proof session completed"
+  },
+  {
+    "session_date": "2026-10-30",
+    "previous_regular_session": "2026-10-29",
+    "regular_close_at": "2026-10-30T20:00:00+00:00",
+    "session_open": true,
+    "independently_checked": true,
+    "source_url": "https://www.nyse.com/markets/hours-calendars",
+    "source_checked_at": "2026-10-29T17:51:11.311453+00:00",
+    "interpretation": "Scheduled normal exchange session reviewed against NYSE/Nasdaq holiday pages; not proof session completed"
+  },
+  {
+    "session_date": "2026-11-02",
+    "previous_regular_session": "2026-10-30",
+    "regular_close_at": "2026-11-02T21:00:00+00:00",
+    "session_open": true,
+    "independently_checked": true,
+    "source_url": "https://www.nyse.com/markets/hours-calendars",
+    "source_checked_at": "2026-10-29T17:51:11.311453+00:00",
+    "interpretation": "Scheduled normal exchange session reviewed against NYSE/Nasdaq holiday pages; not proof session completed"
+  },
+  {
+    "session_date": "2026-11-03",
+    "previous_regular_session": "2026-11-02",
+    "regular_close_at": "2026-11-03T21:00:00+00:00",
+    "session_open": true,
+    "independently_checked": true,
+    "source_url": "https://www.nyse.com/markets/hours-calendars",
+    "source_checked_at": "2026-10-29T17:51:11.311453+00:00",
+    "interpretation": "Scheduled normal exchange session reviewed against NYSE/Nasdaq holiday pages; not proof session completed"
+  }
+]

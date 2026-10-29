@@ -1,0 +1,319 @@
+{
+  "actual_smg_trade_authorized": false,
+  "after_cost_returns": null,
+  "calendar_and_provider_assertions_independently_authenticated": false,
+  "frozen_baselines_or_denominators_modified": false,
+  "horizons": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "multiple_scans_of_same_issuer_counted_as_independent": false,
+  "original_capture_universe_sha256": "892bb6d2354b812d2d52d9d839d496179cb4c5109eb0aa1915b66300b20d2a19",
+  "original_universe_count": 8502,
+  "per_horizon": [
+    {
+      "horizon": 0,
+      "missing_source_row": 8502,
+      "original_denominator": 8502,
+      "prefix_censored": 8502,
+      "session_date": "2026-10-29"
+    },
+    {
+      "horizon": 1,
+      "missing_source_row": 8502,
+      "original_denominator": 8502,
+      "prefix_censored": 8502,
+      "session_date": "2026-10-30"
+    },
+    {
+      "horizon": 2,
+      "missing_source_row": 8502,
+      "original_denominator": 8502,
+      "prefix_censored": 8502,
+      "session_date": "2026-11-02"
+    },
+    {
+      "horizon": 3,
+      "missing_source_row": 8502,
+      "original_denominator": 8502,
+      "prefix_censored": 8502,
+      "session_date": "2026-11-03"
+    }
+  ],
+  "per_horizon_by_original_status": [
+    {
+      "horizon": 0,
+      "session_date": "2026-10-29",
+      "statuses": {
+        "IEX_INDICATIVE_EARLY_2_TO_15": {
+          "missing_source_row": 293,
+          "original_denominator": 293,
+          "prefix_censored": 293
+        },
+        "IEX_INDICATIVE_EXHAUSTED": {
+          "missing_source_row": 4,
+          "original_denominator": 4,
+          "prefix_censored": 4
+        },
+        "IEX_INDICATIVE_INTERMEDIATE_15_TO_25": {
+          "missing_source_row": 14,
+          "original_denominator": 14,
+          "prefix_censored": 14
+        },
+        "IEX_INDICATIVE_OTHER": {
+          "missing_source_row": 2820,
+          "original_denominator": 2820,
+          "prefix_censored": 2820
+        },
+        "INDICATIVE_PRICE_FLOOR_BLOCK": {
+          "missing_source_row": 383,
+          "original_denominator": 383,
+          "prefix_censored": 383
+        },
+        "MISSING_IEX_SNAPSHOT": {
+          "missing_source_row": 6,
+          "original_denominator": 6,
+          "prefix_censored": 6
+        },
+        "MISSING_IEX_TRADE_OR_PREV_BAR": {
+          "missing_source_row": 102,
+          "original_denominator": 102,
+          "prefix_censored": 102
+        },
+        "STALE_OR_FUTURE_IEX_PRINT": {
+          "missing_source_row": 4846,
+          "original_denominator": 4846,
+          "prefix_censored": 4846
+        },
+        "UNVERIFIED_PREVIOUS_IEX_DAY": {
+          "missing_source_row": 34,
+          "original_denominator": 34,
+          "prefix_censored": 34
+        }
+      }
+    },
+    {
+      "horizon": 1,
+      "session_date": "2026-10-30",
+      "statuses": {
+        "IEX_INDICATIVE_EARLY_2_TO_15": {
+          "missing_source_row": 293,
+          "original_denominator": 293,
+          "prefix_censored": 293
+        },
+        "IEX_INDICATIVE_EXHAUSTED": {
+          "missing_source_row": 4,
+          "original_denominator": 4,
+          "prefix_censored": 4
+        },
+        "IEX_INDICATIVE_INTERMEDIATE_15_TO_25": {
+          "missing_source_row": 14,
+          "original_denominator": 14,
+          "prefix_censored": 14
+        },
+        "IEX_INDICATIVE_OTHER": {
+          "missing_source_row": 2820,
+          "original_denominator": 2820,
+          "prefix_censored": 2820
+        },
+        "INDICATIVE_PRICE_FLOOR_BLOCK": {
+          "missing_source_row": 383,
+          "original_denominator": 383,
+          "prefix_censored": 383
+        },
+        "MISSING_IEX_SNAPSHOT": {
+          "missing_source_row": 6,
+          "original_denominator": 6,
+          "prefix_censored": 6
+        },
+        "MISSING_IEX_TRADE_OR_PREV_BAR": {
+          "missing_source_row": 102,
+          "original_denominator": 102,
+          "prefix_censored": 102
+        },
+        "STALE_OR_FUTURE_IEX_PRINT": {
+          "missing_source_row": 4846,
+          "original_denominator": 4846,
+          "prefix_censored": 4846
+        },
+        "UNVERIFIED_PREVIOUS_IEX_DAY": {
+          "missing_source_row": 34,
+          "original_denominator": 34,
+          "prefix_censored": 34
+        }
+      }
+    },
+    {
+      "horizon": 2,
+      "session_date": "2026-11-02",
+      "statuses": {
+        "IEX_INDICATIVE_EARLY_2_TO_15": {
+          "missing_source_row": 293,
+          "original_denominator": 293,
+          "prefix_censored": 293
+        },
+        "IEX_INDICATIVE_EXHAUSTED": {
+          "missing_source_row": 4,
+          "original_denominator": 4,
+          "prefix_censored": 4
+        },
+        "IEX_INDICATIVE_INTERMEDIATE_15_TO_25": {
+          "missing_source_row": 14,
+          "original_denominator": 14,
+          "prefix_censored": 14
+        },
+        "IEX_INDICATIVE_OTHER": {
+          "missing_source_row": 2820,
+          "original_denominator": 2820,
+          "prefix_censored": 2820
+        },
+        "INDICATIVE_PRICE_FLOOR_BLOCK": {
+          "missing_source_row": 383,
+          "original_denominator": 383,
+          "prefix_censored": 383
+        },
+        "MISSING_IEX_SNAPSHOT": {
+          "missing_source_row": 6,
+          "original_denominator": 6,
+          "prefix_censored": 6
+        },
+        "MISSING_IEX_TRADE_OR_PREV_BAR": {
+          "missing_source_row": 102,
+          "original_denominator": 102,
+          "prefix_censored": 102
+        },
+        "STALE_OR_FUTURE_IEX_PRINT": {
+          "missing_source_row": 4846,
+          "original_denominator": 4846,
+          "prefix_censored": 4846
+        },
+        "UNVERIFIED_PREVIOUS_IEX_DAY": {
+          "missing_source_row": 34,
+          "original_denominator": 34,
+          "prefix_censored": 34
+        }
+      }
+    },
+    {
+      "horizon": 3,
+      "session_date": "2026-11-03",
+      "statuses": {
+        "IEX_INDICATIVE_EARLY_2_TO_15": {
+          "missing_source_row": 293,
+          "original_denominator": 293,
+          "prefix_censored": 293
+        },
+        "IEX_INDICATIVE_EXHAUSTED": {
+          "missing_source_row": 4,
+          "original_denominator": 4,
+          "prefix_censored": 4
+        },
+        "IEX_INDICATIVE_INTERMEDIATE_15_TO_25": {
+          "missing_source_row": 14,
+          "original_denominator": 14,
+          "prefix_censored": 14
+        },
+        "IEX_INDICATIVE_OTHER": {
+          "missing_source_row": 2820,
+          "original_denominator": 2820,
+          "prefix_censored": 2820
+        },
+        "INDICATIVE_PRICE_FLOOR_BLOCK": {
+          "missing_source_row": 383,
+          "original_denominator": 383,
+          "prefix_censored": 383
+        },
+        "MISSING_IEX_SNAPSHOT": {
+          "missing_source_row": 6,
+          "original_denominator": 6,
+          "prefix_censored": 6
+        },
+        "MISSING_IEX_TRADE_OR_PREV_BAR": {
+          "missing_source_row": 102,
+          "original_denominator": 102,
+          "prefix_censored": 102
+        },
+        "STALE_OR_FUTURE_IEX_PRINT": {
+          "missing_source_row": 4846,
+          "original_denominator": 4846,
+          "prefix_censored": 4846
+        },
+        "UNVERIFIED_PREVIOUS_IEX_DAY": {
+          "missing_source_row": 34,
+          "original_denominator": 34,
+          "prefix_censored": 34
+        }
+      }
+    }
+  ],
+  "per_horizon_by_original_watch": [
+    {
+      "horizon": 0,
+      "no_watch": {
+        "missing_source_row": 8195,
+        "original_denominator": 8195,
+        "prefix_censored": 8195
+      },
+      "session_date": "2026-10-29",
+      "watch": {
+        "missing_source_row": 307,
+        "original_denominator": 307,
+        "prefix_censored": 307
+      }
+    },
+    {
+      "horizon": 1,
+      "no_watch": {
+        "missing_source_row": 8195,
+        "original_denominator": 8195,
+        "prefix_censored": 8195
+      },
+      "session_date": "2026-10-30",
+      "watch": {
+        "missing_source_row": 307,
+        "original_denominator": 307,
+        "prefix_censored": 307
+      }
+    },
+    {
+      "horizon": 2,
+      "no_watch": {
+        "missing_source_row": 8195,
+        "original_denominator": 8195,
+        "prefix_censored": 8195
+      },
+      "session_date": "2026-11-02",
+      "watch": {
+        "missing_source_row": 307,
+        "original_denominator": 307,
+        "prefix_censored": 307
+      }
+    },
+    {
+      "horizon": 3,
+      "no_watch": {
+        "missing_source_row": 8195,
+        "original_denominator": 8195,
+        "prefix_censored": 8195
+      },
+      "session_date": "2026-11-03",
+      "watch": {
+        "missing_source_row": 307,
+        "original_denominator": 307,
+        "prefix_censored": 307
+      }
+    }
+  ],
+  "policy": "OBSIDIAN_FORWARD_FULL_DENOMINATOR_COVERAGE_SHADOW_V1_2026_10_29",
+  "provided_source_rows": 0,
+  "total_expected_symbol_session_slots": 34008,
+  "verified_false_positive_or_late_classification": null,
+  "verified_false_positives": null,
+  "verified_hits": null,
+  "verified_outcomes": null,
+  "verified_precision": null,
+  "verified_recall": null
+}

@@ -1,0 +1,79 @@
+{
+  "baseline_source_hashes": {
+    "backtest/OBSIDIAN_FORWARD_NEXT_THREE_SESSIONS_FROZEN_2026_10_28.md": "6744e97c589ba9abab23f7e5965d8b4cd9bfaa6b5cb6870686711a0a9aaf273a",
+    "backtest/OBSIDIAN_IEX_FORWARD_STUDY_FROZEN_2026_10_27.md": "dbfe3bc9dd0b92511a13ce2cbecfeb59866faf570266b966be8c5b3dab3185c3",
+    "backtest/OBSIDIAN_PROSPECTIVE_ABC_BOARD_POLICY_V1_2026_10_29.md": "7ec061bd6d086f957146c1e9663a276c293d4aa27bd2cfdaf92579e1a876b401",
+    "backtest/obsidian_forward_collapse_study.py": "c35623ad3d2061d22785d6f35ab6a17aeebebbaf84bbe41c8673578420feb7d2",
+    "backtest/obsidian_forward_eod_intake.py": "441f7294f4a0e8569bc4be946de3b9d50570cca7139fb4e861d6d4dcfb00e86b",
+    "backtest/obsidian_forward_horizon_coverage_shadow.py": "4d003e7270d32ff85c9b888e5750dfe08f3ec739a9d5811acf04f51b506d6586",
+    "backtest/obsidian_iex_outcomes.py": "5c6424623e2cc5a46661da6ce72ffea7d84a092d73d2d3e34b3444b5259ce4f2",
+    "backtest/obsidian_iex_research_discovery.py": "b11a956a3373e5fe29098213db367b9b810f4b4935647c1022f77512bf38633b",
+    "backtest/obsidian_matched_cohort_lock.py": "f23b3bab63b18dabc360a67dbdc5b087020f3eccce2ba4b4ea9bbf8ff96ce5a5"
+  },
+  "correlated_capture_samples_independent": false,
+  "expected_unique_symbol_horizon_slots": 34008,
+  "future_decision_board": "SEPARATE_WRITE_ONCE_RECORD_REQUIRED_AT_ACTUAL_CHECKPOINT",
+  "independent_source_failure": {
+    "run_id": 40924666086,
+    "status": "FAILED_ORIGINAL_CAPTURE_NOT_REPAIRED_RETROACTIVELY"
+  },
+  "late_secondary_source": {
+    "artifact_id": 12920366115,
+    "price_only_watches": 417,
+    "role": "SEPARATE_CAPTURE_NOT_SUBSTITUTED_INTO_PRIMARY_COHORT",
+    "run_id": 40924637074,
+    "universe_count": 8502
+  },
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "model_selection_allowed_on_this_observed_cohort": false,
+  "model_training_performed": false,
+  "outcome_source_gates": [
+    "identity",
+    "corporate_actions",
+    "calendar",
+    "exact_price_kind_and_timestamp",
+    "two_independent_organizations_and_underlying_source_provenance",
+    "receipt_body_binding",
+    "all_conflicts_retained",
+    "post_close_collection"
+  ],
+  "primary_endpoint": {
+    "horizon": 0,
+    "minimum_decline_fraction": 0.2,
+    "minimum_remaining_fraction": 0.5,
+    "missing_outcome": "UNKNOWN_CENSORED_NEVER_NEGATIVE",
+    "price_kind": "AUTHENTICATED_UNADJUSTED_REGULAR_SESSION_OFFICIAL_CLOSE",
+    "price_only_watch_is_mechanism_prediction": false
+  },
+  "primary_frozen_policy": "OBSIDIAN_IEX_FORWARD_20PCT_EARLY_HALF_REMAINING_V1_2026_10_27",
+  "registered_at_utc": "2026-10-29T17:51:11.311453+00:00",
+  "registration_timing": "AFTER_ORIGINAL_CAPTURE_BEFORE_SESSION_CLOSE; frozen rules already existed; observations have been inspected",
+  "registration_version": "OBSIDIAN_E2E_EVALUATION_20261029_V1",
+  "secondary_endpoints_separate_from_frozen_primary": true,
+  "secondary_horizons": [
+    1,
+    2,
+    3
+  ],
+  "source_runs": [
+    40890660077,
+    40919781576
+  ],
+  "training_dataset": null,
+  "training_plan": {
+    "future_metric_reporting": [
+      "early_hits",
+      "late_watches",
+      "false_positives",
+      "missed_collapses",
+      "unknowns",
+      "precision",
+      "conditional_recall",
+      "coverage",
+      "lead_time"
+    ],
+    "requirement": "Chronological older-session training, separate development window, untouched later-session test; issuer/day grouped; embargo overlapping +3 horizons; no winner-only selection",
+    "status": "BLOCKED_NO_AUTHENTICATED_LABEL_DATASET"
+  },
+  "unique_symbol_denominator": 8502
+}

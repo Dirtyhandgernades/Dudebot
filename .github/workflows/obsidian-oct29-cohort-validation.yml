@@ -22,7 +22,8 @@ jobs:
           python -m unittest
           tests.test_obsidian_prospective_iex_capture_transitions
           tests.test_obsidian_prospective_matched_cohort_lock
-          tests.test_obsidian_prospective_forward_collapse_study -v
+          tests.test_obsidian_prospective_forward_collapse_study
+          tests.test_obsidian_prospective_forward_horizon_coverage_shadow -v
       - uses: actions/download-artifact@v4
         with:
           name: obsidian-rug-proof-anchor-40890660077
@@ -44,11 +45,23 @@ jobs:
           from backtest.obsidian_iex_capture_transitions import compare
           from backtest.obsidian_matched_cohort_lock import lock
           from backtest.obsidian_forward_collapse_study import evaluate
+          from backtest.obsidian_forward_horizon_coverage_shadow import audit
+          registry=Path("backtest/evidence/2026-10-29/evaluation-registration")
+          registration=json.loads((registry/"registration.json").read_text())
+          for name,sha in registration["baseline_source_hashes"].items():
+              assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==sha, "FROZEN_SOURCE_CHANGED: "+name
+          calendar=json.loads((registry/"scheduled-exchange-sessions.json").read_text())
           out=Path('outputs/backtest/oct29-cohort-validation');out.mkdir(parents=True,exist_ok=False)
           reports={'transitions':compare('inputs/morning','inputs/intraday'),
                    'cohort':lock('inputs/morning','inputs/intraday'),
                    'morning-readiness':evaluate('inputs/morning'),
-                   'intraday-readiness':evaluate('inputs/intraday')}
+                   'intraday-readiness':evaluate('inputs/intraday'),
+                   'morning-horizon-coverage':audit('inputs/morning',calendar,[]),
+                   'intraday-horizon-coverage':audit('inputs/intraday',calendar,[])}
+          for phase in ('morning','intraday'):
+              c=reports[phase+'-horizon-coverage']
+              assert c['total_expected_symbol_session_slots']==34008
+              assert all(h['missing_source_row']==8502 for h in c['per_horizon'])
           assert reports['cohort']['counts']['union_symbols']==8502
           assert len(reports['cohort']['full_original_union_rows'])==8502
           for phase in ('morning','intraday'):
