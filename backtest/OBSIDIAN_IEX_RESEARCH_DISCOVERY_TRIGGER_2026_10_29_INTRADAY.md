@@ -1,0 +1,7 @@
+# OBSIDIAN authenticated IEX intraday research discovery — 2026-10-29
+
+RESEARCH_ONLY_NOT_AN_ORDER. One write-once **12:47 America/Chicago** engineering intraday discovery checkpoint on Thursday, 2026-10-29. Created in the authorized 12:40–13:15 CT research window, on the research branch only; previous same-date INTRADAY discovery marker was absent at the preflight check. Expected branch head before creation: `49d322c17106e7d2fdc9ce1719cb5442a0002a63`.
+
+NYSE and Nasdaq 2026 exchange calendars confirm Thursday October 29 is a regular trading session, 09:30–16:00 America/New_York, not a holiday or early close. Source: https://www.nyse.com/trade/hours-calendars and https://www.nasdaq.com/market-activity/stock-market-holiday-schedule. The hosted runner must independently enforce original research phase, provider access, timestamps and request budget. The marker is a trigger only, **not** evidence that capture succeeded. Do not retry/backfill if source or runner fails.
+
+This is separate from the already verified Rug Catch Proof 12:20 intraday anchor (run 40919781576, artifact 12917747405) and its 8,502 attempted universe; never count same issuer/session twice. Preserve the original 136 retained names and JDZG stale/halt case, complete requested/missing/stale denominators, source hashes and observed timestamps. Alpaca IEX is one venue; its previous IEX daily bar is not an official close. No SMG shortability, fill, order, future 20% collapse prediction, main/production/credentials/live-alert modification or protected 14:45–14:58 CT capture is authorized.
