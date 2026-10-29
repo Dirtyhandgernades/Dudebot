@@ -1,0 +1,33 @@
+name: OBSIDIAN two-provider close reconciliation (research only)
+on:
+  push:
+    branches: [research/obsidian-early-rug-20261025]
+    paths:
+      - '.github/workflows/obsidian-two-provider-close-reconciliation.yml'
+      - 'backtest/obsidian_two_provider_close_reconciliation.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch and compare bounded same-date research bars
+        run: python -m backtest.obsidian_two_provider_close_reconciliation
+      - name: Preserve immutable run artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-two-provider-reconciliation-${{ github.run_id }}
+          path: outputs/backtest/obsidian-two-provider-close-reconciliation.json
+          if-no-files-found: warn
+          retention-days: 90
