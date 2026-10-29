@@ -18,9 +18,23 @@ jobs:
       - name: Probe limited public daily-bar endpoints without logging credentials
         shell: python
         run: |
-          import os, json, urllib.request, urllib.parse, urllib.error, datetime, hashlib
+          import os, json, urllib.request, urllib.parse, urllib.error, hashlib, re
           output={'mode':'RESEARCH_ONLY_NOT_AN_ORDER','providers':{},'independent_official_closes_verified':False,'trade_authorized':False,'purpose':'connection and entitlement only; NOT frozen outcome evidence'}
           cases=[('MASSIVE','MASSIVE_API_KEY','https://api.massive.com/v1/open-close/FPI/2026-10-28',{'adjusted':'false'}),('TWELVE_DATA','TWELVE_DATA_API_KEY','https://api.twelvedata.com/time_series',{'symbol':'FPI','interval':'1day','start_date':'2026-10-28','end_date':'2026-10-28','outputsize':'1'})]
+          def safe_error(raw, token):
+              try:
+                  obj=json.loads(raw)
+              except (ValueError, UnicodeDecodeError):
+                  return {'provider_error_code':'UNPARSEABLE','provider_error_message':'NON_JSON_RESPONSE'}
+              if not isinstance(obj,dict):
+                  return {'provider_error_code':'UNEXPECTED_SHAPE','provider_error_message':'UNEXPECTED_SHAPE'}
+              code=obj.get('code',obj.get('status','UNSPECIFIED'))
+              message=obj.get('message','NO_MESSAGE')
+              def scrub(value):
+                  value=str(value).replace(token,'[REDACTED]') if token else str(value)
+                  value=re.sub(r'(?i)(apikey|api_key|token|authorization|secret)\\s*[:=]\\s*[^\\s,;]+',r'\\1=[REDACTED]',value)
+                  return value[:180]
+              return {'provider_error_code':scrub(code),'provider_error_message':scrub(message)}
           for name,key,url,params in cases:
               token=os.environ.get(key,'')
               result={'secret_present':bool(token),'http_status':None,'provider_response_status':'NOT_TESTED','has_daily_bar':False,'official_exchange_close_verified':False,'corporate_action_basis_verified':False,'receipt_sha256':None}
@@ -37,12 +51,27 @@ jobs:
                       result['receipt_sha256']=hashlib.sha256(raw).hexdigest()
                       result['provider_response_status']=str(obj.get('status','UNSPECIFIED'))[:32] if isinstance(obj,dict) else 'UNEXPECTED_SHAPE'
                       result['has_daily_bar']=bool((obj.get('close') is not None if name=='MASSIVE' else obj.get('values')) if isinstance(obj,dict) else False)
+                      if not result['has_daily_bar']: result.update(safe_error(raw,token))
                   except urllib.error.HTTPError as e:
                       result['http_status']=e.code
                       result['provider_response_status']='HTTP_ERROR'
+                      result.update(safe_error(e.read(4096),token))
                   except Exception:
                       result['provider_response_status']='NETWORK_OR_RESPONSE_ERROR'
               output['providers'][name]=result
+              if name=='TWELVE_DATA' and token:
+                  try:
+                      q=urllib.parse.urlencode({'apikey':token})
+                      with urllib.request.urlopen(urllib.request.Request('https://api.twelvedata.com/api_usage?'+q,headers={'User-Agent':'OBSIDIAN-readonly-provider-probe/1.0'}),timeout=15) as resp:
+                          raw=resp.read(4096)
+                          result['usage_http_status']=resp.status
+                          result['usage_response_kind']='JSON' if isinstance(json.loads(raw),dict) else 'UNEXPECTED_SHAPE'
+                          result['usage_error']=safe_error(raw,token) if resp.status!=200 else None
+                  except urllib.error.HTTPError as e:
+                      result['usage_http_status']=e.code
+                      result['usage_error']=safe_error(e.read(4096),token)
+                  except Exception:
+                      result['usage_error']={'provider_error_code':'UNAVAILABLE','provider_error_message':'NETWORK_OR_RESPONSE_ERROR'}
           os.makedirs('outputs/backtest',exist_ok=True)
           with open('outputs/backtest/two-provider-connection.json','x') as f: json.dump(output,f,indent=2,sort_keys=True)
           print(json.dumps(output,sort_keys=True))
