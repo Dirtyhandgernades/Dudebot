@@ -63,5 +63,31 @@ class SourceGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"OUTSIDE"):
             inspect_sources(["JDZG"],datetime(2026,10,31,19,48,tzinfo=timezone.utc))
 
+
+    def test_partial_resumption_date_preserves_halt_and_blocks_execution(self):
+        # Live Nasdaq RSS may publish the resumption date before a trade time.
+        xml=XML.replace(b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime>",b"")
+        parsed=parse_nasdaq_halts(xml,AT)
+        self.assertEqual(len(parsed),1)
+        self.assertIsNone(parsed[0]["resume_et"])
+        self.assertEqual(parsed[0]["resumption_parse_status"],"INCOMPLETE")
+        self.assertEqual(parsed[0]["halt_state_at_receipt"],
+                         "HALT_REPORTED_WITHOUT_VERIFIED_RESUME")
+        review=inspect_sources(["JDZG"],AT,xml)
+        self.assertEqual(review["rows"][0]["halt_attention"],
+                         "HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING")
+        self.assertFalse(review["trade_authorized"])
+
+    def test_unparseable_or_earlier_resume_does_not_drop_official_halt(self):
+        for value,expected in (("NOT_YET_PUBLISHED","UNPARSEABLE"),
+                               ("13:00:00","BEFORE_HALT")):
+            with self.subTest(value=value):
+                xml=XML.replace(b"15:29:22",value.encode("ascii"))
+                parsed=parse_nasdaq_halts(xml,AT)
+                self.assertEqual(parsed[0]["resumption_parse_status"],expected)
+                self.assertIsNone(parsed[0]["resume_et"])
+                self.assertEqual(parsed[0]["halt_state_at_receipt"],
+                                 "HALT_REPORTED_WITHOUT_VERIFIED_RESUME")
+
 if __name__=="__main__":
     unittest.main()
