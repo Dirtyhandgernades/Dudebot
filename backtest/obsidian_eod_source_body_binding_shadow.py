@@ -8,7 +8,7 @@ Never return URLs, response bodies, headers or credential-bearing fields.
 """
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
@@ -18,10 +18,10 @@ MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
 POLICY = "OBSIDIAN_EOD_BODY_CLAIM_BINDING_SHADOW_V1_2026_10_29"
 ET = ZoneInfo("America/New_York")
 TEXT_FIELDS = (
-    "source_id", "symbol", "session_date", "previous_session_date",
+    "source_id", "provider_organization", "symbol", "session_date", "previous_session_date",
     "security_id", "previous_security_id", "issuer_class",
     "previous_issuer_class", "kind", "regular_close_asof",
-    "previous_regular_close_asof",
+    "previous_regular_close_asof", "observed_at",
 )
 ACTION_FIELDS = ("status", "coverage_start", "coverage_end", "checked_at")
 
@@ -67,6 +67,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
         raise ValueError("VALID_PREVIOUS_AND_CURRENT_SESSION_DATES_REQUIRED")
     receipt_audit = audit_receipts(session, reports, receipts, collected_at)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
+    close_end = datetime.combine(session, time(16), tzinfo=ET)
+    collected = _instant(collected_at)
     count = max(len(reports), len(receipts))
     for index in range(count):
         report = reports[index] if index < len(reports) else None
@@ -114,6 +116,11 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                 stamp = _instant(parsed.get(field))
                 if stamp is None or stamp.astimezone(ET).date() != expected:
                     faults.add("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH")
+            publication = _instant(parsed.get("observed_at"))
+            receipt_time = _instant(t.get("retrieved_at"))
+            if (publication is None or receipt_time is None or collected is None
+                    or not close_end <= publication <= receipt_time <= collected):
+                faults.add("BODY_PUBLICATION_RECEIPT_CHRONOLOGY_INVALID")
             for field in ("regular_close", "previous_regular_close"):
                 body_price = _positive(parsed.get(field))
                 report_price = _positive(r.get(field))
@@ -140,7 +147,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                     faults.add("ACTION_WINDOW_OR_STATUS_NOT_CLEARED")
                 checked = _instant(action.get("checked_at"))
                 observed = _instant(collected_at)
-                if checked is None or observed is None or checked > observed:
+                if (checked is None or observed is None or receipt_time is None
+                        or not close_end <= checked <= receipt_time <= observed):
                     faults.add("ACTION_CHECK_TIME_INVALID")
         issues.update(faults)
         rows.append({

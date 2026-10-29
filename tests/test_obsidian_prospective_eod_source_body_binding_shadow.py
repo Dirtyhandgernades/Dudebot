@@ -23,6 +23,7 @@ def packet():
             "security_id": "TEST-ISSUER", "previous_security_id": "TEST-ISSUER",
             "issuer_class": "COMMON", "previous_issuer_class": "COMMON",
             "kind": "regular_close", "session_complete": True,
+            "observed_at": "2026-10-28T20:06:00Z",
             "regular_close": "8.00", "previous_regular_close": "10.00",
             "regular_close_asof": "2026-10-28T20:00:00Z",
             "previous_regular_close_asof": "2026-10-27T20:00:00Z",
@@ -33,7 +34,7 @@ def packet():
             },
         }
         body = json.dumps({k: v for k, v in report.items()
-                           if k not in ("provider_organization", "source_url")},
+                           if k != "source_url"},
                           sort_keys=True).encode()
         reports.append(report)
         receipts.append({
@@ -146,6 +147,50 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, json.dumps(body).encode())
         result = self.check(r, t)
         self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+
+    def test_provider_claim_must_be_present_in_original_body(self):
+        r, t = packet()
+        r[1]["provider_organization"] = "rebranded-unverified"
+        t[1]["provider_organization"] = "rebranded-unverified"
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_FIELD_MISMATCH_PROVIDER_ORGANIZATION", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+
+    def test_body_publication_after_receipt_is_censored(self):
+        r, t = packet()
+        r[1]["observed_at"] = "2026-10-28T20:09:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = r[1]["observed_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_PUBLICATION_RECEIPT_CHRONOLOGY_INVALID", result["issues"])
+
+    def test_body_publication_before_close_is_censored(self):
+        r, t = packet()
+        r[1]["observed_at"] = "2026-10-28T19:59:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = r[1]["observed_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_PUBLICATION_RECEIPT_CHRONOLOGY_INVALID", result["issues"])
+
+    def test_action_check_before_close_is_censored(self):
+        r, t = packet()
+        r[1]["corporate_action"]["checked_at"] = "2026-10-28T19:59:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["checked_at"] = "2026-10-28T19:59:00Z"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
+
+    def test_action_check_after_receipt_is_censored(self):
+        r, t = packet()
+        r[1]["corporate_action"]["checked_at"] = "2026-10-28T20:09:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["checked_at"] = "2026-10-28T20:09:00Z"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
 
     def test_no_secrets_or_raw_json_appear_in_result(self):
         result = self.check()
