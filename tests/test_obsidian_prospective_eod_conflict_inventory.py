@@ -92,6 +92,54 @@ class AllSourceLedgerTests(unittest.TestCase):
         r = check([row(), row("b", "two", "two.example", prior="10.001")])
         self.assertIn("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT", r["issues"])
 
+    def test_every_source_claim_and_digest_are_auditable(self):
+        import hashlib
+        import json
+        first = row()
+        first["source_url"] = "https://one.example/eod?apiKey=DO_NOT_ECHO"
+        result = check([first, row("b", "two", "two.example")])
+        receipt = result["source_rows"][0]
+        expected = hashlib.sha256(json.dumps(
+            first, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+            allow_nan=False).encode("utf-8")).hexdigest()
+        self.assertEqual(receipt["supplied_report_sha256"], expected)
+        self.assertEqual(receipt["source_claims"]["regular_close"], "7.99")
+        self.assertEqual(receipt["source_claims"]["previous_regular_close"], "10")
+        self.assertEqual(receipt["source_claims"]["security_id"], "ISSUER1:COMMON")
+        self.assertEqual(receipt["source_claims"]["regular_close_asof"], "2026-10-28T20:00:00Z")
+        self.assertNotIn("DO_NOT_ECHO", str(result))
+        self.assertFalse(result["raw_source_packets_archived_by_module"])
+        self.assertTrue(result["all_supplied_rows_indexed"])
+
+    def test_distinct_claim_price_groups_include_conflicting_third(self):
+        result = check([row(), row("b", "two", "two.example"),
+                        row("c", "three", "three.example", "8.2")])
+        self.assertEqual(result["price_claim_groups"], [
+            {"regular_close": "7.99", "previous_regular_close": "10",
+             "source_indices": [0, 1], "claimed_20pct_drop": True},
+            {"regular_close": "8.2", "previous_regular_close": "10",
+             "source_indices": [2], "claimed_20pct_drop": False},
+        ])
+        self.assertIn("SOURCE_CLAIM_20PCT_CLASSIFICATION_DISAGREEMENT", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_malformed_non_dict_and_non_json_are_indexed_and_censored(self):
+        result = check([row(), ["unexpected", "list"], object()])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertIsNotNone(result["source_rows"][1]["supplied_report_sha256"])
+        self.assertIsNone(result["source_rows"][2]["supplied_report_sha256"])
+        self.assertIn("MALFORMED_SOURCE_RECORD", result["issues"])
+        self.assertIn("NON_JSON_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE", result["issues"])
+
+    def test_invalid_third_price_is_retained_as_claim_not_validated(self):
+        third = row("c", "three", "three.example", close="NOT_A_PRICE")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["source_rows"][2]["source_claims"]["regular_close"], "NOT_A_PRICE")
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(len(result["price_claim_groups"]), 1)
+        self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
+
     def test_missing_rows_are_censored_not_negative_outcomes(self):
         r = check([])
         self.assertIn("NO_EOD_SOURCE_REPORTS", r["issues"])

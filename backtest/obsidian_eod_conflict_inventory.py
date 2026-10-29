@@ -1,9 +1,13 @@
-"""Lossless, fail-closed EOD source/conflict inventory. Research only.
+"""Complete indexed, fail-closed EOD source/conflict inventory. Research only.
 
 This is an OFFLINE audit of supplied claims, not a market-data fetch or a
 certificate of provider ownership, official closes, calendar, identity, or
-corporate actions. Never feed its results directly into frozen scoring.
+corporate actions. It retains all supplied row positions, auditable claim
+fields, and canonical per-row digests, but is NOT a raw source archive.
+Never feed its results directly into frozen scoring.
 """
+import hashlib
+import json
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlsplit
@@ -41,6 +45,26 @@ def host(value):
         return parsed.hostname if parsed and parsed.scheme == "https" else None
     except ValueError:
         return None
+
+
+def report_digest(report):
+    """Fingerprint the complete supplied JSON row without echoing URL secrets.
+
+    Non-JSON Python objects are censored; a separate secure source archive is
+    still required for independently reproducible provenance.
+    """
+    try:
+        canonical = json.dumps(report, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def claim(value):
+    """Retain an auditable scalar claim without propagating complex objects."""
+    return value if isinstance(value, str) else (
+        str(value) if type(value) in (int, float, Decimal) else None)
 
 
 def inventory(symbol, session, previous, calendar, reports, collected_at):
@@ -85,6 +109,11 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     for index, report in enumerate(reports):
         faults = set()
         r = report if isinstance(report, dict) else {}
+        digest = report_digest(report)
+        if not isinstance(report, dict):
+            faults.add("MALFORMED_SOURCE_RECORD")
+        if digest is None:
+            faults.add("NON_JSON_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE")
         source = r.get("source_id")
         group = r.get("provider_organization")
         domain = host(r.get("source_url"))
@@ -118,12 +147,44 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             groups.add(group)
             hosts.add(domain)
             valid.append((index, group, domain, close, prior))
-        rows.append({"index": index, "source_id": source if isinstance(source, str) else None,
-                     "provider_organization_claim": group if isinstance(group, str) else None,
-                     "source_host": domain, "status": "STRUCTURALLY_VALID_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
-                     "issues": sorted(faults)})
+        rows.append({
+            "index": index,
+            "source_id": source if isinstance(source, str) else None,
+            "provider_organization_claim": group if isinstance(group, str) else None,
+            "source_host": domain,
+            "supplied_report_sha256": digest,
+            "source_claims": {
+                "symbol": claim(r.get("symbol")),
+                "session_date": claim(r.get("session_date")),
+                "previous_session_date": claim(r.get("previous_session_date")),
+                "security_id": claim(r.get("security_id")),
+                "previous_security_id": claim(r.get("previous_security_id")),
+                "kind": claim(r.get("kind")),
+                "session_complete": r.get("session_complete") if type(r.get("session_complete")) is bool else None,
+                "regular_close": claim(r.get("regular_close")),
+                "previous_regular_close": claim(r.get("previous_regular_close")),
+                "regular_close_asof": claim(r.get("regular_close_asof")),
+                "previous_regular_close_asof": claim(r.get("previous_regular_close_asof")),
+                "observed_at": claim(r.get("observed_at")),
+            },
+            "status": "STRUCTURALLY_VALID_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
+            "issues": sorted(faults),
+        })
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
+    # Every distinct close/prior pair is represented, including agreement
+    # groups and contradictory third-party claims. This is not a verdict.
+    price_groups = {}
+    for index, group, domain, close, prior in valid:
+        price_groups.setdefault((close, prior), []).append(index)
+    price_claim_groups = [
+        {"regular_close": str(close), "previous_regular_close": str(prior),
+         "source_indices": indices,
+         "claimed_20pct_drop": close <= prior * Decimal("0.8")}
+        for (close, prior), indices in sorted(price_groups.items())
+    ]
+    if len({g["claimed_20pct_drop"] for g in price_claim_groups}) > 1:
+        issues.add("SOURCE_CLAIM_20PCT_CLASSIFICATION_DISAGREEMENT")
     if valid:
         closes = [x[3] for x in valid]
         priors = [x[4] for x in valid]
@@ -142,7 +203,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "collected_at": collected_at, "supplied_report_count": len(reports),
         "retained_report_count": len(rows), "structurally_valid_report_count": len(valid),
         "distinct_claimed_provider_organizations": len(groups),
-        "source_rows": rows, "issues": sorted(issues),
+        "source_rows": rows, "price_claim_groups": price_claim_groups,
+        "all_supplied_rows_indexed": len(rows) == len(reports),
+        "raw_source_packets_archived_by_module": False,
+        "issues": sorted(issues),
         "structural_status": "BLOCKED_CENSORED" if issues else "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "exchange_calendar_independently_authenticated": False,
         "provider_organization_ownership_authenticated": False,
