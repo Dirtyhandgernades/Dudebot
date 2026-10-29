@@ -29,9 +29,15 @@ def _positive(value):
         return None
     try:
         number = Decimal(str(value))
-    except InvalidOperation:
+    except (InvalidOperation, ValueError, OverflowError):
         return None
-    return number if number.is_finite() and number > 0 else None
+    # Untrusted vendor claims can be finite but carry exponents so large that
+    # a later 20%-threshold multiplication raises decimal.Overflow and aborts
+    # the entire complete-source audit. Keep them as rejected/censored rows.
+    # This is a generous arithmetic guard, NOT an SMG price eligibility rule.
+    if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
+        return None
+    return number
 
 
 def preflight(symbol, session_date, previous_session_date, reports, collected_at):

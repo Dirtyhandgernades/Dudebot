@@ -115,6 +115,27 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
+    def test_extreme_finite_previous_close_is_censored_not_audit_crash(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"),
+            row("two", "two.example", prior="1e999999999999999"),
+        ], COLLECTED)
+        self.assertEqual(result["supplied_reports"], 2)
+        self.assertEqual(result["accepted_reports"], 1)
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_extreme_finite_current_close_is_censored_not_audit_crash(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"),
+            row("two", "two.example", close="1e999999999999999"),
+        ], COLLECTED)
+        self.assertEqual(result["supplied_reports"], 2)
+        self.assertEqual(result["accepted_reports"], 1)
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+
     def test_half_cent_tolerance_boundary_away_from_event_threshold(self):
         # Pure price tolerance remains intact; an exact 20% boundary is
         # separately censored even when the prices agree within half a cent.
