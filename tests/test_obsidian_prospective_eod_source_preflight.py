@@ -115,8 +115,10 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
-    def test_half_cent_tolerance_boundary(self):
-        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), row("two", "two.example", close="8.005")], COLLECTED)
+    def test_half_cent_tolerance_boundary_away_from_event_threshold(self):
+        # Pure price tolerance remains intact; an exact 20% boundary is
+        # separately censored even when the prices agree within half a cent.
+        r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example", close="8.500"), row("two", "two.example", close="8.505")], COLLECTED)
         self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
 
 
