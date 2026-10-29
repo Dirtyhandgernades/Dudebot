@@ -7,6 +7,7 @@ No real-time SIP, official close, SMG eligibility or trading orders.
 import argparse
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import hashlib
 import json
 import math
@@ -169,7 +170,7 @@ def classify_bars(bars, start, cutoff):
                     "trade_count": latest[1].get("n"),
                     "minutes_behind_asof": round((cutoff-finished).total_seconds()/60, 3)}
 
-def replay(capture, provider, clock=None, selected_symbols=None):
+def replay(capture, provider, clock=None, selected_symbols=None, prospective=False):
     observed = clock() if clock else datetime.now(timezone.utc)
     if not isinstance(observed, datetime) or observed.utcoffset() is None:
         raise ValueError("NAIVE_COLLECTION_TIME")
@@ -177,7 +178,19 @@ def replay(capture, provider, clock=None, selected_symbols=None):
     frozen_at = stamp(original_meta["finished_at"])
     if observed < frozen_at + DELAY:
         raise ValueError("HISTORICAL_SIP_EMBARGO_NOT_ELAPSED")
-    cutoff, beginning = frozen_at - DELAY, frozen_at - DELAY - LOOKBACK
+    if prospective:
+        # New separately registered prospective research feed, never a
+        # retrospective replacement for the frozen original IEX observation.
+        central = observed.astimezone(ZoneInfo("America/Chicago"))
+        original_day = frozen_at.astimezone(ZoneInfo("America/Chicago")).date()
+        if (central.weekday() >= 5 or central.date() != original_day or
+                original_meta.get("phase") not in ("MORNING", "INTRADAY") or
+                not (central.hour == 14 and 15 <= central.minute <= 30)):
+            raise ValueError("PROSPECTIVE_SHADOW_OUTSIDE_1415_TO_1430_CT_OR_SESSION")
+        cutoff = observed - DELAY
+    else:
+        cutoff = frozen_at - DELAY
+    beginning = cutoff - LOOKBACK
     original_symbols = {x["ticker"] for x in original}
     if selected_symbols is not None and not isinstance(selected_symbols, (set, list, tuple)):
         raise ValueError("INVALID_SELECTION")
@@ -220,7 +233,26 @@ def replay(capture, provider, clock=None, selected_symbols=None):
         ref = prior.get("c") if price_ok(prior.get("c")) else None
         comparison = round(100*(bar["close"]/ref - 1), 5) if bar and ref else None
         counts[state] += 1
+        if prospective:
+            if state != "HISTORICAL_DELAYED_SIP_BAR_FRESH_AT_ASOF" or comparison is None:
+                live_lane = "CENSORED_DELAYED_SIP_NOT_FRESH_OR_NO_REFERENCE"
+            elif bar["close"] < 3 or ref < 3:
+                live_lane = "INDICATIVE_PRICE_FLOOR_BLOCK"
+            elif comparison <= -25:
+                live_lane = "DELAYED_SIP_EXHAUSTED_NOT_EARLY"
+            elif comparison < -15:
+                live_lane = "DELAYED_SIP_INTERMEDIATE_PRICE_ONLY_WATCH"
+            elif comparison <= -2:
+                live_lane = "DELAYED_SIP_EARLY_PRICE_ONLY_WATCH"
+            else:
+                live_lane = "DELAYED_SIP_NO_PRICE_ONLY_WATCH"
+        else:
+            live_lane = "RETROSPECTIVE_RESEARCH_NO_EARLY_SIGNAL_CREDIT"
         output.append({
+            "prospective_delayed_sip_lane": live_lane,
+            "actual_data_ingestion_asof": iso(observed),
+            "earliest_price_bar_available_not_before": iso(cutoff),
+            "prospective_data_collection": prospective,
             "ticker": ticker, "original_iex_status": original_status,
             "original_capture_received_at": original_row["received_at"],
             "original_universe_included": True,
@@ -236,7 +268,10 @@ def replay(capture, provider, clock=None, selected_symbols=None):
     return output, {
         "mode": MODE, "policy": POLICY, "source": "ALPACA_CONSOLIDATED_HISTORICAL_1MIN_SIP",
         "source_url": URL, "source_is_full_realtime_sip": False,
-        "historical_reconstruction_not_original_point_in_time_capture": True,
+        "historical_reconstruction_not_original_point_in_time_capture": not prospective,
+        "prospective_delayed_sip_checkpoint": prospective,
+        "prospective_research_capture_asof": iso(observed) if prospective else None,
+        "study_variant": ("OBSIDIAN_PROSPECTIVE_DELAYED_SIP_WATCH_V1_2026_10_28" if prospective else POLICY),
         "original_capture_at": original_meta["finished_at"],
         "independent_actual_replay_started_at": iso(observed),
         "eligible_historical_end_at": iso(cutoff),
@@ -307,9 +342,10 @@ def main():
     p.add_argument("--original", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--symbols", help="Optional comma-separated subset, all other original symbols retained")
+    p.add_argument("--prospective", action="store_true", help="Real 14:15-14:30 CT source observation; NOT a retroactive replay")
     args = p.parse_args()
     wanted = args.symbols.split(",") if args.symbols else None
-    rows, meta = replay(args.original, HistoricalSIP(), selected_symbols=wanted)
+    rows, meta = replay(args.original, HistoricalSIP(), selected_symbols=wanted, prospective=args.prospective)
     persist(rows, meta, args.out)
     report = verify(args.out)
     print(json.dumps({**report, "actual_prior_prediction_verified": False}, sort_keys=True))

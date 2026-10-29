@@ -57,6 +57,7 @@ on:
       - 'backtest/obsidian_retained_freshness_shadow.py'
       - 'backtest/obsidian_sip_fallback.py'
       - 'tests/test_obsidian_prospective_sip_fallback.py'
+      - 'tests/test_obsidian_prospective_sip_fallback_live.py'
       - 'tests/test_obsidian_prospective_retained_freshness_shadow.py'
       - 'tests/test_obsidian_prospective_matched_cohort_lock.py'
       - 'backtest/obsidian_iex_capture_transitions.py'
