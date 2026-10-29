@@ -1,0 +1,102 @@
+name: OBSIDIAN delayed SIP historical recovery test (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - '.github/workflows/obsidian-sip-historical-replay.yml'
+      - 'backtest/OBSIDIAN_SIP_HISTORICAL_REPLAY_2026_10_28.md'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obsidian-historical-sip-replay-20261028
+  cancel-in-progress: false
+
+jobs:
+  inspect-immutable-cohort:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify new fail-closed fallback against synthetic data
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_sip_fallback.py' -v
+      - name: Install historical GET-only HTTP dependency
+        run: python -m pip install 'requests>=2.32,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: obsidian-iex-research-discovery-40739809362
+          run-id: 40739809362
+          github-token: ${{ github.token }}
+          path: inputs/original-2026-10-28-intraday
+      - name: Check locked, unchanged 8,511-symbol source
+        run: |
+          python - <<'PY'
+          from backtest.obsidian_sip_fallback import load_original
+          rows,meta,raw_sha,manifest_sha=load_original('inputs/original-2026-10-28-intraday')
+          assert len(rows)==8511 and meta['phase']=='INTRADAY'
+          assert raw_sha=='1ca1cf79c79c8a18a7913b088dbefba655e9226b3d07f7582e48eb0fee90db9b'
+          print('SOURCE_LOCK_VERIFIED',len(rows),raw_sha)
+          PY
+      - name: Read-only historical SIP entitlement probe on original missed-mover symbols
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_sip_fallback \
+            --original inputs/original-2026-10-28-intraday \
+            --symbols JDZG,BCAX,INBX,OTLY,MTLS,MF,PARA,HUHU,MWYN,PLCE,SCKT,CENN,GERN \
+            --out outputs/historical-sip-pilot
+      - name: Verify pilot and record access as a separate research fact
+        id: entitlements
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, os
+          from backtest.obsidian_sip_fallback import verify
+          root=Path('outputs/historical-sip-pilot')
+          valid=verify(root)
+          c=valid['statuses']
+          bars=sum(v for k,v in c.items() if k.startswith('HISTORICAL_DELAYED_SIP_BAR_'))
+          failed=c.get('SIP_PROVIDER_REQUEST_FAILED',0)
+          print('HISTORICAL_SIP_PILOT_VALIDATED',valid)
+          available=bars>0
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as f:
+              f.write('available='+('true' if available else 'false')+'\n')
+          if not available:
+              print('NO_AUTHENTICATED_HISTORICAL_SIP_BARS; DO_NOT_CLAIM_COVERAGE_REPAIR')
+          else:
+              print('HISTORICAL_SIP_BARS_AVAILABLE_ONLY_AT_17MIN_PRIOR_ASOF; NO_PROSPECTIVE_SIGNAL')
+          PY
+      - name: Expand to all 8,511 original symbols when SIP probe actually works
+        if: steps.entitlements.outputs.available == 'true'
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_sip_fallback \
+            --original inputs/original-2026-10-28-intraday \
+            --out outputs/historical-sip-full
+      - name: Verify any complete full-universe provider response separately
+        if: steps.entitlements.outputs.available == 'true'
+        run: |
+          python - <<'PY'
+          from backtest.obsidian_sip_fallback import verify
+          result=verify('outputs/historical-sip-full')
+          assert result['rows']==8511 and result['attempted']==8511
+          print('FULL_ORIGINAL_DENOMINATOR_RETAINED',result)
+          PY
+      - name: Upload original-cohort historical feasibility and missingness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-delayed-sip-oct28-historical-${{ github.run_id }}
+          path: outputs/historical-sip-*/
+          if-no-files-found: error
+          retention-days: 90
