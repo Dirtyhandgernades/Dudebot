@@ -1,0 +1,14 @@
+# OBSIDIAN autonomous Research Engineering — October 29, 2026, 02:47 CT
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Isolated P0-1 audit hardening on research branch only. No original captures, frozen labels, denominator, 136-name watchlist, JDZG case, forward 0/+1/+2/+3 trading-session horizon, main, credentials, alerts, or orders changed.
+
+## New complete source-claim conflict and packet integrity controls
+- Inspected original roadmap, branch head `32eb421a2c6cf58676664568cc0d540e2a6c75bf`, Oct 29 01:47 ledger, original Rug Proof capture protocol and markers, research CI, and Oct 27/28 artifact retention ledger. The last verified research CI was [40831180508](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40831180508), 402 synthetic/offline tests passed. No new genuine forward capture or authenticated official EOD provider receipt is established.
+- The earlier price-conflict summary grouped **only structurally valid** reports. A rejected third source could claim a different price or cross the 20% boundary without appearing in that comparison. Added a **separate all-parseable-source claim grouping** that retains rejected claims with their row indices and explicit rejection status, plus unparseable row indices. The original structurally valid price grouping is unchanged; rejected claims never become accepted evidence.
+- Added ordered full-input packet and calendar SHA-256 fingerprints. These fingerprint **supplied assertions**, not provider-owned HTTP packets or authenticated market facts; non-JSON input remains censored.
+- Added four synthetic regression tests for rejected-third-source conflict visibility, unparseable-row accounting, order/calendar fingerprint sensitivity and unhashable input. The hosted Actions outcome must be inspected separately before claiming a passing test milestone.
+
+## External evidence still missing
+Two genuinely independent, externally authenticated provider organizations supplying exact official regular-session close and previous close, exchange-session calendar, security identity, corporate actions, all contradictory sources and timestamps have **not** been established. The offline ledger always censors outcome scoring; no 20%+ prospective success, precision/recall, borrow, fills or after-cost profit is demonstrated. Nasdaq Trader RSS is a halt source only; optional Massive quote entitlement and SMG platform permissions are not proven. The original ZIP evidence remains BACKUP_UNVERIFIED.
+
+This off-hours checkpoint is outside authorized 12:47 CT intraday and protected 14:45–14:58 CT preclose windows. No Rug Proof 09:20/12:20/14:20/18:20, Morning Movers, After-Hours, or Early Board capture markers were created. Next priority remains independently authenticated external regular-session close receipts; absent those, keep cases censored.

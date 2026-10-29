@@ -82,6 +82,19 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     if observed is None:
         raise ValueError("AWARE_COLLECTION_TIME_REQUIRED")
     issues = set()
+    # Fingerprints cover the caller's full ordered packet and calendar, not
+    # authenticated source HTTP bytes. A changed row, order or calendar
+    # assertion must not silently reuse an earlier audit.
+    packet_digest = report_digest({
+        "symbol": symbol, "session_date": session.isoformat(),
+        "previous_session_date": previous.isoformat(),
+        "calendar": calendar, "reports": reports, "collected_at": collected_at,
+    })
+    calendar_digest = report_digest(calendar)
+    if packet_digest is None:
+        issues.add("NON_JSON_INPUT_PACKET_NOT_REPRODUCIBLY_HASHABLE")
+    if calendar_digest is None:
+        issues.add("NON_JSON_CALENDAR_NOT_REPRODUCIBLY_HASHABLE")
     cal = calendar if isinstance(calendar, dict) else {}
     end = instant(cal.get("regular_close_at"))
     prior_end = instant(cal.get("previous_regular_close_at"))
@@ -105,6 +118,11 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         issues.add("NO_EOD_SOURCE_REPORTS")
     seen_ids, groups, hosts = set(), set(), set()
     valid = []
+    # Include price assertions from rejected sources in a separate, explicitly
+    # untrusted view; otherwise a contradictory rejected third report is
+    # indexed but absent from the source-conflict comparison.
+    all_parseable_claims = []
+    unparseable_claim_indices = []
     rows = []
     for index, report in enumerate(reports):
         faults = set()
@@ -141,6 +159,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             faults.add("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END")
         if stamp is None or end is None or not end <= stamp <= observed:
             faults.add("SOURCE_OBSERVATION_NOT_POSTCLOSE_OR_FUTURE")
+        if close is not None and prior is not None:
+            all_parseable_claims.append((index, close, prior, not bool(faults)))
+        else:
+            unparseable_claim_indices.append(index)
         if faults:
             issues.update(faults)
         else:
@@ -185,6 +207,29 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     ]
     if len({g["claimed_20pct_drop"] for g in price_claim_groups}) > 1:
         issues.add("SOURCE_CLAIM_20PCT_CLASSIFICATION_DISAGREEMENT")
+    all_groups = {}
+    valid_pairs = set()
+    for index, close, prior, structurally_valid in all_parseable_claims:
+        group = all_groups.setdefault(
+            (close, prior), {"all": [], "valid": [], "rejected": []})
+        group["all"].append(index)
+        group["valid" if structurally_valid else "rejected"].append(index)
+        if structurally_valid:
+            valid_pairs.add((close, prior))
+    all_parseable_price_claim_groups = [
+        {"regular_close": str(close), "previous_regular_close": str(prior),
+         "source_indices": group["all"],
+         "structurally_valid_source_indices": group["valid"],
+         "rejected_source_indices": group["rejected"],
+         "claimed_20pct_drop": close <= prior * Decimal("0.8")}
+        for (close, prior), group in sorted(all_groups.items())
+    ]
+    if any(not accepted and (close, prior) not in valid_pairs
+           for _, close, prior, accepted in all_parseable_claims):
+        issues.add("REJECTED_SOURCE_PRICE_CLAIM_NOT_IN_VALID_SET")
+    if len({g["claimed_20pct_drop"]
+            for g in all_parseable_price_claim_groups}) > 1:
+        issues.add("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD")
     if valid:
         closes = [x[3] for x in valid]
         priors = [x[4] for x in valid]
@@ -201,9 +246,13 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "mode": MODE, "policy": POLICY, "symbol": symbol,
         "session_date": session.isoformat(), "previous_session_date": previous.isoformat(),
         "collected_at": collected_at, "supplied_report_count": len(reports),
+        "supplied_input_packet_sha256": packet_digest,
+        "supplied_calendar_sha256": calendar_digest,
         "retained_report_count": len(rows), "structurally_valid_report_count": len(valid),
         "distinct_claimed_provider_organizations": len(groups),
         "source_rows": rows, "price_claim_groups": price_claim_groups,
+        "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
+        "unparseable_price_claim_source_indices": unparseable_claim_indices,
         "all_supplied_rows_indexed": len(rows) == len(reports),
         "raw_source_packets_archived_by_module": False,
         "issues": sorted(issues),

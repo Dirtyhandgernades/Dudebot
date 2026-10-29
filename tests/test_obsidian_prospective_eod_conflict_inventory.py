@@ -145,6 +145,47 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertIn("NO_EOD_SOURCE_REPORTS", r["issues"])
         self.assertIsNone(r["verified_20pct_prediction_success"])
 
+    def test_rejected_third_source_price_conflict_remains_visible(self):
+        third = row("c", "three", "three.example", close="8.2")
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(len(result["price_claim_groups"]), 1)
+        self.assertEqual(len(result["all_parseable_price_claim_groups"]), 2)
+        conflicting = result["all_parseable_price_claim_groups"][1]
+        self.assertEqual(conflicting["rejected_source_indices"], [2])
+        self.assertEqual(conflicting["structurally_valid_source_indices"], [])
+        self.assertIn("REJECTED_SOURCE_PRICE_CLAIM_NOT_IN_VALID_SET", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_all_parseable_claim_view_accounts_for_unparseable_rows(self):
+        bad = row("c", "three", "three.example", close="INVALID")
+        result = check([row(), row("b", "two", "two.example"), bad, ["bad"]])
+        self.assertEqual(result["unparseable_price_claim_source_indices"], [2, 3])
+        self.assertEqual(result["all_parseable_price_claim_groups"][0]["source_indices"], [0, 1])
+        self.assertEqual(result["retained_report_count"], 4)
+
+    def test_order_and_calendar_changes_have_distinct_packet_fingerprints(self):
+        a, b = row(), row("b", "two", "two.example")
+        original = check([a, b])
+        reordered = check([b, a])
+        altered_calendar = cal()
+        altered_calendar["exchange_calendar_url"] = "https://other.example/calendar"
+        changed = check([a, b], altered_calendar)
+        self.assertNotEqual(original["supplied_input_packet_sha256"],
+                            reordered["supplied_input_packet_sha256"])
+        self.assertNotEqual(original["supplied_input_packet_sha256"],
+                            changed["supplied_input_packet_sha256"])
+        self.assertNotEqual(original["supplied_calendar_sha256"],
+                            changed["supplied_calendar_sha256"])
+        self.assertTrue(original["outcome_censored_pending_external_evidence"])
+
+    def test_non_json_packet_censored_without_false_audit_digest(self):
+        result = check([row(), object()])
+        self.assertIsNone(result["supplied_input_packet_sha256"])
+        self.assertIn("NON_JSON_INPUT_PACKET_NOT_REPRODUCIBLY_HASHABLE", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
 
 if __name__ == "__main__":
     unittest.main()
