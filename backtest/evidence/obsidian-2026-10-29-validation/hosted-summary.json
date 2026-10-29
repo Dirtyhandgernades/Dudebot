@@ -1,0 +1,42 @@
+{
+  "artifact_id": 12916193710,
+  "both_bar_count": 4,
+  "captured_at_utc": "2026-10-29T17:11:25.112149+00:00",
+  "comparison_tolerance_usd": "0.005",
+  "conflict_count": 0,
+  "corporate_action_blocked_count": 0,
+  "identity_blocked_count": 4,
+  "independent_underlying_exchange_feed_verified": false,
+  "matching_bar_count": 0,
+  "missing_pair_count": 0,
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "model_version": "vendor-corroboration-v2",
+  "numeric_agreement_diagnostic_count": 4,
+  "official_exchange_close_verified": false,
+  "outcome_scoring_eligible": false,
+  "rate_limited_count": 0,
+  "receipt_sha256": "a77ce62c059107c78491f5247ef1039c2f7f175e228dd40efcdbfa7319ad6961",
+  "request_budget": {
+    "automatic_retries": 0,
+    "massive_max": 4,
+    "massive_used": 4,
+    "twelve_data_max": 2,
+    "twelve_data_used": 2
+  },
+  "run_id": 40918895577,
+  "sessions": [
+    "2026-10-27",
+    "2026-10-28"
+  ],
+  "source_commit": "cf29832570c8093b2262d0c035ae91418bbe1081",
+  "symbols": [
+    "AAPL",
+    "MSFT"
+  ],
+  "total_ticker_dates": 4,
+  "trade_authorized": false,
+  "valid_massive_bars": 4,
+  "valid_same_session_pairs": 0,
+  "valid_twelve_data_bars": 4,
+  "validation": "VENDOR_CONNECTIVITY_AND_NUMERICAL_DIAGNOSTIC_ONLY"
+}

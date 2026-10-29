@@ -1,0 +1,98 @@
+[
+  {
+    "capture": "original-oct28-morning",
+    "ticker": "CBRS",
+    "original_status": "IEX_INDICATIVE_EARLY_2_TO_15",
+    "received_at": "2026-10-28T14:16:30.817385+00:00",
+    "trade_timestamp": "2026-10-28T14:15:47.475259296Z",
+    "trade_price": 115.51,
+    "trade_age_seconds": 43.342126,
+    "asset_name": "Cerebras Systems Inc. Class A Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-morning",
+    "ticker": "JDZG",
+    "original_status": "STALE_OR_FUTURE_IEX_PRINT",
+    "received_at": "2026-10-28T14:16:32.174441+00:00",
+    "trade_timestamp": "2026-10-28T14:01:23.760193532Z",
+    "trade_price": 6.22,
+    "trade_age_seconds": 908.414248,
+    "asset_name": "JIADE LIMITED Class A Ordinary Shares",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-morning",
+    "ticker": "RAPP",
+    "original_status": "IEX_INDICATIVE_EARLY_2_TO_15",
+    "received_at": "2026-10-28T14:16:33.281943+00:00",
+    "trade_timestamp": "2026-10-28T14:16:27.489688835Z",
+    "trade_price": 23.485,
+    "trade_age_seconds": 5.792255,
+    "asset_name": "Rapport Therapeutics, Inc. Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-morning",
+    "ticker": "SPTX",
+    "original_status": "IEX_INDICATIVE_EARLY_2_TO_15",
+    "received_at": "2026-10-28T14:16:33.675100+00:00",
+    "trade_timestamp": "2026-10-28T14:05:28.548145787Z",
+    "trade_price": 20.055,
+    "trade_age_seconds": 665.126955,
+    "asset_name": "Seaport Therapeutics, Inc. Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-preclose",
+    "ticker": "CBRS",
+    "original_status": "IEX_EARLY_WEAKNESS_WATCH_ONLY",
+    "received_at": "2026-10-28T19:48:01.302759+00:00",
+    "trade_timestamp": "2026-10-28T19:47:56.071167744Z",
+    "trade_price": 111.77,
+    "trade_age_seconds": 5.231592,
+    "asset_name": "Cerebras Systems Inc. Class A Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-preclose",
+    "ticker": "JDZG",
+    "original_status": "IEX_EXHAUSTED_PRICE_ONLY",
+    "received_at": "2026-10-28T19:48:03.324915+00:00",
+    "trade_timestamp": "2026-10-28T19:34:45.894891308Z",
+    "trade_price": 1.33,
+    "trade_age_seconds": 797.430024,
+    "asset_name": "JIADE LIMITED Class A Ordinary Shares",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-preclose",
+    "ticker": "RAPP",
+    "original_status": "IEX_NO_EARLY_PRICE_ONLY_WATCH",
+    "received_at": "2026-10-28T19:48:05.164439+00:00",
+    "trade_timestamp": "2026-10-28T19:48:00.26908622Z",
+    "trade_price": 22.53,
+    "trade_age_seconds": 4.895353,
+    "asset_name": "Rapport Therapeutics, Inc. Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  },
+  {
+    "capture": "original-oct28-preclose",
+    "ticker": "SPTX",
+    "original_status": "IEX_EARLY_WEAKNESS_WATCH_ONLY",
+    "received_at": "2026-10-28T19:48:05.750723+00:00",
+    "trade_timestamp": "2026-10-28T19:43:48.479295108Z",
+    "trade_price": 20.395,
+    "trade_age_seconds": 257.271428,
+    "asset_name": "Seaport Therapeutics, Inc. Common Stock",
+    "smg_eligibility": "UNKNOWN",
+    "verified_collapse": false
+  }
+]

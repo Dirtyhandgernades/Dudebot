@@ -1,0 +1,21 @@
+# OBSIDIAN evidence checkpoint — 2026-10-29
+
+RESEARCH_ONLY_NOT_AN_ORDER. Retrospective validation of immutable research observations; not a new prediction or execution.
+
+## What a legitimate catch requires
+The unchanged frozen study requires an original fresh preclose watch, independently verified same-session regular close at least 20% below the independently verified previous close, unchanged security/corporate-action entitlements, and at least half of the complete daily decline remaining at the original signal. Two daily vendor bars agreeing do not establish official closes or underlying source independence. Mechanism-based A additionally requires an adverse source public before decision, market weakness and counterevidence review. Unknown SMG permissions/halts/borrow block execution.
+
+## Verified in this session
+Hosted run [40918895577](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40918895577), source cf29832570c8093b2262d0c035ae91418bbe1081, uploaded artifact 12916193710, was downloaded and inspected. Four requested ticker/date pairs: four Massive bars, four Twelve Data bars, four arithmetic agreements within $0.005; zero missing pairs, disagreements or rate-limited rows. All four remain identity-blocked; zero verified comparable/official-close pairs. Six provider requests total, no retries. This is not a predictive study. Original pilot run 40915627437 artifact was also downloaded; original bytes appear in the file hash inventory.
+
+Original morning run 40890660077 was downloaded and independently passed the existing full-universe integrity verifier: 8,502 securities, 307 price-only watches. The frozen evaluator executed with no outcome packet: all 8,502 outcomes missing, precision/recall null. These censored observations are neither wins nor losses. No prospective board or delivery was fabricated and no duplicate capture marker was created.
+
+Original October 28 morning run 40704289113 and preclose run 40757495722 both passed their existing integrity verifiers, each with 8,511 rows. Extracted original rows and timestamps are preserved separately. JDZG morning trade age 908.414248 seconds is stale; preclose label is EXHAUSTED. CBRS is a price-only watch. RAPP morning watch later becomes preclose NO_WATCH. SPTX is present as Seaport Therapeutics and has original morning/preclose price-only watches. This corrects the earlier engineering inventory's inability to locate SPTX records; it does not rewrite any original capture or establish a verified collapse. Mechanism onset, complete halt history, official outcomes and SMG permissions remain unresolved.
+
+## Source documentation
+Retrieved https://twelvedata.com/docs: time-series adjust supports all/splits/dividends/none (default splits); daily timestamps are exchange-local bar-open dates, not authenticated close timestamps; daily timezone override is ignored. Retrieved https://massive.com/docs/rest/stocks/aggregates/daily-ticker-summary: adjusted=false requests bars not split-adjusted; close is described as the period close. Neither retrieved definition establishes two independent authenticated official exchange closing receipts. Numerical agreement must not fill frozen outcomes. NYSE candidate auction documentation URLs returned 404; Nasdaq page retrieval did not yield the required official-close definition. Exchange methodology and underlying source independence remain unverified. No paid capability assumed.
+
+## Tests and remaining work
+Full local suite: 874 passed plus 25 subtests. Dedicated offline reconciliation/board tests ran before the live dispatch. Frozen policies, scorer and cohort unchanged. No orders, alerts, production/main changes or environment publication.
+
+Vault package is staged locally with original artifacts and SHA256 manifest. External vault upload requires the actual destination; none is configured in available tools or repository settings. Publishing this evidence on the research branch is a GitHub handoff, not confirmation of vault ingestion. Future outcome authentication, catalyst validation, SMG gates and real prospective board publication remain outstanding.

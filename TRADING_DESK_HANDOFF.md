@@ -1,3 +1,11 @@
+# Latest verified checkpoint — 2026-10-29
+
+Access restored. Hosted validation [40918895577](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40918895577) completed; artifact 12916193710 downloaded and inspected: 4/4 paired vendor observations, 4/4 numerical agreements, 0 missing, 0 rate-limited; all four identity-blocked, zero official-close-qualified pairs. Source documentation now read for Massive/Twelve Data. Original Oct29 morning capture independently verified: 8,502 symbols, 307 price-only watches, no verified outcomes. Original Oct28 morning/preclose artifacts verified: SPTX is present, correcting the earlier evidence inventory. Full suite 874 passed plus 25 subtests.
+
+See `backtest/evidence/obsidian-2026-10-29-validation/README.md`, structured summaries and file hashes for the current evidence. Vault ZIP is locally staged and hash-verified; external vault destination still missing. No verified rug catch, SMG execution, official outcome, prospective board delivery or predictive accuracy established. Earlier access blockers below are historical and superseded where noted here.
+
+---
+
 # OBSIDIAN trading desk handoff — 2026-10-29
 
 RESEARCH_ONLY_NOT_AN_ORDER. Engineering branch: `research/obsidian-reconciliation-engineering`, based on research tip `6ab6ad2e5ea8f8e1e6b57c9ede39c3224d207792`. Model: `vendor-corroboration-v2`; board intake: `OBSIDIAN_ABC_SHADOW_INTAKE_V1_20261029`.

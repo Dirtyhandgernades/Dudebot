@@ -1,0 +1,57 @@
+[
+  {
+    "path": "anchor-40890660077/attention.json",
+    "sha256": "80ee573f5f45421ed307870a9ed5c65a89df702df32556eea682a92e1a239846",
+    "bytes": 10260893
+  },
+  {
+    "path": "anchor-40890660077/manifest.json",
+    "sha256": "52b48a319c71684cf4e7f5e10bfe6cb35160ad0b10000ac81899472cfdcbd03d",
+    "bytes": 1937
+  },
+  {
+    "path": "anchor-40890660077/separate_async_retained_venue_coverage_audit.json",
+    "sha256": "cf441871a294d46b5642dc2a613cbd6628af5c1b928ff3bd98e00f9729ef790c",
+    "bytes": 31915
+  },
+  {
+    "path": "anchor-40890660077/universe.jsonl",
+    "sha256": "892bb6d2354b812d2d52d9d839d496179cb4c5109eb0aa1915b66300b20d2a19",
+    "bytes": 12078650
+  },
+  {
+    "path": "original-oct28-morning/attention.json",
+    "sha256": "1e6147cac52401e4822a3e87a76b73ff0edb05b72cd97f07812c4da7854653d4",
+    "bytes": 10262632
+  },
+  {
+    "path": "original-oct28-morning/manifest.json",
+    "sha256": "ad9e3616a2d16940ffaf14f0f637197bb6b7ca79875433bc8ef4ba57bceab92a",
+    "bytes": 1901
+  },
+  {
+    "path": "original-oct28-morning/universe.jsonl",
+    "sha256": "9736143a7a416063959e4d3aa1acd46ee8c8896d09e9f555159ce6c11a785880",
+    "bytes": 12093718
+  },
+  {
+    "path": "original-oct28-preclose/manifest.json",
+    "sha256": "f5ebcc66cca4a330c031783d1db78379ce6ab8eae89e26509e8f7abefcc1278a",
+    "bytes": 1280
+  },
+  {
+    "path": "original-oct28-preclose/universe.jsonl",
+    "sha256": "c3c61d3621bf50442acc319cd8f7081914f80393ef485f3b6a8aa65e645ba116",
+    "bytes": 11097664
+  },
+  {
+    "path": "original-pilot/obsidian-two-provider-close-reconciliation.json",
+    "sha256": "4df7ab00926a9b39226bf0fbe8aa76c3dd4079f03d416f7b390b4641178088a8",
+    "bytes": 4877
+  },
+  {
+    "path": "repaired-40918895577/obsidian-two-provider-reconciliation-40918895577/obsidian-two-provider-close-reconciliation.json",
+    "sha256": "a77ce62c059107c78491f5247ef1039c2f7f175e228dd40efcdbfa7319ad6961",
+    "bytes": 16958
+  }
+]
