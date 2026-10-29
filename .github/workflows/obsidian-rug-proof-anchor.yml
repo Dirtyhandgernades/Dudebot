@@ -1,0 +1,81 @@
+name: OBSIDIAN genuine rug-proof IEX anchors (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_RUG_PROOF_ANCHOR_*.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-rug-proof-original-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  original-source-anchor:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only data dependency
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Verify exact authorized time, date, and broker's open-market clock
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime,timezone
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          import requests,os
+          ct=datetime.now(timezone.utc).astimezone(ZoneInfo("America/Chicago"))
+          if ct.weekday() >= 5:
+              raise SystemExit("NOT_WEEKDAY_NO_MARKET_CAPTURE")
+          phase="MORNING" if ct.hour==9 and 10<=ct.minute<=30 else (
+                "INTRADAY" if ct.hour==12 and 10<=ct.minute<=30 else None)
+          if not phase:
+              raise SystemExit("OUTSIDE_INDEPENDENT_RESEARCH_SOURCE_CHECKPOINT")
+          path=Path(f"backtest/OBSIDIAN_RUG_PROOF_ANCHOR_{ct:%Y_%m_%d}_{phase}.md")
+          if not path.is_file():
+              raise SystemExit("TODAY_PHASE_SOURCE_MARKER_MISSING")
+          source=requests.get("https://paper-api.alpaca.markets/v2/clock",
+              headers={"APCA-API-KEY-ID":os.environ["ALPACA_API_KEY"],
+                       "APCA-API-SECRET-KEY":os.environ["ALPACA_SECRET_KEY"]},
+              timeout=20)
+          if source.status_code!=200 or source.json().get("is_open") is not True:
+              raise SystemExit("PAPER_PROVIDER_MARKET_OPEN_NOT_CONFIRMED")
+          print("NEW_RESEARCH_ONLY_ORIGINAL_CHECKPOINT_VERIFIED",str(path),ct.isoformat())
+          PY
+      - name: Collect fresh IEX full selected provider universe, never retroactively
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_iex_research_discovery \
+            --out "outputs/obsidian-rug-proof-anchor-${{ github.run_id }}"
+      - name: Independently validate source hash, statuses, and attempted denominator
+        run: |
+          python - <<'PY'
+          from backtest.obsidian_iex_research_discovery import verify
+          from pathlib import Path
+          root=Path("outputs/obsidian-rug-proof-anchor-${{ github.run_id }}")
+          v=verify(root)
+          if v["universe_count"]<1:
+              raise SystemExit("NO_AUTHENTICATED_ORIGINAL_EVIDENCE")
+          print("RUG_PROOF_SOURCE_ANCHOR_VALIDATED",v)
+          PY
+      - name: Upload untouched original source for later delayed-SIP comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-rug-proof-anchor-${{ github.run_id }}
+          path: outputs/obsidian-rug-proof-anchor-${{ github.run_id }}/
+          if-no-files-found: ignore
+          retention-days: 90

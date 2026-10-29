@@ -1,0 +1,99 @@
+name: OBSIDIAN genuine prospective delayed SIP 14:20 CT (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_RUG_PROOF_SIP_*.md'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obsidian-rug-proof-delayed-sip-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  prospective-sip-data-quality:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify all source-quality and prospective-mode regression tests
+        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_sip_fallback*.py' -v
+      - name: Install read-only HTTP dependency
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Match one authenticated same-date morning or intraday anchor
+        id: marker
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime,timezone
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          import os,re,requests
+          ct=datetime.now(timezone.utc).astimezone(ZoneInfo("America/Chicago"))
+          if ct.weekday()>=5 or ct.hour!=14 or not 15<=ct.minute<=30:
+              raise SystemExit("OUTSIDE_GENUINE_1415_TO_1430_CT_DECISION_PROOF_WINDOW")
+          p=Path(f"backtest/OBSIDIAN_RUG_PROOF_SIP_{ct:%Y_%m_%d}.md")
+          if not p.is_file():
+              raise SystemExit("TODAY_SIP_TRIGGER_MISSING")
+          ids=re.findall(r"(?m)^ANCHOR_RUN_ID=([0-9]{10,15})$",p.read_text())
+          if len(ids)!=1:
+              raise SystemExit("INVALID_OR_DUPLICATE_SOURCE_ANCHOR_RUN_ID")
+          response=requests.get("https://paper-api.alpaca.markets/v2/clock",
+              headers={"APCA-API-KEY-ID":os.environ["ALPACA_API_KEY"],
+                       "APCA-API-SECRET-KEY":os.environ["ALPACA_SECRET_KEY"]},
+              timeout=20)
+          if response.status_code!=200 or response.json().get("is_open") is not True:
+              raise SystemExit("MARKET_OPEN_NOT_CONFIRMED_NO_PROSPECTIVE_CAPTURE")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as f:
+              f.write("run_id="+ids[0]+"\n")
+          print("PROSPECTIVE_DECISION_SOURCE_AUTHORIZED",ids[0],ct.isoformat())
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: obsidian-rug-proof-anchor-${{ steps.marker.outputs.run_id }}
+          run-id: ${{ steps.marker.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: inputs/prospective-original-anchor
+      - name: Capture genuinely new 17-minute-delayed SIP observations at actual wall-clock time
+        env:
+          ALPACA_API_KEY: ${{ secrets.OBSIDIAN_PAPER_API_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.OBSIDIAN_PAPER_SECRET_KEY }}
+        run: |
+          python -m backtest.obsidian_sip_fallback \
+            --original inputs/prospective-original-anchor \
+            --out "outputs/obsidian-rug-proof-delayed-sip-${{ github.run_id }}" \
+            --prospective
+      - name: Verify complete write-once research universe and provenance
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from backtest.obsidian_sip_fallback import verify
+          root=Path("outputs/obsidian-rug-proof-delayed-sip-${{ github.run_id }}")
+          result=verify(root)
+          meta=json.loads((root/"manifest.json").read_text())
+          if (result["rows"]!=result["attempted"] or
+              not meta["prospective_delayed_sip_checkpoint"] or
+              meta["historical_reconstruction_not_original_point_in_time_capture"] or
+              meta["future_close_predictions_verified"]):
+              raise SystemExit("PROSPECTIVE_SOURCE_QUALITY_ASSERTION_FAILED")
+          print("GENUINE_PROSPECTIVE_LAGGED_SOURCE_VERIFIED",result)
+          PY
+      - name: Preserve raw source, lag, provider failures and watch-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-rug-proof-delayed-sip-${{ github.run_id }}
+          path: outputs/obsidian-rug-proof-delayed-sip-${{ github.run_id }}/
+          if-no-files-found: ignore
+          retention-days: 90

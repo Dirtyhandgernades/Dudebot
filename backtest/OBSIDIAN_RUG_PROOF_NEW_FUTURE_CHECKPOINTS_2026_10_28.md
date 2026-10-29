@@ -1,0 +1,13 @@
+# OBSIDIAN new untouched rug-catch capture checkpoints — preregistered Oct 28, 2026
+
+**Research only.** This source-development protocol is new and separate from the protected legacy October 27/28 IEX captures and frozen validation policies.
+
+To begin collecting **new prospective evidence** on the next genuine NYSE/Nasdaq trading day, one task may create exactly one dated **MORNING at 09:20 CT** or **INTRADAY at 12:20 CT** branch-only marker `backtest/OBSIDIAN_RUG_PROOF_ANCHOR_YYYY_MM_DD_PHASE.md`. They trigger `.github/workflows/obsidian-rug-proof-anchor.yml`. Markers must be committed only during designated ~10–30 minute research intervals; runner checks paper broker `is_open`, local America/Chicago clock and phase. The source collector is read-only IEX and preserves every original NYSE/Nasdaq selected symbol, stale, missing, floor-blocked and no-watch record. These are NEW observations, not the protected 14:45–14:58 capture or production alerts.
+
+During **14:15–14:30 CT**, after a successful verified same-day INTRADAY anchor artifact, a task may create exactly one `backtest/OBSIDIAN_RUG_PROOF_SIP_YYYY_MM_DD.md` marker with a single line `ANCHOR_RUN_ID=<actual completed GitHub Actions source run ID>`. The separate `.github/workflows/obsidian-rug-proof-delayed-sip.yml` loads that exact artifact via GitHub Actions, confirms trading clock open, and retrieves *historical SIP 1Min bars with >=17-minute safety lag as of actual 14:20 receipt time* for the unchanged original provider universe. All symbols, GET failures, missingness, halt/borrow unknowns and received timestamps remain retained. No auth beyond the existing paper research credential family is assumed, no SIP real-time access is claimed, and no executions occur.
+
+**Genuine live forward research is possible only after a new 14:20 GitHub artifact is actually generated and independently verified**. Older Oct28 historical SIP replays, no matter how many data gaps reconstructed, cannot be scored as actual earlier predictions.
+
+Subsequent post-close 0/+1/+2/+3 session outcomes need independent provider/issuer session-close and security-action verification and an actual write-once outcome record. First-session live prospective validation must not be reported complete until real source run, complete denominators and actual future official outcomes exist.
+
+If the ChatGPT scheduler triggers late, fails to verify real market open, or cannot identify an earlier original anchor, **fail closed without retry or backfill**. GitHub branch research/obsidian-early-rug-20261025 only; never modify main, production, secrets, frozen baseline, orders, live alerts or user portfolio.
