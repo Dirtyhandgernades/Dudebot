@@ -1,0 +1,17 @@
+# OBSIDIAN Research Engineering — October 29, 2026, 00:47 CT checkpoint
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Isolated research-branch change; no main, production, orders, credentials, model labels, prior watchlist, or protected capture triggers.
+
+## Verified implementation and CI
+- Inspected the exact branch head, validation roadmap, original Rug Proof marker ownership, current EOD source-preflight/calendar/forward-horizon contracts, Nasdaq RSS/Massive optional monitor, retained 136-name watchlist, recent Actions runs, and original artifact retention ledger.
+- Added `backtest/obsidian_eod_conflict_inventory.py` as a **lossless source-claim audit**: every supplied source row remains in the output, including malformed, duplicate, future-dated, wrong-session, mismatched-identity and conflicting third-party rows. Records exact current/prior price-as-of, source observation, purported provider organization, distinct hosts, exchange session-close and prior session evidence, per-row rejection reasons, cross-source price/threshold conflicts. An early-close session is blocked from the frozen 16:00 ET protocol.
+- Added ten synthetic tests in `tests/test_obsidian_prospective_eod_conflict_inventory.py`, including the regression for an unhashable malformed source identifier, and registered the module/tests in the existing research-only CI workflow.
+- Research commits: `825113cf5d2a7d37970e889e835c4381316f3c65`, `c5533aeef25e187c008c0598e26c84ed3980e486`. GitHub-hosted CI run [40825743158](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40825743158) **SUCCESS, 398 offline tests** (logs verified). Previous CI [40825704845](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40825704845) also passed before malformed-input hardening.
+
+## P0-1 gate remains blocked
+- This ledger is **offline, structural and deliberately always censored**; claimed provider organization IDs, HTTPS URLs, prices, calendar, issuer/security identity and action clearance are NOT authenticated by supplied JSON. It never emits verified official closes, a 20% prediction win, precision, recall, fills or trading authorization.
+- No hosted run has established two genuinely independently authenticated provider organizations supplying exact regular-session official closes plus independently checked previous-session prices, corporate actions and identity for the captured cohort. Optional Massive quote access remains unproven/unconnected; Nasdaq official RSS verifies only bounded trade-halt observations, not prices or full-time halt coverage. SMG account-level shortability remains unverified.
+- The original October 27/28 immutable capture artifacts, full denominators, 136 retained watchlist names, JDZG historical halt/stale-print investigation, and 0/+1/+2/+3 actual-session forward requirements remain untouched. No new real-world predictions or outcome cases were scored.
+- October 29 00:47 CT is outside all authorized intraday/preclose windows; no IEX, monitor, Rug Proof, Morning or After-Hours marker was created. Await the next legitimate independently authenticated forward evidence, keeping missing outcomes censored.
+
+**Next P0 action:** obtain and verify independent official-close/previous-close source packets with actual provider-ownership, exchange-session and issuer-action evidence; test the source/conflict ledger on that complete observed packet before any separate frozen-cohort scoring. No user action requested for this engineering checkpoint.
