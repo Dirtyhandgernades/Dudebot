@@ -37,17 +37,21 @@ def get(url, params, token):
         with response:
             body = response.read(150001)
             status = response.code
-            headers = {k.lower(): v for k, v in response.headers.items()
-                       if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}}
+            # Keep only bounded numeric quota headers. Arbitrary vendor header
+            # strings (including echoed query tokens) are unsafe to archive.
+            headers = {k.lower(): v.strip() for k, v in response.headers.items()
+                       if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}
+                       and isinstance(v, str) and re.fullmatch(r"[0-9]{1,16}", v.strip())}
         payload = json.loads(body) if len(body) <= 150000 else None
     except (ValueError, UnicodeDecodeError):
         payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
                 "retrieved_at": utcnow(), "body_sha256": None, "headers": {}}
+    # Raw provider bodies and arbitrary error text must never reach the public
+    # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
     return {"http_status": status, "body_sha256": hashlib.sha256(body).hexdigest(),
-            "payload": payload, "retrieved_at": utcnow(), "headers": headers,
-            "redacted_response_body": redact(body.decode("utf-8", errors="replace"), token)}
+            "payload": payload, "retrieved_at": utcnow(), "headers": headers}
 
 
 def category(receipt):
@@ -108,7 +112,6 @@ def observation(provider, symbol, day, receipt):
               "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
                             else "https://api.twelvedata.com/time_series",
               "rate_limit_headers": receipt.get("headers", {}),
-              "redacted_response_body": receipt.get("redacted_response_body"),
               "raw_body_retained": False}
     if result["provider_error_category"]:
         return result

@@ -134,4 +134,36 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(r['error'],'NETWORK_UNAVAILABLE')
 
 
+    def test_provider_body_and_untrusted_headers_never_enter_artifact(self):
+        secret='canary-token-in-provider-response'
+        class FakeResponse:
+            code=200
+            headers={'Retry-After':'60', 'X-RateLimit-Remaining':'2',
+                     'X-RateLimit-Reset':'token='+secret}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, n):
+                return json.dumps({'status':'error', 'message':'echo '+secret,
+                                   'apiKey':secret}).encode('utf-8')
+        with patch.object(m.request,'urlopen',return_value=FakeResponse()):
+            fetched=m.get('https://api.massive.com/v1/open-close',
+                          {'apiKey':secret}, secret)
+        self.assertNotIn('redacted_response_body',fetched)
+        self.assertEqual(fetched['headers'],{'retry-after':'60','x-ratelimit-remaining':'2'})
+        normalized=m.observation('MASSIVE','AAPL','2026-10-27',fetched)
+        self.assertNotIn('redacted_response_body',normalized)
+        self.assertNotIn(secret,json.dumps(normalized))
+        self.assertEqual(normalized['provider_error_category'],'PROVIDER_ERROR')
+        self.assertEqual(normalized['raw_response_hash'],fetched['body_sha256'])
+        self.assertFalse(normalized['raw_body_retained'])
+
+    def test_untrusted_legacy_receipt_body_not_copied_to_normalized_result(self):
+        r=massive()
+        r['redacted_response_body']='vendor secret echoed in error text'
+        row=m.observation('MASSIVE','AAPL','2026-10-27',r)
+        self.assertNotIn('redacted_response_body',row)
+        self.assertNotIn('vendor secret',json.dumps(row))
+
+
+
 if __name__=='__main__':unittest.main()
