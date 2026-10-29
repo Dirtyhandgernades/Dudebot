@@ -1,0 +1,34 @@
+{
+  "artifact_digest": "sha256:950eaf0baeb0e372e077650f1921a7108e6176eecbfe39b63718a99b6845d34f",
+  "artifact_expires_at": "2027-01-27T17:52:12Z",
+  "artifact_id": 12920322161,
+  "downloaded_report_hashes_verified": 6,
+  "full_report_manifest": {
+    "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+    "original_predictions_modified": false,
+    "sha256": {
+      "cohort.json": "7d65c164bf7ed232f45feeb9681d8509d52475f25cf5ad8e7770b16df61fb16c",
+      "intraday-horizon-coverage.json": "04791261c0fb45e2a6b090e621000d0b607430d5e2ad0dbb20011b8361e21a2a",
+      "intraday-readiness.json": "e606778cc70c01743799e90efda276303fa3d518ecb4e39c623e2007e4ef1f1a",
+      "morning-horizon-coverage.json": "3ac3f671423a2a8a1244da5c3ed2de215f167d7582f69186be5eaddc6d9623f6",
+      "morning-readiness.json": "a3bc32a0e312f2703516c4c4aef291b99886eea04873af31cc49e5bd6ffd92a7",
+      "transitions.json": "11489dd9d08f97517721014ac5002dd5a078765de1b577f9c62f2df46d0b85ad"
+    },
+    "source_runs": [
+      40890660077,
+      40919781576
+    ],
+    "verified_outcomes": 0
+  },
+  "horizon_slots_per_capture": 34008,
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "multiple_captures_independent": false,
+  "outcome_state": "NOT_YET_DUE_AT_REGISTRATION",
+  "run_id": 40925417654,
+  "source_commit": "f6cb9322820586ed84d77091511101c56c6f66ce",
+  "source_url": "https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40925417654",
+  "training_performed": false,
+  "unique_study_symbol_horizon_slots": 34008,
+  "universe_per_capture": 8502,
+  "verified_outcomes": 0
+}

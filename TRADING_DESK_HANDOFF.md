@@ -1,3 +1,11 @@
+# End-to-end evaluation registered before close — 2026-10-29
+
+`backtest/evidence/2026-10-29/evaluation-registration/` is the immutable baseline/outcome-blind registration. Existing code/policy hashes sealed; original labels and historical cohort unchanged. Hosted run [40925417654](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40925417654) passed 32 relevant tests and frozen-source/denominator checks. Artifact 12920322161 downloaded; all six report hashes verified. Each capture retains 8,502 original securities and 34,008 horizon slots; correlated morning/intraday scans are not independent samples.
+
+All outcomes remain unsupplied and not yet due at registration. Scheduled completed-session horizons: Oct29, Oct30, Nov2, Nov3; actual current/previous official-close receipts, security identity and corporate actions still required. No retrospective price-only watch promoted to full A/B/C prediction. Later 12:47 original source retained separately; failed independent halt/quote capture remains failed. Existing 14:20 board owners unchanged; actual board publication/delivery not yet verified. No training or claimed predictive accuracy. Continue only with real future source receipts, not synthetic verified fields.
+
+---
+
 # Latest intraday validation — 2026-10-29
 
 Read-only hosted replay [40922411059](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40922411059) passed; artifact 12917639329 independently downloaded, all four report hashes verified, 8,502 complete union rows. Original source runs remain 40890660077 and 40919781576. Original watch labels unchanged. Counts: 220 persistent, 133 comparable IEX crossings, 25 newly visible after unusable/blocked observations, 87 dropped; 981 changed/missing prior references quarantined. These are source-quality diagnostics, not verified rug predictions. Dedicated source/scoring regression suite: 24 tests passed. The first hosted replay failed on repository import path; corrected run passed without changing assertions or policy.
