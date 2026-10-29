@@ -1,111 +1,228 @@
-"""Research-only two-provider same-symbol same-session daily-close comparison.
-Vendor daily bars are NOT authenticated exchange official-close receipts.
-"""
+"""Bounded research vendor corroboration; never frozen official-close evidence."""
 import datetime as dt
 import hashlib
 import json
 import os
+import re
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib import request, parse, error
 
-SYMBOLS = ("AAPL", "MSFT")  # bounded connectivity sample; never replaces 136-name watchlist
+SYMBOLS = ("AAPL", "MSFT")
 SESSIONS = ("2026-10-27", "2026-10-28")
 OUT = Path("outputs/backtest/obsidian-two-provider-close-reconciliation.json")
+TOLERANCE = Decimal("0.005")
+
+
+def utcnow():
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def redact(text, token):
+    if token:
+        text = text.replace(token, "[REDACTED]")
+    return re.sub(r'(?i)(api[_-]?key|token|authorization|secret)([\"\s:=]+)[^\s,;&\"}]+', r'\1\2[REDACTED]', text)
+
+
 def get(url, params, token):
-    address=url+"?"+parse.urlencode(params)
-    req=request.Request(address,headers={"User-Agent":"OBSIDIAN-research-only/1.0"})
+    """Never log URLs, exceptions or provider messages that could echo credentials."""
+    req = request.Request(url + "?" + parse.urlencode(params),
+                          headers={"User-Agent": "OBSIDIAN-research-only/2.0"})
     try:
-        with request.urlopen(req,timeout=18) as response:
-            body=response.read(150000)
-            status=response.status
-    except error.HTTPError as exc:
-        body=exc.read(15000)
-        status=exc.code
+        try:
+            response = request.urlopen(req, timeout=18)
+        except error.HTTPError as exc:
+            response = exc
+        with response:
+            body = response.read(150001)
+            status = response.code
+            headers = {k.lower(): v for k, v in response.headers.items()
+                       if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}}
+        payload = json.loads(body) if len(body) <= 150000 else None
+    except (ValueError, UnicodeDecodeError):
+        payload = None
     except Exception:
-        return {"http_status":None,"error":"NETWORK_UNAVAILABLE","body_sha256":None,"payload":None}
-    digest=hashlib.sha256(body).hexdigest()
+        return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
+                "retrieved_at": utcnow(), "body_sha256": None, "headers": {}}
+    return {"http_status": status, "body_sha256": hashlib.sha256(body).hexdigest(),
+            "payload": payload, "retrieved_at": utcnow(), "headers": headers,
+            "redacted_response_body": redact(body.decode("utf-8", errors="replace"), token)}
+
+
+def category(receipt):
+    status = receipt.get("http_status")
+    if receipt.get("error"):
+        return receipt["error"]
+    if status != 200:
+        return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
+                429: "RATE_LIMIT"}.get(status, "SERVER_ERROR" if status and status >= 500 else "HTTP_ERROR")
+    payload = receipt.get("payload")
+    if not isinstance(payload, dict):
+        return "MALFORMED_RESPONSE"
+    if payload.get("status") in {"error", "ERROR", "NOT_AUTHORIZED"}:
+        return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
+                429: "RATE_LIMIT"}.get(payload.get("code"), "PROVIDER_ERROR")
+    return None
+
+
+@dataclass
+class Budget:
+    maximum: int
+    used: int = 0
+    stopped: str | None = None
+
+    def fetch(self, url, params, token):
+        if not token:
+            return {"error": "SECRET_ABSENT"}
+        if self.stopped or self.used >= self.maximum:
+            return {"error": self.stopped or "REQUEST_BUDGET_EXHAUSTED"}
+        self.used += 1
+        receipt = get(url, params, token)
+        failure = category(receipt)
+        if failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
+            self.stopped = failure
+        if receipt.get("headers", {}).get("x-ratelimit-remaining") == "0":
+            self.stopped = "RATE_LIMIT"
+        # No automatic retries: preserve Retry-After/reset evidence and stop, never burn quota.
+        return receipt
+
+
+def price(value):
+    if isinstance(value, bool):
+        return None
     try:
-        payload=json.loads(body)
-    except ValueError:
-        payload=None
-    return {"http_status":status,"body_sha256":digest,"payload":payload}
-def error_info(obj,token):
-    if not isinstance(obj,dict): return "NON_JSON_OR_UNEXPECTED"
-    code=str(obj.get("code",obj.get("status","UNSPECIFIED")))
-    # Never output raw provider messages: some echo key/query strings.
-    return "PROVIDER_CODE_"+code[:24] if code.replace("_","").isalnum() else "PROVIDER_ERROR"
+        result = Decimal(str(value))
+        return result if result.is_finite() and result > 0 else None
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def observation(provider, symbol, day, receipt):
+    result = {"provider_organization": provider, "ticker": symbol, "session_date": day,
+              "security_identity": None, "identity_verified": False, "exchange": None,
+              "price": None, "price_type": "VENDOR_DAILY_OHLC_CLOSE", "adjustment_basis": "UNKNOWN",
+              "source_timestamp": None, "retrieval_timestamp": receipt.get("retrieved_at"),
+              "http_status": receipt.get("http_status"), "provider_error_category": category(receipt),
+              "raw_response_hash": receipt.get("body_sha256"), "validation_status": "BLOCKED",
+              "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
+                            else "https://api.twelvedata.com/time_series",
+              "rate_limit_headers": receipt.get("headers", {}),
+              "redacted_response_body": receipt.get("redacted_response_body"),
+              "raw_body_retained": False}
+    if result["provider_error_category"]:
+        return result
+    payload = receipt["payload"]
+    if provider == "MASSIVE":
+        bar = payload
+        valid_identity = payload.get("symbol") == symbol
+        valid_session = payload.get("from") == day
+        result["source_timestamp"] = day if payload.get("from") == day else None
+        result["adjustment_basis"] = "UNADJUSTED_REQUESTED"
+    else:
+        meta = payload.get("meta", {})
+        if not isinstance(meta, dict):
+            result["provider_error_category"] = "MALFORMED_METADATA"
+            return result
+        valid_identity = meta.get("symbol") == symbol
+        result["exchange"] = meta.get("exchange") if meta.get("exchange") in {"NASDAQ", "NYSE"} else None
+        result["adjustment_basis"] = "UNADJUSTED_REQUESTED"
+        bars = payload.get("values", [])
+        if not isinstance(bars, list) or any(not isinstance(b, dict) for b in bars):
+            result["provider_error_category"] = "MALFORMED_BARS"
+            return result
+        matches = [b for b in bars if b.get("datetime") == day]
+        if len(matches) != 1:
+            result["provider_error_category"] = "DUPLICATE_SESSION" if matches else "SESSION_MISSING"
+            return result
+        bar = matches[0]
+        result["source_timestamp"] = bar.get("datetime")
+        valid_session = True
+    if not valid_identity or not valid_session:
+        result["provider_error_category"] = "IDENTITY_MISMATCH" if not valid_identity else "SESSION_MISMATCH"
+        return result
+    value = price(bar.get("close"))
+    if value is None:
+        result["provider_error_category"] = "INVALID_PRICE"
+        return result
+    result.update(price=str(value), validation_status="VALID_VENDOR_BAR")
+    # Echoed ticker is not verified legal/security identity or corporate-action continuity.
+    return result
+
+
+def compare(a, b, identity=None):
+    """External reviewed identity/action evidence is mandatory for comparable pairs."""
+    if any(x["validation_status"] != "VALID_VENDOR_BAR" for x in (a, b)):
+        return "UNAVAILABLE", None
+    if a["ticker"] != b["ticker"] or a["session_date"] != b["session_date"]:
+        return "IDENTITY_OR_SESSION_MISMATCH", None
+    if a["price_type"] != b["price_type"] or a["adjustment_basis"] != b["adjustment_basis"]:
+        return "PRICE_BASIS_MISMATCH", None
+    if not identity or identity.get("identity_verified") is not True or identity.get("exchange_verified") is not True:
+        return "IDENTITY_UNVERIFIED", None
+    if identity.get("corporate_actions_verified") is not True or identity.get("corporate_action_changed") is not False:
+        return "CORPORATE_ACTION_AMBIGUITY", None
+    if identity.get("ticker") != a["ticker"] or identity.get("session_date") != a["session_date"]:
+        return "IDENTITY_OR_SESSION_MISMATCH", None
+    if not identity.get("security_id") or not identity.get("source_receipts"):
+        return "IDENTITY_UNVERIFIED", None
+    difference = abs(Decimal(a["price"]) - Decimal(b["price"]))
+    return ("AGREE" if difference <= TOLERANCE else "DISAGREE"), str(difference)
+
+
+def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
+    massive, twelve = Budget(4), Budget(2)
+    result = {"mode": "RESEARCH_ONLY_NOT_AN_ORDER", "model_version": "vendor-corroboration-v2",
+              "captured_at_utc": utcnow(), "sessions": list(sessions), "symbols": list(symbols),
+              "comparison_tolerance_usd": str(TOLERANCE), "rows": [],
+              "official_exchange_close_verified": False, "outcome_scoring_eligible": False,
+              "independent_underlying_exchange_feed_verified": False, "trade_authorized": False}
+    for symbol in symbols:
+        t = twelve.fetch("https://api.twelvedata.com/time_series",
+                         {"symbol": symbol, "interval": "1day", "outputsize": "10", "adjust": "none",
+                          "apikey": os.environ.get("TWELVE_DATA_API_KEY", "")},
+                         os.environ.get("TWELVE_DATA_API_KEY", ""))
+        for day in sessions:
+            dt.date.fromisoformat(day)
+            m = massive.fetch("https://api.massive.com/v1/open-close/" + parse.quote(symbol, safe="") + "/" + day,
+                              {"adjusted": "false", "apiKey": os.environ.get("MASSIVE_API_KEY", "")},
+                              os.environ.get("MASSIVE_API_KEY", ""))
+            a, b = observation("MASSIVE", symbol, day, m), observation("TWELVE_DATA", symbol, day, t)
+            status, difference = compare(a, b)
+            both = all(x["validation_status"] == "VALID_VENDOR_BAR" for x in (a, b))
+            result["rows"].append({"symbol": symbol, "session": day, "providers": {"MASSIVE": a, "TWELVE_DATA": b},
+                                   "both_bars_present": both, "comparison_status": status,
+                                   "absolute_difference_usd": difference, "within_tolerance":
+                                   True if status == "AGREE" else False if status == "DISAGREE" else None,
+                                   "eligible_official_close": False,
+                                   "diagnostic_numeric_agreement_only":
+                                   abs(Decimal(a["price"]) - Decimal(b["price"])) <= TOLERANCE if both else None})
+    rows = result["rows"]
+    result.update(total_ticker_dates=len(rows), both_bar_count=sum(r["both_bars_present"] for r in rows),
+                  valid_same_session_pairs=sum(r["comparison_status"] in {"AGREE", "DISAGREE"} for r in rows),
+                  matching_bar_count=sum(r["comparison_status"] == "AGREE" for r in rows),
+                  conflict_count=sum(r["comparison_status"] == "DISAGREE" for r in rows),
+                  missing_pair_count=sum(not r["both_bars_present"] for r in rows),
+                  rate_limited_count=sum(any(p["provider_error_category"] == "RATE_LIMIT" for p in r["providers"].values()) for r in rows),
+                  corporate_action_blocked_count=sum(r["comparison_status"] == "CORPORATE_ACTION_AMBIGUITY" for r in rows),
+                  identity_blocked_count=sum(r["comparison_status"] == "IDENTITY_UNVERIFIED" for r in rows))
+    for provider in ("MASSIVE", "TWELVE_DATA"):
+        result["valid_" + provider.lower() + "_bars"] = sum(r["providers"][provider]["validation_status"] == "VALID_VENDOR_BAR" for r in rows)
+    result["request_budget"] = {"massive_max": 4, "twelve_data_max": 2, "automatic_retries": 0,
+                                "massive_used": massive.used, "twelve_data_used": twelve.used}
+    return result
+
+
 def main():
-    now=dt.datetime.now(dt.timezone.utc).isoformat()
-    mkey=os.environ.get("MASSIVE_API_KEY","")
-    tkey=os.environ.get("TWELVE_DATA_API_KEY","")
-    result={"mode":"RESEARCH_ONLY_NOT_AN_ORDER","captured_at_utc":now,
-      "sessions":list(SESSIONS),"symbols":list(SYMBOLS),"comparison_tolerance_usd":0.005,
-      "request_budget":{"massive_max":4,"twelve_data_max":2,"automatic_retries":0},
-      "provider_groups":["MASSIVE","TWELVE_DATA"],"rows":[],
-      "official_exchange_close_verified":False,"corporate_action_basis_verified":False,
-      "independent_underlying_exchange_feed_verified":False,
-      "outcome_scoring_eligible":False,"trade_authorized":False,
-      "limitations":["Vendor daily bar close is not authenticated 16:00 ET official close",
-        "Both vendors may redistribute overlapping underlying feeds",
-        "No verified corporate action adjustment or symbol security identity",
-        "Historical retrospective bars cannot establish prospective signal timing"]}
-    for symbol in SYMBOLS:
-        # Exactly one Twelve Data multi-session request per symbol, not one per date.
-        # outputsize without start/end avoids provider's fixed-date 400; filter exact sessions.
-        if tkey:
-            twelve=get("https://api.twelvedata.com/time_series",
-                       {"symbol":symbol,"interval":"1day","outputsize":"10","apikey":tkey},tkey)
-            twelve_payload=twelve.pop("payload")
-            twelve_bars=twelve_payload.get("values",[]) if isinstance(twelve_payload,dict) else []
-            twelve_by_day={b["datetime"]:b for b in twelve_bars if isinstance(b,dict)
-                           and isinstance(b.get("datetime"),str)}
-        else:
-            twelve={"error":"SECRET_ABSENT"}
-            twelve_payload=None
-            twelve_by_day={}
-        for day in SESSIONS:
-            row={"symbol":symbol,"session":day,"providers":{},"absolute_difference_usd":None,
-                 "within_tolerance":None,"both_bars_present":False,"eligible_official_close":False}
-            if mkey:
-                a=get("https://api.massive.com/v1/open-close/"+symbol+"/"+day,{"adjusted":"false","apiKey":mkey},mkey)
-                obj=a.pop("payload")
-                a["close"]=obj.get("close") if a["http_status"]==200 and isinstance(obj,dict) and isinstance(obj.get("close"),(int,float)) else None
-                a["adjustment_requested"]="false"
-                a["response_retrieved_at_utc"]=now
-                a["provider_status"]=str(obj.get("status","UNKNOWN"))[:20] if isinstance(obj,dict) else "UNAVAILABLE"
-                row["providers"]["MASSIVE"]=a
-            else: row["providers"]["MASSIVE"]={"error":"SECRET_ABSENT"}
-            if tkey:
-                matched=twelve_by_day.get(day)
-                try: close=float(matched["close"]) if matched else None
-                except (ValueError,TypeError,KeyError): close=None
-                b={"http_status":twelve.get("http_status"),
-                   "body_sha256":twelve.get("body_sha256"),
-                   "close":close,
-                   "returned_date":matched.get("datetime") if matched else None,
-                   "provider_status":str(twelve_payload.get("status","UNKNOWN"))[:20]
-                       if isinstance(twelve_payload,dict) else "UNAVAILABLE",
-                   "adjustment_basis":"UNVERIFIED",
-                   "response_retrieved_at_utc":now}
-                if close is None:
-                    b["diagnostic"]="SESSION_MISSING_FROM_BOUNDED_RESPONSE" if twelve.get("http_status")==200 else error_info(twelve_payload,tkey)
-                row["providers"]["TWELVE_DATA"]=b
-            else: row["providers"]["TWELVE_DATA"]={"error":"SECRET_ABSENT"}
-            x=row["providers"]["MASSIVE"].get("close")
-            y=row["providers"]["TWELVE_DATA"].get("close")
-            if x is not None and y is not None:
-                row["both_bars_present"]=True
-                row["absolute_difference_usd"]=round(abs(x-y),6)
-                row["within_tolerance"]=abs(x-y)<=0.005
-            result["rows"].append(row)
-    result["both_bar_count"]=sum(x["both_bars_present"] for x in result["rows"])
-    result["matching_bar_count"]=sum(x["within_tolerance"] is True for x in result["rows"])
-    result["missing_pair_count"]=len(result["rows"])-result["both_bar_count"]
-    result["conflict_count"]=sum(x["within_tolerance"] is False for x in result["rows"])
-    OUT.parent.mkdir(parents=True,exist_ok=True)
-    with OUT.open("x") as f: json.dump(result,f,sort_keys=True,indent=2)
-    print(json.dumps({"mode":result["mode"],"both_bar_count":result["both_bar_count"],
-      "matching_bar_count":result["matching_bar_count"],"total":len(result["rows"]),
-      "official_exchange_close_verified":False,"outcome_scoring_eligible":False,
-      "artifact":str(OUT)},sort_keys=True))
-if __name__=="__main__": main()
+    # Fail before spending API quota if this immutable destination already exists.
+    if OUT.exists():
+        raise FileExistsError(OUT)
+    result = reconcile()
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    with OUT.open("x") as handle:
+        json.dump(result, handle, indent=2, sort_keys=True)
+    print(json.dumps({k: v for k, v in result.items() if k not in {"rows"}}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
