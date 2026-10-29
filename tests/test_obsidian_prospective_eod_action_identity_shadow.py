@@ -99,6 +99,14 @@ class ActionIdentityShadowTests(unittest.TestCase):
         result = check([a, row("b", "beta", "beta.example")])
         self.assertNotIn("SECRET", str(result))
 
+    def test_unhashable_action_claim_censored_not_crash(self):
+        b = row("b", "beta", "beta.example")
+        b["corporate_action_evidence"]["status"] = ["UNHASHABLE"]
+        b["corporate_action_evidence"]["previous_close_basis"] = {"bad": "basis"}
+        result = check([row(), b])
+        self.assertIn("ACTION_OR_PREVIOUS_CLOSE_BASIS_UNRESOLVED", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+
     def test_invalid_session_chain_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "VALID_SESSION_CHAIN_REQUIRED"):
             audit_action_identity("ZZZZ", DAY, DAY, [], COLLECTED)

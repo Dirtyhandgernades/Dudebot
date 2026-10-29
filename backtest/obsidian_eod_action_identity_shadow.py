@@ -92,7 +92,8 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             faults.add("WRONG_SECURITY_OR_SESSION")
         status = a.get("status")
         basis = a.get("previous_close_basis")
-        if status not in ACTIONS or basis not in BASES:
+        if (not isinstance(status, str) or status not in ACTIONS
+                or not isinstance(basis, str) or basis not in BASES):
             faults.add("ACTION_OR_PREVIOUS_CLOSE_BASIS_UNRESOLVED")
         if status != "NONE" or basis != "UNADJUSTED":
             faults.add("ACTION_OR_ADJUSTED_CLOSE_REQUIRES_EXTERNAL_RECONCILIATION")
