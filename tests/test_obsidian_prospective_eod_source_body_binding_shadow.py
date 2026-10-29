@@ -31,6 +31,7 @@ def packet():
                 "status": "NONE", "coverage_start": "2026-10-27",
                 "coverage_end": "2026-10-28",
                 "checked_at": "2026-10-28T20:07:00Z",
+                "previous_close_basis": "UNADJUSTED",
             },
         }
         body = json.dumps({k: v for k, v in report.items()
@@ -220,6 +221,81 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, json.dumps(body).encode())
         result = self.check(r, t)
         self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+
+    def test_current_1559_trade_not_exact_regular_close(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T19:59:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", result["issues"])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_current_1601_afterhours_not_exact_regular_close(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T20:01:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", self.check(r, t)["issues"])
+
+    def test_prior_1559_trade_not_exact_previous_close(self):
+        r, t = packet()
+        r[1]["previous_regular_close_asof"] = "2026-10-27T19:59:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", self.check(r, t)["issues"])
+
+    def test_prior_1601_afterhours_not_exact_previous_close(self):
+        r, t = packet()
+        r[1]["previous_regular_close_asof"] = "2026-10-27T20:01:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", self.check(r, t)["issues"])
+
+    def test_adjusted_previous_close_basis_is_censored(self):
+        r, t = packet()
+        r[1]["corporate_action"]["previous_close_basis"] = "ADJUSTED"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["previous_close_basis"] = "ADJUSTED"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_CLOSE_BASIS_CLAIM_CONFLICT", result["issues"])
+
+    def test_missing_previous_close_basis_is_censored(self):
+        r, t = packet()
+        del r[1]["corporate_action"]["previous_close_basis"]
+        body = json.loads(t[1]["raw_body"])
+        del body["corporate_action"]["previous_close_basis"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_ACTION_MISMATCH_PREVIOUS_CLOSE_BASIS", result["issues"])
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+
+    def test_cross_source_security_identity_conflict_is_not_hidden(self):
+        r, t = packet()
+        r[1]["security_id"] = r[1]["previous_security_id"] = "OTHER-ISSUER"
+        body = json.loads(t[1]["raw_body"])
+        body["security_id"] = body["previous_security_id"] = "OTHER-ISSUER"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_cross_source_issuer_class_conflict_is_not_hidden(self):
+        r, t = packet()
+        r[1]["issuer_class"] = r[1]["previous_issuer_class"] = "ADR"
+        body = json.loads(t[1]["raw_body"])
+        body["issuer_class"] = body["previous_issuer_class"] = "ADR"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
 
 
 if __name__ == "__main__":

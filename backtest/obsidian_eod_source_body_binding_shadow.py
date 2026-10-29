@@ -23,7 +23,7 @@ TEXT_FIELDS = (
     "previous_issuer_class", "kind", "regular_close_asof",
     "previous_regular_close_asof", "observed_at",
 )
-ACTION_FIELDS = ("status", "coverage_start", "coverage_end", "checked_at")
+ACTION_FIELDS = ("status", "coverage_start", "coverage_end", "checked_at", "previous_close_basis")
 
 
 def _unique_pairs(pairs):
@@ -67,6 +67,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
         raise ValueError("VALID_PREVIOUS_AND_CURRENT_SESSION_DATES_REQUIRED")
     receipt_audit = audit_receipts(session, reports, receipts, collected_at)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
+    identity_claims = {field: {} for field in (
+        "security_id", "issuer_class", "corporate_action_status", "previous_close_basis")}
     close_end = datetime.combine(session, time(16), tzinfo=ET)
     collected = _instant(collected_at)
     count = max(len(reports), len(receipts))
@@ -116,6 +118,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                 stamp = _instant(parsed.get(field))
                 if stamp is None or stamp.astimezone(ET).date() != expected:
                     faults.add("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH")
+                elif stamp != datetime.combine(expected, time(16), tzinfo=ET):
+                    # A 15:59 last trade or 16:01 afterhours quote is not the
+                    # exact regular-session close, even on the correct date.
+                    faults.add("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET")
             publication = _instant(parsed.get("observed_at"))
             receipt_time = _instant(t.get("retrieved_at"))
             if (publication is None or receipt_time is None or collected is None
@@ -133,6 +139,16 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                 bucket.append(index)
             action = parsed.get("corporate_action")
             report_action = r.get("corporate_action")
+            # Compare every parseable source-body identity/action claim,
+            # including rejected rows; never cherry-pick two agreeing ones.
+            for field, value in (
+                ("security_id", parsed.get("security_id")),
+                ("issuer_class", parsed.get("issuer_class")),
+                ("corporate_action_status", action.get("status") if isinstance(action, dict) else None),
+                ("previous_close_basis", action.get("previous_close_basis") if isinstance(action, dict) else None),
+            ):
+                if isinstance(value, str) and value:
+                    identity_claims[field].setdefault(value, []).append(index)
             if not isinstance(action, dict) or not isinstance(report_action, dict):
                 faults.add("BODY_OR_REPORT_ACTION_EVIDENCE_MISSING")
             else:
@@ -143,7 +159,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                         faults.add("BODY_REPORT_ACTION_MISMATCH_" + field.upper())
                 if (action.get("coverage_start") != previous.isoformat()
                         or action.get("coverage_end") != session.isoformat()
-                        or action.get("status") != "NONE"):
+                        or action.get("status") != "NONE"
+                        or action.get("previous_close_basis") != "UNADJUSTED"):
                     faults.add("ACTION_WINDOW_OR_STATUS_NOT_CLEARED")
                 checked = _instant(action.get("checked_at"))
                 observed = _instant(collected_at)
@@ -157,6 +174,14 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
             "status": "BODY_FIELDS_MATCH_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
             "issues": sorted(faults),
         })
+    for field, issue in (
+        ("security_id", "PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT"),
+        ("issuer_class", "PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT"),
+        ("corporate_action_status", "PARSED_BODY_CORPORATE_ACTION_CLAIM_CONFLICT"),
+        ("previous_close_basis", "PARSED_BODY_PREVIOUS_CLOSE_BASIS_CLAIM_CONFLICT"),
+    ):
+        if len(identity_claims[field]) > 1:
+            issues.add(issue)
     groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
          "source_indices": indices,
