@@ -1,0 +1,27 @@
+# OBSIDIAN After-Hours Audit — 2026-10-29 18:22 CT — incremental close-reference diagnostic
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** This is a later source-review note, NOT an original prediction, 15:22 source trigger, independent official exchange close, executable short, or forward outcome score. Original evidence stays immutable. Research branch only.
+
+## Coordination and originals
+
+Read the newly committed separate **18:20 CT Rug Proof** note `backtest/OBSIDIAN_RUG_PROOF_POSTCLOSE_AUDIT_2026_10_29_1820_CT.md` at parent `fbc72b4d27f2bf328d7b727b2c970f2af6732c24`, along with the 17:18 CT After-Hours Audit and Oct29 two-provider source-contract checkpoint. The Rug Proof note already rechecked 09:21 IEX (8,502), 12:16 IEX (8,502), delayed 14:22 historical SIP (8,502), original 14:47 IEX preclose (8,502), 15:18 IEX afterhours (8,502), and Nasdaq official halt monitor. This checkpoint DOES NOT redownload, relabel, duplicate score, or claim new independent verification of those archived ZIPs.
+
+The **one** Oct29 IEX AFTERHOURS marker and **one** independent Nasdaq halt AFTERHOURS marker already exist and their hosted runs 40947825425 and 40947825412 succeeded. No further trigger, retry or backfill permitted. The afterhours original IEX classifications remain 8,345 stale/future, 100 missing trade/prior, 5 missing snapshot, 5 floor blocked, 17 other, 26 early, 3 intermediate, 1 exhausted = 8,502. Retained structural watchlist 136; 8 not in original selected IEX universe (APUS/GCDT/IMC/LGCY/MSGY/SDEV/TP/WYY), classified **MISSING ORIGINAL UNIVERSE**, not screened/rejected.
+
+## Incremental public close-reference diagnostic — INTC threshold arithmetic
+
+Two publicly accessible financial-data **displays**, StockAnalysis and Investing.com, currently both report **INTC October 29 regular-session close $92.07**, previous-day Oct28 close **$95.53**, about **-3.62% regular session**. Their organizations' underlying exchange-close data provenance, exact consolidated official 16:00 ET receipt, corporate-action equivalence, and independence are **not authenticated**; this is a cross-check of *displayed* values, NOT an admissible official close packet. Sources:
+- https://stockanalysis.com/stocks/intc/history/
+- https://www.investing.com/equities/intel-corp-historical-data
+
+Original IEX afterbell **$76.16** observation was approximately **-20.27% versus the Oct28 IEX prior-day reference $95.53**. If compared only illustratively with the **unaccepted displayed Oct29 regular-session close $92.07**, the afterbell observation would instead be about **-17.28% from that day's close**. This distinction prevents conflating **previous-day-to-afterbell cumulative move** with a **20% same-day regular-session collapse**. Neither figure proves a qualifying 20% regular-session event. INTC's original 14:47 CT preclose early price-only attention does not forecast the contents of the issuer's afterbell earnings. The issuer's Oct29 Form 8-K was accepted around 16:08 ET and cannot be used as preclose evidence. ATEC remained **SCREENED / NO WATCH** before its postbell release and its $8.90 afterbell IEX print is likewise NOT a same-day official close. ATEC Oct29 regular close remains unaccepted.
+
+## Diagnostics, strict missingness, and status
+
+JDZG: Oct28 captured morning/intraday but stale; preclose already exhausted, four reported LUDP pauses overlap execution window, Alpaca reported non-shortable; Oct29 price-floor blocked, and absence from received Nasdaq RSS does NOT verify halt clearance. TJGC: Nasdaq Oct29 08:00 ET T12 continued halt, NOT an eligible trade. GBFH/FORM/MDXG Oct28 issuer news: after-bell information, not a prospective prediction. MRVL/LITE Oct28 takeover *talks*: unconfirmed report after original cutoff, not a prior signal; LITE upside is adverse reversal/squeeze diagnostic. PRCH prior reversal remains adverse counterexample. Keep classifications for stale/unavailable quote, security identity/corporate action unknown, SMG borrow unknown and no preclose confirmation. No retroactive winners.
+
+**Official close and outcome gate remains FAIL CLOSED**: no two independently authenticated organization-level *official* 16:00 ET regular-session close sources across original 8,502, no complete source-conflict/security-ID/corporate-action reconciliation, no authenticated +1/+2/+3 future sessions. Frozen h0/+1/+2/+3 accepted matched outcomes all **zero / CENSORED**; zero is not a measured failure rate. No precision, recall, P&L, fills, SIP live quotes, SMG borrow or eligibility claim. Independent quote entitlement remains unverified; vendor daily-bar AAPL/MSFT 4/4 pilot is insufficient. The latest offline source-preflight run 40968654322 succeeded with 481 prospective and 4 ABC tests; it does NOT authenticate market data.
+
+Original Oct29 afterhours ZIP SHA256 `6712366ebed08ad37522ff665372516e589db30a5b66f1bf22c3b0990fe58ba4`, raw universe SHA256 `0d3c453f3c69a4591acd33d022b876354aa50620ebbff167f3190061c4e684d9`, halt ZIP SHA256 `a7c688744d7f51e49a8e92e28c6eaff944ee30bb3ffd15a2d74afac779005043` (all **previously** verified by the 15:18 audit; not redownloaded in this pass). Oct29 original Actions artifacts 90-day retention to approximately **2027-01-27 20:18 UTC**; **BACKUP_UNVERIFIED**, no restore test. No original artifacts altered.
+
+No main, production, secrets, trading, alerts, orders, live captures, protected source markers, or frozen scoring modified. This document is a source-limited afterhours audit only.
