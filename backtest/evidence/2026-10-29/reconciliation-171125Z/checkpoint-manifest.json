@@ -1,0 +1,36 @@
+{
+  "record_type": "SUBSEQUENT_RESEARCH_VALIDATION",
+  "prospective_predictions_modified": false,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4351,
+      "sha256": "2d3d42d5787bbdcdfb07372c268e073dd3a837a07acdd4e9503ed97d527854d2"
+    },
+    {
+      "path": "artifact-provenance.json",
+      "bytes": 3006,
+      "sha256": "60117251d879620351a45b7194460ddb5a8ef6c1a41a03225af98a73779e9222"
+    },
+    {
+      "path": "hosted-summary.json",
+      "bytes": 1237,
+      "sha256": "a9584d293fa7ecde540b5c55151a123f474335abff7ba39b84ddd0a3fc512000"
+    },
+    {
+      "path": "original-forensic-rows.json",
+      "bytes": 3423,
+      "sha256": "3d81840977e855b888211ecc2aee0b232bafdbbbd13561295951c62e2b56e9d1"
+    },
+    {
+      "path": "prospective-readiness-summary.json",
+      "bytes": 1935,
+      "sha256": "8d185f2938f6825c16f38f4e85a1fb3944708a9634bd2f679c61ce0bd0b2f1f5"
+    },
+    {
+      "path": "source-file-manifest.json",
+      "bytes": 1929,
+      "sha256": "f0671a11865f7189243fbe0d6734f4a0a5c15431a5e9ea26169752357ee2cc78"
+    }
+  ]
+}

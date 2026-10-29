@@ -1,30 +1,33 @@
 name: OBSIDIAN two-provider close reconciliation (research only)
 on:
   push:
-    branches: [research/obsidian-early-rug-20261025]
+    branches: [research/obsidian-early-rug-20261025, research/obsidian-reconciliation-engineering]
     paths:
       - '.github/workflows/obsidian-two-provider-close-reconciliation.yml'
       - 'backtest/obsidian_two_provider_close_reconciliation.py'
       - 'tests/test_obsidian_two_provider_close_reconciliation.py'
+      - 'backtest/obsidian_abc_board.py'
+      - 'tests/test_obsidian_abc_board.py'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   compare:
-    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025' || github.ref == 'refs/heads/research/obsidian-reconciliation-engineering'
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    env:
-      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
-      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Verify bounded request budget and missingness censoring offline
-        run: python -m unittest tests.test_obsidian_two_provider_close_reconciliation -v
+        run: python -m unittest tests.test_obsidian_two_provider_close_reconciliation tests.test_obsidian_abc_board -v
       - name: Fetch and compare bounded same-date research bars
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
         run: python -m backtest.obsidian_two_provider_close_reconciliation
       - name: Preserve immutable run artifact
         if: always()
