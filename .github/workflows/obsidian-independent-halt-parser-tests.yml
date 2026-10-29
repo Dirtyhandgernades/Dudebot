@@ -1,0 +1,25 @@
+name: OBSIDIAN independent halt parser regression (offline research only)
+on:
+  push:
+    branches: [research/obsidian-early-rug-20261025]
+    paths:
+      - '.github/workflows/obsidian-independent-halt-parser-tests.yml'
+      - 'backtest/obsidian_independent_quote_halt.py'
+      - 'tests/test_obsidian_prospective_independent_quote_halt.py'
+      - 'backtest/obsidian_smg_readonly_gate.py'
+      - 'tests/test_obsidian_prospective_smg_readonly_gate.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-regression:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test official halt RSS fail-closed semantics and SMG read-only gates
+        run: python -m unittest tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_prospective_smg_readonly_gate -v
