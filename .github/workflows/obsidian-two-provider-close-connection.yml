@@ -20,7 +20,7 @@ jobs:
         run: |
           import os, json, urllib.request, urllib.parse, urllib.error, hashlib, re
           output={'mode':'RESEARCH_ONLY_NOT_AN_ORDER','providers':{},'independent_official_closes_verified':False,'trade_authorized':False,'purpose':'connection and entitlement only; NOT frozen outcome evidence'}
-          cases=[('MASSIVE','MASSIVE_API_KEY','https://api.massive.com/v1/open-close/FPI/2026-10-28',{'adjusted':'false'}),('TWELVE_DATA','TWELVE_DATA_API_KEY','https://api.twelvedata.com/time_series',{'symbol':'FPI','interval':'1day','start_date':'2026-10-28','end_date':'2026-10-28','outputsize':'1'})]
+          cases=[('MASSIVE','MASSIVE_API_KEY','https://api.massive.com/v1/open-close/FPI/2026-10-28',{'adjusted':'false'}),('TWELVE_DATA','TWELVE_DATA_API_KEY','https://api.twelvedata.com/time_series',{'symbol':'AAPL','interval':'1day','outputsize':'5'})]
           def safe_error(raw, token):
               try:
                   obj=json.loads(raw)
@@ -37,7 +37,7 @@ jobs:
               return {'provider_error_code':scrub(code),'provider_error_message':scrub(message)}
           for name,key,url,params in cases:
               token=os.environ.get(key,'')
-              result={'secret_present':bool(token),'http_status':None,'provider_response_status':'NOT_TESTED','has_daily_bar':False,'official_exchange_close_verified':False,'corporate_action_basis_verified':False,'receipt_sha256':None}
+              result={'probe_symbol':('AAPL' if name=='TWELVE_DATA' else 'FPI'),'secret_present':bool(token),'http_status':None,'provider_response_status':'NOT_TESTED','has_daily_bar':False,'official_exchange_close_verified':False,'corporate_action_basis_verified':False,'receipt_sha256':None}
               if token:
                   params=dict(params)
                   if name=='MASSIVE': params['apiKey']=token
@@ -51,6 +51,11 @@ jobs:
                       result['receipt_sha256']=hashlib.sha256(raw).hexdigest()
                       result['provider_response_status']=str(obj.get('status','UNSPECIFIED'))[:32] if isinstance(obj,dict) else 'UNEXPECTED_SHAPE'
                       result['has_daily_bar']=bool((obj.get('close') is not None if name=='MASSIVE' else obj.get('values')) if isinstance(obj,dict) else False)
+                      if name=='TWELVE_DATA' and isinstance(obj,dict) and isinstance(obj.get('values'),list):
+                          bars=obj['values'][:5]
+                          result['returned_bar_count']=len(bars)
+                          result['returned_dates']=[str(b.get('datetime',''))[:10] for b in bars if isinstance(b,dict)]
+                          result['daily_close_values_present']=all(isinstance(b,dict) and b.get('close') is not None for b in bars) and bool(bars)
                       if not result['has_daily_bar']: result.update(safe_error(raw,token))
                   except urllib.error.HTTPError as e:
                       result['http_status']=e.code
