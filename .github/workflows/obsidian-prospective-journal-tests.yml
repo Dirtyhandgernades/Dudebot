@@ -4,6 +4,9 @@ on:
     branches:
       - research/obsidian-early-rug-20261025
     paths:
+      - 'backtest/obsidian_abc_board.py'
+      - 'tests/test_obsidian_abc_board.py'
+      - 'tests/test_obsidian_prospective_abc_board.py'
       - 'backtest/obsidian_prospective_journal.py'
       - 'tests/test_obsidian_prospective_journal.py'
       - 'backtest/obsidian_prospective_capture.py'
@@ -110,4 +113,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Validate frozen prospective journal and independent capture (offline)
-        run: python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -v
+          python -m unittest discover -s tests -p 'test_obsidian_abc_board.py' -v

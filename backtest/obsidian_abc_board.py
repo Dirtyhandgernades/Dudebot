@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from backtest.obsidian_prospective_journal import timestamp
 
-POLICY = 'OBSIDIAN_ABC_SHADOW_INTAKE_V1_20261029'
+POLICY = 'OBSIDIAN_ABC_SHADOW_INTAKE_V2_20261029'
 CT = ZoneInfo('America/Chicago')
 
 
@@ -55,9 +55,29 @@ def build(packet, now):
             if row.get('halt_clear') is not True: reasons.append('HALT_UNKNOWN_OR_ACTIVE')
             if category=='A' and row.get('principal_collapse_not_occurred') is not True:
                 reasons.append('EARLY_STATUS_UNVERIFIED')
+            if category == 'A':
+                # A supply event is not evidence of seller urgency. Preserve
+                # incomplete setups, but never promote them as early breakdowns.
+                weakness = row.get('weakness_evidence')
+                if not isinstance(weakness, dict) or weakness.get('verified') is not True:
+                    reasons.append('WEAK_TAPE_UNVERIFIED')
+                else:
+                    if weakness.get('kind') not in {'failed_rebound', 'support_loss', 'selling_volume'}:
+                        reasons.append('WEAK_TAPE_KIND_UNSUPPORTED')
+                    if not weakness.get('source_receipt'):
+                        reasons.append('WEAK_TAPE_RECEIPT_MISSING')
+                    if not weakness.get('observed_at'):
+                        reasons.append('WEAK_TAPE_TIME_MISSING')
+                    else:
+                        at = timestamp(weakness['observed_at'], 'weakness_observed_at')
+                        if at > observed or at > cutoff:
+                            raise ValueError('FUTURE_WEAK_TAPE')
+                        if cutoff - at > timedelta(minutes=5):
+                            reasons.append('STALE_WEAK_TAPE')
             if category=='C' and row.get('thesis_invalidation_verified') is not True:
                 reasons.append('REVERSAL_UNVERIFIED')
         output.append(dict(original=row, classification='BLOCKED' if reasons else category,
+                           underlying_classification=category,
                            blockers=reasons, executable=False, trade_authorized=False))
     return dict(mode='RESEARCH_ONLY_NOT_AN_ORDER',policy_version=POLICY,cutoff_at=cutoff.isoformat(),
                 created_at=now.isoformat(),universe=roster,universe_receipt=packet['universe_receipt'],
@@ -84,3 +104,4 @@ def main():
 
 
 if __name__=='__main__':main()
+
