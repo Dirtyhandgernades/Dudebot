@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "url": "https://www.nasdaqtrader.com/content/ProductsServices/Trading/ClosingCrossfaq.pdf",
+      "provider": "Nasdaq",
+      "retrieved_at_utc": "2026-10-29T17:32:18.146524+00:00",
+      "sha256": "96b39aacd1657d024d1a2381e2ce93ba62f4d1d02cb1d2cfdb91771f9346593a",
+      "bytes": 110147,
+      "interpretation": "Exchange auction methodology only; no authenticated per-security outcome receipt"
+    },
+    {
+      "url": "https://www.nyse.com/article/nyse-closing-auction-insiders-guide",
+      "provider": "NYSE",
+      "retrieved_at_utc": "2026-10-29T17:32:18.146838+00:00",
+      "sha256": "beb93c4672c59e61d5deb16c72443ac6e30a072cf6f85d74873ef700f34b122d",
+      "bytes": 176149,
+      "interpretation": "Exchange auction methodology only; no authenticated per-security outcome receipt"
+    }
+  ],
+  "official_closing_outcome_packets": 0,
+  "corporate_action_status": "UNVERIFIED",
+  "frozen_outcome_scoring_eligible": false,
+  "independent_underlying_vendor_sources_verified": false
+}

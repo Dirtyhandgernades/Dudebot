@@ -1,0 +1,42 @@
+{
+  "after_cost_pnl": null,
+  "conditional_precision": null,
+  "conditional_recall": null,
+  "counts": {
+    "NEW_COMPARABLE_IEX_THRESHOLD_CROSSING": 133,
+    "NOT_A_WATCH_AT_EITHER_CAPTURE": 8037,
+    "PERSISTENT_PRICE_ONLY_WATCH": 220,
+    "PREVIOUSLY_UNUSABLE_OR_BLOCKED_NOT_NEW_ONSET": 25,
+    "WATCH_DROPPED_OR_UNOBSERVABLE": 87,
+    "added_symbols": 0,
+    "dropped_to_exhausted": 1,
+    "dropped_to_other": 35,
+    "dropped_to_stale": 50,
+    "dropped_watch_labels": 87,
+    "intraday_watches": 378,
+    "morning_watches": 307,
+    "new_comparable_crossings": 133,
+    "new_watch_labels": 158,
+    "newly_visible_after_unusable": 25,
+    "persistent_watches": 220,
+    "previous_iex_reference_changed": 873,
+    "removed_symbols": 0,
+    "union_symbols": 8502
+  },
+  "full_report_sha256": "11489dd9d08f97517721014ac5002dd5a078765de1b577f9c62f2df46d0b85ad",
+  "intraday_capture_at": "2026-10-29T17:16:53.468273+00:00",
+  "intraday_universe_sha256": "7ec66aa627ca1f943351480fa5ac26ad5899c0966c1caf4a6c2ee4a8c7f57cc0",
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "morning_capture_at": "2026-10-29T14:21:40.737448+00:00",
+  "morning_universe_sha256": "892bb6d2354b812d2d52d9d839d496179cb4c5109eb0aa1915b66300b20d2a19",
+  "policy": "OBSIDIAN_IEX_IMMUTABLE_MORNING_TO_INTRADAY_TRANSITIONS_V1",
+  "prospective_20pct_collapse_predictions_proven": false,
+  "record_type": "SUBSEQUENT_VALIDATION_NOT_A_NEW_PREDICTION",
+  "session_date": "2026-10-29",
+  "smg_eligible_trades": null,
+  "source_runs": [
+    40890660077,
+    40919781576
+  ],
+  "verified_regular_close_outcomes": null
+}

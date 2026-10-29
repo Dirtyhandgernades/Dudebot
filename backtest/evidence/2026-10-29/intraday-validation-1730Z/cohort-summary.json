@@ -1,0 +1,34 @@
+{
+  "after_cost_pnl": null,
+  "correlated_scans_counted_as_independent_events": false,
+  "counts": {
+    "QUARANTINED_REFERENCE_CHANGE_OR_MISSING": 981,
+    "SAME_IEX_ASSET_AND_REFERENCE_ONLY": 7521,
+    "any_original_price_watch": 465,
+    "first_intraday_price_watch": 158,
+    "first_morning_price_watch": 307,
+    "intraday_present": 8502,
+    "intraday_watches": 378,
+    "morning_present": 8502,
+    "morning_watches": 307,
+    "union_symbols": 8502
+  },
+  "externally_verified_outcome_rows": 0,
+  "full_report_sha256": "7d65c164bf7ed232f45feeb9681d8509d52475f25cf5ad8e7770b16df61fb16c",
+  "intraday_decision_not_before": "2026-10-29T17:16:55.588747+00:00",
+  "intraday_original_universe_sha256": "7ec66aa627ca1f943351480fa5ac26ad5899c0966c1caf4a6c2ee4a8c7f57cc0",
+  "matched_outcome_scoring_enabled": false,
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "morning_decision_not_before": "2026-10-29T14:21:49.263639+00:00",
+  "morning_original_universe_sha256": "892bb6d2354b812d2d52d9d839d496179cb4c5109eb0aa1915b66300b20d2a19",
+  "original_union_denominator_retained": true,
+  "policy": "OBSIDIAN_MATCHED_UNTOUCHED_IEX_COHORT_LOCK_V1_2026_10_28",
+  "precision": null,
+  "recall": null,
+  "record_type": "SUBSEQUENT_VALIDATION_NOT_A_NEW_PREDICTION",
+  "session_date": "2026-10-29",
+  "source_runs": [
+    40890660077,
+    40919781576
+  ]
+}

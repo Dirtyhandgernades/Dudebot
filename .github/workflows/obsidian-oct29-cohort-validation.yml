@@ -1,0 +1,75 @@
+name: OBSIDIAN Oct29 original cohort validation (research only)
+on:
+  push:
+    branches: [research/obsidian-early-rug-20261025]
+    paths: ['.github/workflows/obsidian-oct29-cohort-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify existing source and scoring regression tests
+        run: >-
+          python -m unittest
+          tests.test_obsidian_prospective_iex_capture_transitions
+          tests.test_obsidian_prospective_matched_cohort_lock
+          tests.test_obsidian_prospective_forward_collapse_study -v
+      - uses: actions/download-artifact@v4
+        with:
+          name: obsidian-rug-proof-anchor-40890660077
+          run-id: 40890660077
+          github-token: ${{ github.token }}
+          path: inputs/morning
+      - uses: actions/download-artifact@v4
+        with:
+          name: obsidian-rug-proof-anchor-40919781576
+          run-id: 40919781576
+          github-token: ${{ github.token }}
+          path: inputs/intraday
+      - name: Replay immutable sources and preserve every candidate and rejection
+        shell: python
+        run: |
+          import hashlib,json
+          from pathlib import Path
+          from backtest.obsidian_iex_capture_transitions import compare
+          from backtest.obsidian_matched_cohort_lock import lock
+          from backtest.obsidian_forward_collapse_study import evaluate
+          out=Path('outputs/backtest/oct29-cohort-validation');out.mkdir(parents=True,exist_ok=False)
+          reports={'transitions':compare('inputs/morning','inputs/intraday'),
+                   'cohort':lock('inputs/morning','inputs/intraday'),
+                   'morning-readiness':evaluate('inputs/morning'),
+                   'intraday-readiness':evaluate('inputs/intraday')}
+          assert reports['cohort']['counts']['union_symbols']==8502
+          assert len(reports['cohort']['full_original_union_rows'])==8502
+          for phase in ('morning','intraday'):
+              r=reports[phase+'-readiness']
+              assert r['counts']['scanned_symbols']==r['counts']['missing_outcome']==8502
+              assert r['counts']['verified_outcomes']==0
+              assert r['conditional_early_precision'] is None
+              assert r['conditional_early_recall'] is None
+          hashes={}
+          for name,r in reports.items():
+              raw=json.dumps(r,indent=2,sort_keys=True).encode()
+              with (out/(name+'.json')).open('xb') as f:f.write(raw)
+              hashes[name+'.json']=hashlib.sha256(raw).hexdigest()
+          with (out/'manifest.json').open('x') as f:
+              json.dump({'mode':'RESEARCH_ONLY_NOT_AN_ORDER',
+                         'source_runs':[40890660077,40919781576],
+                         'original_predictions_modified':False,
+                         'verified_outcomes':0,'sha256':hashes},f,indent=2,sort_keys=True)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: obsidian-oct29-cohort-validation-${{ github.run_id }}
+          path: outputs/backtest/oct29-cohort-validation/
+          if-no-files-found: error
+          retention-days: 90
