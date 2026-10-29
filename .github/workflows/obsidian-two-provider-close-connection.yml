@@ -1,0 +1,55 @@
+name: OBSIDIAN two-provider close entitlement probe (research only)
+on:
+  push:
+    branches: [research/obsidian-early-rug-20261025]
+    paths: ['.github/workflows/obsidian-two-provider-close-connection.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-probe:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+    steps:
+      - name: Probe limited public daily-bar endpoints without logging credentials
+        shell: python
+        run: |
+          import os, json, urllib.request, urllib.parse, urllib.error, datetime, hashlib
+          output={'mode':'RESEARCH_ONLY_NOT_AN_ORDER','providers':{},'independent_official_closes_verified':False,'trade_authorized':False,'purpose':'connection and entitlement only; NOT frozen outcome evidence'}
+          cases=[('MASSIVE','MASSIVE_API_KEY','https://api.massive.com/v1/open-close/FPI/2026-10-28',{'adjusted':'false'}),('TWELVE_DATA','TWELVE_DATA_API_KEY','https://api.twelvedata.com/time_series',{'symbol':'FPI','interval':'1day','start_date':'2026-10-28','end_date':'2026-10-28','outputsize':'1'})]
+          for name,key,url,params in cases:
+              token=os.environ.get(key,'')
+              result={'secret_present':bool(token),'http_status':None,'provider_response_status':'NOT_TESTED','has_daily_bar':False,'official_exchange_close_verified':False,'corporate_action_basis_verified':False,'receipt_sha256':None}
+              if token:
+                  params=dict(params)
+                  if name=='MASSIVE': params['apiKey']=token
+                  else: params['apikey']=token
+                  req=urllib.request.Request(url+'?'+urllib.parse.urlencode(params),headers={'User-Agent':'OBSIDIAN-readonly-provider-probe/1.0'})
+                  try:
+                      with urllib.request.urlopen(req,timeout=15) as resp:
+                          raw=resp.read(100000)
+                          result['http_status']=resp.status
+                      obj=json.loads(raw)
+                      result['receipt_sha256']=hashlib.sha256(raw).hexdigest()
+                      result['provider_response_status']=str(obj.get('status','UNSPECIFIED'))[:32] if isinstance(obj,dict) else 'UNEXPECTED_SHAPE'
+                      result['has_daily_bar']=bool((obj.get('close') is not None if name=='MASSIVE' else obj.get('values')) if isinstance(obj,dict) else False)
+                  except urllib.error.HTTPError as e:
+                      result['http_status']=e.code
+                      result['provider_response_status']='HTTP_ERROR'
+                  except Exception:
+                      result['provider_response_status']='NETWORK_OR_RESPONSE_ERROR'
+              output['providers'][name]=result
+          os.makedirs('outputs/backtest',exist_ok=True)
+          with open('outputs/backtest/two-provider-connection.json','x') as f: json.dump(output,f,indent=2,sort_keys=True)
+          print(json.dumps(output,sort_keys=True))
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: obsidian-two-provider-connection-${{ github.run_id }}
+          path: outputs/backtest/two-provider-connection.json
+          if-no-files-found: warn
+          retention-days: 30
