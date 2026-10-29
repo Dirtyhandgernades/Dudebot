@@ -1,0 +1,18 @@
+# OBSIDIAN Research Engineering — October 29, 2026, 05:47 CT checkpoint
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Research branch only. No main/production, trading, credential, alert, original frozen baseline, watchlist or prospective capture modification.
+
+## Verified P0-1 code milestone
+
+- Refreshed exact branch head, October 28 autonomous validation roadmap, October 29 04:47 source-byte audit, research CI, recent artifacts, original Rug Proof marker protocol, original IEX/independent monitor marker namespace and the 05:12 Morning Movers note. The pre-work branch head was `4dced2658e5839df44781e9b7ad7ca94978d22ec`. No October 29 protected IEX or Rug Proof markers were present at this premarket checkpoint. Morning Movers owns its separate 05:12 report.
+- Added isolated `backtest/obsidian_eod_source_body_binding_shadow.py` and 14 synthetic regression tests in `tests/test_obsidian_prospective_eod_source_body_binding_shadow.py`; updated only the research offline CI path triggers. Commit `dc8cbc9b9cb1dbf1437f085d5442df2bd06a90bf` was written with an expected-head branch lease.
+- The new fail-closed audit checks that each *supplied* application/json response body has unique JSON keys and finite numbers, matches all supplied report fields for symbol, session dates, security and issuer class, official-close *claims*, timestamps and corporate-action *claims*. It detects mismatched prices, missing third receipts, invalid JSON, duplicate keys, nonfinite values, unresolved corporate-action windows, cross-body price conflicts and claims straddling the 20% threshold. Every original index is retained; URLs, raw bodies and credential query strings are never echoed.
+- Actual hosted [Actions run 40860840790](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40860840790) completed **SUCCESS** on the exact code commit. The hosted job log reports **445 offline tests passed**, up from 431 (14 new tests). The run produced **no market-data artifacts**.
+
+## Unresolved independent evidence gate
+
+The flat JSON input is a **synthetic fixture contract, not a provider-specific authenticated vendor schema**. The module does not make live network requests, obtain independent provider-owned HTTP receipts, validate exchange official closing auctions or the official prior close, establish exchange calendar provenance, prove independent provider organizations, or independently verify corporate actions. Byte and field matching of caller-supplied content is not evidence that the values were published by the claimed providers. It always returns `official_close_verified=false`, `eligible_for_frozen_scoring=false`, and `verified_20pct_prediction_success=null`. All missing official-close outcomes remain censored.
+
+No forward 20%+ prediction success, precision/recall, real-world short execution, or cost-adjusted profitability is established. Preserve the unchanged 136-name watchlist, JDZG stale/halt failure analysis, frozen cohort labels and denominators, and actual 0/+1/+2/+3 trading-session prospective windows. Account for false positives, late/exhausted cases, squeezes, costs, and missingness. The official Nasdaq Trader RSS single-point halt monitor is distinct from independent official close evidence; Massive subscription and live quote entitlement remain unverified; SMG blocked-symbol, account, borrow and margin permissions remain unknown. Retention backup remains BACKUP_UNVERIFIED.
+
+**Next measurable gate:** actual provider-owned authenticated regular-session close receipts from two independent organizations, complete previous-session/issuer/action/calendar evidence, and a third-source conflict inventory, all for untouched matured future cohorts. Until then no performance scoring.
