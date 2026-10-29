@@ -53,3 +53,5 @@ jobs:
           path: outputs/backtest/two-provider-connection.json
           if-no-files-found: warn
           retention-days: 30
+
+# Explicit second read-only entitlement probe requested 2026-10-29; no trading or production changes.
