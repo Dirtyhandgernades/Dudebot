@@ -1,0 +1,45 @@
+name: OBSIDIAN independent quote and official halt checkpoint (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/OBSIDIAN_INDEPENDENT_MONITOR_TRIGGER_*.md'
+      - '.github/workflows/obsidian-independent-source-monitor.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-independent-monitor-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  independent-sources:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test deterministic halt / quote / SMG gates
+        run: |
+          python -m unittest tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_prospective_smg_readonly_gate -v
+      - name: Install GET-only network dependency
+        run: python -m pip install 'requests>=2.32,<3'
+      - name: Collect exactly one bounded research checkpoint; optional licensed Massive quotes
+        env:
+          OBSIDIAN_MASSIVE_API_KEY: ${{ secrets.OBSIDIAN_MASSIVE_API_KEY }}
+        run: |
+          python -m backtest.obsidian_independent_quote_halt \
+            --output "outputs/backtest/obsidian-independent-source-${{ github.run_id }}.json"
+      - name: Upload research-only source report without mutating original IEX captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-independent-sources-${{ github.run_id }}
+          path: outputs/backtest/obsidian-independent-source-${{ github.run_id }}.json
+          if-no-files-found: ignore
+          retention-days: 90
