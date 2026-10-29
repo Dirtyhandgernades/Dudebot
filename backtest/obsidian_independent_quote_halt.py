@@ -95,11 +95,17 @@ def parse_nasdaq_halts(raw, captured_at):
         resume_date=fields.get("resumptiondate") or fields.get("resumedate")
         resume_time=(fields.get("traderesumptiontime") or
                      fields.get("resumptiontradetime") or fields.get("resumetradetime"))
+        # The live RSS can contain a resumption date without an actual
+        # trading-resumption time (or vice versa). Preserve the HALT rather
+        # than rejecting the entire official feed or inventing a resume.
         resume=_when(resume_date,resume_time) if resume_date and resume_time else None
-        if (resume_date or resume_time) and resume is None:
-            raise ValueError("HALT_RSS_UNPARSEABLE_RESUMPTION")
-        if resume is not None and resume < halt:
-            raise ValueError("HALT_RSS_RESUME_BEFORE_HALT")
+        resume_quality=("ABSENT" if not (resume_date or resume_time)
+                        else "INCOMPLETE" if not (resume_date and resume_time)
+                        else "UNPARSEABLE" if resume is None
+                        else "BEFORE_HALT" if resume < halt
+                        else "EXPLICIT_DATE_AND_TRADE_TIME")
+        if resume_quality != "EXPLICIT_DATE_AND_TRADE_TIME":
+            resume=None
         key=(symbol,halt.isoformat(),resume.isoformat() if resume else "")
         if key in seen:
             continue
@@ -115,6 +121,7 @@ def parse_nasdaq_halts(raw, captured_at):
         rows.append({
             "ticker":symbol, "halt_et":halt.isoformat(),
             "resume_et":resume.isoformat() if resume else None,
+            "resumption_parse_status":resume_quality,
             "reason_code":fields.get("reasoncode") or None,
             "halt_state_at_receipt":state,
             "source":"NASDAQ_TRADER_OFFICIAL_RSS",
