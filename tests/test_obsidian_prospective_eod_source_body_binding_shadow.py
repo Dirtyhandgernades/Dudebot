@@ -1,0 +1,181 @@
+"""Synthetic-only source body binding; never an authenticated close."""
+import copy
+import hashlib
+import json
+import unittest
+from datetime import date
+
+from backtest.obsidian_eod_source_body_binding_shadow import audit_body_bindings
+
+DAY = date(2026, 10, 28)
+PRIOR = date(2026, 10, 27)
+COLLECTED = "2026-10-28T20:10:00Z"
+
+
+def packet():
+    reports, receipts = [], []
+    for i, host in enumerate(("provider-a.example", "provider-b.example")):
+        report = {
+            "source_id": "source-" + str(i), "provider_organization": "group-" + str(i),
+            "source_url": "https://" + host + "/close?key=DO_NOT_ECHO_" + str(i),
+            "symbol": "TEST", "session_date": "2026-10-28",
+            "previous_session_date": "2026-10-27",
+            "security_id": "TEST-ISSUER", "previous_security_id": "TEST-ISSUER",
+            "issuer_class": "COMMON", "previous_issuer_class": "COMMON",
+            "kind": "regular_close", "session_complete": True,
+            "regular_close": "8.00", "previous_regular_close": "10.00",
+            "regular_close_asof": "2026-10-28T20:00:00Z",
+            "previous_regular_close_asof": "2026-10-27T20:00:00Z",
+            "corporate_action": {
+                "status": "NONE", "coverage_start": "2026-10-27",
+                "coverage_end": "2026-10-28",
+                "checked_at": "2026-10-28T20:07:00Z",
+            },
+        }
+        body = json.dumps({k: v for k, v in report.items()
+                           if k not in ("provider_organization", "source_url")},
+                          sort_keys=True).encode()
+        reports.append(report)
+        receipts.append({
+            "source_id": report["source_id"],
+            "provider_organization": report["provider_organization"],
+            "requested_url": report["source_url"],
+            "response_url": report["source_url"],
+            "http_status": 200, "http_method": "GET",
+            "content_type": "application/json; charset=utf-8",
+            "retrieved_at": "2026-10-28T20:08:00Z",
+            "raw_body": body, "body_sha256": hashlib.sha256(body).hexdigest(),
+        })
+    return reports, receipts
+
+
+def replace_body(receipts, index, body):
+    receipts[index]["raw_body"] = body
+    receipts[index]["body_sha256"] = hashlib.sha256(body).hexdigest()
+
+
+class BindingShadowTests(unittest.TestCase):
+    def check(self, reports=None, receipts=None):
+        r, t = packet()
+        return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
+                                   t if receipts is None else receipts, COLLECTED)
+
+    def test_matching_bytes_and_claims_still_censored(self):
+        result = self.check()
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+        self.assertIsNone(result["verified_20pct_prediction_success"])
+
+    def test_claim_not_present_in_body_rejected(self):
+        r, t = packet()
+        r[1]["regular_close"] = "7.00"
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+
+    def test_third_source_body_conflict_is_not_dropped(self):
+        r, t = packet()
+        third_r, third_t = copy.deepcopy(r[1]), copy.deepcopy(t[1])
+        third_r["source_id"] = third_t["source_id"] = "source-2"
+        third_r["provider_organization"] = third_t["provider_organization"] = "group-2"
+        third_r["source_url"] = third_t["requested_url"] = third_t["response_url"] = "https://provider-c.example/close"
+        third_r["regular_close"] = "9.00"
+        body = json.loads(third_t["raw_body"])
+        body["source_id"], body["regular_close"] = "source-2", "9.00"
+        replace_body([third_t], 0, json.dumps(body).encode())
+        r.append(third_r)
+        t.append(third_t)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertIn("PARSED_BODY_PRICE_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("PARSED_BODY_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 2)
+
+    def test_duplicate_json_keys_rejected(self):
+        r, t = packet()
+        replace_body(t, 1, t[1]["raw_body"][:-1] + b', "symbol":"TEST"}')
+        result = self.check(r, t)
+        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY", result["issues"])
+
+    def test_missing_receipt_keeps_original_index(self):
+        r, t = packet()
+        result = self.check(r, t[:1])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertIn("MISSING_OR_MALFORMED_SOURCE_RECEIPT", result["all_source_rows"][1]["issues"])
+
+    def test_nonfinite_json_rejected(self):
+        r, t = packet()
+        replace_body(t, 1, t[1]["raw_body"][:-1] + b', "bogus":NaN}')
+        result = self.check(r, t)
+        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY", result["issues"])
+
+    def test_action_status_mismatch_rejected(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["status"] = "SPLIT"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_ACTION_MISMATCH_STATUS", result["issues"])
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+
+    def test_action_coverage_gap_rejected(self):
+        r, t = packet()
+        r[1]["corporate_action"]["coverage_start"] = "2026-10-28"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["coverage_start"] = "2026-10-28"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+
+    def test_security_identity_not_stable(self):
+        r, t = packet()
+        r[1]["previous_security_id"] = "OLD-ISSUER"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_security_id"] = "OLD-ISSUER"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_SECURITY_IDENTITY_NOT_STABLE", result["issues"])
+
+    def test_claimed_asof_wrong_session_rejected(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-27T20:00:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = "2026-10-27T20:00:00Z"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+
+    def test_no_secrets_or_raw_json_appear_in_result(self):
+        result = self.check()
+        output = repr(result)
+        self.assertNotIn("DO_NOT_ECHO", output)
+        self.assertNotIn('"symbol"', output)
+        self.assertNotIn("provider-a.example", output)
+
+    def test_http_error_still_rejected_even_if_body_matches(self):
+        r, t = packet()
+        t[1]["http_status"] = 401
+        result = self.check(r, t)
+        self.assertIn("NON_SUCCESSFUL_OR_NON_GET_HTTP_CLAIM", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+
+    def test_unsupported_media_censored(self):
+        r, t = packet()
+        t[1]["content_type"] = "text/html"
+        result = self.check(r, t)
+        self.assertIn("NOT_EXPLICIT_APPLICATION_JSON", result["issues"])
+
+    def test_boolean_price_not_accepted(self):
+        r, t = packet()
+        r[1]["regular_close"] = True
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = True
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+
+
+if __name__ == "__main__":
+    unittest.main()
