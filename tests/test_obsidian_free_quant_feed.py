@@ -97,3 +97,33 @@ class PassageTests(unittest.TestCase):
         p={'filings':{'recent':{'form':['8-K'],'accessionNumber':['0000000001-26-000001'],
              'primaryDocument':['doc.htm'],'acceptanceDateTime':['2026-10-29T12:00:00']}}}
         self.assertEqual(m.filing_records(p,'AAPL','1',NOW,NOW),[])
+
+class RotationTests(unittest.TestCase):
+    def test_new_priority_symbols_and_no_repeating_completed_batch(self):
+        state={'version':1,'symbols':{'AAPL':{'last_attempted_at':NOW.isoformat()}}}
+        batch=m.sec_batch(['AAPL','CBRS','MSFT','RAPP','SPTX'],3,state,['CBRS','RAPP','SPTX'])
+        self.assertEqual(batch,['CBRS','RAPP','SPTX'])
+        packet={'rows':[{'ticker':s,'catalysts':{'status':'RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED'}} for s in batch],
+                'sec_rotation':{'selected_symbols':batch},'requested_symbols':['AAPL','CBRS','MSFT','RAPP','SPTX'],
+                'finished_at':(NOW+timedelta(seconds=1)).isoformat()}
+        new=m.update_rotation(state,packet)
+        self.assertEqual(m.sec_batch(packet['requested_symbols'],2,new,['CBRS','RAPP','SPTX']),['MSFT','AAPL'])
+        self.assertEqual(state['symbols'].keys(),{'AAPL'})
+    def test_every_name_gets_a_turn_and_wraps(self):
+        symbols=['AAA','BBB','CCC','DDD','EEE'];state={'version':1,'symbols':{}};seen=set()
+        for i in range(3):
+            batch=m.sec_batch(symbols,2,state)
+            packet={'rows':[{'ticker':s,'catalysts':{'status':'RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED'}} for s in batch],
+                    'sec_rotation':{'selected_symbols':batch},'requested_symbols':symbols,
+                    'finished_at':(NOW+timedelta(seconds=i)).isoformat()}
+            seen.update(batch);state=m.update_rotation(state,packet)
+        self.assertEqual(seen,set(symbols))
+    def test_unavailable_credentials_and_host_budget_do_not_burn_turn(self):
+        state={'version':1,'symbols':{}}
+        for status in ('SEC_USER_AGENT_ABSENT','BUDGET_OR_PROVIDER_STOP','SEC_MAP_SOURCE_HTTP_403'):
+            packet={'rows':[{'ticker':'AAPL','catalysts':{'status':status}}],
+                    'sec_rotation':{'selected_symbols':['AAPL']},'requested_symbols':['AAPL'],'finished_at':NOW.isoformat()}
+            self.assertEqual(m.update_rotation(state,packet)['symbols'],{})
+    def test_malformed_rotation_is_rejected(self):
+        for state in ({}, {'version':1,'symbols':{'AAPL':{'last_attempted_at':'bad'}}}):
+            with self.assertRaises(ValueError):m.sec_batch(['AAPL'],8,state)

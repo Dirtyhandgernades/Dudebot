@@ -1,0 +1,60 @@
+{
+  "last_packet_at": "2026-10-29T18:18:51.960007+00:00",
+  "provenance": {
+    "meaning": "Original eight SEC submission results; no synthetic checks",
+    "seed_artifact_id": 12922670387,
+    "seed_run_id": 40929567179
+  },
+  "symbols": {
+    "ADVB": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AEHL": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AIBZ": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AIFA": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AIFU": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AIOK": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AKAM": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AMD": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    }
+  },
+  "universe_sha256": "1f8fcbe918f356065390b397b1f2733f3bc722d4057790b22b8fc70203da7138",
+  "version": 1
+}

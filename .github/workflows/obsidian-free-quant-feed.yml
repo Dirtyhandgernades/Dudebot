@@ -6,9 +6,14 @@ on:
       - '.github/workflows/obsidian-free-quant-feed.yml'
       - 'backtest/obsidian_free_quant_feed.py'
       - 'tests/test_obsidian_free_quant_feed.py'
+      - 'backtest/obsidian_free_quant_watchlist.json'
   workflow_dispatch:
+concurrency:
+  group: obsidian-free-quant-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
+  actions: read
 jobs:
   packet:
     if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
@@ -16,11 +21,45 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: research/obsidian-early-rug-20261025
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Offline source and clock gates before live requests
         run: python -m unittest tests.test_obsidian_free_quant_feed tests.test_obsidian_prospective_independent_quote_halt -v
+      - name: Restore last successful SEC rotation artifact without repository writes
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import json,subprocess,sys,tempfile
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()))
+          from backtest.obsidian_free_quant_feed import validate_rotation
+          runs=json.loads(subprocess.check_output(['gh','run','list','--workflow','obsidian-free-quant-feed.yml',
+              '--branch','research/obsidian-early-rug-20261025','--event','workflow_dispatch',
+              '--status','success','--limit','10','--json','databaseId']))
+          restored=False
+          for run in runs:
+              artifacts=json.loads(subprocess.check_output(['gh','api',f"repos/{__import__('os').environ['GITHUB_REPOSITORY']}/actions/runs/{run['databaseId']}/artifacts"]))['artifacts']
+              if not any(not a['expired'] and a['name']==f"obsidian-free-quant-{run['databaseId']}" for a in artifacts):continue
+              with tempfile.TemporaryDirectory() as folder:
+                  subprocess.run(['gh','run','download',str(run['databaseId']),'--name',f"obsidian-free-quant-{run['databaseId']}",'--dir',folder],check=True)
+                  candidates=list(Path(folder).rglob('free-quant-sec-rotation.json'))
+                  if not candidates:continue
+                  if len(candidates)!=1:raise ValueError('AMBIGUOUS_ROTATION_ARTIFACT')
+                  state=validate_rotation(json.loads(candidates[0].read_text()))
+                  current=json.loads(Path('backtest/evidence/free-quant-sec-rotation.json').read_text())
+                  if state.get('last_packet_at','')<current.get('last_packet_at',''):continue
+                  state['restored_from_run_id']=run['databaseId']
+                  Path('backtest/evidence/free-quant-sec-rotation.json').write_text(json.dumps(state,indent=2,sort_keys=True))
+                  restored=True
+                  print('SEC_ROTATION_RESTORED_FROM_RUN',run['databaseId'])
+                  break
+          if not restored:print('SEC_ROTATION_USING_DURABLE_REPOSITORY_SNAPSHOT; no newer compatible retained artifact')
       - name: Install bounded read-only HTTP dependency
         if: github.event_name == 'workflow_dispatch'
         run: python -m pip install 'requests>=2.32,<3'
@@ -37,6 +76,8 @@ jobs:
         if: always() && github.event_name == 'workflow_dispatch'
         with:
           name: obsidian-free-quant-${{ github.run_id }}
-          path: outputs/backtest/free-quant-${{ github.run_id }}.json
+          path: |
+            outputs/backtest/free-quant-${{ github.run_id }}.json
+            backtest/evidence/free-quant-sec-rotation.json
           if-no-files-found: error
           retention-days: 90

@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import re
+import subprocess
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_independent_quote_halt import parse_nasdaq_halts, NASDAQ_RSS
@@ -19,7 +20,7 @@ UTC = timezone.utc
 ET = ZoneInfo('America/New_York')
 CT = ZoneInfo('America/Chicago')
 MODE = 'RESEARCH_ONLY_NOT_AN_ORDER'
-POLICY = 'OBSIDIAN_FREE_QUANT_FEED_V1'
+POLICY = 'OBSIDIAN_FREE_QUANT_FEED_V2'
 MAX_SYMBOLS = 200
 SIP_LAG = timedelta(minutes=17)
 SAFE = re.compile(r'^[A-Z][A-Z0-9.]{0,12}$')
@@ -115,11 +116,49 @@ def decoded(raw):
     except (ValueError,TypeError):return None
 
 
-def collect(symbols, reader=None, clock=None, sec_limit=8):
+def validate_rotation(state):
+    if not isinstance(state,dict) or state.get('version')!=1 or not isinstance(state.get('symbols'),dict):
+        raise ValueError('INVALID_SEC_ROTATION_STATE')
+    if state.get('last_packet_at') is not None and asof(state['last_packet_at']) is None:raise ValueError('INVALID_ROTATION_PACKET_CLOCK')
+    for symbol,entry in state['symbols'].items():
+        if not SAFE.fullmatch(symbol) or not isinstance(entry,dict):raise ValueError('INVALID_SEC_ROTATION_ENTRY')
+        for field in ('last_attempted_at','last_success_at'):
+            if entry.get(field) is not None and asof(entry[field]) is None:raise ValueError('INVALID_ROTATION_TIMESTAMP')
+    return state
+
+
+def sec_batch(symbols, limit, state, priority=()):
+    validate_rotation(state)
+    if any(s not in symbols for s in priority):raise ValueError('PRIORITY_OUTSIDE_UNIVERSE')
+    return sorted(symbols,key=lambda s:(state['symbols'].get(s,{}).get('last_attempted_at') or '',
+                                       0 if s in priority else 1,s))[:limit]
+
+
+def update_rotation(state, packet):
+    validate_rotation(state)
+    updated=json.loads(json.dumps(state))
+    rows={r['ticker']:r for r in packet['rows']}
+    for symbol in packet['sec_rotation']['selected_symbols']:
+        status=rows[symbol]['catalysts']['status']
+        # Missing credentials, source mapping outages and host stop do not burn a turn.
+        if status in {'SEC_USER_AGENT_ABSENT','BUDGET_OR_PROVIDER_STOP'} or status.startswith('SEC_MAP_SOURCE_'):
+            continue
+        entry=updated['symbols'].setdefault(symbol,{})
+        entry.update(last_attempted_at=packet['finished_at'],last_result=status,
+                     attempts=entry.get('attempts',0)+1,source_run_id=os.environ.get('GITHUB_RUN_ID'))
+        if status=='RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED':entry['last_success_at']=packet['finished_at']
+    updated['last_packet_at']=packet['finished_at']
+    updated['universe_sha256']=hashlib.sha256('\n'.join(packet['requested_symbols']).encode()).hexdigest()
+    return updated
+
+
+def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, priority=()):
     symbols=list(symbols)
     if not symbols or len(symbols)>MAX_SYMBOLS or len(set(symbols))!=len(symbols) or any(not SAFE.fullmatch(s) for s in symbols):
         raise ValueError('INVALID_BOUNDED_SYMBOL_UNIVERSE')
     if not 0<=sec_limit<=8:raise ValueError('SEC_BUDGET_MAX_8')
+    rotation_state=rotation_state if rotation_state is not None else {'version':1,'symbols':{}}
+    selected=sec_batch(symbols,sec_limit,rotation_state,priority)
     now=clock or datetime.now(UTC)
     if now.utcoffset() is None:raise ValueError('AWARE_CLOCK_REQUIRED')
     local=now.astimezone(CT)
@@ -172,7 +211,9 @@ def collect(symbols, reader=None, clock=None, sec_limit=8):
                 if not isinstance(values,list) or len(values)!=len(mapping['fields']):continue
                 item=dict(zip(mapping['fields'],values))
                 if item.get('ticker') in matches:matches[item['ticker']].append(item)
-        for symbol in symbols[:sec_limit]:
+        for symbol in selected:
+            if not isinstance(mapping,dict) or not isinstance(mapping.get('fields'),list) or not isinstance(mapping.get('data'),list):
+                sec_states[symbol]='SEC_MAP_SOURCE_'+(map_receipt['error'] or 'INVALID_RESPONSE');continue
             if len(matches[symbol])!=1:sec_states[symbol]='SEC_MAPPING_MISSING_OR_AMBIGUOUS';continue
             cik=matches[symbol][0].get('cik')
             try:cik=f'{int(cik):010d}'
@@ -221,6 +262,8 @@ def collect(symbols, reader=None, clock=None, sec_limit=8):
                               sip_states=dict(Counter(r['sip']['status'] for r in rows)),
                               sec_states=dict(Counter(r['catalysts']['status'] for r in rows))),
                 request_budget=dict(maximum=reader.maximum,used=reader.used,sip_pages=pages,sec_maximum=sec_limit),
+                sec_rotation=dict(selected_symbols=selected,state_input_sha256=hashlib.sha256(json.dumps(rotation_state,sort_keys=True).encode()).hexdigest(),
+                                  priority_symbols=list(priority),selection_policy='OLDEST_ATTEMPT_FIRST; priority breaks never-attempted ties'),
                 receipts=reader.receipts,official_closes_verified=False,verified_predictions=0,trade_authorized=False)
 
 
@@ -228,16 +271,26 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--watchlist',default='backtest/obsidian_historical_watchlist_manifest_2026_10_26.json')
     parser.add_argument('--supplemental',default='backtest/obsidian_supplemental_watchlist_2026_10_26.json')
+    parser.add_argument('--extra-watchlist',default='backtest/obsidian_free_quant_watchlist.json')
+    parser.add_argument('--rotation-state',default='backtest/evidence/free-quant-sec-rotation.json',type=Path)
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--sec-limit',type=int,default=8)
     args=parser.parse_args()
     if args.output.exists():raise FileExistsError(args.output)
     records=json.loads(Path(args.watchlist).read_text())['records']+json.loads(Path(args.supplemental).read_text())['records']
-    symbols=sorted({r['ticker'] for r in records})
-    packet=collect(symbols,sec_limit=args.sec_limit)
+    extra=json.loads(Path(args.extra_watchlist).read_text())['symbols']
+    if not isinstance(extra,list) or any(not isinstance(s,str) or not SAFE.fullmatch(s) for s in extra):raise ValueError('INVALID_SCOPE_EXTENSION')
+    symbols=sorted({r['ticker'] for r in records}|set(extra))
+    if not args.rotation_state.exists():raise FileNotFoundError('SEC_ROTATION_STATE_REQUIRED_NO_SILENT_RESET')
+    state=validate_rotation(json.loads(args.rotation_state.read_text()))
+    packet=collect(symbols,sec_limit=args.sec_limit,rotation_state=state,priority=extra)
+    packet['source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open('x') as f:json.dump(packet,f,indent=2,sort_keys=True,allow_nan=False)
-    print(json.dumps(dict(policy=POLICY,coverage=packet['coverage'],request_budget=packet['request_budget'])))
+    next_state=update_rotation(state,packet)
+    temp=args.rotation_state.with_suffix('.tmp')
+    temp.write_text(json.dumps(next_state,indent=2,sort_keys=True));temp.replace(args.rotation_state)
+    print(json.dumps(dict(policy=POLICY,coverage=packet['coverage'],request_budget=packet['request_budget'],sec_rotation=packet['sec_rotation'])))
 
 
 if __name__=='__main__':main()

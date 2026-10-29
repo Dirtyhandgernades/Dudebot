@@ -1,0 +1,6 @@
+{
+  "policy": "FREE_QUANT_SCOPE_EXTENSION_V1",
+  "purpose": "Current research coverage only; never amend historical cohorts or predictions",
+  "symbols": ["CBRS", "RAPP", "SPTX"],
+  "provenance": "User-named failure-analysis cases in the OBSIDIAN engineering directive; absence from retained 136 confirmed in first free-feed packet"
+}
