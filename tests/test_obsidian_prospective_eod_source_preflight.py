@@ -97,6 +97,24 @@ class SourcePreflightTests(unittest.TestCase):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), east], COLLECTED)
         self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
 
+    def test_half_cent_agreement_straddling_20pct_boundary_is_censored(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close="8.000"),
+            row("two", "two.example", close="8.005"),
+        ], COLLECTED)
+        self.assertIn("TWENTY_PERCENT_THRESHOLD_STRADDLED", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_sub_tolerance_previous_close_difference_blocks_threshold_reference(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close="8.00", prior="10.000"),
+            row("two", "two.example", close="8.00", prior="10.001"),
+        ], COLLECTED)
+        self.assertIn("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
     def test_half_cent_tolerance_boundary(self):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), row("two", "two.example", close="8.005")], COLLECTED)
         self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")

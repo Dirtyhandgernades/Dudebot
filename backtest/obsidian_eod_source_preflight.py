@@ -107,6 +107,15 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
             issues.add("CONFLICTING_REGULAR_CLOSE_REPORTS")
         if max(priors) - min(priors) > MAX_PRICE_DIFFERENCE:
             issues.add("CONFLICTING_PREVIOUS_CLOSE_REPORTS")
+    # Numerical half-cent agreement can still straddle the exact 20% event
+    # boundary. Never silently turn an ambiguous classification into a hit.
+    # A distinct prior-close claim also changes the reference denominator,
+    # even when its difference is smaller than the price tolerance.
+    if len(accepted) >= 2:
+        if len(set(priors)) > 1:
+            issues.add("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
+        elif min(closes) <= priors[0] * Decimal("0.8") < max(closes):
+            issues.add("TWENTY_PERCENT_THRESHOLD_STRADDLED")
     return {
         "mode": MODE,
         "symbol": symbol,
