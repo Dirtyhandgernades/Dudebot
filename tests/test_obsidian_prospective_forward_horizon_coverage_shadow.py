@@ -140,6 +140,43 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(row["horizons"][1]["source_evidence"], "SUPPLIED_EOD_EVIDENCE_BLOCKED")
         self.assertEqual(row["horizons"][3]["chain_evidence"], "PRIOR_HORIZON_CENSORED")
 
+    def test_watch_and_no_watch_denominators_preserve_every_original_row(self):
+        report = audit(self.capture, calendar(), [])
+        original_watch = sum(x["original_price_only_watch"] for x in report["rows"])
+        for horizon in range(4):
+            segments = report["per_horizon_by_original_watch"][horizon]
+            self.assertEqual(segments["watch"]["original_denominator"], original_watch)
+            self.assertEqual(segments["no_watch"]["original_denominator"], 3-original_watch)
+            self.assertEqual(segments["watch"]["missing_source_row"], original_watch)
+            self.assertEqual(segments["no_watch"]["missing_source_row"], 3-original_watch)
+            status_groups = report["per_horizon_by_original_status"][horizon]["statuses"]
+            self.assertEqual(sum(s["original_denominator"] for s in status_groups.values()), 3)
+            self.assertEqual(sum(s["missing_source_row"] for s in status_groups.values()), 3)
+        self.assertIsNone(report["verified_false_positive_or_late_classification"])
+
+    def test_watch_and_original_status_partitions_include_rejected_and_later_rows(self):
+        rows = self.four("AAAA", [9.5, 9.1, 8.7, 7.1])
+        rows[1]["provider_conflict"] = True
+        rows.extend([eod("CCCC", 0, 10, 10.2), eod("CCCC", 3, 10.2, 9.8)])
+        report = audit(self.capture, calendar(), rows)
+        for horizon in range(4):
+            overall = report["per_horizon"][horizon]
+            watches = report["per_horizon_by_original_watch"][horizon]
+            statuses = report["per_horizon_by_original_status"][horizon]["statuses"]
+            for metric in ("missing_source_row", "blocked_source_row",
+                           "structurally_consistent_source_row", "prefix_censored",
+                           "prior_horizon_censored", "price_chain_mismatch",
+                           "complete_prefix_unauthenticated"):
+                self.assertEqual(
+                    watches["watch"].get(metric, 0) + watches["no_watch"].get(metric, 0),
+                    overall.get(metric, 0))
+                self.assertEqual(
+                    sum(segment.get(metric, 0) for segment in statuses.values()),
+                    overall.get(metric, 0))
+        self.assertEqual(report["per_horizon"][1]["blocked_source_row"], 1)
+        self.assertIsNone(report["verified_hits"])
+        self.assertIsNone(report["verified_false_positives"])
+
     def test_duplicate_and_outside_rows_fail_closed(self):
         first = eod("AAAA", 0, 10, 9.5)
         with self.assertRaisesRegex(ValueError, "DUPLICATE_OR_OUTSIDE"):
