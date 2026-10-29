@@ -1,0 +1,112 @@
+{
+  "added_symbols": [
+    "CBRS",
+    "RAPP",
+    "SPTX"
+  ],
+  "cumulative_successful_sec_metadata_checks": 24,
+  "current_feed_universe": 139,
+  "disjoint_successive_sec_batches_verified": true,
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "original_cohorts_modified": false,
+  "prior_retained_universe": 136,
+  "records": [
+    {
+      "artifact_digest": "sha256:d315bfbd8113a48dc4fd60859b496728e788fc476c80a1dabc6ef27bb68c715b",
+      "artifact_expires_at": "2027-01-27T18:37:51Z",
+      "artifact_id": 12924220110,
+      "coverage": {
+        "denominator": 139,
+        "iex_states": {
+          "FRESH_SINGLE_VENUE": 29,
+          "STALE_SINGLE_VENUE": 110
+        },
+        "sec_states": {
+          "NOT_REQUESTED_SEC_BUDGET": 131,
+          "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED": 8
+        },
+        "sip_states": {
+          "HISTORICAL_DELAYED_SIP_BAR_FRESH_AT_ASOF": 108,
+          "HISTORICAL_DELAYED_SIP_BAR_STALE_AT_ASOF": 23,
+          "NO_CONSOLIDATED_BAR": 8
+        }
+      },
+      "cumulative_state_symbols": 16,
+      "finished_at": "2026-10-29T18:38:17.084994+00:00",
+      "packet_sha256": "f2d4711954cc8d145ae42669c6ad21cb774fca1a92526863f3ba185133c4c633",
+      "request_budget": {
+        "maximum": 24,
+        "sec_maximum": 8,
+        "sip_pages": 1,
+        "used": 14
+      },
+      "restored_from_run_id": null,
+      "rotation_sha256": "6ce44a1d7b4171e79b47d74ad5f038ad1869ffb5b87ba440f3e0c9c201e4c756",
+      "run_id": 40932613239,
+      "selected_sec_symbols": [
+        "CBRS",
+        "RAPP",
+        "SPTX",
+        "AMTD",
+        "APUS",
+        "APXC",
+        "ARTL",
+        "AVBP"
+      ],
+      "source_commit": "df412650260d5d5c910fd19847e0d5a370ea2311",
+      "source_url": "https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40932613239",
+      "started_at": "2026-10-29T18:38:09.637974+00:00"
+    },
+    {
+      "artifact_digest": "sha256:91c704b67430c5495b3e919b8fd1206617defb0188e723da11ab2dd1fab7e200",
+      "artifact_expires_at": "2027-01-27T18:38:37Z",
+      "artifact_id": 12924110275,
+      "coverage": {
+        "denominator": 139,
+        "iex_states": {
+          "FRESH_SINGLE_VENUE": 24,
+          "STALE_SINGLE_VENUE": 115
+        },
+        "sec_states": {
+          "NOT_REQUESTED_SEC_BUDGET": 131,
+          "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED": 8
+        },
+        "sip_states": {
+          "HISTORICAL_DELAYED_SIP_BAR_FRESH_AT_ASOF": 108,
+          "HISTORICAL_DELAYED_SIP_BAR_STALE_AT_ASOF": 23,
+          "NO_CONSOLIDATED_BAR": 8
+        }
+      },
+      "cumulative_state_symbols": 24,
+      "finished_at": "2026-10-29T18:38:54.107237+00:00",
+      "packet_sha256": "e2e10aacbf14e5e15eea625054b360621c6e4bb8d0a4ccc09a8dcf552d21f9cc",
+      "request_budget": {
+        "maximum": 24,
+        "sec_maximum": 8,
+        "sip_pages": 1,
+        "used": 14
+      },
+      "restored_from_run_id": 40932613239,
+      "rotation_sha256": "5f3bac1627373fb418e0f11f1e7645d5939a26c7e326e0dd0ae0633081d498e3",
+      "run_id": 40932728198,
+      "selected_sec_symbols": [
+        "AVTX",
+        "AVX",
+        "BBCI",
+        "BDRX",
+        "BENF",
+        "BMEA",
+        "BMGL",
+        "BNC"
+      ],
+      "source_commit": "df412650260d5d5c910fd19847e0d5a370ea2311",
+      "source_url": "https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40932728198",
+      "started_at": "2026-10-29T18:38:47.554786+00:00"
+    }
+  ],
+  "remaining_without_first_sec_metadata_check": 115,
+  "workflow_permissions": {
+    "actions": "read",
+    "contents": "read"
+  }
+}

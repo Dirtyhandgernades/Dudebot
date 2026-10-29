@@ -1,10 +1,11 @@
 {
-  "last_packet_at": "2026-10-29T18:18:51.960007+00:00",
+  "last_packet_at": "2026-10-29T18:38:54.107237+00:00",
   "provenance": {
     "meaning": "Original eight SEC submission results; no synthetic checks",
     "seed_artifact_id": 12922670387,
     "seed_run_id": 40929567179
   },
+  "restored_from_run_id": 40932613239,
   "symbols": {
     "ADVB": {
       "attempts": 1,
@@ -53,8 +54,120 @@
       "last_attempted_at": "2026-10-29T18:18:51.960007+00:00",
       "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
       "last_success_at": "2026-10-29T18:18:51.960007+00:00"
+    },
+    "AMTD": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "APUS": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "APXC": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "ARTL": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "AVBP": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "AVTX": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "AVX": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BBCI": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BDRX": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BENF": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BMEA": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BMGL": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "BNC": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:54.107237+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:54.107237+00:00",
+      "source_run_id": "40932728198"
+    },
+    "CBRS": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "RAPP": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
+    },
+    "SPTX": {
+      "attempts": 1,
+      "last_attempted_at": "2026-10-29T18:38:17.084994+00:00",
+      "last_result": "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED",
+      "last_success_at": "2026-10-29T18:38:17.084994+00:00",
+      "source_run_id": "40932613239"
     }
   },
-  "universe_sha256": "1f8fcbe918f356065390b397b1f2733f3bc722d4057790b22b8fc70203da7138",
+  "universe_sha256": "390f30d6e7789f6f8586be1566aa4ebdd94afd1c85801217368b5fc6aa609510",
   "version": 1
 }

@@ -1,3 +1,11 @@
+# Free-feed scope and SEC rotation verified — Oct29 2026
+
+Current feed now covers 139 names: original retained 136 plus separate CBRS/RAPP/SPTX overlay. Frozen historical cohorts/predictions unchanged. Run 40932613239 checked all 139 and SEC batch CBRS,RAPP,SPTX,AMTD,APUS,APXC,ARTL,AVBP; run 40932728198 restored its artifact state and advanced to AVTX,AVX,BBCI,BDRX,BENF,BMEA,BMGL,BNC. Both runs successful; actual artifacts downloaded and complete scopes/disjoint batches/state linkage verified. Including original seed eight, 24 unique successful SEC metadata lookups, 115 names awaiting first lookup. This is metadata coverage, not verified adverse mechanisms.
+
+Durable verification: `backtest/evidence/2026-10-29/coverage-rotation/`; reviewed state snapshot: `backtest/evidence/free-quant-sec-rotation.json`. Read-only workflow restores latest compatible retained artifact state, uploads new state with packet and does not auto-push. Runs serialized; missing credentials/mapping-source outages/host-budget stops do not consume a rotation turn. Artifact expiry fallback uses reviewed repository snapshot and may safely recheck names. No new schedule, alerts, trades, paid data, production/main or baseline rule changes. Latest market coverage still delayed research: 24 fresh IEX/115 stale, SIP 108 fresh at delayed cutoff/23 stale/8 absent. Regression suite 891 passed plus 27 subtests.
+
+---
+
 # Free quant packet operational — Oct29 2026
 
 Free bounded feed implemented in `backtest/obsidian_free_quant_feed.py`; manual collector `obsidian-free-quant-feed.yml`. Run [40929567179](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40929567179) completed and artifact 12922670387 independently inspected: all 136 retained names preserved. IEX 24 fresh <=60-second trades/112 stale; SIP 108 fresh at delayed cutoff/20 stale/8 missing. Official halt RSS and SEC metadata collection worked, 14 GETs total. SEC budget covers 8 names; 2 recent filings/documents retrieved, 128 names unqueried. Possible adverse/contrary passages remain unreviewed. Every row keeps halt execution clearance, SMG permission and trade authorization false.
