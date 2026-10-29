@@ -15,3 +15,9 @@ The underlying provider names, domains, 16:00 timestamp claims, security identit
 ## Coordination
 
 No new morning, after-hours, early-board, intraday, preclose, or Rug Proof markers were created or replayed. The frozen 136-name cohort and JDZG stale/halt analysis are unchanged. The separate 18:20 CT Rug Proof audit retains ownership of its own checkpoint. Research branch only; no production, secrets, orders, notifications, or SMG execution.
+
+## Hosted verification (same-session, no live provider request)
+
+- Implementation commit: `52e26fa090ca6f5fb101f9ab95fa76b81222897e`.
+- Research-only CI: [run 40968654322](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40968654322), job `123779517708`, **success** on that exact implementation SHA. Decoded original job log reports **481 prospective tests plus 4 ABC board tests passed**. Both new extreme-finite-current/prior-close regressions explicitly passed.
+- The run tests offline source contracts only. **No** provider entitlement, authenticated official exchange close, or 20%+ prospective predictive success is established. No new IEX or Rug Proof capture was attempted.
