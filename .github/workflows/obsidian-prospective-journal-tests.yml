@@ -54,6 +54,8 @@ on:
       - 'backtest/obsidian_iex_preclose_band_gap_audit.py'
       - 'tests/test_obsidian_prospective_iex_preclose_band_gap.py'
       - 'backtest/obsidian_matched_cohort_lock.py'
+      - 'backtest/obsidian_retained_freshness_shadow.py'
+      - 'tests/test_obsidian_prospective_retained_freshness_shadow.py'
       - 'tests/test_obsidian_prospective_matched_cohort_lock.py'
       - 'backtest/obsidian_iex_capture_transitions.py'
       - 'tests/test_obsidian_prospective_iex_capture_transitions.py'
