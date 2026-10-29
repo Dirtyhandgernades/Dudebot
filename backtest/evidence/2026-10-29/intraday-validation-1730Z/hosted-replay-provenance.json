@@ -1,0 +1,37 @@
+{
+  "actual_1420_board_delivery_verified": false,
+  "after_close_state": "NOT_YET_DUE_AT_AUDIT_TIME",
+  "artifact_digest": "sha256:e8c178e1bb3a1ce29e4ade8478418debda6af95d27943c841b4f1e49a706ad57",
+  "artifact_expires_at": "2027-01-27T17:33:10Z",
+  "artifact_id": 12917639329,
+  "complete_original_union_rows_verified": 8502,
+  "downloaded_report_hashes_verified": true,
+  "earlier_failed_run": {
+    "fixed": true,
+    "reason": "Python temporary-script import path omitted repository root",
+    "run_id": 40922279811
+  },
+  "hash_manifest": {
+    "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+    "original_predictions_modified": false,
+    "sha256": {
+      "cohort.json": "7d65c164bf7ed232f45feeb9681d8509d52475f25cf5ad8e7770b16df61fb16c",
+      "intraday-readiness.json": "e606778cc70c01743799e90efda276303fa3d518ecb4e39c623e2007e4ef1f1a",
+      "morning-readiness.json": "a3bc32a0e312f2703516c4c4aef291b99886eea04873af31cc49e5bd6ffd92a7",
+      "transitions.json": "11489dd9d08f97517721014ac5002dd5a078765de1b577f9c62f2df46d0b85ad"
+    },
+    "source_runs": [
+      40890660077,
+      40919781576
+    ],
+    "verified_outcomes": 0
+  },
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "next_checkpoint_state": "NOT_YET_DUE_AT_AUDIT_TIME",
+  "precision": null,
+  "recall": null,
+  "run_id": 40922411059,
+  "source_commit": "b72486d7d6692b3bde33dcce0592648acb6b3047",
+  "source_url": "https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40922411059",
+  "verified_outcomes": 0
+}

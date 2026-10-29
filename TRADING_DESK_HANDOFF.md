@@ -1,3 +1,13 @@
+# Latest intraday validation — 2026-10-29
+
+Read-only hosted replay [40922411059](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40922411059) passed; artifact 12917639329 independently downloaded, all four report hashes verified, 8,502 complete union rows. Original source runs remain 40890660077 and 40919781576. Original watch labels unchanged. Counts: 220 persistent, 133 comparable IEX crossings, 25 newly visible after unusable/blocked observations, 87 dropped; 981 changed/missing prior references quarantined. These are source-quality diagnostics, not verified rug predictions. Dedicated source/scoring regression suite: 24 tests passed. The first hosted replay failed on repository import path; corrected run passed without changing assertions or policy.
+
+Durable compact records: `backtest/evidence/2026-10-29/intraday-validation-1730Z/`. Large full ledgers are in the linked Actions artifact (expiry recorded). Nasdaq official Closing Cross FAQ confirms NOCP is its cross price; it does not authenticate the existing vendors' exact source definitions or their independence. Official outcomes/corporate-action equivalence remain missing.
+
+At this audit (approximately 12:30–12:34 Central), today's 14:20 checkpoint and 15:00 regular close have not occurred. Existing Early Board and Rug Catch Proof tasks retain ownership; no duplicate schedule or backfill created. Their live task state/delivery cannot be verified through available tools. Subsequent close outcomes, +1/+2/+3 sessions and prediction metrics remain pending; this chat turn does not claim background operation after it ends. Existing research artifacts cannot substitute for future events.
+
+---
+
 # OBSIDIAN trading-desk handoff — 2026-10-29
 
 RESEARCH_ONLY_NOT_AN_ORDER. Evidence vault: `Dirtyhandgernades/Dudebot`, branch `research/obsidian-early-rug-20261025`. Durable checkpoint: `backtest/evidence/2026-10-29/reconciliation-171125Z/`. No external vault is required.
