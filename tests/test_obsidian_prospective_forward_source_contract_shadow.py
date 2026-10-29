@@ -111,6 +111,31 @@ class ShadowContractTests(unittest.TestCase):
         row["independent_eod_sources"][1]["symbol"] = "OTHER"
         self.assertIn("WRONG_SECURITY_SESSION_OR_PRICE_KIND", self.check(row)["issues"])
 
+    def test_extreme_top_level_close_censored_without_overflow(self):
+        row = outcome()
+        row["regular_close"] = "1e999999999999999"
+        result = self.check(row)
+        self.assertEqual(result["status"], "SHADOW_SOURCE_CONTRACT_BLOCKED")
+        self.assertIn("INVALID_TOP_LEVEL_PRICES", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_extreme_source_close_censored_without_overflow(self):
+        row = outcome()
+        row["independent_eod_sources"][1]["regular_close"] = "1e999999999999999"
+        result = self.check(row)
+        self.assertIn("SOURCE_TOP_LEVEL_PRICE_MISMATCH", result["issues"])
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertEqual(result["supplied_reports"], 2)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_malformed_collection_timestamp_censors_without_crash(self):
+        row = outcome()
+        row["collected_at"] = "not-a-time"
+        result = self.check(row)
+        self.assertIn("SOURCE_PREFLIGHT_INVALID_COLLECTION_OR_INPUT", result["issues"])
+        self.assertEqual(result["supplied_reports"], 2)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
     def test_missing_reports_fail_closed(self):
         row = outcome()
         row.pop("independent_eod_sources")

@@ -20,9 +20,13 @@ def _decimal(value):
         return None
     try:
         number = Decimal(str(value))
-    except InvalidOperation:
+    except (InvalidOperation, ValueError, OverflowError):
         return None
-    return number if number.is_finite() and number > 0 else None
+    # Keep untrusted finite but extreme vendor exponents out of subtraction.
+    # This is an arithmetic guard, not an SMG price eligibility threshold.
+    if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
+        return None
+    return number
 
 
 def _timestamp(value):
@@ -95,9 +99,15 @@ def audit_outcome_source_contract(outcome, session_date):
                 issues.add("SOURCE_TOP_LEVEL_PRICE_MISMATCH")
     source_report = None
     if session and previous and previous < session and isinstance(symbol, str) and symbol.strip():
-        source_report = preflight(
-            symbol, session, previous, reports, outcome.get("collected_at"))
-        issues.update(source_report["issues"])
+        try:
+            source_report = preflight(
+                symbol, session, previous, reports, outcome.get("collected_at"))
+        except ValueError:
+            # A malformed collection timestamp must censor the record, not
+            # abort evaluation of the remaining untouched cohort.
+            issues.add("SOURCE_PREFLIGHT_INVALID_COLLECTION_OR_INPUT")
+        else:
+            issues.update(source_report["issues"])
     else:
         issues.add("SOURCE_PREFLIGHT_NOT_RUN_INVALID_IDENTITY")
     return {
