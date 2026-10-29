@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/obsidian-two-provider-close-reconciliation.yml'
       - 'backtest/obsidian_two_provider_close_reconciliation.py'
+      - 'tests/test_obsidian_two_provider_close_reconciliation.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +22,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Verify bounded request budget and missingness censoring offline
+        run: python -m unittest tests.test_obsidian_two_provider_close_reconciliation -v
       - name: Fetch and compare bounded same-date research bars
         run: python -m backtest.obsidian_two_provider_close_reconciliation
       - name: Preserve immutable run artifact
