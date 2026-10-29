@@ -35,6 +35,24 @@ class SourcePreflightTests(unittest.TestCase):
         r = preflight("ZZZZ", DAY, PRIOR, [row("vendor", "us.vendor.example"), row("vendor", "ca.vendor.example")], COLLECTED)
         self.assertIn("INSUFFICIENT_DISTINCT_HOST_AND_PROVIDER_EVIDENCE", r["issues"])
 
+    def test_reused_source_id_with_different_claimed_provider_is_blocked(self):
+        first = row("one", "one.example")
+        second = row("two", "two.example")
+        second["source_id"] = first["source_id"]
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertIn("DUPLICATE_SOURCE_ID", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_repeated_source_id_is_not_hidden_by_invalid_second_report(self):
+        first = row("one", "one.example")
+        second = row("two", "two.example")
+        second["source_id"] = first["source_id"]
+        second["regular_close_asof"] = "2026-10-27T19:59:59Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertIn("DUPLICATE_SOURCE_ID", result["issues"])
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", result["issues"])
+
     def test_intraday_snapshot_is_not_eod(self):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), row("two", "two.example", observed="2026-10-27T19:59:59Z")], COLLECTED)
         self.assertIn("STALE_OR_UNTIMED_SOURCE", r["issues"])

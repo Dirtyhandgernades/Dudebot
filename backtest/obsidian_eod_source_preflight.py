@@ -53,11 +53,18 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     if collection_time is None or collection_time < end:
         raise ValueError("POST_CLOSE_COLLECTION_TIMESTAMP_REQUIRED")
     issues, accepted = set(), []
+    seen_source_ids = set()
     for report in reports:
         if not isinstance(report, dict):
             issues.add("MALFORMED_SOURCE_RECORD")
             continue
         source = report.get("source_id")
+        # A repeated source receipt cannot be counted as two independent reports,
+        # even if its self-attested provider name and URL have changed.
+        if isinstance(source, str) and source.strip():
+            if source in seen_source_ids:
+                issues.add("DUPLICATE_SOURCE_ID")
+            seen_source_ids.add(source)
         group = report.get("provider_group")
         url = report.get("url")
         try:
