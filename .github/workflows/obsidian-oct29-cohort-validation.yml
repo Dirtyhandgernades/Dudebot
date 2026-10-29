@@ -38,8 +38,9 @@ jobs:
       - name: Replay immutable sources and preserve every candidate and rejection
         shell: python
         run: |
-          import hashlib,json
+          import hashlib,json,sys
           from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()))
           from backtest.obsidian_iex_capture_transitions import compare
           from backtest.obsidian_matched_cohort_lock import lock
           from backtest.obsidian_forward_collapse_study import evaluate
