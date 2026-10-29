@@ -1,3 +1,9 @@
+# Public exchange record investigation — Oct29 2026, 13:05 Central
+
+`backtest/evidence/2026-10-29/public-exchange-records-1805Z/` records six exact-date free Nasdaq website bars (AAPL/MSFT/FPI, Oct27/28), four AAPL/MSFT arithmetic agreements with the prior vendor pilot, and zero official-close-qualified outcomes. API field is Close/Last, price-as-of null; ISO query dates are required (MM/DD/YYYY returned embedded error despite HTTP 200). NYSE public closing-file samples/specification located: samples are July1/2, not October; specification labels Last as of close, not explicitly an auction price. Full receipts, response hashes, small public JSON responses and normalized blocked candidates persisted. No frozen labels changed; two independent authenticated official close sources remain unestablished. See checkpoint README for exact source URLs and limits.
+
+---
+
 # End-to-end evaluation registered before close — 2026-10-29
 
 `backtest/evidence/2026-10-29/evaluation-registration/` is the immutable baseline/outcome-blind registration. Existing code/policy hashes sealed; original labels and historical cohort unchanged. Hosted run [40925417654](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40925417654) passed 32 relevant tests and frozen-source/denominator checks. Artifact 12920322161 downloaded; all six report hashes verified. Each capture retains 8,502 original securities and 34,008 horizon slots; correlated morning/intraday scans are not independent samples.

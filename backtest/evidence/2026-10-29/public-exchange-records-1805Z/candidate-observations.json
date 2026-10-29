@@ -1,0 +1,126 @@
+{
+  "arithmetic_checks": [
+    {
+      "absolute_difference_vs_massive": "0.00",
+      "arithmetic_only": true,
+      "session_date": "2026-10-28",
+      "ticker": "AAPL",
+      "within_0005": true
+    },
+    {
+      "absolute_difference_vs_massive": "0.00",
+      "arithmetic_only": true,
+      "session_date": "2026-10-27",
+      "ticker": "AAPL",
+      "within_0005": true
+    },
+    {
+      "absolute_difference_vs_massive": "0.00",
+      "arithmetic_only": true,
+      "session_date": "2026-10-28",
+      "ticker": "MSFT",
+      "within_0005": true
+    },
+    {
+      "absolute_difference_vs_massive": "0.00",
+      "arithmetic_only": true,
+      "session_date": "2026-10-27",
+      "ticker": "MSFT",
+      "within_0005": true
+    }
+  ],
+  "observations": [
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "343.83",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "3ca2fba4a3db0b458791e34a170f77598594c7b7d0edab619e45569196fd98d3",
+      "retrieval_receipt": "nasdaq-aapl-iso",
+      "session_date": "2026-10-28",
+      "source_price_asof": null,
+      "ticker": "AAPL",
+      "verified_legal_security_identity": false
+    },
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "347.10",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "3ca2fba4a3db0b458791e34a170f77598594c7b7d0edab619e45569196fd98d3",
+      "retrieval_receipt": "nasdaq-aapl-iso",
+      "session_date": "2026-10-27",
+      "source_price_asof": null,
+      "ticker": "AAPL",
+      "verified_legal_security_identity": false
+    },
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "531.01",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "b303932ea2f6f531b8be381f766b9139e1f72eac27a43e64bd4f4a718e2539f8",
+      "retrieval_receipt": "nasdaq-msft-iso",
+      "session_date": "2026-10-28",
+      "source_price_asof": null,
+      "ticker": "MSFT",
+      "verified_legal_security_identity": false
+    },
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "531.33",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "b303932ea2f6f531b8be381f766b9139e1f72eac27a43e64bd4f4a718e2539f8",
+      "retrieval_receipt": "nasdaq-msft-iso",
+      "session_date": "2026-10-27",
+      "source_price_asof": null,
+      "ticker": "MSFT",
+      "verified_legal_security_identity": false
+    },
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "10.13",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "4f6ae02430b161d8e098bede9fb40b50ef3b5760f02e77a852f54aa78837b8fd",
+      "retrieval_receipt": "nasdaq-fpi-iso",
+      "session_date": "2026-10-28",
+      "source_price_asof": null,
+      "ticker": "FPI",
+      "verified_legal_security_identity": false
+    },
+    {
+      "corporate_actions_verified": false,
+      "independent_underlying_source_verified": false,
+      "official_exchange_close_verified": false,
+      "outcome_scoring_eligible": false,
+      "price": "10.32",
+      "provider_organization": "Nasdaq website",
+      "provider_price_label": "Close/Last",
+      "raw_response_sha256": "4f6ae02430b161d8e098bede9fb40b50ef3b5760f02e77a852f54aa78837b8fd",
+      "retrieval_receipt": "nasdaq-fpi-iso",
+      "session_date": "2026-10-27",
+      "source_price_asof": null,
+      "ticker": "FPI",
+      "verified_legal_security_identity": false
+    }
+  ],
+  "official_qualified_bars": 0,
+  "total_public_bars": 6
+}

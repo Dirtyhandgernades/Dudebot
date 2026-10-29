@@ -1,0 +1,160 @@
+[
+  {
+    "bytes": 165,
+    "content_type": "application/json; charset=utf-8",
+    "final_url": "https://api.nasdaq.com/api/quote/AAPL/historical?assetclass=stocks&fromdate=10%2F27%2F2026&todate=10%2F28%2F2026&limit=10",
+    "local_raw_filename": "nasdaq-aapl-history.body",
+    "name": "nasdaq-aapl-history",
+    "requested_url": "https://api.nasdaq.com/api/quote/AAPL/historical?assetclass=stocks&fromdate=10%2F27%2F2026&todate=10%2F28%2F2026&limit=10",
+    "retrieved_at_utc": "2026-10-29T18:05:31.262617+00:00",
+    "sha256": "f366aa9f5d774d6a4bf3e00d95961d9ad9a7b54ea3d8d8d4f878aca0d21e7e69",
+    "status": 200
+  },
+  {
+    "bytes": 492,
+    "content_type": "application/json; charset=utf-8",
+    "final_url": "https://api.nasdaq.com/api/quote/AAPL/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "local_raw_filename": "nasdaq-aapl-iso.body",
+    "name": "nasdaq-aapl-iso",
+    "requested_url": "https://api.nasdaq.com/api/quote/AAPL/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "retrieved_at_utc": "2026-10-29T18:05:55.432265+00:00",
+    "sha256": "3ca2fba4a3db0b458791e34a170f77598594c7b7d0edab619e45569196fd98d3",
+    "status": 200
+  },
+  {
+    "bytes": 177493,
+    "content_type": "text/html; charset=UTF-8",
+    "final_url": "https://www.nasdaq.com/market-activity/stocks/aapl/historical",
+    "local_raw_filename": "nasdaq-aapl-page.body",
+    "name": "nasdaq-aapl-page",
+    "requested_url": "https://www.nasdaq.com/market-activity/stocks/aapl/historical",
+    "retrieved_at_utc": "2026-10-29T18:05:31.263465+00:00",
+    "sha256": "06910177a4533b4ed16378d232ddb79aa28b2deefe22b20c7f1edb78a07c9094",
+    "status": 200
+  },
+  {
+    "bytes": 3185,
+    "final_url": "https://data.nasdaq.com/databases/NB",
+    "local_raw_filename": "nasdaq-basic.body",
+    "requested_url": "https://www.nasdaqtrader.com/Trader.aspx?id=NasdaqBasic",
+    "retrieved_at_utc": "2026-10-29T18:06:50.123519+00:00",
+    "sha256": "f8e53022a38677d5e559bd8097d4bad1e3b3cbfeec5a0ca35f2513780b57e4c1",
+    "status": 200
+  },
+  {
+    "bytes": 477,
+    "content_type": "application/json; charset=utf-8",
+    "final_url": "https://api.nasdaq.com/api/quote/FPI/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "local_raw_filename": "nasdaq-fpi-iso.body",
+    "name": "nasdaq-fpi-iso",
+    "requested_url": "https://api.nasdaq.com/api/quote/FPI/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "retrieved_at_utc": "2026-10-29T18:05:55.433254+00:00",
+    "sha256": "4f6ae02430b161d8e098bede9fb40b50ef3b5760f02e77a852f54aa78837b8fd",
+    "status": 200
+  },
+  {
+    "bytes": 165,
+    "content_type": "application/json; charset=utf-8",
+    "final_url": "https://api.nasdaq.com/api/quote/MSFT/historical?assetclass=stocks&fromdate=10%2F27%2F2026&todate=10%2F28%2F2026&limit=10",
+    "local_raw_filename": "nasdaq-msft-history.body",
+    "name": "nasdaq-msft-history",
+    "requested_url": "https://api.nasdaq.com/api/quote/MSFT/historical?assetclass=stocks&fromdate=10%2F27%2F2026&todate=10%2F28%2F2026&limit=10",
+    "retrieved_at_utc": "2026-10-29T18:05:31.262939+00:00",
+    "sha256": "f366aa9f5d774d6a4bf3e00d95961d9ad9a7b54ea3d8d8d4f878aca0d21e7e69",
+    "status": 200
+  },
+  {
+    "bytes": 492,
+    "content_type": "application/json; charset=utf-8",
+    "final_url": "https://api.nasdaq.com/api/quote/MSFT/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "local_raw_filename": "nasdaq-msft-iso.body",
+    "name": "nasdaq-msft-iso",
+    "requested_url": "https://api.nasdaq.com/api/quote/MSFT/historical?assetclass=stocks&fromdate=2026-10-27&todate=2026-10-28&limit=10",
+    "retrieved_at_utc": "2026-10-29T18:05:55.432818+00:00",
+    "sha256": "b303932ea2f6f531b8be381f766b9139e1f72eac27a43e64bd4f4a718e2539f8",
+    "status": 200
+  },
+  {
+    "bytes": 61002,
+    "content_type": "text/html; charset=utf-8",
+    "final_url": "https://www.nasdaqtrader.com/Trader.aspx?id=OpenClose",
+    "local_raw_filename": "nasdaq-openclose.body",
+    "name": "nasdaq-openclose",
+    "requested_url": "https://www.nasdaqtrader.com/Trader.aspx?id=OpenClose",
+    "retrieved_at_utc": "2026-10-29T18:05:55.647934+00:00",
+    "sha256": "ce5560b846b25c7c5329370707ecd261dc191ec04fd129f079f4b6b9bd63471a",
+    "status": 200
+  },
+  {
+    "bytes": 42995,
+    "content_type": "text/html; charset=utf-8",
+    "final_url": "https://www.nasdaqtrader.com/Trader.aspx?id=http404",
+    "local_raw_filename": "nasdaq-trader-nocp.body",
+    "name": "nasdaq-trader-nocp",
+    "requested_url": "https://www.nasdaqtrader.com/Trader.aspx?id=NOCP",
+    "retrieved_at_utc": "2026-10-29T18:05:31.544279+00:00",
+    "sha256": "9059bd6717c2ff4296ac8472365405fe0f4b532d718e1bf0a7fb24ae6cf1a7b4",
+    "status": 200
+  },
+  {
+    "bytes": 302533,
+    "content_type": "application/pdf",
+    "final_url": "https://www.nyse.com/publicdocs/nyse/data/TAQ_NYSE_Closing_Prices_Client_Spec.pdf",
+    "local_raw_filename": "nyse-close-spec.body",
+    "name": "nyse-close-spec",
+    "requested_url": "https://www.nyse.com/publicdocs/nyse/data/TAQ_NYSE_Closing_Prices_Client_Spec.pdf",
+    "retrieved_at_utc": "2026-10-29T18:05:55.719781+00:00",
+    "sha256": "bcc1f4f1982f6e320201fe0a9094d8c67e423f6787cab7066444965df47154bb",
+    "status": 200
+  },
+  {
+    "bytes": 766024,
+    "final_url": "https://ftp.nyse.com/Historical%20Data%20Samples/TAQ%20CLOSING%20PRICES/EQY_US_NYSE_SUM_CLOSE_20260701.txt",
+    "local_raw_filename": "nyse-closing-sample-july1.body",
+    "requested_url": "https://ftp.nyse.com/Historical%20Data%20Samples/TAQ%20CLOSING%20PRICES/EQY_US_NYSE_SUM_CLOSE_20260701.txt",
+    "retrieved_at_utc": "2026-10-29T18:06:49.130349+00:00",
+    "sha256": "2148b3bc45a4af3a88a326c828e1d56fb8309e17b7c56019fc962dd24b2a9cac",
+    "status": 200
+  },
+  {
+    "bytes": 4433,
+    "local_raw_filename": "nyse-closing-samples.body",
+    "requested_url": "https://ftp.nyse.com/Historical%20Data%20Samples/TAQ%20CLOSING%20PRICES/",
+    "retrieved_at_utc": "2026-10-29T18:06:19.111899+00:00",
+    "sha256": "bdbacdadb719fef9163f9d079b48a7cda1cad28271a79c05ec2056eab485f380",
+    "status": 200
+  },
+  {
+    "bytes": 71844,
+    "content_type": "text/html; charset=utf-8",
+    "final_url": "https://www.nyse.com/data-products/catalog/daily-taq",
+    "local_raw_filename": "nyse-daily-taq.body",
+    "name": "nyse-daily-taq",
+    "requested_url": "https://www.nyse.com/market-data/historical/daily-taq",
+    "retrieved_at_utc": "2026-10-29T18:05:31.638391+00:00",
+    "sha256": "8ae948030a1bb46416d2ebc9f48f163f9765b46e906cea57a1ec355a380c3de0",
+    "status": 200
+  },
+  {
+    "bytes": 66870,
+    "content_type": "text/html; charset=utf-8",
+    "final_url": "https://www.nyse.com/quote/XNYS:FPI",
+    "local_raw_filename": "nyse-fpi-page.body",
+    "name": "nyse-fpi-page",
+    "requested_url": "https://www.nyse.com/quote/XNYS:FPI",
+    "retrieved_at_utc": "2026-10-29T18:05:31.622889+00:00",
+    "sha256": "6658dff91efa5d4336aae6a3d22ad1f3c2826df996b4dc0c60624ab55a4cd939",
+    "status": 200
+  },
+  {
+    "bytes": 4285,
+    "content_type": "text/html",
+    "final_url": "https://ftp.nyse.com/Historical%20Data%20Samples/",
+    "local_raw_filename": "nyse-samples.body",
+    "name": "nyse-samples",
+    "requested_url": "https://ftp.nyse.com/Historical%20Data%20Samples/",
+    "retrieved_at_utc": "2026-10-29T18:05:55.841667+00:00",
+    "sha256": "d2cafc146fe71c0a5c06686e1606392e3009c6738ad8ee606afb0a41be16b171",
+    "status": 200
+  }
+]
