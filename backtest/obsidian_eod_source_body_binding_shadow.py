@@ -9,7 +9,7 @@ Never return URLs, response bodies, headers or credential-bearing fields.
 import hashlib
 import json
 from datetime import date, datetime, time
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, DecimalException, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts
@@ -46,7 +46,14 @@ def _positive(value):
         number = Decimal(str(value))
     except (InvalidOperation, ValueError):
         return None
-    return number if number.is_finite() and number > 0 else None
+    if not number.is_finite() or number <= 0:
+        return None
+    # Provider bytes are untrusted. Extreme JSON exponents can overflow the
+    # Decimal 20%-threshold multiplication and abort the entire indexed audit.
+    # This broad arithmetic safety envelope is NOT an SMG price eligibility rule.
+    if not -100 <= number.adjusted() <= 100:
+        return None
+    return number
 
 
 def _instant(value):
@@ -95,7 +102,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                 if not isinstance(parsed, dict):
                     faults.add("JSON_ROOT_NOT_OBJECT")
                     parsed = None
-            except (UnicodeError, ValueError, TypeError, RecursionError):
+            except (UnicodeError, ValueError, TypeError, RecursionError, DecimalException):
                 faults.add("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY")
         if parsed is not None:
             for field in TEXT_FIELDS:

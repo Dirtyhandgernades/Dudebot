@@ -193,6 +193,46 @@ class BindingShadowTests(unittest.TestCase):
         result = self.check(r, t)
         self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
 
+    def test_huge_finite_json_exponent_is_censored_without_crashing_inventory(self):
+        r, t = packet()
+        r[1]["regular_close"] = "1e999999999"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = "1e999999999"
+        raw = json.dumps(body).replace('"regular_close": "1e999999999"',
+                                       '"regular_close": 1e999999999').encode()
+        replace_body(t, 1, raw)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_unparseable_decimal_exponent_keeps_other_source_evidence(self):
+        r, t = packet()
+        raw = t[1]["raw_body"].replace(
+            b'"regular_close": "8.00"',
+            b'"regular_close": 1e9999999999999999999999')
+        self.assertNotEqual(raw, t[1]["raw_body"])
+        replace_body(t, 1, raw)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+
+    def test_tiny_finite_json_exponent_cannot_underflow_threshold(self):
+        r, t = packet()
+        r[1]["previous_regular_close"] = "1e-999999999"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close"] = "1e-999999999"
+        raw = json.dumps(body).replace('"previous_regular_close": "1e-999999999"',
+                                       '"previous_regular_close": 1e-999999999').encode()
+        replace_body(t, 1, raw)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_PREVIOUS_REGULAR_CLOSE", result["issues"])
+        self.assertFalse(result["official_close_verified"])
+
     def test_no_secrets_or_raw_json_appear_in_result(self):
         result = self.check()
         output = repr(result)
