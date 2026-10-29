@@ -80,6 +80,14 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", r["issues"])
         self.assertIn("SOURCE_OBSERVATION_NOT_POSTCLOSE_OR_FUTURE", r["issues"])
 
+    def test_malformed_unhashable_source_id_censored_not_crash(self):
+        bad = row("b", "two", "two.example")
+        bad["source_id"] = ["unhashable"]
+        r = check([row(), bad])
+        self.assertEqual(r["retained_report_count"], 2)
+        self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", r["issues"])
+        self.assertEqual(r["source_rows"][1]["status"], "REJECTED_CENSORED")
+
     def test_previous_close_disagreement_blocks(self):
         r = check([row(), row("b", "two", "two.example", prior="10.001")])
         self.assertIn("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT", r["issues"])
