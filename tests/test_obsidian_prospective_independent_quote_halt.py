@@ -4,7 +4,7 @@ from datetime import datetime,timezone
 from backtest.obsidian_independent_quote_halt import (
     parse_nasdaq_halts,parse_massive_snapshot,inspect_sources,phase,
 )
-AT=datetime(2026,10,28,19,48,tzinfo=timezone.utc)
+AT=datetime(2026,10,28,19,28,tzinfo=timezone.utc)
 XML=b"""<?xml version="1.0"?><rss version="2.0" xmlns:n="http://www.nasdaqtrader.com/rss"><channel><title>Current Trade Halts</title><item><n:IssueSymbol>JDZG</n:IssueSymbol><n:HaltDate>10/28/2026</n:HaltDate><n:HaltTime>14:14:21</n:HaltTime><n:ReasonCode>LUDP</n:ReasonCode><n:ResumptionDate>10/28/2026</n:ResumptionDate><n:TradeResumptionTime>15:29:22</n:TradeResumptionTime></item></channel></rss>"""
 
 
@@ -33,13 +33,13 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(row["complete_halt_history_or_guaranteed_open"])
 
     def test_stale_massive_quote_blocks_freshness(self):
-        t=int(datetime(2026,10,28,19,30,tzinfo=timezone.utc).timestamp()*1e9)
+        t=int(datetime(2026,10,28,19,00,tzinfo=timezone.utc).timestamp()*1e9)
         payload={"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":t,"p":5.21}}]}
         result=parse_massive_snapshot(payload,["JDZG"],AT)
         self.assertEqual(result["JDZG"]["status"],"DELAYED_OR_STALE_PROVIDER_PRINT")
 
     def test_fresh_quote_does_not_claim_subscription_entitlement(self):
-        t=int(datetime(2026,10,28,19,47,30,tzinfo=timezone.utc).timestamp()*1e9)
+        t=int(datetime(2026,10,28,19,27,30,tzinfo=timezone.utc).timestamp()*1e9)
         row=inspect_sources(["JDZG"],AT,XML,{"status":"OK","tickers":[
             {"ticker":"JDZG","lastTrade":{"t":t,"p":4.12}}]})["rows"][0]
         self.assertEqual(row["independent_quote"]["status"],
