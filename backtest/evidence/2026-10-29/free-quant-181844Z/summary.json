@@ -1,0 +1,50 @@
+{
+  "adverse_mechanisms_verified": 0,
+  "all_rows_execution_blocked": true,
+  "artifact_digest": "sha256:3ff0a7951e1532d1d4fb170b9d84bb5f90cca97bef3448b9935aa9887ee99656",
+  "artifact_expires_at": "2027-01-27T18:18:36Z",
+  "artifact_id": 12922670387,
+  "coverage": {
+    "denominator": 136,
+    "iex_states": {
+      "FRESH_SINGLE_VENUE": 24,
+      "STALE_SINGLE_VENUE": 112
+    },
+    "sec_states": {
+      "NOT_REQUESTED_SEC_BUDGET": 128,
+      "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED": 8
+    },
+    "sip_states": {
+      "HISTORICAL_DELAYED_SIP_BAR_FRESH_AT_ASOF": 108,
+      "HISTORICAL_DELAYED_SIP_BAR_STALE_AT_ASOF": 20,
+      "NO_CONSOLIDATED_BAR": 8
+    }
+  },
+  "filing_records_collected": 2,
+  "finished_at": "2026-10-29T18:18:51.960007+00:00",
+  "iex_quote_states": {
+    "FRESH_SINGLE_VENUE": 49,
+    "INVALID": 1,
+    "STALE_SINGLE_VENUE": 86
+  },
+  "issuer_release_review_completed": false,
+  "live_consolidated_quote_verified": false,
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "official_closes_verified": false,
+  "packet_rows_verified": 136,
+  "packet_sha256": "ac7e61d442aaf72cb8ff0ec53c6c9efc6a70e69aa54ee5b3c0551ceadaf7c94a",
+  "policy": "OBSIDIAN_FREE_QUANT_FEED_V1",
+  "request_budget": {
+    "maximum": 24,
+    "sec_maximum": 8,
+    "sip_pages": 1,
+    "used": 14
+  },
+  "run_id": 40929567179,
+  "source_commit": "b4b2045",
+  "source_scope": "SUPPLIED_WATCHLIST_NOT_FULL_MARKET",
+  "source_url": "https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40929567179",
+  "started_at": "2026-10-29T18:18:44.845704+00:00",
+  "trade_authorized": false,
+  "verified_predictions": 0
+}

@@ -84,3 +84,16 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(r['rows'][0]['catalysts']['status'],'SEC_USER_AGENT_ABSENT')
 
 if __name__=='__main__':unittest.main()
+
+class PassageTests(unittest.TestCase):
+    def test_negated_adverse_words_remain_unreviewed_evidence(self):
+        text='There is no substantial doubt about our going concern. The offering was terminated.'
+        adverse=m.passages(text,('going concern','offering'))
+        counter=m.passages(text,('no substantial doubt','terminated'))
+        self.assertEqual(len(adverse),2)
+        self.assertEqual(len(counter),2)
+        self.assertTrue(all(row['review_required'] for row in adverse+counter))
+    def test_naive_or_missing_publication_is_not_evidence(self):
+        p={'filings':{'recent':{'form':['8-K'],'accessionNumber':['0000000001-26-000001'],
+             'primaryDocument':['doc.htm'],'acceptanceDateTime':['2026-10-29T12:00:00']}}}
+        self.assertEqual(m.filing_records(p,'AAPL','1',NOW,NOW),[])

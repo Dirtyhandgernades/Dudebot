@@ -1,3 +1,11 @@
+# Free quant packet operational — Oct29 2026
+
+Free bounded feed implemented in `backtest/obsidian_free_quant_feed.py`; manual collector `obsidian-free-quant-feed.yml`. Run [40929567179](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40929567179) completed and artifact 12922670387 independently inspected: all 136 retained names preserved. IEX 24 fresh <=60-second trades/112 stale; SIP 108 fresh at delayed cutoff/20 stale/8 missing. Official halt RSS and SEC metadata collection worked, 14 GETs total. SEC budget covers 8 names; 2 recent filings/documents retrieved, 128 names unqueried. Possible adverse/contrary passages remain unreviewed. Every row keeps halt execution clearance, SMG permission and trade authorization false.
+
+Durable checkpoint: `backtest/evidence/2026-10-29/free-quant-181844Z/`; consumer documentation `backtest/OBSIDIAN_FREE_QUANT_FEED.md`. Output is a research evidence input for the quant, not automated A/B/C classification. No new schedule or continuous monitoring. Existing checkpoint owners were not silently modified. This materially improves consolidated DELAYED research coverage, but does not create fresh real-time SIP, verified catalysts, issuer-release coverage, official closes or established predictive accuracy.
+
+---
+
 # Public exchange record investigation — Oct29 2026, 13:05 Central
 
 `backtest/evidence/2026-10-29/public-exchange-records-1805Z/` records six exact-date free Nasdaq website bars (AAPL/MSFT/FPI, Oct27/28), four AAPL/MSFT arithmetic agreements with the prior vendor pilot, and zero official-close-qualified outcomes. API field is Close/Last, price-as-of null; ISO query dates are required (MM/DD/YYYY returned embedded error despite HTTP 200). NYSE public closing-file samples/specification located: samples are July1/2, not October; specification labels Last as of close, not explicitly an auction price. Full receipts, response hashes, small public JSON responses and normalized blocked candidates persisted. No frozen labels changed; two independent authenticated official close sources remain unestablished. See checkpoint README for exact source URLs and limits.

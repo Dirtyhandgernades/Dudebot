@@ -1,0 +1,114 @@
+[
+  {
+    "bytes": 77101,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:45.240605+00:00",
+    "sha256": "a02f645207aa883e16cf1497e6cc8f6e6c7840646058c0eed19cc6e748865743",
+    "source_url": "https://data.alpaca.markets/v2/stocks/snapshots"
+  },
+  {
+    "bytes": 366581,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:48.807705+00:00",
+    "sha256": "51efe8e32421f2da3465c97836f111632f5f41b7f5df8194b75fa95142bfcba8",
+    "source_url": "https://data.alpaca.markets/v2/stocks/bars"
+  },
+  {
+    "bytes": 74452,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:48.974446+00:00",
+    "sha256": "d118332eb75860f36b77f173fcbc26670c467d8403965270270fcc9b594a4c08",
+    "source_url": "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts"
+  },
+  {
+    "bytes": 522995,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:49.148936+00:00",
+    "sha256": "76b92fbacfc1a5a8715a32bb5f923df4c79a8062b615735542081ddff6977b46",
+    "source_url": "https://www.sec.gov/files/company_tickers_exchange.json"
+  },
+  {
+    "bytes": 17308,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:50.015374+00:00",
+    "sha256": "63a3a2f6c355d8a48141bede6515196b0b2b490f9611d4e445481eae3e167952",
+    "source_url": "https://data.sec.gov/submissions/CIK0001941029.json"
+  },
+  {
+    "bytes": 70847,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:50.099111+00:00",
+    "sha256": "f40c5d94dd59f00a82ab09dc606d44af90f4fefc5f62ecc6e1db6eabca53d354",
+    "source_url": "https://data.sec.gov/submissions/CIK0001470683.json"
+  },
+  {
+    "bytes": 6534,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:50.222706+00:00",
+    "sha256": "9a93202882409693c0d19fd0c6d057a4df3eb63929e51b036d48594c26d1cae9",
+    "source_url": "https://data.sec.gov/submissions/CIK0002100457.json"
+  },
+  {
+    "bytes": 92369,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:50.569456+00:00",
+    "sha256": "92aaccdf8d0b48fe8ba6e628c61b73b30543b9572db253c71eaefbddec0bf646",
+    "source_url": "https://data.sec.gov/submissions/CIK0001708341.json"
+  },
+  {
+    "bytes": 76030,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.219158+00:00",
+    "sha256": "604bc91377ab6a91803885eee1c521a8c59706a420228f7abe6eef4c3b9d8117",
+    "source_url": "https://data.sec.gov/submissions/CIK0001413855.json"
+  },
+  {
+    "bytes": 4447,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.606502+00:00",
+    "sha256": "acbd155c8a2e57692ee8bb499a91a2f26dcacfa05be9dd5306208694100d083a",
+    "source_url": "https://data.sec.gov/submissions/CIK0002095591.json"
+  },
+  {
+    "bytes": 162430,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.884254+00:00",
+    "sha256": "e6728ef05c9f61ed2b6c0e5ed1db0657d7b01bb81ee61367bbd044f220932c3a",
+    "source_url": "https://data.sec.gov/submissions/CIK0001086222.json"
+  },
+  {
+    "bytes": 162189,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.902252+00:00",
+    "sha256": "a17f4dbd4097965a9f05b1bb5a1eb38c0c1016d4038597e304a9dbddbd8991e0",
+    "source_url": "https://data.sec.gov/submissions/CIK0000002488.json"
+  },
+  {
+    "bytes": 7809,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.925380+00:00",
+    "sha256": "f3e37436399059eabbd91e11574679c267f3bd666d7866a2215d86fe204936de",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/2095591/000114036126040608/ef20084229_6k.htm"
+  },
+  {
+    "bytes": 7606,
+    "error": null,
+    "http_status": 200,
+    "retrieved_at": "2026-10-29T18:18:51.949152+00:00",
+    "sha256": "9a2c8ebff922c233ed363f3aea9df675d9347572be00538a4e0c8f8a99e8460c",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/2095591/000114036126040607/ef20084331_6k.htm"
+  }
+]
