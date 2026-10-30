@@ -22,6 +22,84 @@ CATEGORIES = (
 )
 
 
+
+def _audit_preclose(capture, calendar_rows, outcome_rows, manifest):
+    """Separately audit original protected IEX preclose rows without relabeling.
+
+    The existing morning/intraday frozen forward cohort is untouched. This
+    adapter replays the distinct preclose manifest, hashes and statuses before
+    creating four strictly non-scoring outcome-coverage slots per original row.
+    """
+    import hashlib
+    from backtest.obsidian_iex_prospective import verify as verify_preclose
+    from backtest.obsidian_forward_horizon_shadow import _source_chain_ok
+
+    verified = verify_preclose(capture)
+    base = Path(capture)
+    started = asof(manifest.get("started_at"))
+    if started is None:
+        raise ValueError("PRECLOSE_START_TIME_UNVERIFIED")
+    calendar = validate_calendar(calendar_rows, started.astimezone(EASTERN).date())
+    if not isinstance(outcome_rows, list):
+        raise ValueError("OUTCOME_ROWS_MUST_BE_LIST")
+    raw = (base / "universe.jsonl").read_bytes()
+    originals = [json.loads(line) for line in raw.splitlines()]
+    if len(originals) != verified["universe_count"]:
+        raise ValueError("PRECLOSE_ORIGINAL_DENOMINATOR_MISMATCH")
+    allowed = {row["ticker"] for row in originals}
+    sessions = {item[0].isoformat() for item in calendar}
+    mapped = {}
+    for row in outcome_rows:
+        if not isinstance(row, dict):
+            raise ValueError("INVALID_OUTCOME_ROW")
+        key = (row.get("ticker"), row.get("session_date"))
+        if key[0] not in allowed or key[1] not in sessions or key in mapped:
+            raise ValueError("DUPLICATE_OR_OUTSIDE_ORIGINAL_COHORT")
+        mapped[key] = row
+
+    rows = []
+    for original in originals:
+        ticker = original["ticker"]
+        prefix_ok = True
+        previous_close = None
+        horizons = []
+        for session in calendar:
+            day = session[0].isoformat()
+            source = mapped.get((ticker, day))
+            if source is None:
+                evidence = "MISSING_EOD_SOURCE_ROW"
+                chain = "PREFIX_CENSORED_MISSING_OR_BLOCKED"
+                prefix_ok = False
+            elif not _source_chain_ok(source, session):
+                evidence = "SUPPLIED_EOD_EVIDENCE_BLOCKED"
+                chain = "PREFIX_CENSORED_MISSING_OR_BLOCKED"
+                prefix_ok = False
+            else:
+                evidence = "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING"
+                if not prefix_ok:
+                    chain = "PRIOR_HORIZON_CENSORED"
+                elif previous_close is not None and abs(
+                        source["previous_regular_close"] - previous_close) > 0.005:
+                    chain = "CROSS_SESSION_PRICE_CHAIN_MISMATCH"
+                    prefix_ok = False
+                else:
+                    chain = "COMPLETE_PREFIX_UNAUTHENTICATED"
+                    previous_close = source["regular_close"]
+            horizons.append({"source_evidence": evidence, "chain_evidence": chain})
+        rows.append({
+            "ticker": ticker, "original_status": original["screen_status"],
+            "original_price_only_watch":
+                original["screen_status"] == "IEX_EARLY_WEAKNESS_WATCH_ONLY",
+            "horizons": horizons,
+        })
+    return {
+        "original_capture_universe_sha256": hashlib.sha256(raw).hexdigest(),
+        "original_universe_count": len(originals),
+        "provided_source_rows": len(outcome_rows),
+        "rows": rows,
+    }
+
+
 def build(capture, calendar_rows, outcome_rows, as_of):
     """Audit every original issuer and all four exchange-session horizons.
 
@@ -32,9 +110,11 @@ def build(capture, calendar_rows, outcome_rows, as_of):
     now = asof(as_of)
     if now is None or now.utcoffset() is None:
         raise ValueError("EXPLICIT_TIMEZONE_AWARE_AS_OF_REQUIRED")
-    coverage = audit(capture, calendar_rows, outcome_rows)
-    first_day = asof(json.loads((Path(capture) / "manifest.json").read_text(
-        encoding="utf-8"))["started_at"]).astimezone(EASTERN).date()
+    manifest = json.loads((Path(capture) / "manifest.json").read_text(encoding="utf-8"))
+    preclose = manifest.get("status") == "IEX_PROSPECTIVE_SINGLE_VENUE_RAW_DISCOVERY_ONLY"
+    coverage = (_audit_preclose(capture, calendar_rows, outcome_rows, manifest)
+                if preclose else audit(capture, calendar_rows, outcome_rows))
+    first_day = asof(manifest["started_at"]).astimezone(EASTERN).date()
     calendar = validate_calendar(calendar_rows, first_day)
     supplied = {(r["ticker"], r["session_date"]): r for r in outcome_rows}
     rows = []
@@ -58,8 +138,13 @@ def build(capture, calendar_rows, outcome_rows, as_of):
                 category = "SOURCE_CONFLICT"
                 reason = "SUPPLIED_PROVIDER_CONFLICT_UNAUTHENTICATED"
             elif evidence == "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING":
-                category = "CENSORED_UNVERIFIED"
-                reason = "PROVIDER_IDENTITY_AND_OFFICIAL_CLOSE_AUTH_PENDING"
+                chain = original["horizons"][h].get("chain_evidence")
+                if chain != "COMPLETE_PREFIX_UNAUTHENTICATED":
+                    category = "CENSORED_BLOCKED"
+                    reason = chain or "OUTCOME_PREFIX_NOT_VERIFIED"
+                else:
+                    category = "CENSORED_UNVERIFIED"
+                    reason = "PROVIDER_IDENTITY_AND_OFFICIAL_CLOSE_AUTH_PENDING"
             else:
                 category = "CENSORED_BLOCKED"
                 reason = "SUPPLIED_EOD_EVIDENCE_FAILED_STRUCTURAL_GATE"
@@ -88,6 +173,8 @@ def build(capture, calendar_rows, outcome_rows, as_of):
                 raise AssertionError("WATCH_DENOMINATOR_MISMATCH")
     return {
         "mode": MODE, "policy": POLICY,
+        "capture_phase": "PRECLOSE" if preclose else manifest["phase"],
+        "preclose_is_separate_unmatched_cohort": preclose,
         "as_of": now.isoformat(),
         "original_capture_universe_sha256": coverage["original_capture_universe_sha256"],
         "original_universe_count": n,
