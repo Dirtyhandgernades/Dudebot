@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_source_preflight import _source_host
+from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
 from backtest.obsidian_forward_calendar_shadow import trusted_exchange_calendar_host
 
 POLICY = "OBSIDIAN_EOD_ALL_SOURCE_CONFLICT_LEDGER_V1_2026_10_29"
@@ -213,6 +214,17 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         })
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
+    # Hostnames and claimed provider names alone cannot authenticate legal
+    # independence. Still reject apparent same-parent aliases, including when
+    # a third distinct host would otherwise make the counts look sufficient.
+    # This is a conservative alias screen, NOT proof of source ownership.
+    parent_groups = {}
+    for _, group, domain, _, _ in valid:
+        parent_groups.setdefault(_host_parent_hint(domain), set()).add(group)
+    if len(parent_groups) < 2:
+        issues.add("INSUFFICIENT_DISTINCT_PROVIDER_PARENT_HOST_EVIDENCE")
+    if any(len(claims) > 1 for claims in parent_groups.values()):
+        issues.add("CLAIMED_PROVIDER_ORGANIZATIONS_SHARE_HOST_PARENT_HINT")
     # Every distinct close/prior pair is represented, including agreement
     # groups and contradictory third-party claims. This is not a verdict.
     price_groups = {}

@@ -58,6 +58,30 @@ class AllSourceLedgerTests(unittest.TestCase):
         r = check([row(), row("b", "one", "another.example")])
         self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED", r["issues"])
 
+    def test_two_claimed_organizations_on_same_parent_are_not_independent(self):
+        result = check([
+            row("a", "provider_one", "api.vendor.example"),
+            row("b", "provider_two", "data.vendor.example"),
+        ])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("INSUFFICIENT_DISTINCT_PROVIDER_PARENT_HOST_EVIDENCE", result["issues"])
+        self.assertIn("CLAIMED_PROVIDER_ORGANIZATIONS_SHARE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_third_independent_host_cannot_hide_same_parent_alias(self):
+        result = check([
+            row("a", "provider_one", "api.vendor.example"),
+            row("b", "provider_two", "data.vendor.example"),
+            row("c", "provider_three", "independent.example"),
+        ])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertTrue(result["all_supplied_rows_indexed"])
+        self.assertIn("CLAIMED_PROVIDER_ORGANIZATIONS_SHARE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
     def test_security_id_change_censored(self):
         other = row("b", "two", "two.example")
         other["previous_security_id"] = "ISSUER0:COMMON"
