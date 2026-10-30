@@ -30,13 +30,25 @@ def _instant(value):
 
 
 def _safe_host(value):
+    """Screen receipt URL syntax; this never authenticates source ownership.
+
+    urlsplit silently strips some controls, so reject them before parsing.
+    Nonstandard ports, embedded userinfo and trailing-dot aliases cannot
+    establish independent postclose receipt provenance.
+    """
+    if (not isinstance(value, str)
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
+        return None
     try:
-        p = urlsplit(value) if isinstance(value, str) else None
-        if (p is None or p.scheme != "https" or not p.hostname
+        p = urlsplit(value)
+        if (p.scheme != "https" or not p.netloc
                 or p.username is not None or p.password is not None
-                or p.fragment):
+                or p.fragment or p.port not in (None, 443)):
             return None
-        return p.hostname.lower()
+        host = p.hostname
+        if not host or host.endswith(".") or any(ch.isspace() for ch in host):
+            return None
+        return host.lower()
     except ValueError:
         return None
 

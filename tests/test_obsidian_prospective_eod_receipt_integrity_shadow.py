@@ -155,6 +155,46 @@ class ReceiptIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "POSTCLOSE_COLLECTION"):
             audit_receipts(DAY, r, t, "2026-10-28T19:59:59Z")
 
+    def test_unsafe_receipt_url_authorities_are_censored(self):
+        unsafe = (
+            "https://a.example:8443/close",
+            "https://user:pass@a.example/close",
+            "https://a.example./close",
+            "https://a.example:bogus/close",
+            "https://a.example/close\\nextra",
+        )
+        for url in unsafe:
+            with self.subTest(url=repr(url)):
+                r, t = packet()
+                r[0]["source_url"] = url
+                t[0]["requested_url"] = t[0]["response_url"] = url
+                result = self.run_audit(r, t)
+                self.assertEqual(result["indexed_count"], 2)
+                self.assertEqual(result["byte_consistent_count"], 1)
+                self.assertIn("SOURCE_ORGANIZATION_URL_OR_REDIRECT_MISMATCH",
+                              result["all_source_rows"][0]["issues"])
+                self.assertFalse(result["official_close_verified"])
+
+    def test_unsafe_third_receipt_does_not_hide_behind_valid_pair(self):
+        r, t = packet()
+        third_report, third_receipt = copy.deepcopy(r[0]), copy.deepcopy(t[0])
+        third_report["source_id"] = third_receipt["source_id"] = "source-2"
+        third_report["provider_organization"] = third_receipt["provider_organization"] = "independent-c"
+        url = "https://c.example:9999/close"
+        third_report["source_url"] = url
+        third_receipt["requested_url"] = third_receipt["response_url"] = url
+        third_receipt["raw_body"] = b'{"provider":"independent-c","close":"8.00"}'
+        third_receipt["body_sha256"] = hashlib.sha256(third_receipt["raw_body"]).hexdigest()
+        r.append(third_report)
+        t.append(third_receipt)
+        result = self.run_audit(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertEqual(result["byte_consistent_count"], 2)
+        self.assertEqual(result["status"], "BLOCKED_RECEIPT_INTEGRITY")
+        self.assertIn("SOURCE_ORGANIZATION_URL_OR_REDIRECT_MISMATCH",
+                      result["all_source_rows"][2]["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
     def test_non_https_source_rejected(self):
         r, t = packet()
         r[0]["source_url"] = t[0]["requested_url"] = t[0]["response_url"] = "http://a.example/close"
