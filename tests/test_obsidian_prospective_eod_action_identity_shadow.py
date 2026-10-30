@@ -137,7 +137,7 @@ class ActionIdentityShadowTests(unittest.TestCase):
         invalid = ("https://beta.example:444/actions",
                    "https://user@beta.example/actions",
                    "https://beta.example/actions#fragment",
-                   "https://beta.example/actions\\nInjected: value",
+                   "https://beta.example/actions\nInjected: value",
                    "https://[broken/actions")
         for url in invalid:
             with self.subTest(url=url):
