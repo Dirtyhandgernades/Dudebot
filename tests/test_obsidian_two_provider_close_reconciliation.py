@@ -166,4 +166,48 @@ class ReconciliationTests(unittest.TestCase):
 
 
 
+    def test_untrusted_vendor_error_shapes_do_not_abort(self):
+        for payload, expected in [
+            ({'status': []}, 'MALFORMED_RESPONSE'),
+            ({'status': {'bad': True}}, 'MALFORMED_RESPONSE'),
+            ({'status': 'error', 'code': []}, 'MALFORMED_RESPONSE'),
+            ({'status': 'ERROR', 'code': {'bad': 429}}, 'MALFORMED_RESPONSE'),
+            ({'status': 'error', 'code': 429}, 'RATE_LIMIT'),
+        ]:
+            with self.subTest(payload=payload):
+                r = receipt(payload)
+                self.assertEqual(m.category(r), expected)
+                self.assertEqual(
+                    m.observation('MASSIVE', 'AAPL', '2026-10-27', r)['provider_error_category'],
+                    expected)
+
+    def test_extreme_finite_vendor_prices_censored_without_losing_rows(self):
+        for value in ('1e999999', '1e-999999'):
+            self.assertIsNone(m.price(value))
+            self.assertEqual(
+                m.observation('MASSIVE', 'AAPL', '2026-10-27',
+                              massive(close=value))['provider_error_category'], 'INVALID_PRICE')
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                r = twelve([{'datetime': d, 'close': '100'} for d in m.SESSIONS])
+                r['payload']['meta']['symbol'] = params['symbol']
+                return r
+            return massive(url.rsplit('/', 1)[-1], url.split('/')[-2], close='1e999999')
+        with patch.object(m, 'get', side_effect=fake), patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture', 'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(result['total_ticker_dates'], 4)
+        self.assertEqual(result['missing_pair_count'], 4)
+        self.assertEqual(result['both_bar_count'], 0)
+        self.assertFalse(result['outcome_scoring_eligible'])
+
+    def test_malformed_exchange_metadata_is_censored(self):
+        for bad in ([], {}, 123):
+            r = twelve()
+            r['payload']['meta']['exchange'] = bad
+            row = m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', r)
+            self.assertEqual(row['provider_error_category'], 'MALFORMED_METADATA')
+            self.assertEqual(row['validation_status'], 'BLOCKED')
+
+
 if __name__=='__main__':unittest.main()

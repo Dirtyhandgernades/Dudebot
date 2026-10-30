@@ -64,9 +64,17 @@ def category(receipt):
     payload = receipt.get("payload")
     if not isinstance(payload, dict):
         return "MALFORMED_RESPONSE"
-    if payload.get("status") in {"error", "ERROR", "NOT_AUTHORIZED"}:
+    # Vendor JSON is untrusted. A list/dict in status or error code must
+    # not abort the complete request-budget and missingness inventory.
+    provider_status = payload.get("status")
+    if provider_status is not None and not isinstance(provider_status, str):
+        return "MALFORMED_RESPONSE"
+    if provider_status in {"error", "ERROR", "NOT_AUTHORIZED"}:
+        code = payload.get("code")
+        if code is not None and type(code) is not int:
+            return "MALFORMED_RESPONSE"
         return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
-                429: "RATE_LIMIT"}.get(payload.get("code"), "PROVIDER_ERROR")
+                429: "RATE_LIMIT"}.get(code, "PROVIDER_ERROR")
     return None
 
 
@@ -97,8 +105,10 @@ def price(value):
         return None
     try:
         result = Decimal(str(value))
-        return result if result.is_finite() and result > 0 else None
-    except (InvalidOperation, ValueError):
+        # Finite vendor exponents can still overflow Decimal subtraction
+        # during the diagnostic pair comparison. Censor, never score them.
+        return result if result.is_finite() and result > 0 and -100 <= result.adjusted() <= 100 else None
+    except (InvalidOperation, ValueError, OverflowError):
         return None
 
 
@@ -128,7 +138,11 @@ def observation(provider, symbol, day, receipt):
             result["provider_error_category"] = "MALFORMED_METADATA"
             return result
         valid_identity = meta.get("symbol") == symbol
-        result["exchange"] = meta.get("exchange") if meta.get("exchange") in {"NASDAQ", "NYSE"} else None
+        exchange = meta.get("exchange")
+        if exchange is not None and not isinstance(exchange, str):
+            result["provider_error_category"] = "MALFORMED_METADATA"
+            return result
+        result["exchange"] = exchange if exchange in {"NASDAQ", "NYSE"} else None
         result["adjustment_basis"] = "UNADJUSTED_REQUESTED"
         bars = payload.get("values", [])
         if not isinstance(bars, list) or any(not isinstance(b, dict) for b in bars):
