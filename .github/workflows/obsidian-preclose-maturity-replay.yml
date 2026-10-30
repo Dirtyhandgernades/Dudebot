@@ -1,0 +1,162 @@
+name: OBSIDIAN authenticated-artifact preclose maturity replay (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - '.github/workflows/obsidian-preclose-maturity-replay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obsidian-original-preclose-maturity-replay-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preclose-maturity-replay:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch and pin the immutable October 30 original protected artifact (read-only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/obsidian-original
+          curl --fail --silent --show-error --location --max-time 120 --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/Dirtyhandgernades/Dudebot/actions/artifacts/13006897253/zip' \
+            --output /tmp/obsidian-original.zip
+          printf '%s  %s\n' \
+            'ba983a61e2503b44e2e5501519ff3ee4a85be41a3312c2d1948a18175570cbc4' \
+            '/tmp/obsidian-original.zip' | sha256sum --check --status
+          python - <<'PY'
+          import hashlib, json, zipfile
+          from pathlib import Path
+          root = Path('/tmp/obsidian-original')
+          with zipfile.ZipFile('/tmp/obsidian-original.zip') as archive:
+              members = archive.infolist()
+              if {m.filename for m in members} != {'manifest.json', 'universe.jsonl'} or len(members) != 2:
+                  raise ValueError('ORIGINAL_ARTIFACT_MEMBER_SET_MISMATCH')
+              for member in members:
+                  if member.is_dir() or member.file_size > 20_000_000:
+                      raise ValueError('UNSAFE_OR_OVERSIZED_ARTIFACT_MEMBER')
+                  data = archive.read(member)
+                  (root / member.filename).write_bytes(data)
+          manifest = json.loads((root / 'manifest.json').read_text())
+          raw = (root / 'universe.jsonl').read_bytes()
+          if hashlib.sha256(raw).hexdigest() != '169f3c51659cc43ab3385b1b88c6730ee2559eaa6602f7bdf23bde67bc8eaaf3':
+              raise ValueError('PINNED_ORIGINAL_UNIVERSE_HASH_MISMATCH')
+          if manifest.get('universe_count') != 8510 or manifest.get('universe_sha256') != hashlib.sha256(raw).hexdigest():
+              raise ValueError('ORIGINAL_UNIVERSE_MANIFEST_MISMATCH')
+          if manifest.get('status_counts') != {
+              'IEX_EARLY_WEAKNESS_WATCH_ONLY': 1653,
+              'IEX_EXHAUSTED_PRICE_ONLY': 21,
+              'IEX_NO_EARLY_PRICE_ONLY_WATCH': 2306,
+              'MISSING_SNAPSHOT': 7,
+              'MISSING_TRADE_OR_PREVIOUS_BAR': 98,
+              'STALE_OR_FUTURE_IEX_TRADE': 4357,
+              'UNVERIFIED_PREVIOUS_IEX_SESSION': 68,
+          }:
+              raise ValueError('ORIGINAL_FROZEN_STATUS_PARTITION_MISMATCH')
+          print('Pinned original ZIP, universe, count and all original statuses verified.')
+          PY
+      - name: Replay existing maturity adapter with explicit calendar and zero admissible EOD outcomes
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/backtest/obsidian-preclose-maturity-replay
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          days = ['2026-10-30', '2026-11-02', '2026-11-03', '2026-11-04']
+          prior = ['2026-10-29', '2026-10-30', '2026-11-02', '2026-11-03']
+          rows = []
+          for day, previous in zip(days, prior):
+              rows.append({
+                  'session_date': day, 'previous_regular_session': previous,
+                  'session_open': True, 'independently_checked': True,
+                  'regular_close_at': day + ('T16:00:00-04:00' if day == '2026-10-30' else 'T16:00:00-05:00'),
+                  'source_url': 'https://www.nyse.com/trade/hours-calendars',
+                  'source_checked_at': '2026-10-30T21:47:47Z',
+              })
+          Path('/tmp/obsidian-calendar.json').write_text(json.dumps(rows))
+          Path('/tmp/obsidian-outcomes.json').write_text('[]')
+          PY
+          AS_OF="$(python -c 'from datetime import datetime,timezone;print(datetime.now(timezone.utc).isoformat())')"
+          python -m backtest.obsidian_prospective_maturity_ledger \
+            --capture /tmp/obsidian-original \
+            --calendar /tmp/obsidian-calendar.json \
+            --outcomes /tmp/obsidian-outcomes.json \
+            --as-of "$AS_OF" \
+            --output outputs/backtest/obsidian-preclose-maturity-replay/ledger.json
+          python - <<'PY'
+          import hashlib, json
+          from datetime import datetime
+          from pathlib import Path
+          folder = Path('outputs/backtest/obsidian-preclose-maturity-replay')
+          data = (folder / 'ledger.json').read_bytes()
+          report = json.loads(data)
+          assert report['capture_phase'] == 'PRECLOSE'
+          assert report['preclose_is_separate_unmatched_cohort'] is True
+          assert report['original_universe_count'] == 8510
+          assert report['expected_issuer_session_slots'] == 34040
+          assert report['original_capture_universe_sha256'] == '169f3c51659cc43ab3385b1b88c6730ee2559eaa6602f7bdf23bde67bc8eaaf3'
+          assert report['provided_source_rows'] == 0
+          assert report['verified_outcomes'] == 0
+          assert report['predictive_edge_proven'] is False
+          assert report['independent_official_close_authentication_performed'] is False
+          assert len(report['rows']) == 8510
+          for row in report['per_horizon']:
+              counts = row['categories']
+              assert sum(counts.values()) == 8510
+              assert counts['VERIFIED'] == 0 and counts['SOURCE_CONFLICT'] == 0
+              close = datetime.fromisoformat(report['rows'][0]['horizons'][row['horizon']]['regular_close_at'])
+              now = datetime.fromisoformat(report['as_of'])
+              expected = 'NOT_YET_MATURE' if now < close else 'CENSORED_MISSING'
+              assert counts[expected] == 8510, (row, expected)
+              assert sum(row['watch_categories']['true'].values()) == 1653
+              assert sum(row['watch_categories']['false'].values()) == 6857
+          summary = {
+              'mode': 'RESEARCH_ONLY_NOT_AN_ORDER',
+              'source_run_id': 41118123273,
+              'source_artifact_id': 13006897253,
+              'original_zip_sha256': 'ba983a61e2503b44e2e5501519ff3ee4a85be41a3312c2d1948a18175570cbc4',
+              'original_universe_sha256': report['original_capture_universe_sha256'],
+              'maturity_ledger_sha256': hashlib.sha256(data).hexdigest(),
+              'as_of': report['as_of'],
+              'original_universe_count': 8510,
+              'expected_issuer_session_slots': 34040,
+              'per_horizon': report['per_horizon'],
+              'official_closes_authenticated': False,
+              'calendar_source_receipts_authenticated_by_module': False,
+              'verified_hits': None, 'verified_false_positives': None,
+              'verified_precision': None, 'verified_recall': None,
+              'after_cost_returns': None,
+              'actual_smg_trade_authorized': False,
+              'limitations': [
+                  'Replays existing offline maturity adapter against pinned original protected IEX capture.',
+                  'No independently authenticated official regular-session closes supplied.',
+                  'Calendar dates were independently checked in prior research, but this replay does not authenticate source receipts.',
+                  'All future/unknown outcome rows remain censored or not yet mature; no prediction accuracy inferred.',
+                  'The original frozen capture and baseline are never modified.',
+              ],
+          }
+          (folder / 'summary.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
+          print(json.dumps({k: summary[k] for k in ('as_of','original_universe_count','expected_issuer_session_slots','maturity_ledger_sha256','official_closes_authenticated')},sort_keys=True))
+          PY
+      - name: Upload immutable read-only replay ledger and source receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-preclose-maturity-replay-${{ github.run_id }}
+          path: outputs/backtest/obsidian-preclose-maturity-replay/
+          if-no-files-found: error
+          retention-days: 90
