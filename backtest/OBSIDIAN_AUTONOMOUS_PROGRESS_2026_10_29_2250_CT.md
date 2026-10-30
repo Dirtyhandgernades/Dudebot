@@ -1,0 +1,19 @@
+# OBSIDIAN Research Engineering — 2026-10-29 22:50 CT
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Research branch only. No exchange-official close, prospective 20% collapse outcome, live trading quote, SMG execution permission, order, or main/production change established.
+
+## P0-1 bounded independent-vendor reconciliation hardening
+
+- Read the October 28 autonomous validation roadmap, October 29 22:23 CT After-Hours Audit, original Oct29 Rug Proof anchors and postclose audit, the protected preclose marker, intraday IEX and independent halt monitor markers, two-provider close pilot and recent research CI. Existing morning, intraday, 14:20, protected 14:47 and afterhours source captures remain owned by their original tasks. No duplicate marker, provider request, replay, or backfill was created.
+- Parent research branch head before implementation: `d312f2584dd6401be70a4595082aee7f15a91e78`. Isolated implementation commit: `5a175d0edea49eba6ddff20cfa6922f4e887e733`. Expected-head GitHub lease succeeded.
+- Identified three fail-open/crash paths in the **actual bounded two-vendor diagnostic pilot** (`backtest/obsidian_two_provider_close_reconciliation.py`): an unhashable JSON `status` or `code` could abort source classification; a finite but extreme Decimal price could overflow later pair arithmetic; and a non-string `meta.exchange` could abort parsing. These failures could lose the complete requested ticker/date denominator after consuming provider quota.
+- The research-only normalizer now censors malformed provider status/code and exchange metadata, and extreme finite prices outside a generous arithmetic-safe exponent range. It retains all four requested AAPL/MSFT × Oct27/28 pilot rows with missingness explicitly counted even when every Massive bar is invalid. The exponent guard is **not** an SMG price threshold or official-close validation.
+- Added three regression tests. Hosted GitHub Actions run **40999622068**, job **123880714727**, completed **success** on the implementation commit. Offline job log: **21 tests passed** (reconciliation + ABC board), including the three new tests. Run: https://github.com/Dirtyhandgernades/Dudebot/actions/runs/40999622068 .
+- The live vendor fetch step was **skipped** on this push-triggered workflow, as designed. No provider entitlement, official exchange closing auction price, full source receipt, corporate-action identity, two independently authenticated official provider organizations, or additional future outcome was verified. Do not treat passing offline tests or vendor numerical bar agreement as prospective prediction evidence.
+
+## Preserved invariants and next gate
+
+- Frozen 136-name watchlist and eight original-universe absent names, JDZG stale/halt failure, historical immutable labels/denominators, original hashes and 0/+1/+2/+3 **actual trading-session** horizons remain untouched. Future matched untouched cohorts must account for false positives, late/exhausted cases, squeezes, costs and censored outcomes.
+- October 29 original protected preclose marker and separate Rug Proof 09:20/12:20/14:20/18:20 evidence were reviewed; this late evening pass is not an authorized new market capture.
+- P0-1 still **BLOCKED_EXTERNAL_OFFICIAL_SOURCE_AUTHENTICATION**: two genuinely independent organizations' exchange-official regular-session close receipts, complete third-source conflict inventory, issuer identity/action equivalence, authoritative session calendar and timestamps are missing. Missing outcomes remain censored; **no verified prospective 20%+ prediction success or accuracy is established**.
+- Optional independent Massive quote entitlement and actual SMG blocked-symbol/account shortability remain unverified. Alpaca borrow status is not SMG approval. Off-platform raw evidence archive remains **BACKUP_UNVERIFIED**.
