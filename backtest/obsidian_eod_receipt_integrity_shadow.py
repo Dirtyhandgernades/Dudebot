@@ -41,6 +41,25 @@ def _safe_host(value):
         return None
 
 
+def _host_parent_hint(host):
+    """Conservative host-parent alias screen, NOT public-suffix or ownership proof.
+
+    Distinct subdomains of the same apparent vendor site must not be counted
+    as independent provider organizations merely by renaming the group.
+    The heuristic may over-censor shared infrastructure and cannot establish
+    legal ownership; external organization/source verification is still needed.
+    """
+    labels = host.lower().rstrip(".").split(".")
+    if len(labels) < 2:
+        return host
+    common_two_level_suffixes = {
+        "co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au",
+        "co.jp", "co.nz", "com.br", "com.mx", "com.sg", "com.hk",
+    }
+    count = 3 if len(labels) >= 3 and ".".join(labels[-2:]) in common_two_level_suffixes else 2
+    return ".".join(labels[-count:])
+
+
 def audit_receipts(session, reports, receipts, collected_at):
     """Index every source by original index; reject omission and cherry-picking.
 
@@ -126,6 +145,17 @@ def audit_receipts(session, reports, receipts, collected_at):
         })
     if len({v[2] for v in valid}) < 2 or len({v[3] for v in valid}) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
+    # Different hostnames are not necessarily independent organizations:
+    # api.vendor.example and data.vendor.example share the same parent hint.
+    # Fail closed on a cross-group alias even when a third independent source
+    # exists; never infer actual ownership from this heuristic alone.
+    parent_groups = {}
+    for _, _, group, source_host, _ in valid:
+        parent_groups.setdefault(_host_parent_hint(source_host), set()).add(group)
+    if len(parent_groups) < 2:
+        issues.add("TWO_DISTINCT_SOURCE_HOST_PARENT_HINTS_NOT_ESTABLISHED")
+    if any(len(groups) > 1 for groups in parent_groups.values()):
+        issues.add("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT")
     if len({v[4] for v in valid}) != len(valid):
         issues.add("IDENTICAL_RAW_PAYLOAD_ACROSS_SOURCES_INDEPENDENCE_UNPROVEN")
     return {

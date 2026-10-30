@@ -70,6 +70,43 @@ class ReceiptIntegrityTests(unittest.TestCase):
         result = self.run_audit(r, t)
         self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED", result["issues"])
 
+    def test_sibling_hosts_cannot_pose_as_independent_provider_groups(self):
+        r, t = packet()
+        for index, subdomain in enumerate(("quotes.vendor.example", "close.vendor.example")):
+            url = "https://" + subdomain + "/official-close"
+            r[index]["source_url"] = url
+            t[index]["requested_url"] = t[index]["response_url"] = url
+        result = self.run_audit(r, t)
+        self.assertEqual(result["byte_consistent_count"], 2)
+        self.assertIn("TWO_DISTINCT_SOURCE_HOST_PARENT_HINTS_NOT_ESTABLISHED", result["issues"])
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_parent_and_subdomain_cannot_pose_as_two_providers(self):
+        r, t = packet()
+        url = "https://api.a.example/official-close"
+        r[1]["source_url"] = url
+        t[1]["requested_url"] = t[1]["response_url"] = url
+        result = self.run_audit(r, t)
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["indexed_count"], 2)
+
+    def test_shared_parent_alias_cannot_hide_behind_third_provider(self):
+        r, t = packet()
+        extra_report = copy.deepcopy(r[0])
+        extra_receipt = copy.deepcopy(t[0])
+        extra_report["source_id"] = extra_receipt["source_id"] = "source-2"
+        extra_report["provider_organization"] = extra_receipt["provider_organization"] = "third-claimed-group"
+        extra_report["source_url"] = extra_receipt["requested_url"] = extra_receipt["response_url"] = "https://data.a.example/close"
+        extra_receipt["raw_body"] = b'{"provider":"third-claimed-group","close":"8.00"}'
+        extra_receipt["body_sha256"] = hashlib.sha256(extra_receipt["raw_body"]).hexdigest()
+        r.append(extra_report)
+        t.append(extra_receipt)
+        result = self.run_audit(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertEqual(result["byte_consistent_count"], 3)
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+
     def test_mirrored_body_does_not_establish_independence(self):
         r, t = packet()
         t[1]["raw_body"] = t[0]["raw_body"]
