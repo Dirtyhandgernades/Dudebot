@@ -110,7 +110,7 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         if faults:
             issues.update(faults)
         else:
-            valid.append((index, group, source_host))
+            valid.append((index, group, source_host, action_host))
         rows.append({
             "index": index,
             "source_id": source if isinstance(source, str) else None,
@@ -129,6 +129,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         })
     if len({x[1] for x in valid}) < 2 or len({x[2] for x in valid}) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
+    # Separate price-feed hosts do not establish independent corporate-action
+    # evidence when every provider cites the same upstream action source.
+    # Only structurally valid action records may establish source diversity;
+    # even distinct hosts remain self-attested until externally authenticated.
+    if len({x[3] for x in valid}) < 2:
+        issues.add("TWO_DISTINCT_CORPORATE_ACTION_SOURCE_HOSTS_NOT_ESTABLISHED")
     for position, code in ((1, "CROSS_SOURCE_SECURITY_IDENTITY_CLAIM_CONFLICT"),
                            (2, "CROSS_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT"),
                            (3, "CROSS_SOURCE_CORPORATE_ACTION_CLAIM_CONFLICT"),

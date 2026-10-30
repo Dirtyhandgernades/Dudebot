@@ -87,6 +87,26 @@ class ActionIdentityShadowTests(unittest.TestCase):
         result = check([row(), row("b", "alpha", "mirror.example")])
         self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED", result["issues"])
 
+    def test_distinct_price_providers_shared_action_host_fail_closed(self):
+        b = row("b", "beta", "beta.example")
+        b["corporate_action_evidence"]["source_url"] = "https://alpha.example/actions"
+        result = check([row(), b])
+        self.assertIn("TWO_DISTINCT_CORPORATE_ACTION_SOURCE_HOSTS_NOT_ESTABLISHED", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_third_action_host_cannot_establish_independence(self):
+        b = row("b", "beta", "beta.example")
+        b["corporate_action_evidence"]["source_url"] = "https://alpha.example/another-path"
+        c = row("c", "gamma", "gamma.example")
+        c["corporate_action_evidence"]["status"] = "SPLIT"
+        result = check([row(), b, c])
+        self.assertIn("TWO_DISTINCT_CORPORATE_ACTION_SOURCE_HOSTS_NOT_ESTABLISHED", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
     def test_malformed_third_source_retained_and_censored(self):
         result = check([row(), row("b", "beta", "beta.example"), ["bad"]])
         self.assertEqual(result["retained_report_count"], 3)
