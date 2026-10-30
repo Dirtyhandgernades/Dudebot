@@ -5,7 +5,8 @@ NEVER authenticates a source, certifies a close, adjusts a price, or scores
 a prediction. Caller must independently retrieve and archive source receipts.
 """
 from datetime import date, datetime, time
-from urllib.parse import urlsplit
+from backtest.obsidian_eod_source_preflight import _source_host
+from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
 from zoneinfo import ZoneInfo
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
@@ -26,11 +27,8 @@ def _instant(value):
 
 
 def _host(value):
-    try:
-        parsed = urlsplit(value) if isinstance(value, str) else None
-        return parsed.hostname if parsed and parsed.scheme == "https" else None
-    except ValueError:
-        return None
+    """Shared strict URL syntax screen; not provider ownership authentication."""
+    return _source_host(value)
 
 
 def audit_action_identity(symbol, session, previous, reports, collected_at):
@@ -135,6 +133,17 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     # even distinct hosts remain self-attested until externally authenticated.
     if len({x[3] for x in valid}) < 2:
         issues.add("TWO_DISTINCT_CORPORATE_ACTION_SOURCE_HOSTS_NOT_ESTABLISHED")
+    # Screen apparent parent-domain aliases for both price and action sources.
+    # Even a third distinct provider cannot mask two conflicting group claims
+    # on the same parent. This heuristic is not legal-ownership verification.
+    for host_index, label in ((2, "PRICE_SOURCE"), (3, "ACTION_SOURCE")):
+        parent_groups = {}
+        for item in valid:
+            parent_groups.setdefault(_host_parent_hint(item[host_index]), set()).add(item[1])
+        if len(parent_groups) < 2:
+            issues.add("TWO_DISTINCT_" + label + "_PARENT_HINTS_NOT_ESTABLISHED")
+        if any(len(groups) > 1 for groups in parent_groups.values()):
+            issues.add("CLAIMED_PROVIDER_GROUPS_SHARE_" + label + "_PARENT_HINT")
     for position, code in ((1, "CROSS_SOURCE_SECURITY_IDENTITY_CLAIM_CONFLICT"),
                            (2, "CROSS_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT"),
                            (3, "CROSS_SOURCE_CORPORATE_ACTION_CLAIM_CONFLICT"),

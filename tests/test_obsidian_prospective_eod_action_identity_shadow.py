@@ -107,6 +107,51 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertEqual(result["retained_report_count"], 3)
         self.assertTrue(result["outcome_censored_pending_external_evidence"])
 
+    def test_action_source_parent_alias_is_not_independent(self):
+        a, b = row(), row("b", "beta", "beta.example")
+        a["corporate_action_evidence"]["source_url"] = "https://api.action-vendor.example/actions"
+        b["corporate_action_evidence"]["source_url"] = "https://data.action-vendor.example/actions"
+        result = check([a, b])
+        self.assertIn("TWO_DISTINCT_ACTION_SOURCE_PARENT_HINTS_NOT_ESTABLISHED", result["issues"])
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_ACTION_SOURCE_PARENT_HINT", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_third_provider_cannot_hide_action_source_alias(self):
+        a, b = row(), row("b", "beta", "beta.example")
+        a["corporate_action_evidence"]["source_url"] = "https://api.shared-action.example/actions"
+        b["corporate_action_evidence"]["source_url"] = "https://data.shared-action.example/actions"
+        result = check([a, b, row("c", "gamma", "gamma.example")])
+        self.assertEqual(result["structurally_valid_report_count"], 3)
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_ACTION_SOURCE_PARENT_HINT", result["issues"])
+        self.assertEqual(result["retained_report_count"], 3)
+
+    def test_price_source_parent_alias_not_hidden_by_third_provider(self):
+        a, b = row(), row("b", "beta", "beta.example")
+        a["source_url"] = "https://api.feed-vendor.example/close"
+        b["source_url"] = "https://data.feed-vendor.example/close"
+        result = check([a, b, row("c", "gamma", "gamma.example")])
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_PRICE_SOURCE_PARENT_HINT", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_unsafe_action_or_price_url_is_censored(self):
+        invalid = ("https://beta.example:444/actions",
+                   "https://user@beta.example/actions",
+                   "https://beta.example/actions#fragment",
+                   "https://beta.example/actions\\nInjected: value",
+                   "https://[broken/actions")
+        for url in invalid:
+            with self.subTest(url=url):
+                b = row("b", "beta", "beta.example")
+                b["corporate_action_evidence"]["source_url"] = url
+                result = check([row(), b])
+                self.assertIn("ACTION_SOURCE_PROVENANCE_MISSING", result["issues"])
+                self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+                self.assertEqual(result["retained_report_count"], 2)
+        b = row("b", "beta", "beta.example")
+        b["source_url"] = "https://beta.example:444/close"
+        result = check([row(), b])
+        self.assertIn("PROVIDER_OR_SOURCE_URL_NOT_EVIDENCED", result["issues"])
+
     def test_malformed_third_source_retained_and_censored(self):
         result = check([row(), row("b", "beta", "beta.example"), ["bad"]])
         self.assertEqual(result["retained_report_count"], 3)
