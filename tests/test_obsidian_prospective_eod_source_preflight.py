@@ -169,6 +169,45 @@ class SourcePreflightTests(unittest.TestCase):
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example", close="8.500"), row("two", "two.example", close="8.505")], COLLECTED)
         self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
 
+    def test_unsafe_source_url_authorities_are_censored_without_crash(self):
+        invalid_urls = (
+            "http://two.example/history",
+            "https://user@two.example/history",
+            "https://two.example:444/history",
+            "https://two.example/history#fragment",
+            "https://[broken/history",
+            "https://two.example/history\\nInjected: header",
+        )
+        for url in invalid_urls:
+            with self.subTest(url=url):
+                second = row("two", "two.example")
+                second["url"] = url
+                result = preflight("ZZZZ", DAY, PRIOR, [
+                    row("one", "one.example"), second], COLLECTED)
+                self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+                self.assertEqual(result["supplied_reports"], 2)
+                self.assertEqual(result["accepted_reports"], 1)
+                self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_claimed_independent_groups_on_same_parent_host_are_censored(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "api.vendor.example"),
+            row("two", "data.vendor.example")], COLLECTED)
+        self.assertIn("INSUFFICIENT_DISTINCT_PROVIDER_PARENT_HOST_EVIDENCE", result["issues"])
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+
+    def test_third_distinct_host_cannot_hide_cross_group_alias(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "api.vendor.example"),
+            row("two", "data.vendor.example"),
+            row("three", "independent.example")], COLLECTED)
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["supplied_reports"], 3)
+        self.assertEqual(result["accepted_reports"], 3)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+
 
 if __name__ == "__main__":
     unittest.main()

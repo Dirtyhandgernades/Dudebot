@@ -7,6 +7,7 @@ select two agreeing reports while silently dropping a contradictory third.
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlsplit
+from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -38,6 +39,25 @@ def _positive(value):
     if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
         return None
     return number
+
+
+def _source_host(value):
+    """Conservative URL syntax guard; does NOT authenticate provider ownership."""
+    if (not isinstance(value, str)
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
+        return None
+    try:
+        parsed = urlsplit(value)
+        if (parsed.scheme != "https" or not parsed.netloc
+                or parsed.username is not None or parsed.password is not None
+                or parsed.fragment or parsed.port not in (None, 443)):
+            return None
+        host = parsed.hostname
+        if not host or host.endswith(".") or any(ch.isspace() for ch in host):
+            return None
+        return host.lower()
+    except ValueError:
+        return None
 
 
 def preflight(symbol, session_date, previous_session_date, reports, collected_at):
@@ -77,10 +97,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
             seen_source_ids.add(source)
         group = report.get("provider_group")
         url = report.get("url")
-        try:
-            host = urlsplit(url).hostname if isinstance(url, str) else None
-        except ValueError:
-            host = None
+        host = _source_host(url)
         observed = _aware(report.get("observed_at"))
         close_asof = _aware(report.get("regular_close_asof"))
         previous_close_asof = _aware(report.get("previous_regular_close_asof"))
@@ -88,7 +105,6 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         prior = _positive(report.get("previous_regular_close"))
         if (not isinstance(source, str) or not source.strip()
                 or not isinstance(group, str) or not group.strip()
-                or not isinstance(url, str) or not url.startswith("https://")
                 or not host or close is None or prior is None):
             issues.add("INVALID_SOURCE_PROVENANCE_OR_PRICE")
             continue
@@ -115,6 +131,16 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         accepted.append((source, group, host, close, prior))
     if len(accepted) < 2 or len({x[1] for x in accepted}) < 2 or len({x[2] for x in accepted}) < 2:
         issues.add("INSUFFICIENT_DISTINCT_HOST_AND_PROVIDER_EVIDENCE")
+    # Different subdomains may share one vendor organization. A third source
+    # must not conceal conflicting claimed organizations on that same parent.
+    # This is only an alias-screening hint, never proof of legal independence.
+    parent_groups = {}
+    for _, group, host, _, _ in accepted:
+        parent_groups.setdefault(_host_parent_hint(host), set()).add(group)
+    if len(parent_groups) < 2:
+        issues.add("INSUFFICIENT_DISTINCT_PROVIDER_PARENT_HOST_EVIDENCE")
+    if any(len(groups) > 1 for groups in parent_groups.values()):
+        issues.add("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT")
     if accepted:
         closes = [x[3] for x in accepted]
         priors = [x[4] for x in accepted]
