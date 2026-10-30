@@ -15,7 +15,8 @@ def row(group, host, close="8.00", prior="10.00", observed="2026-10-27T20:10:00Z
             "kind": "regular_close", "session_complete": True,
             "regular_close": close, "previous_regular_close": prior,
             "observed_at": observed,
-            "regular_close_asof": "2026-10-27T20:00:00Z"}
+            "regular_close_asof": "2026-10-27T20:00:00Z",
+            "previous_regular_close_asof": "2026-10-26T20:00:00Z"}
 
 
 class SourcePreflightTests(unittest.TestCase):
@@ -96,6 +97,32 @@ class SourcePreflightTests(unittest.TestCase):
         east["regular_close_asof"] = "2026-10-27T16:00:00-04:00"
         r = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), east], COLLECTED)
         self.assertEqual(r["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
+
+    def test_missing_previous_close_asof_is_censored(self):
+        stale = row("two", "two.example")
+        stale.pop("previous_regular_close_asof")
+        result = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), stale], COLLECTED)
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE", result["issues"])
+        self.assertEqual(result["accepted_reports"], 1)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_previous_intraday_print_cannot_be_previous_regular_close(self):
+        stale = row("two", "two.example")
+        stale["previous_regular_close_asof"] = "2026-10-26T19:59:35Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), stale], COLLECTED)
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE", result["issues"])
+
+    def test_previous_early_close_requires_separate_calendar_protocol(self):
+        early = row("two", "two.example")
+        early["previous_regular_close_asof"] = "2026-10-26T17:00:00Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), early], COLLECTED)
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE", result["issues"])
+
+    def test_previous_close_equivalent_eastern_offset_is_accepted(self):
+        east = row("two", "two.example")
+        east["previous_regular_close_asof"] = "2026-10-26T16:00:00-04:00"
+        result = preflight("ZZZZ", DAY, PRIOR, [row("one", "one.example"), east], COLLECTED)
+        self.assertEqual(result["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
 
     def test_half_cent_agreement_straddling_20pct_boundary_is_censored(self):
         result = preflight("ZZZZ", DAY, PRIOR, [

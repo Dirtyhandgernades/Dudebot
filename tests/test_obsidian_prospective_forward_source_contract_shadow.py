@@ -18,6 +18,7 @@ def source(group, host, close=8.0, asof_at="2026-10-27T20:00:00Z"):
         "kind": "regular_close", "session_complete": True,
         "regular_close": close, "previous_regular_close": 10.0,
         "regular_close_asof": asof_at,
+        "previous_regular_close_asof": "2026-10-26T20:00:00Z",
         "observed_at": "2026-10-27T20:07:00Z", "verified": True,
     }
 
@@ -61,6 +62,13 @@ class ShadowContractTests(unittest.TestCase):
             row, asof(row["close_at"]), asof(row["collected_at"])))
         result = self.check(row)
         self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertEqual(result["status"], "SHADOW_SOURCE_CONTRACT_BLOCKED")
+
+    def test_previous_session_intraday_reference_is_not_an_official_close(self):
+        row = outcome()
+        row["independent_eod_sources"][1]["previous_regular_close_asof"] = "2026-10-26T19:59:00Z"
+        result = self.check(row)
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE", result["issues"])
         self.assertEqual(result["status"], "SHADOW_SOURCE_CONTRACT_BLOCKED")
 
     def test_missing_source_asof_alone_blocks(self):

@@ -55,6 +55,10 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     if not isinstance(reports, list):
         raise ValueError("COMPLETE_COLLECTED_REPORT_LIST_REQUIRED")
     end = datetime.combine(session_date, time(16, 0), tzinfo=ET)
+    # The previous-session reference must itself be an exact regular close.
+    # Previous early closes require a separate registered calendar protocol;
+    # this normal-session shadow preflight censors them rather than guessing.
+    previous_end = datetime.combine(previous_session_date, time(16, 0), tzinfo=ET)
     collection_time = _aware(collected_at)
     if collection_time is None or collection_time < end:
         raise ValueError("POST_CLOSE_COLLECTION_TIMESTAMP_REQUIRED")
@@ -79,6 +83,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
             host = None
         observed = _aware(report.get("observed_at"))
         close_asof = _aware(report.get("regular_close_asof"))
+        previous_close_asof = _aware(report.get("previous_regular_close_asof"))
         close = _positive(report.get("regular_close"))
         prior = _positive(report.get("previous_regular_close"))
         if (not isinstance(source, str) or not source.strip()
@@ -99,6 +104,10 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         # is not independently evidenced as the 16:00 ET regular close.
         if close_asof is None or close_asof.astimezone(ET) != end:
             issues.add("NON_1600_ET_REGULAR_CLOSE_SOURCE")
+            continue
+        if (previous_close_asof is None
+                or previous_close_asof.astimezone(ET) != previous_end):
+            issues.add("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE")
             continue
         if observed is None or not end <= observed <= collection_time:
             issues.add("STALE_OR_UNTIMED_SOURCE")
