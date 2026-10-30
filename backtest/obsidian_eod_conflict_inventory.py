@@ -10,8 +10,10 @@ import hashlib
 import json
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
+
+from backtest.obsidian_eod_source_preflight import _source_host
+from backtest.obsidian_forward_calendar_shadow import trusted_exchange_calendar_host
 
 POLICY = "OBSIDIAN_EOD_ALL_SOURCE_CONFLICT_LEDGER_V1_2026_10_29"
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
@@ -46,11 +48,8 @@ def positive(value):
 
 
 def host(value):
-    try:
-        parsed = urlsplit(value) if isinstance(value, str) else None
-        return parsed.hostname if parsed and parsed.scheme == "https" else None
-    except ValueError:
-        return None
+    """Shared strict HTTPS URL syntax guard; not ownership authentication."""
+    return _source_host(value)
 
 
 def report_digest(report):
@@ -108,7 +107,7 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     if (cal.get("session_date") != session.isoformat()
             or cal.get("previous_session_date") != previous.isoformat()
             or cal.get("session_open") is not True
-            or not host(cal.get("exchange_calendar_url"))
+            or not trusted_exchange_calendar_host(cal.get("exchange_calendar_url"))
             or end is None or prior_end is None
             or end.astimezone(ET).date() != session
             or prior_end.astimezone(ET).date() != previous

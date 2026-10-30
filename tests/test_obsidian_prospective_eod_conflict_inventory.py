@@ -244,5 +244,48 @@ class AllSourceLedgerTests(unittest.TestCase):
 
 
 
+    def test_calendar_claim_requires_official_exchange_host_and_safe_https_authority(self):
+        """A caller-supplied arbitrary or credentialed calendar cannot pass even structurally."""
+        bad_urls = (
+            "https://other.example/calendar",
+            "https://user:secret@www.nyse.com/calendar",
+            "https://www.nyse.com:8443/calendar",
+            "https://www.nyse.com./calendar",
+            "https://www.nyse.com/calendar#fragment",
+            "https://www.nyse.com/ca\\nendar",
+        )
+        for url in bad_urls:
+            with self.subTest(calendar_url=url):
+                calendar = cal()
+                calendar["exchange_calendar_url"] = url
+                result = check([row(), row("b", "two", "two.example")], calendar)
+                self.assertIn("UNVERIFIED_OR_INVALID_EXCHANGE_SESSION_CHAIN", result["issues"])
+                self.assertEqual(result["retained_report_count"], 2)
+                self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+                self.assertFalse(result["official_regular_close_verified"])
+
+    def test_malformed_third_source_url_cannot_hide_conflicting_price_claim(self):
+        """Rejected third-party close still appears in the complete conflict inventory."""
+        bad_urls = (
+            "https://user:secret@three.example/eod",
+            "https://three.example:8443/eod",
+            "https://three.example./eod",
+            "https://three.example/eod#fragment",
+            "https://three.example/eod\\nnext",
+        )
+        for url in bad_urls:
+            with self.subTest(source_url=url):
+                third = row("c", "three", "three.example", close="8.2")
+                third["source_url"] = url
+                result = check([row(), row("b", "two", "two.example"), third])
+                self.assertEqual(result["retained_report_count"], 3)
+                self.assertTrue(result["all_supplied_rows_indexed"])
+                self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+                self.assertIn("SOURCE_OWNERSHIP_OR_URL_MISSING", result["issues"])
+                self.assertIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+                self.assertIn("REJECTED_SOURCE_PRICE_CLAIM_NOT_IN_VALID_SET", result["issues"])
+                self.assertFalse(result["official_regular_close_verified"])
+
+
 if __name__ == "__main__":
     unittest.main()
