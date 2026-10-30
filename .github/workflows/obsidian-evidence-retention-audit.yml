@@ -1,0 +1,77 @@
+name: OBSIDIAN original evidence retention audit (research only)
+on:
+  push:
+    branches:
+      - research/obsidian-early-rug-20261025
+    paths:
+      - 'backtest/obsidian_artifact_retention_audit.py'
+      - 'tests/test_obsidian_artifact_retention_audit.py'
+      - '.github/workflows/obsidian-evidence-retention-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  evidence-retention:
+    if: github.ref == 'refs/heads/research/obsidian-early-rug-20261025'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test offline fail-closed evidence contracts
+        run: python -m unittest discover -s tests -p 'test_obsidian_artifact_retention_audit.py' -v
+      - name: Fetch original GitHub artifact metadata only (no source capture)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          from backtest.obsidian_artifact_retention_audit import PINNED
+          packets = []
+          for run in sorted({item[0] for item in PINNED}):
+              url = f'https://api.github.com/repos/Dirtyhandgernades/Dudebot/actions/runs/{run}/artifacts?per_page=100'
+              req = urllib.request.Request(url, headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json',
+                  'User-Agent': 'OBSIDIAN-readonly-retention-audit',
+              })
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  data = json.load(response)
+              if data.get('total_count', 0) > 100:
+                  raise RuntimeError('ARTIFACT_PAGINATION_REQUIRED')
+              packets.append({'run_id': run, 'artifacts': data['artifacts']})
+          Path('/tmp/obsidian-artifact-metadata.json').write_text(json.dumps(packets))
+          print('Read-only artifact metadata packets:', len(packets))
+          PY
+      - name: Produce fail-closed retention manifest
+        run: |
+          mkdir -p outputs/backtest/obsidian-evidence-retention
+          AS_OF="$(python -c 'from datetime import datetime,timezone;print(datetime.now(timezone.utc).isoformat())')"
+          python -m backtest.obsidian_artifact_retention_audit \
+            --metadata-json /tmp/obsidian-artifact-metadata.json \
+            --as-of "$AS_OF" \
+            --output outputs/backtest/obsidian-evidence-retention/retention-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('outputs/backtest/obsidian-evidence-retention/retention-manifest.json').read_text())
+          assert report['pinned_artifacts'] == 7
+          assert report['metadata_matched_count'] == 7, report['rows']
+          assert report['blocked_count'] == 0
+          assert report['backup_status'] == 'BACKUP_UNVERIFIED'
+          assert report['official_closes_authenticated'] is False
+          assert all(x['off_platform_backup_verified'] is False for x in report['rows'])
+          PY
+      - name: Upload retention audit (not a durable off-platform backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidian-evidence-retention-${{ github.run_id }}
+          path: outputs/backtest/obsidian-evidence-retention/retention-manifest.json
+          retention-days: 90
+          if-no-files-found: error
