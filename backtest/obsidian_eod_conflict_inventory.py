@@ -118,6 +118,20 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         et = end.astimezone(ET)
         if (et.hour, et.minute, et.second, et.microsecond) != ((13, 0, 0, 0) if early else (16, 0, 0, 0)):
             issues.add("EXCHANGE_CLOSE_TIME_CONFLICT")
+    # A previous-session intraday/after-hours print cannot establish the
+    # reference close for a 20% event, even if every provider repeats it.
+    # Previous 13:00 ET early closes require an independently registered
+    # early-session protocol; the frozen normal-session evaluator must censor.
+    if prior_end is not None:
+        previous_et = prior_end.astimezone(ET)
+        previous_clock = (previous_et.hour, previous_et.minute,
+                          previous_et.second, previous_et.microsecond)
+        if previous_clock != (16, 0, 0, 0):
+            issues.add("PREVIOUS_REGULAR_CLOSE_TIME_CONFLICT")
+            if previous_clock == (13, 0, 0, 0):
+                issues.add("PREVIOUS_EARLY_CLOSE_REQUIRES_SEPARATE_NONFROZEN_PROTOCOL")
+    if type(cal.get("early_close")) is not bool:
+        issues.add("INVALID_EARLY_CLOSE_CALENDAR_FLAG")
     if early:
         issues.add("EARLY_CLOSE_REQUIRES_SEPARATE_NONFROZEN_PROTOCOL")
     if not reports:

@@ -73,6 +73,37 @@ class AllSourceLedgerTests(unittest.TestCase):
         result = check([a, b], cal(True))
         self.assertIn("EARLY_CLOSE_REQUIRES_SEPARATE_NONFROZEN_PROTOCOL", result["issues"])
 
+    def test_previous_intraday_print_cannot_be_reference_close(self):
+        calendar = cal()
+        calendar["previous_regular_close_at"] = "2026-10-27T14:30:00Z"
+        a, b = row(), row("b", "two", "two.example")
+        for source in (a, b):
+            source["previous_regular_close_asof"] = calendar["previous_regular_close_at"]
+        result = check([a, b], calendar)
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("PREVIOUS_REGULAR_CLOSE_TIME_CONFLICT", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_previous_early_close_requires_separate_protocol(self):
+        calendar = cal()
+        calendar["previous_regular_close_at"] = "2026-10-27T17:00:00Z"
+        a, b = row(), row("b", "two", "two.example")
+        for source in (a, b):
+            source["previous_regular_close_asof"] = calendar["previous_regular_close_at"]
+        result = check([a, b], calendar)
+        self.assertIn("PREVIOUS_REGULAR_CLOSE_TIME_CONFLICT", result["issues"])
+        self.assertIn("PREVIOUS_EARLY_CLOSE_REQUIRES_SEPARATE_NONFROZEN_PROTOCOL", result["issues"])
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
+    def test_ambiguous_calendar_early_close_flag_is_censored(self):
+        calendar = cal()
+        calendar["early_close"] = "false"
+        result = check([row(), row("b", "two", "two.example")], calendar)
+        self.assertIn("INVALID_EARLY_CLOSE_CALENDAR_FLAG", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+
     def test_future_source_and_duplicate_id_fail_closed(self):
         b = row("a", "two", "two.example")
         b["observed_at"] = "2026-10-29T00:00:00Z"
