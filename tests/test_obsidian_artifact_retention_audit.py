@@ -37,6 +37,7 @@ class ArtifactRetentionAuditTests(unittest.TestCase):
 
     def test_expired_artifact_is_not_available(self):
         source = packets()
+        source[0]["artifacts"][0]["created_at"] = "2026-10-01T00:00:00Z"
         source[0]["artifacts"][0]["expires_at"] = "2026-10-29T00:00:00Z"
         report = audit(source, NOW)
         self.assertIn("RETENTION_DEADLINE_PASSED", report["rows"][0]["issues"])
