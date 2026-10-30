@@ -52,6 +52,7 @@ def eod(symbol,dayindex,prior,close):
             "session_date":day,"previous_session_date":p,
             "kind":"regular_close","session_complete":True,
             "regular_close_asof":timestamp(day),
+            "previous_regular_close_asof":timestamp(p),
             "observed_at":published(day),
             "verified":True,"regular_close":close,
             "previous_regular_close":prior,

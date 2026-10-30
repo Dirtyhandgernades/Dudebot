@@ -24,6 +24,7 @@ def source(provider, host, amount=8.0):
             "kind":"regular_close","session_complete":True,
             "regular_close":amount,"previous_regular_close":10.0,
             "regular_close_asof":"2026-10-28T20:00:00Z",
+            "previous_regular_close_asof":"2026-10-27T20:00:00Z",
             "observed_at":"2026-10-28T20:05:00Z","verified":True}
 
 
@@ -58,6 +59,12 @@ class StrictIntakeTests(unittest.TestCase):
         self.assertFalse(result["usable_for_automatic_frozen_forward_scoring"])
         self.assertFalse(result["official_close_verified_by_module"])
         self.assertFalse(result["actual_source_independence_authenticated"])
+
+    def test_missing_previous_close_timestamp_blocks(self):
+        row=outcome()
+        del row["independent_eod_sources"][1]["previous_regular_close_asof"]
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE",
+                      assess(row,calendar())["issues"])
 
     def test_missing_per_source_asof_blocks(self):
         row=outcome()

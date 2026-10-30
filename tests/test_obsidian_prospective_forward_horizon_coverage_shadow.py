@@ -56,6 +56,7 @@ def eod(symbol, horizon, prior, close):
          "session_date": day, "previous_session_date": previous,
          "kind": "regular_close", "session_complete": True,
          "regular_close_asof": close_stamp(day),
+         "previous_regular_close_asof": close_stamp(previous),
          "observed_at": publication(day), "verified": True,
          "regular_close": close, "previous_regular_close": prior}
         for group, host in [("independent_a", "a.example"),
