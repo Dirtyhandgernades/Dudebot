@@ -131,7 +131,7 @@ class ReconciliationTests(unittest.TestCase):
             self.assertEqual(path.read_text(),'original')
 
     def test_transport_does_not_emit_network_exception(self):
-        with patch.object(m.request,'urlopen',side_effect=OSError('credential-value')):
+        with patch.object(m,'_open_no_redirect',side_effect=OSError('credential-value')):
             r=m.get('https://example.com',{},'credential-value')
         self.assertNotIn('credential-value',json.dumps(r))
         self.assertEqual(r['error'],'NETWORK_UNAVAILABLE')
@@ -148,7 +148,7 @@ class ReconciliationTests(unittest.TestCase):
             def read(self, n):
                 return json.dumps({'status':'error', 'message':'echo '+secret,
                                    'apiKey':secret}).encode('utf-8')
-        with patch.object(m.request,'urlopen',return_value=FakeResponse()):
+        with patch.object(m,'_open_no_redirect',return_value=FakeResponse()):
             fetched=m.get('https://api.massive.com/v1/open-close',
                           {'apiKey':secret}, secret)
         self.assertNotIn('redacted_response_body',fetched)
@@ -265,6 +265,40 @@ class ReconciliationTests(unittest.TestCase):
                          {'2026-10-27', '2026-10-28'})
         self.assertFalse(result['official_exchange_close_verified'])
         self.assertFalse(result['outcome_scoring_eligible'])
+
+
+    def test_redirects_cannot_relabel_another_source_as_vendor(self):
+        # Even an apparently benign same-origin 302 is not independently
+        # authenticated and must not silently turn into a different provider.
+        req = m.request.Request('https://api.massive.com/v1/open-close/AAPL/2026-10-27?apiKey=canary')
+        handler = m._NoRedirectHandler()
+        self.assertIsNone(handler.redirect_request(
+            req, None, 302, 'Found',
+            {'Location': 'https://other-provider.example/echo?apiKey=canary'},
+            'https://other-provider.example/echo?apiKey=canary'))
+        self.assertIsNone(handler.redirect_request(
+            req, None, 301, 'Moved',
+            {'Location': '/new-location'}, 'https://api.massive.com/new-location'))
+
+    def test_redirect_response_is_censored_without_leaking_location(self):
+        secret = 'canary-token-redirect'
+        class RedirectResponse:
+            code = 302
+            headers = {'Location': 'https://other-provider.example/?apiKey=' + secret}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, n):
+                return b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+        with patch.object(m, '_open_no_redirect', return_value=RedirectResponse()) as opened:
+            fetched = m.get('https://api.massive.com/v1/open-close/AAPL/2026-10-27',
+                            {'apiKey': secret}, secret)
+        opened.assert_called_once()
+        row = m.observation('MASSIVE', 'AAPL', '2026-10-27', fetched)
+        self.assertEqual(row['provider_error_category'], 'UNTRUSTED_REDIRECT')
+        self.assertEqual(row['validation_status'], 'BLOCKED')
+        self.assertIsNone(row['price'])
+        self.assertNotIn(secret, json.dumps(row))
+        self.assertNotIn('other-provider.example', json.dumps(row))
 
 
 if __name__=='__main__':unittest.main()

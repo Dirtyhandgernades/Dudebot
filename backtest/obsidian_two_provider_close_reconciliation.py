@@ -25,13 +25,23 @@ def redact(text, token):
     return re.sub(r'(?i)(api[_-]?key|token|authorization|secret)([\"\s:=]+)[^\s,;&\"}]+', r'\1\2[REDACTED]', text)
 
 
+class _NoRedirectHandler(request.HTTPRedirectHandler):
+    """Never follow vendor redirects: a different host is not the claimed source."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _open_no_redirect(req):
+    return request.build_opener(_NoRedirectHandler()).open(req, timeout=18)
+
+
 def get(url, params, token):
     """Never log URLs, exceptions or provider messages that could echo credentials."""
     req = request.Request(url + "?" + parse.urlencode(params),
                           headers={"User-Agent": "OBSIDIAN-research-only/2.0"})
     try:
         try:
-            response = request.urlopen(req, timeout=18)
+            response = _open_no_redirect(req)
         except error.HTTPError as exc:
             response = exc
         with response:
@@ -59,6 +69,8 @@ def category(receipt):
     if receipt.get("error"):
         return receipt["error"]
     if status != 200:
+        if type(status) is int and 300 <= status < 400:
+            return "UNTRUSTED_REDIRECT"
         return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
                 429: "RATE_LIMIT"}.get(status, "SERVER_ERROR" if status and status >= 500 else "HTTP_ERROR")
     payload = receipt.get("payload")
@@ -220,7 +232,8 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
               "captured_at_utc": utcnow(), "sessions": list(sessions), "symbols": list(symbols),
               "comparison_tolerance_usd": str(TOLERANCE), "rows": [],
               "official_exchange_close_verified": False, "outcome_scoring_eligible": False,
-              "independent_underlying_exchange_feed_verified": False, "trade_authorized": False}
+              "independent_underlying_exchange_feed_verified": False, "trade_authorized": False,
+              "vendor_redirect_policy": "DENY_ALL_REDIRECTS"}
     for symbol in symbols:
         t = twelve.fetch("https://api.twelvedata.com/time_series",
                          {"symbol": symbol, "interval": "1day", "start_date": start_date,
