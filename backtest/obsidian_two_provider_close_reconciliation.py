@@ -201,7 +201,7 @@ def _bounded_request_window(symbols, sessions):
         raise ValueError("BOUNDED_UNIQUE_SYMBOLS_REQUIRED")
     if (not isinstance(sessions, (list, tuple)) or not sessions
             or len(sessions) > 4 or len(symbols) * len(sessions) > 4
-            or any(not isinstance(s, str) or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", s)
+            or any(not isinstance(s, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", s)
                    for s in sessions)):
         raise ValueError("BOUNDED_SESSION_DATES_REQUIRED")
     try:
