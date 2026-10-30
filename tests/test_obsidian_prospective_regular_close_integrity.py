@@ -18,7 +18,8 @@ class RegularCloseIntegrityTests(unittest.TestCase):
         self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
         self.assertIn("INDEPENDENT_CLOSE_SOURCES_DISAGREE",r["issues"])
         self.assertIn("SOURCES_STRADDLE_20PCT_THRESHOLD",r["issues"])
-        self.assertEqual(r["independent_provider_count"],3)
+        self.assertEqual(r["claimed_provider_id_count"],3)
+        self.assertEqual(r["independent_provider_count"],0)
         self.assertIsNone(r["hypothetical_profit"])
 
     def test_same_vendor_two_pages_not_independent(self):
@@ -27,16 +28,25 @@ class RegularCloseIntegrityTests(unittest.TestCase):
         self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
         self.assertIn("INSUFFICIENT_INDEPENDENT_COMPLETED_CLOSE_SOURCES",r["issues"])
 
-    def test_two_independent_consistent_extreme_closes(self):
+    def test_two_self_attested_extreme_closes_never_certify_a_hit(self):
         r=check(symbol="X",session_date=D,previous_close=10,observed_at=T,
                 reports=[row("a",7.95),row("b",7.96)])
-        self.assertEqual(r["classification"],"VERIFIED_AT_LEAST_20PCT_CLOSE_DROP")
+        self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
+        self.assertIn("OFFICIAL_CLOSE_AND_REFERENCE_NOT_AUTHENTICATED",r["issues"])
+        self.assertTrue(r["structural_consensus_only"])
+        self.assertEqual(r["claimed_provider_id_count"],2)
+        self.assertEqual(r["independent_provider_count"],0)
+        self.assertFalse(r["eligible_for_frozen_forward_scoring"])
+        self.assertIsNone(r["verified_20pct_prediction_success"])
         self.assertEqual(r["preclose_catchability"],"UNPROVEN_NO_PREDECISION_TAPE")
 
-    def test_two_independent_consistent_nonextreme_closes(self):
+    def test_two_self_attested_nonextreme_closes_never_certify_a_miss(self):
         r=check(symbol="X",session_date=D,previous_close=10,observed_at=T,
                 reports=[row("a",8.10),row("b",8.12)])
-        self.assertEqual(r["classification"],"VERIFIED_BELOW_20PCT_CLOSE_DROP")
+        self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
+        self.assertTrue(r["structural_consensus_only"])
+        self.assertFalse(r["official_close_verified"])
+        self.assertFalse(r["previous_close_authenticated"])
 
     def test_preclose_or_incomplete_reports_excluded(self):
         r=check(symbol="X",session_date=D,previous_close=10,observed_at=T,
@@ -70,6 +80,28 @@ class RegularCloseIntegrityTests(unittest.TestCase):
                 reports=[row("a",7.99),row("b",8.01)])
         self.assertEqual(r["classification"],"OUTCOME_UNVERIFIED")
         self.assertIn("SOURCES_STRADDLE_20PCT_THRESHOLD",r["issues"])
+
+    def test_spoofed_official_flags_and_prior_close_cannot_authenticate(self):
+        a=row("exchange_official",7.0)
+        b=row("independent_exchange_official",7.0)
+        for report in (a,b):
+            report.update(official_close_verified=True,
+                          previous_close_verified=True,
+                          provider_independence_authenticated=True,
+                          corporate_actions_verified=True)
+        result=check(symbol="X",session_date=D,previous_close=10,
+                     observed_at=T,reports=[a,b])
+        self.assertEqual(result["classification"],"OUTCOME_UNVERIFIED")
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+        self.assertEqual(result["independent_provider_count"],0)
+
+    def test_extreme_finite_numeric_claims_rejected_not_overflowed(self):
+        for value in (1e308,1e-308):
+            result=check(symbol="X",session_date=D,previous_close=10,
+                         observed_at=T,reports=[row("a",value),row("b",7.0)])
+            self.assertEqual(result["classification"],"OUTCOME_UNVERIFIED")
+            self.assertIn("INCOMPLETE_STALE_OR_WRONG_SESSION_REPORT",result["issues"])
+            self.assertEqual(result["claimed_provider_id_count"],1)
 
     def test_invalid_input_rejected(self):
         with self.assertRaises(ValueError):

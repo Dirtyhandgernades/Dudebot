@@ -1,9 +1,9 @@
-"""Fail-closed regular-session collapse outcome verification; research only.
+"""Legacy offline regular-close CLAIM audit; never certifies market outcomes.
 
-A postclose vendor display is not an authenticated exchange close. Multiple
-pages from the same provider do not constitute independent confirmation.
-Do not award retrospective >=20% winners when independent providers disagree.
-No orders, live alerts, or frozen strategy changes.
+A postclose vendor display, provider_id string, and caller-supplied previous
+close cannot authenticate exchange closes, security identity, corporate actions
+or independence. This isolated research helper ALWAYS censors official outcomes.
+No orders, live alerts, or changes to frozen strategy/denominator.
 """
 from datetime import date, datetime, time
 from math import isfinite
@@ -15,7 +15,9 @@ NY = ZoneInfo("America/New_York")
 
 
 def _price(x):
-    return type(x) in (float, int) and isfinite(x) and x > 0
+    # Avoid float overflow/underflow in ratios, provider means and threshold
+    # diagnostics. This is NOT a market/SMG price-eligibility threshold.
+    return type(x) in (float, int) and isfinite(x) and 1e-100 <= x <= 1e100
 
 
 def _aware(x):
@@ -24,11 +26,11 @@ def _aware(x):
 
 def audit_regular_close_outcome(*, symbol, session_date, previous_close,
                                 reports, observed_at):
-    """Verify only an OUTCOME, never a preclose forecast or executable trade.
+    """Inspect only untrusted price claims, never a forecast or trade.
 
-    reports: provider_id, session_date (date), close, captured_at (aware
-    datetime), session_complete (literal True), kind='regular_close'.
-    Only observations captured after 4pm ET on the target session count.
+    reports: claimed provider_id, session_date (date), close, captured_at
+    (aware datetime), session_complete (literal True), kind='regular_close'.
+    Post-4pm capture is necessary but NOT proof of the 4pm auction price.
     """
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("SYMBOL_REQUIRED")
@@ -75,19 +77,28 @@ def audit_regular_close_outcome(*, symbol, session_date, previous_close,
     if (all_accepted_prices and min(all_accepted_prices) <= threshold
             < max(all_accepted_prices)):
         issues.append("SOURCES_STRADDLE_20PCT_THRESHOLD")
-    verified = not issues
-    if verified:
-        classification = ("VERIFIED_AT_LEAST_20PCT_CLOSE_DROP"
-                          if max(provider_prices) <= threshold
-                          else "VERIFIED_BELOW_20PCT_CLOSE_DROP")
-    else:
-        classification = "OUTCOME_UNVERIFIED"
+    structural_consensus = not issues
+    # This legacy helper has no authenticated transport receipts, legal
+    # provider-ownership mapping, official close auction source, previous-close
+    # provenance, exchange calendar or corporate-action/security-ID proof.
+    # Two agreeing self-attested provider IDs are NEVER a verified outcome.
+    issues.append("OFFICIAL_CLOSE_AND_REFERENCE_NOT_AUTHENTICATED")
+    classification = "OUTCOME_UNVERIFIED"
     return {
         "symbol": symbol,
         "session_date": session_date.isoformat(),
         "classification": classification,
         "issues": sorted(set(issues)),
-        "independent_provider_count": len(accepted),
+        "independent_provider_count": 0,
+        "claimed_provider_id_count": len(accepted),
+        "structural_consensus_only": structural_consensus,
+        "official_close_verified": False,
+        "previous_close_authenticated": False,
+        "provider_independence_authenticated": False,
+        "corporate_action_and_security_identity_authenticated": False,
+        "eligible_for_frozen_forward_scoring": False,
+        "verified_20pct_prediction_success": None,
+        "outcome_censored_pending_external_evidence": True,
         "observed_close_range": [min(provider_prices), max(provider_prices)] if provider_prices else None,
         "preclose_catchability": "UNPROVEN_NO_PREDECISION_TAPE",
         "trade_status": "RESEARCH_ONLY_NOT_AN_ORDER",
