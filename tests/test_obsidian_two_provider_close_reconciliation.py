@@ -80,6 +80,30 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(m.category(receipt([])),'MALFORMED_RESPONSE')
         self.assertEqual(m.category(receipt({'status':'error','code':429})),'RATE_LIMIT')
 
+    def test_malformed_http_status_is_censored_not_exception(self):
+        for bad in (None, True, False, '200', [], {}, 0, 600):
+            with self.subTest(status=repr(bad)):
+                r = receipt({'status': 'OK', 'symbol': 'AAPL',
+                             'from': '2026-10-27', 'close': '100'}, status=bad)
+                self.assertEqual(m.category(r), 'MALFORMED_HTTP_STATUS')
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+                self.assertEqual(row['validation_status'], 'BLOCKED')
+                self.assertIsNone(row['price'])
+
+    def test_unexpected_vendor_success_status_cannot_count_as_bar(self):
+        for provider, original in [('MASSIVE', massive()), ('TWELVE_DATA', twelve())]:
+            for bad in (None, 'partial', 'success', 'OK' if provider == 'TWELVE_DATA' else 'ok'):
+                with self.subTest(provider=provider, status=bad):
+                    r = copy.deepcopy(original)
+                    if bad is None:
+                        r['payload'].pop('status')
+                    else:
+                        r['payload']['status'] = bad
+                    row = m.observation(provider, 'AAPL', '2026-10-27', r)
+                    self.assertEqual(row['provider_error_category'], 'UNEXPECTED_PROVIDER_STATUS')
+                    self.assertEqual(row['validation_status'], 'BLOCKED')
+                    self.assertIsNone(row['price'])
+
     def test_rate_limit_stops_requests_and_retains_headers(self):
         r = receipt({},429); r['headers']={'retry-after':'60'}
         with patch.object(m,'get',return_value=r) as get:

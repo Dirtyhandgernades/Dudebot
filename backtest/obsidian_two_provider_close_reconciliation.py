@@ -68,11 +68,15 @@ def category(receipt):
     status = receipt.get("http_status")
     if receipt.get("error"):
         return receipt["error"]
+    # Only the transport's integer HTTP status is admissible. Malformed
+    # injected/legacy receipts must censor, not crash or resemble HTTP 200.
+    if type(status) is not int or not 100 <= status <= 599:
+        return "MALFORMED_HTTP_STATUS"
     if status != 200:
-        if type(status) is int and 300 <= status < 400:
+        if 300 <= status < 400:
             return "UNTRUSTED_REDIRECT"
         return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
-                429: "RATE_LIMIT"}.get(status, "SERVER_ERROR" if status and status >= 500 else "HTTP_ERROR")
+                429: "RATE_LIMIT"}.get(status, "SERVER_ERROR" if status >= 500 else "HTTP_ERROR")
     payload = receipt.get("payload")
     if not isinstance(payload, dict):
         return "MALFORMED_RESPONSE"
@@ -138,6 +142,13 @@ def observation(provider, symbol, day, receipt):
     if result["provider_error_category"]:
         return result
     payload = receipt["payload"]
+    # Provider-specific success status is required before a numeric bar may
+    # enter even the diagnostic count. An unknown/partial status is not proof
+    # that the vendor returned a completed daily close.
+    expected_status = {"MASSIVE": "OK", "TWELVE_DATA": "ok"}.get(provider)
+    if expected_status is None or payload.get("status") != expected_status:
+        result["provider_error_category"] = "UNEXPECTED_PROVIDER_STATUS"
+        return result
     if provider == "MASSIVE":
         bar = payload
         valid_identity = payload.get("symbol") == symbol
