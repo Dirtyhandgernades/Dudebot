@@ -6,6 +6,7 @@ from pathlib import Path
 
 from backtest.obsidian_iex_research_discovery import collect, persist
 from backtest.obsidian_forward_horizon_coverage_shadow import audit
+from backtest.obsidian_prospective_maturity_ledger import build as build_maturity_ledger
 from backtest.obsidian_iex_corporate_actions import ACTION_FLAGS
 
 AT = datetime(2026, 10, 28, 14, 15, tzinfo=timezone.utc)
@@ -184,6 +185,56 @@ class CoverageTests(unittest.TestCase):
             audit(self.capture, calendar(), [first, first])
         with self.assertRaisesRegex(ValueError, "DUPLICATE_OR_OUTSIDE"):
             audit(self.capture, calendar(), [eod("ZZZZ", 0, 10, 9.5)])
+
+
+    def test_maturity_ledger_counts_future_sessions_without_leaking_outcomes(self):
+        rows = self.four("AAAA", [9.5, 9.1, 8.7, 7.1])
+        report = build_maturity_ledger(self.capture, calendar(), rows, "2026-10-29T21:00:00Z")
+        self.assertEqual(report["expected_issuer_session_slots"], 12)
+        self.assertEqual(report["verified_outcomes"], 0)
+        self.assertEqual(report["per_horizon"][0]["categories"]["CENSORED_UNVERIFIED"], 1)
+        self.assertEqual(report["per_horizon"][1]["categories"]["CENSORED_UNVERIFIED"], 1)
+        self.assertEqual(report["per_horizon"][2]["categories"]["NOT_YET_MATURE"], 3)
+        self.assertEqual(report["per_horizon"][3]["categories"]["NOT_YET_MATURE"], 3)
+        self.assertIsNone(report["verified_precision"])
+        self.assertFalse(report["predictive_edge_proven"])
+
+    def test_maturity_ledger_separates_conflict_missing_and_blocked(self):
+        rows = [eod("AAAA", 0, 10, 9.5), eod("BBBB", 0, 10, 8.8)]
+        rows[0]["provider_conflict"] = True
+        rows[1]["corporate_actions_clear"] = False
+        report = build_maturity_ledger(self.capture, calendar(), rows, "2026-11-04T21:00:00Z")
+        categories = report["per_horizon"][0]["categories"]
+        self.assertEqual(categories["SOURCE_CONFLICT"], 1)
+        self.assertEqual(categories["CENSORED_BLOCKED"], 1)
+        self.assertEqual(categories["CENSORED_MISSING"], 1)
+        self.assertEqual(categories["VERIFIED"], 0)
+        self.assertEqual(report["per_horizon"][1]["categories"]["CENSORED_MISSING"], 3)
+
+    def test_maturity_ledger_preserves_watch_and_rejected_denominators(self):
+        report = build_maturity_ledger(self.capture, calendar(), [], "2026-11-04T21:00:00Z")
+        for horizon in report["per_horizon"]:
+            self.assertEqual(horizon["original_denominator"], 3)
+            self.assertEqual(horizon["categories"]["CENSORED_MISSING"], 3)
+            self.assertEqual(
+                sum(horizon["watch_categories"]["true"].values()) +
+                sum(horizon["watch_categories"]["false"].values()), 3)
+        self.assertEqual(len(report["rows"]), 3)
+        self.assertTrue(all(len(r["horizons"]) == 4 for r in report["rows"]))
+
+    def test_maturity_ledger_rejects_unbounded_or_ambiguous_as_of(self):
+        for bad in (None, "", "2026-10-30T14:00:00", "nonsense"):
+            with self.subTest(as_of=bad):
+                with self.assertRaisesRegex(ValueError, "EXPLICIT_TIMEZONE_AWARE_AS_OF"):
+                    build_maturity_ledger(self.capture, calendar(), [], bad)
+
+    def test_maturity_ledger_never_treats_provider_attestation_as_verified(self):
+        rows = self.four("AAAA", [9.5, 9.1, 8.7, 7.1])
+        report = build_maturity_ledger(self.capture, calendar(), rows, "2026-11-04T21:00:00Z")
+        self.assertEqual(sum(x["categories"]["VERIFIED"] for x in report["per_horizon"]), 0)
+        self.assertEqual(report["per_horizon"][3]["categories"]["CENSORED_UNVERIFIED"], 1)
+        self.assertFalse(report["independent_official_close_authentication_performed"])
+        self.assertFalse(report["actual_smg_trade_authorized"])
 
 
 if __name__ == "__main__":
