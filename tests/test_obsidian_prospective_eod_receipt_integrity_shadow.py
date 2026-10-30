@@ -161,7 +161,7 @@ class ReceiptIntegrityTests(unittest.TestCase):
             "https://user:pass@a.example/close",
             "https://a.example./close",
             "https://a.example:bogus/close",
-            "https://a.example/close\\nextra",
+            "https://a.example/close" + chr(10) + "extra",
         )
         for url in unsafe:
             with self.subTest(url=repr(url)):
