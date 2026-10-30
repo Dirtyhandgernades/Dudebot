@@ -186,6 +186,32 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertIn("NON_JSON_INPUT_PACKET_NOT_REPRODUCIBLY_HASHABLE", result["issues"])
         self.assertFalse(result["official_regular_close_verified"])
 
+    def test_extreme_finite_close_censored_without_losing_third_source(self):
+        third = row("c", "three", "three.example", close="1e1000000")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["supplied_report_count"], 3)
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertTrue(result["all_supplied_rows_indexed"])
+        self.assertEqual(result["unparseable_price_claim_source_indices"], [2])
+        self.assertEqual(result["source_rows"][2]["source_claims"]["regular_close"], "1e1000000")
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertIsNone(result["verified_20pct_prediction_success"])
+
+    def test_extreme_finite_prior_and_tiny_close_censored_without_crash(self):
+        for close, prior in (("7.99", "1e1000000"), ("1e-1000000", "10")):
+            with self.subTest(close=close, prior=prior):
+                third = row("c", "three", "three.example", close=close, prior=prior)
+                result = check([row(), row("b", "two", "two.example"), third])
+                self.assertEqual(result["retained_report_count"], 3)
+                self.assertEqual(result["unparseable_price_claim_source_indices"], [2])
+                self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+                self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
+                self.assertEqual(result["all_parseable_price_claim_groups"][0]["source_indices"], [0, 1])
+                self.assertFalse(result["official_regular_close_verified"])
+
+
 
 if __name__ == "__main__":
     unittest.main()

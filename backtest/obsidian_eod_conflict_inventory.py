@@ -34,9 +34,15 @@ def positive(value):
         return None
     try:
         number = Decimal(str(value))
-    except InvalidOperation:
+    except (InvalidOperation, ValueError, OverflowError):
         return None
-    return number if number.is_finite() and number > 0 else None
+    # A vendor's finite but extreme exponent can overflow Decimal's active
+    # arithmetic context when a 20% threshold is computed. Retain its original
+    # source row as an unparseable/censored price claim rather than crashing
+    # the complete third-source conflict inventory. This is not an SMG floor.
+    if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
+        return None
+    return number
 
 
 def host(value):
