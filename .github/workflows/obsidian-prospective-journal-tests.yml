@@ -49,6 +49,8 @@ on:
       - 'backtest/obsidian_forward_eod_intake.py'
       - 'backtest/obsidian_forward_horizon_shadow.py'
       - 'backtest/obsidian_forward_horizon_coverage_shadow.py'
+      - 'backtest/obsidian_prospective_maturity_ledger.py'
+      - 'tests/test_obsidian_prospective_preclose_maturity.py'
       - 'tests/test_obsidian_prospective_forward_horizon_coverage_shadow.py'
       - 'tests/test_obsidian_prospective_forward_horizon_shadow.py'
       - 'backtest/OBSIDIAN_FORWARD_NEXT_THREE_SESSIONS_FROZEN_2026_10_28.md'
