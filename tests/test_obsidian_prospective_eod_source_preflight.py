@@ -176,7 +176,7 @@ class SourcePreflightTests(unittest.TestCase):
             "https://two.example:444/history",
             "https://two.example/history#fragment",
             "https://[broken/history",
-            "https://two.example/history\\nInjected: header",
+            "https://two.example/history\nInjected: header",
         )
         for url in invalid_urls:
             with self.subTest(url=url):
