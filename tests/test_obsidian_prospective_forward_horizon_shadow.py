@@ -140,6 +140,19 @@ class HorizonTests(unittest.TestCase):
         result=validate_calendar(cal(),datetime(2026,10,28).date())
         self.assertEqual(result[3][1].isoformat(),"2026-10-30")
 
+    def test_calendar_spoofed_or_malformed_url_fails_closed(self):
+        for url in ("http://www.nyse.com/calendar",
+                    "https://username@www.nyse.com/calendar",
+                    "https://www.nyse.com:8443/calendar",
+                    "https://[invalid/calendar",
+                    "https://www.nyse.com/calendar#fragment"):
+            with self.subTest(url=url):
+                rows = cal()
+                rows[1]["source_url"] = url
+                with self.assertRaisesRegex(
+                        ValueError, "CALENDAR_SOURCE_OR_NORMAL_CLOSE_UNVERIFIED"):
+                    validate_calendar(rows, datetime(2026, 10, 28).date())
+
     def test_calendar_missing_day_is_blocked(self):
         invalid=cal()
         invalid.pop(1)

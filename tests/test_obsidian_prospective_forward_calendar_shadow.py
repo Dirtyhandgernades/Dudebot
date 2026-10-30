@@ -39,6 +39,22 @@ class ForwardCalendarShadowTests(unittest.TestCase):
             "2026-12-28", "2026-12-24", "2026-12-28T16:00:00-05:00"))
         self.assertEqual(result["issues"], ["FROZEN_PREVIOUS_WEEKDAY_DIFFERS_FROM_EXCHANGE_SESSION"])
 
+    def test_spoofed_or_malformed_exchange_calendar_urls_fail_closed(self):
+        base = evidence("2026-10-27", "2026-10-26",
+                        "2026-10-27T16:00:00-04:00")
+        for url in ("http://www.nyse.com/calendar",
+                    "https://name@www.nyse.com/calendar",
+                    "https://www.nyse.com:8443/calendar",
+                    "https://[invalid/calendar",
+                    "https://www.nyse.com/calendar#unverified",
+                    "https://www.nyse.com\\n/calendar"):
+            with self.subTest(url=url):
+                result = audit_calendar_assumptions(
+                    "2026-10-27", {**base, "source_url": url})
+                self.assertIn("EXCHANGE_CALENDAR_PROVENANCE_UNVERIFIED",
+                              result["issues"])
+                self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
     def test_missing_calendar_evidence_fails_closed(self):
         result = audit_calendar_assumptions("2026-10-27", None)
         self.assertEqual(result["status"], "SHADOW_CALENDAR_BLOCKED")

@@ -11,10 +11,10 @@ from datetime import date, datetime, time
 import hashlib
 import json
 from pathlib import Path
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_iex_research_discovery import verify, EARLY_STATES
+from backtest.obsidian_forward_calendar_shadow import trusted_exchange_calendar_host
 from backtest.obsidian_forward_source_contract_shadow import audit_outcome_source_contract
 from backtest.obsidian_iex_corporate_actions import no_action_comparable
 from backtest.obsidian_prospective_capture import asof, finite_price
@@ -46,11 +46,10 @@ def validate_calendar(rows, initial_day):
             raise ValueError("CALENDAR_SESSION_DATE_INVALID") from exc
         stamp = asof(row.get("regular_close_at"))
         checked = asof(row.get("source_checked_at"))
-        url = row.get("source_url")
-        host = urlsplit(url).hostname if isinstance(url, str) else None
+        host = trusted_exchange_calendar_host(row.get("source_url"))
         if (row.get("session_open") is not True or
             row.get("independently_checked") is not True or
-            host not in {"nasdaq.com", "www.nasdaq.com", "nyse.com", "www.nyse.com"} or
+            host is None or
             checked is None or stamp is None or
             stamp.astimezone(ET) != datetime.combine(session, time(16), tzinfo=ET)):
             raise ValueError("CALENDAR_SOURCE_OR_NORMAL_CLOSE_UNVERIFIED")
