@@ -310,6 +310,16 @@ class AllSourceLedgerTests(unittest.TestCase):
                 self.assertIn("REJECTED_SOURCE_PRICE_CLAIM_NOT_IN_VALID_SET", result["issues"])
                 self.assertFalse(result["official_regular_close_verified"])
 
+    def test_rejected_local_source_still_retains_threshold_conflict(self):
+        third = row("c", "three", "127.0.0.1", close="8.2")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("SOURCE_OWNERSHIP_OR_URL_MISSING", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(result["all_parseable_price_claim_groups"][1]["rejected_source_indices"], [2])
+        self.assertFalse(result["official_regular_close_verified"])
+
 
 if __name__ == "__main__":
     unittest.main()

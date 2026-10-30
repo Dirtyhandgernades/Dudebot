@@ -201,6 +201,31 @@ class ReceiptIntegrityTests(unittest.TestCase):
         result = self.run_audit(r, t)
         self.assertIn("SOURCE_ORGANIZATION_URL_OR_REDIRECT_MISMATCH", result["issues"])
 
+    def test_local_ip_and_malformed_dns_receipt_hosts_are_censored(self):
+        unsafe = (
+            "https://127.0.0.1/close",
+            "https://169.254.169.254/close",
+            "https://[::1]/close",
+            "https://localhost/close",
+            "https://a.local/close",
+            "https://api.internal/close",
+            "https://-bad.example/close",
+            "https://good..example/close",
+            "https://bad-.example/close",
+            "https://\u0430.example/close",
+        )
+        for url in unsafe:
+            with self.subTest(url=url):
+                reports, receipts = packet()
+                reports[0]["source_url"] = url
+                receipts[0]["requested_url"] = receipts[0]["response_url"] = url
+                result = self.run_audit(reports, receipts)
+                self.assertEqual(result["indexed_count"], 2)
+                self.assertEqual(result["byte_consistent_count"], 1)
+                self.assertIn("SOURCE_ORGANIZATION_URL_OR_REDIRECT_MISMATCH",
+                              result["all_source_rows"][0]["issues"])
+                self.assertFalse(result["official_close_verified"])
+
 
 if __name__ == "__main__":
     unittest.main()

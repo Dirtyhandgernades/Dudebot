@@ -8,6 +8,7 @@ Never echo URLs, query credentials, headers, or raw response bodies.
 """
 import hashlib
 from datetime import date, datetime, time
+from ipaddress import ip_address
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
@@ -47,6 +48,24 @@ def _safe_host(value):
             return None
         host = p.hostname
         if not host or host.endswith(".") or any(ch.isspace() for ch in host):
+            return None
+        # This is an EXTERNAL evidence contract: literal IPs, loopback,
+        # private DNS names and malformed/non-ASCII labels cannot establish
+        # provider-owned public HTTPS source provenance. Do not fetch them.
+        if not host.isascii() or len(host) > 253:
+            return None
+        try:
+            ip_address(host)
+        except ValueError:
+            pass
+        else:
+            return None
+        labels = host.lower().split(".")
+        if (len(labels) < 2 or labels[-1] in {"local", "localhost", "internal", "invalid"}
+                or any(not label or len(label) > 63 or label[0] == "-"
+                       or label[-1] == "-"
+                       or any(not (ch.isascii() and (ch.isalnum() or ch == "-"))
+                              for ch in label) for label in labels)):
             return None
         return host.lower()
     except ValueError:

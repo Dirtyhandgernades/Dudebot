@@ -6,8 +6,7 @@ select two agreeing reports while silently dropping a contradictory third.
 """
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
-from urllib.parse import urlsplit
-from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
+from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint, _safe_host
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -42,22 +41,12 @@ def _positive(value):
 
 
 def _source_host(value):
-    """Conservative URL syntax guard; does NOT authenticate provider ownership."""
-    if (not isinstance(value, str)
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
-        return None
-    try:
-        parsed = urlsplit(value)
-        if (parsed.scheme != "https" or not parsed.netloc
-                or parsed.username is not None or parsed.password is not None
-                or parsed.fragment or parsed.port not in (None, 443)):
-            return None
-        host = parsed.hostname
-        if not host or host.endswith(".") or any(ch.isspace() for ch in host):
-            return None
-        return host.lower()
-    except ValueError:
-        return None
+    """Reuse the strict external HTTPS receipt host syntax guard.
+
+    This rejects local/IP-literal and malformed hosts, but does not establish
+    ownership, transport authenticity or legal provider independence.
+    """
+    return _safe_host(value)
 
 
 def preflight(symbol, session_date, previous_session_date, reports, collected_at):

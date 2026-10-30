@@ -208,6 +208,20 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
 
+    def test_local_ip_and_malformed_dns_hosts_cannot_count_as_independent_eod_sources(self):
+        unsafe = (
+            "127.0.0.1", "169.254.169.254", "[::1]", "localhost",
+            "a.local", "api.internal", "-bad.example", "good..example",
+            "bad-.example", "\u0430.example",
+        )
+        for hostname in unsafe:
+            with self.subTest(hostname=hostname):
+                result = preflight("ZZZZ", DAY, PRIOR, [
+                    row("one", "one.example"), row("two", hostname)], COLLECTED)
+                self.assertEqual(result["accepted_reports"], 1)
+                self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+                self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
 
 if __name__ == "__main__":
     unittest.main()
