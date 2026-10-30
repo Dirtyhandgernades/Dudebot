@@ -187,7 +187,34 @@ def compare(a, b, identity=None):
     return ("AGREE" if difference <= TOLERANCE else "DISAGREE"), str(difference)
 
 
+def _bounded_request_window(symbols, sessions):
+    """Validate the entire fixed diagnostic cohort BEFORE any paid API request.
+
+    The Twelve Data date filter must be explicit: outputsize=10 alone drifts
+    away from the requested historical sessions as newer bars accumulate.
+    This is not an exchange-calendar or official-close verification.
+    """
+    if (not isinstance(symbols, (list, tuple)) or not symbols
+            or len(symbols) > 2 or len(set(symbols)) != len(symbols)
+            or any(not isinstance(s, str) or not re.fullmatch(r"[A-Z]{1,6}", s)
+                   for s in symbols)):
+        raise ValueError("BOUNDED_UNIQUE_SYMBOLS_REQUIRED")
+    if (not isinstance(sessions, (list, tuple)) or not sessions
+            or len(sessions) > 4 or len(symbols) * len(sessions) > 4
+            or any(not isinstance(s, str) or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", s)
+                   for s in sessions)):
+        raise ValueError("BOUNDED_SESSION_DATES_REQUIRED")
+    try:
+        days = [dt.date.fromisoformat(s) for s in sessions]
+    except ValueError as exc:
+        raise ValueError("BOUNDED_SESSION_DATES_REQUIRED") from exc
+    if len(set(days)) != len(days) or days != sorted(days) or (days[-1] - days[0]).days > 31:
+        raise ValueError("UNIQUE_ASCENDING_MAX_31_DAY_WINDOW_REQUIRED")
+    return sessions[0], sessions[-1]
+
+
 def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
+    start_date, end_date = _bounded_request_window(symbols, sessions)
     massive, twelve = Budget(4), Budget(2)
     result = {"mode": "RESEARCH_ONLY_NOT_AN_ORDER", "model_version": "vendor-corroboration-v2",
               "captured_at_utc": utcnow(), "sessions": list(sessions), "symbols": list(symbols),
@@ -196,11 +223,11 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
               "independent_underlying_exchange_feed_verified": False, "trade_authorized": False}
     for symbol in symbols:
         t = twelve.fetch("https://api.twelvedata.com/time_series",
-                         {"symbol": symbol, "interval": "1day", "outputsize": "10", "adjust": "none",
+                         {"symbol": symbol, "interval": "1day", "start_date": start_date,
+                          "end_date": end_date, "adjust": "none",
                           "apikey": os.environ.get("TWELVE_DATA_API_KEY", "")},
                          os.environ.get("TWELVE_DATA_API_KEY", ""))
         for day in sessions:
-            dt.date.fromisoformat(day)
             m = massive.fetch("https://api.massive.com/v1/open-close/" + parse.quote(symbol, safe="") + "/" + day,
                               {"adjusted": "false", "apiKey": os.environ.get("MASSIVE_API_KEY", "")},
                               os.environ.get("MASSIVE_API_KEY", ""))

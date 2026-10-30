@@ -102,6 +102,9 @@ class ReconciliationTests(unittest.TestCase):
         def fake(url,params,token):
             if 'twelvedata' in url:
                 self.assertEqual(params['adjust'],'none')
+                self.assertEqual(params['start_date'], m.SESSIONS[0])
+                self.assertEqual(params['end_date'], m.SESSIONS[-1])
+                self.assertNotIn('outputsize', params)
                 r=twelve([{'datetime':d,'close':'100'} for d in m.SESSIONS])
                 r['payload']['meta']['symbol']=params['symbol']
                 return r
@@ -208,6 +211,60 @@ class ReconciliationTests(unittest.TestCase):
             row = m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', r)
             self.assertEqual(row['provider_error_category'], 'MALFORMED_METADATA')
             self.assertEqual(row['validation_status'], 'BLOCKED')
+
+
+
+    def test_bounded_date_window_is_stable_and_explicit(self):
+        self.assertEqual(m._bounded_request_window(('AAPL', 'MSFT'),
+                         ('2026-10-27', '2026-10-28')),
+                         ('2026-10-27', '2026-10-28'))
+        self.assertEqual(m._bounded_request_window(('AAPL',),
+                         ('2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30')),
+                         ('2026-10-27', '2026-10-30'))
+
+    def test_invalid_date_or_request_budget_fails_before_network(self):
+        invalid = [
+            (('AAPL',), ('2026-10-28', '2026-10-27')),
+            (('AAPL',), ('2026-10-27', '2026-10-27')),
+            (('AAPL',), ('2026-10-27', '2026-11-30')),
+            (('AAPL',), ('2026-10-99',)),
+            (('AAPL', 'MSFT'), ('2026-10-27', '2026-10-28', '2026-10-29')),
+            (('AAPL', 'AAPL'), ('2026-10-27',)),
+            (('AAPL', 'MSFT', 'GOOG'), ('2026-10-27',)),
+            (('AAPL/SECRET',), ('2026-10-27',)),
+        ]
+        with patch.object(m, 'get') as get:
+            for symbols, sessions in invalid:
+                with self.subTest(symbols=symbols, sessions=sessions):
+                    with self.assertRaises(ValueError):
+                        m.reconcile(symbols=symbols, sessions=sessions)
+            get.assert_not_called()
+
+    def test_date_filtered_batch_keeps_exact_requested_days_only(self):
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                self.assertEqual(params['start_date'], '2026-10-27')
+                self.assertEqual(params['end_date'], '2026-10-28')
+                self.assertNotIn('outputsize', params)
+                r = twelve([
+                    {'datetime': '2026-10-26', 'close': '50'},
+                    {'datetime': '2026-10-27', 'close': '100'},
+                    {'datetime': '2026-10-28', 'close': '101'},
+                    {'datetime': '2026-10-29', 'close': '75'},
+                ])
+                r['payload']['meta']['symbol'] = params['symbol']
+                return r
+            return massive(url.rsplit('/', 1)[-1], url.split('/')[-2])
+        with patch.object(m, 'get', side_effect=fake) as get, patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture', 'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(get.call_count, 6)
+        self.assertEqual(result['total_ticker_dates'], 4)
+        self.assertEqual(result['valid_twelve_data_bars'], 4)
+        self.assertEqual({row['session'] for row in result['rows']},
+                         {'2026-10-27', '2026-10-28'})
+        self.assertFalse(result['official_exchange_close_verified'])
+        self.assertFalse(result['outcome_scoring_eligible'])
 
 
 if __name__=='__main__':unittest.main()
