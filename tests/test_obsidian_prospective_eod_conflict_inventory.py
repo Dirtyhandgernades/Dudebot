@@ -252,7 +252,7 @@ class AllSourceLedgerTests(unittest.TestCase):
             "https://www.nyse.com:8443/calendar",
             "https://www.nyse.com./calendar",
             "https://www.nyse.com/calendar#fragment",
-            "https://www.nyse.com/ca\\nendar",
+            "https://www.nyse.com/ca\nendar",
         )
         for url in bad_urls:
             with self.subTest(calendar_url=url):
@@ -271,7 +271,7 @@ class AllSourceLedgerTests(unittest.TestCase):
             "https://three.example:8443/eod",
             "https://three.example./eod",
             "https://three.example/eod#fragment",
-            "https://three.example/eod\\nnext",
+            "https://three.example/eod\nnext",
         )
         for url in bad_urls:
             with self.subTest(source_url=url):
