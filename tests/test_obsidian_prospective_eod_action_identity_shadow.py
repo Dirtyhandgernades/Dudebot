@@ -19,7 +19,8 @@ def row(source="a", provider="alpha", domain="alpha.example"):
         "corporate_action_evidence": {
             "source_url": "https://" + domain + "/actions",
             "security_id": "ID:COMMON", "previous_security_id": "ID:COMMON",
-            "issuer_class": "COMMON", "status": "NONE",
+            "issuer_class": "COMMON", "previous_issuer_class": "COMMON",
+            "status": "NONE",
             "previous_close_basis": "UNADJUSTED",
             "coverage_start": PREV.isoformat(), "coverage_end": DAY.isoformat(),
             "checked_at": "2026-10-28T20:30:00Z",
@@ -215,6 +216,38 @@ class ActionIdentityShadowTests(unittest.TestCase):
                          result["issues"])
         self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
         self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
+    def test_action_previous_class_must_be_explicit_for_structural_identity(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"].pop("previous_issuer_class")
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("SECURITY_OR_ISSUER_CLASS_IDENTITY_NOT_MATCHED", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["unparseable_action_previous_issuer_class_claim_source_indices"], [2])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_third_action_previous_class_disagreement_is_indexed(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["previous_issuer_class"] = "ADR"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("SECURITY_OR_ISSUER_CLASS_IDENTITY_NOT_MATCHED", result["issues"])
+        self.assertIn("CROSS_SOURCE_ACTION_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["action_previous_issuer_class_claim_groups"], [
+            {"action_previous_issuer_class": "ADR",
+             "structurally_valid_source_indices": [], "rejected_source_indices": [2]},
+            {"action_previous_issuer_class": "COMMON",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []},
+        ])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_agreeing_previous_action_class_is_not_external_authentication(self):
+        result = check([row(), row("b", "beta", "beta.example")])
+        self.assertEqual(result["unparseable_action_previous_issuer_class_claim_source_indices"], [])
+        self.assertNotIn("CROSS_SOURCE_ACTION_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
 
     def test_invalid_session_chain_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "VALID_SESSION_CHAIN_REQUIRED"):

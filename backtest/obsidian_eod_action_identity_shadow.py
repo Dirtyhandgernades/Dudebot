@@ -82,7 +82,8 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
                 or issuer_class != prior_class
                 or a.get("security_id") != security
                 or a.get("previous_security_id") != prior_security
-                or a.get("issuer_class") != issuer_class):
+                or a.get("issuer_class") != issuer_class
+                or a.get("previous_issuer_class") != prior_class):
             faults.add("SECURITY_OR_ISSUER_CLASS_IDENTITY_NOT_MATCHED")
         if (r.get("symbol") != symbol
                 or r.get("session_date") != session.isoformat()
@@ -120,6 +121,8 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             "previous_issuer_class_claim": prior_class if isinstance(prior_class, str) else None,
             "action_previous_security_id_claim":
                 a.get("previous_security_id") if isinstance(a.get("previous_security_id"), str) else None,
+            "action_previous_issuer_class_claim":
+                a.get("previous_issuer_class") if isinstance(a.get("previous_issuer_class"), str) else None,
             "action_status_claim": status if isinstance(status, str) else None,
             "previous_close_basis_claim": basis if isinstance(basis, str) else None,
             "coverage_start_claim": a.get("coverage_start") if isinstance(a.get("coverage_start"), str) else None,
@@ -159,8 +162,10 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     # without treating rejected evidence as authenticated source truth.
     previous_class_groups = {}
     action_previous_security_groups = {}
+    action_previous_class_groups = {}
     missing_previous_class = []
     missing_action_previous_security = []
+    missing_action_previous_class = []
     for item in rows:
         index = item["index"]
         destination = ("valid" if item["status"] ==
@@ -170,6 +175,8 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
              missing_previous_class),
             (item["action_previous_security_id_claim"],
              action_previous_security_groups, missing_action_previous_security),
+            (item["action_previous_issuer_class_claim"],
+             action_previous_class_groups, missing_action_previous_class),
         ):
             if not isinstance(value, str) or not value.strip():
                 missing.append(index)
@@ -179,6 +186,8 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         issues.add("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
     if len(action_previous_security_groups) > 1:
         issues.add("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
+    if len(action_previous_class_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
     previous_class_claim_groups = [
         {"previous_issuer_class": value,
          "structurally_valid_source_indices": groups["valid"],
@@ -191,6 +200,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
          "rejected_source_indices": groups["rejected"]}
         for value, groups in sorted(action_previous_security_groups.items())
     ]
+    action_previous_issuer_class_claim_groups = [
+        {"action_previous_issuer_class": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(action_previous_class_groups.items())
+    ]
     return {
         "mode": MODE, "policy": POLICY,
         "symbol": symbol, "session_date": session.isoformat(),
@@ -200,9 +215,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "all_source_rows": rows, "issues": sorted(issues),
         "previous_issuer_class_claim_groups": previous_class_claim_groups,
         "action_previous_security_id_claim_groups": action_previous_security_id_claim_groups,
+        "action_previous_issuer_class_claim_groups": action_previous_issuer_class_claim_groups,
         "unparseable_previous_issuer_class_claim_source_indices": missing_previous_class,
         "unparseable_action_previous_security_id_claim_source_indices":
             missing_action_previous_security,
+        "unparseable_action_previous_issuer_class_claim_source_indices":
+            missing_action_previous_class,
         "status": "BLOCKED_CENSORED" if issues else "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "provider_ownership_authenticated": False,
         "source_packet_authenticity_verified": False,
