@@ -75,7 +75,7 @@ class PrecloseMaturityTests(unittest.TestCase):
     def test_malformed_and_conflicting_supplied_rows_stay_censored(self):
         rows = [
             {"ticker": "AAAA", "session_date": DAYS[0],
-             "provider_conflict": True},
+             "provider_conflict": True, "collected_at": "2026-10-30T21:01:00Z"},
             {"ticker": "BBBB", "session_date": DAYS[0],
              "regular_close": 6.8},
         ]
@@ -87,6 +87,31 @@ class PrecloseMaturityTests(unittest.TestCase):
         self.assertEqual(categories["CENSORED_MISSING"], 1)
         self.assertEqual(categories["VERIFIED"], 0)
         self.assertFalse(report["independent_official_close_authentication_performed"])
+
+    def test_future_source_conflict_does_not_leak_into_past_as_of(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "provider_conflict": True, "collected_at": "2026-11-02T21:00:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        h0 = report["per_horizon"][0]["categories"]
+        self.assertEqual(h0["SOURCE_CONFLICT"], 0)
+        self.assertEqual(h0["CENSORED_BLOCKED"], 1)
+        self.assertEqual(h0["CENSORED_MISSING"], 2)
+        self.assertEqual(report["rows"][0]["horizons"][0]["reason"],
+                         "SOURCE_RECEIPT_MISSING_OR_AFTER_AS_OF")
+        self.assertEqual(report["verified_outcomes"], 0)
+
+    def test_unstamped_conflict_does_not_override_source_censoring(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "provider_conflict": True}
+        report = build(self.capture, calendar(), [row],
+                       "2026-11-05T22:00:00Z")
+        self.assertEqual(report["per_horizon"][0]["categories"]["SOURCE_CONFLICT"], 0)
+        self.assertEqual(report["per_horizon"][0]["categories"]["CENSORED_BLOCKED"], 1)
+
+    def test_as_of_cannot_precede_original_capture_completion(self):
+        with self.assertRaisesRegex(ValueError, "AS_OF_PRECEDES_ORIGINAL"):
+            build(self.capture, calendar(), [], "2026-10-30T19:49:00Z")
 
     def test_duplicate_and_outside_outcomes_fail_closed(self):
         row = {"ticker": "AAAA", "session_date": DAYS[0]}

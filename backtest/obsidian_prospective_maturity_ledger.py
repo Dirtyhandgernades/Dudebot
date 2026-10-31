@@ -111,6 +111,9 @@ def build(capture, calendar_rows, outcome_rows, as_of):
     if now is None or now.utcoffset() is None:
         raise ValueError("EXPLICIT_TIMEZONE_AWARE_AS_OF_REQUIRED")
     manifest = json.loads((Path(capture) / "manifest.json").read_text(encoding="utf-8"))
+    finished = asof(manifest.get("finished_at"))
+    if finished is None or now < finished:
+        raise ValueError("AS_OF_PRECEDES_ORIGINAL_CAPTURE_COMPLETION")
     preclose = manifest.get("status") == "IEX_PROSPECTIVE_SINGLE_VENUE_RAW_DISCOVERY_ONLY"
     coverage = (_audit_preclose(capture, calendar_rows, outcome_rows, manifest)
                 if preclose else audit(capture, calendar_rows, outcome_rows))
@@ -128,12 +131,18 @@ def build(capture, calendar_rows, outcome_rows, as_of):
             day = session.isoformat()
             source = supplied.get((symbol, day))
             evidence = original["horizons"][h]["source_evidence"]
+            # A future or untimed source must never alter a historical as-of
+            # inventory, including by leaking a future provider conflict.
+            receipt_at = asof(source.get("collected_at")) if source is not None else None
             if now < close_at:
                 category = "NOT_YET_MATURE"
                 reason = "REGULAR_SESSION_CLOSE_IN_FUTURE"
             elif source is None:
                 category = "CENSORED_MISSING"
                 reason = "NO_SUPPLIED_OUTCOME_ROW"
+            elif receipt_at is None or receipt_at > now:
+                category = "CENSORED_BLOCKED"
+                reason = "SOURCE_RECEIPT_MISSING_OR_AFTER_AS_OF"
             elif source.get("provider_conflict") is True:
                 category = "SOURCE_CONFLICT"
                 reason = "SUPPLIED_PROVIDER_CONFLICT_UNAUTHENTICATED"
