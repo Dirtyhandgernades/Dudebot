@@ -321,5 +321,44 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertFalse(result["official_regular_close_verified"])
 
 
+    def test_agreeing_prices_with_different_security_ids_blocked(self):
+        other = row("b", "two", "two.example")
+        other["security_id"] = "ISSUER2:ADR"
+        other["previous_security_id"] = "ISSUER2:ADR"
+        result = check([row(), other])
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("VALID_SOURCE_SECURITY_ID_CONFLICT", result["issues"])
+        self.assertIn("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertEqual(len(result["security_identity_claim_groups"]), 2)
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_rejected_third_identity_conflict_retained(self):
+        third = row("c", "three", "three.example")
+        third["security_id"] = "ISSUER2:ADR"
+        third["previous_security_id"] = "ISSUER2:ADR"
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("VALID_SOURCE_SECURITY_ID_CONFLICT", result["issues"])
+        self.assertEqual(result["security_identity_claim_groups"], [
+            {"security_id": "ISSUER1:COMMON", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+            {"security_id": "ISSUER2:ADR", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+        ])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_matching_identity_claims_still_unverified(self):
+        result = check([row(), row("b", "two", "two.example")])
+        self.assertEqual(result["security_identity_claim_groups"], [
+            {"security_id": "ISSUER1:COMMON", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []}
+        ])
+        self.assertNotIn("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -143,6 +143,7 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     # indexed but absent from the source-conflict comparison.
     all_parseable_claims = []
     unparseable_claim_indices = []
+    security_identity_claims = []
     rows = []
     for index, report in enumerate(reports):
         faults = set()
@@ -183,6 +184,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             all_parseable_claims.append((index, close, prior, not bool(faults)))
         else:
             unparseable_claim_indices.append(index)
+        # Retain issuer/class claims even from rejected third-party sources.
+        # Matching prices must not silently merge different securities.
+        if isinstance(security_id, str) and security_id.strip():
+            security_identity_claims.append((index, security_id, not faults))
         if faults:
             issues.update(faults)
         else:
@@ -212,6 +217,20 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             "status": "STRUCTURALLY_VALID_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
             "issues": sorted(faults),
         })
+    identity_groups = {}
+    for index, security_id, structurally_valid in security_identity_claims:
+        entry = identity_groups.setdefault(security_id, {"valid": [], "rejected": []})
+        entry["valid" if structurally_valid else "rejected"].append(index)
+    if len(identity_groups) > 1:
+        issues.add("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT")
+    if sum(bool(group["valid"]) for group in identity_groups.values()) > 1:
+        issues.add("VALID_SOURCE_SECURITY_ID_CONFLICT")
+    security_identity_claim_groups = [
+        {"security_id": security_id,
+         "structurally_valid_source_indices": group["valid"],
+         "rejected_source_indices": group["rejected"]}
+        for security_id, group in sorted(identity_groups.items())
+    ]
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
     # Hostnames and claimed provider names alone cannot authenticate legal
@@ -281,7 +300,8 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "supplied_calendar_sha256": calendar_digest,
         "retained_report_count": len(rows), "structurally_valid_report_count": len(valid),
         "distinct_claimed_provider_organizations": len(groups),
-        "source_rows": rows, "price_claim_groups": price_claim_groups,
+        "source_rows": rows, "security_identity_claim_groups": security_identity_claim_groups,
+        "price_claim_groups": price_claim_groups,
         "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
         "unparseable_price_claim_source_indices": unparseable_claim_indices,
         "all_supplied_rows_indexed": len(rows) == len(reports),
