@@ -31,6 +31,29 @@ class ReconciliationTests(unittest.TestCase):
                     identity_verified=True, exchange_verified=True, corporate_actions_verified=True,
                     corporate_action_changed=False, source_receipts=['fixture-review'])
 
+    def test_diagnostic_agreement_requires_two_recognized_distinct_vendor_organizations(self):
+        # A copied vendor response, alias or missing organization cannot be
+        # laundered into a two-organization diagnostic comparison merely by
+        # supplying external identity-review flags.
+        a, b = self.pair()
+        reviewed = self.identity()
+        self.assertEqual(m.compare(a, b, reviewed), ("AGREE", "0"))
+        self.assertEqual(m.compare(b, a, reviewed), ("AGREE", "0"))
+        for org_a, org_b in [("MASSIVE", "MASSIVE"),
+                             ("TWELVE_DATA", "TWELVE_DATA"),
+                             ("MASSIVE", "POLYGON"),
+                             ("MASSIVE", None),
+                             (None, None)]:
+            with self.subTest(org_a=org_a, org_b=org_b):
+                x, y = dict(a), dict(b)
+                x["provider_organization"] = org_a
+                y["provider_organization"] = org_b
+                self.assertEqual(m.compare(x, y, reviewed),
+                                 ("PROVIDER_ORGANIZATION_NOT_DISTINCT_OR_UNRECOGNIZED", None))
+        # Recognized names alone do NOT change official outcome eligibility.
+        self.assertFalse(a["identity_verified"])
+        self.assertFalse(b["identity_verified"])
+
     def test_matching_requires_reviewed_identity(self):
         a, b = self.pair()
         self.assertEqual(m.compare(a, b)[0], 'IDENTITY_UNVERIFIED')

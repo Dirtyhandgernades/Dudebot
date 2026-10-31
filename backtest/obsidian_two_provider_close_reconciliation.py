@@ -252,6 +252,12 @@ def compare(a, b, identity=None):
         return "UNAVAILABLE", None
     if a["ticker"] != b["ticker"] or a["session_date"] != b["session_date"]:
         return "IDENTITY_OR_SESSION_MISMATCH", None
+    # Distinct *declared* vendor organizations are a necessary diagnostic
+    # condition, never proof of independent underlying exchange feeds or
+    # exchange-official auction closes. Fail closed on aliases, blanks, and
+    # same-organization copies before any numerical agreement is reported.
+    if {a.get("provider_organization"), b.get("provider_organization")} != {"MASSIVE", "TWELVE_DATA"}:
+        return "PROVIDER_ORGANIZATION_NOT_DISTINCT_OR_UNRECOGNIZED", None
     if a["price_type"] != b["price_type"] or a["adjustment_basis"] != b["adjustment_basis"]:
         return "PRICE_BASIS_MISMATCH", None
     if not identity or identity.get("identity_verified") is not True or identity.get("exchange_verified") is not True:
