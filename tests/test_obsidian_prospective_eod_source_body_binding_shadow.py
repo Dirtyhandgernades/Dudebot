@@ -101,6 +101,30 @@ class BindingShadowTests(unittest.TestCase):
         result = self.check(r, t)
         self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY", result["issues"])
 
+    def test_oversized_valid_json_is_not_parsed_or_hashed(self):
+        r, t = packet()
+        # A syntactically valid response exceeding the receipt-layer 5 MB
+        # bound must never reach the JSON parser or mask the other source.
+        original = json.loads(t[1]["raw_body"])
+        original["padding"] = "x" * 5_000_000
+        replace_body(t, 1, json.dumps(original).encode())
+        result = self.check(r, t)
+        self.assertIn("MISSING_OVERSIZED_OR_NONBYTE_RESPONSE_BODY", result["issues"])
+        self.assertIn("BODY_EMPTY_OR_OVERSIZED_NO_PARSE", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertIsNone(result["all_source_rows"][1]["raw_body_sha256_computed"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+        self.assertFalse(result["official_close_verified"])
+
+    def test_empty_body_is_not_parsed_or_hashed(self):
+        r, t = packet()
+        replace_body(t, 1, b"")
+        result = self.check(r, t)
+        self.assertIn("BODY_EMPTY_OR_OVERSIZED_NO_PARSE", result["issues"])
+        self.assertIsNone(result["all_source_rows"][1]["raw_body_sha256_computed"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+
     def test_missing_receipt_keeps_original_index(self):
         r, t = packet()
         result = self.check(r, t[:1])

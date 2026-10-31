@@ -12,7 +12,7 @@ from datetime import date, datetime, time
 from decimal import Decimal, DecimalException, InvalidOperation
 from zoneinfo import ZoneInfo
 
-from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts
+from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts, MAX_RECEIPT_BYTES
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
 POLICY = "OBSIDIAN_EOD_BODY_CLAIM_BINDING_SHADOW_V1_2026_10_29"
@@ -108,6 +108,11 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         parsed = None
         if not isinstance(body, bytes):
             faults.add("BODY_NOT_BYTES_OR_ABSENT")
+        elif not 0 < len(body) <= MAX_RECEIPT_BYTES:
+            # The receipt layer rejects bodies outside this bound. Do not
+            # parse them anyway: a rejected multi-megabyte JSON payload could
+            # exhaust memory/CPU and prevent other source rows being indexed.
+            faults.add("BODY_EMPTY_OR_OVERSIZED_NO_PARSE")
         elif t.get("content_type", "").split(";", 1)[0].strip().lower() != "application/json" if isinstance(t.get("content_type"), str) else True:
             faults.add("NOT_EXPLICIT_APPLICATION_JSON")
         else:
@@ -233,7 +238,9 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         issues.update(faults)
         rows.append({
             "index": index,
-            "raw_body_sha256_computed": hashlib.sha256(body).hexdigest() if isinstance(body, bytes) else None,
+            "raw_body_sha256_computed": (
+                hashlib.sha256(body).hexdigest()
+                if isinstance(body, bytes) and 0 < len(body) <= MAX_RECEIPT_BYTES else None),
             "status": "BODY_FIELDS_MATCH_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
             "issues": sorted(faults),
         })
