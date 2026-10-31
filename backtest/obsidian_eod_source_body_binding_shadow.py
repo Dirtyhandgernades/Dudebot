@@ -66,17 +66,30 @@ def _instant(value):
     return result if result.utcoffset() is not None else None
 
 
-def audit_body_bindings(session, previous, reports, receipts, collected_at):
+def audit_body_bindings(session, previous, reports, receipts, collected_at,
+                        session_close_at=None, previous_session_close_at=None):
     """Audit EVERY original index; never silently select matching providers."""
     if (not isinstance(previous, date) or isinstance(previous, datetime)
             or not isinstance(session, date) or isinstance(session, datetime)
             or previous >= session):
         raise ValueError("VALID_PREVIOUS_AND_CURRENT_SESSION_DATES_REQUIRED")
-    receipt_audit = audit_receipts(session, reports, receipts, collected_at)
+    receipt_audit = audit_receipts(
+        session, reports, receipts, collected_at,
+        session_close_at=session_close_at)
+    previous_end = datetime.combine(previous, time(16), tzinfo=ET)
+    if previous_session_close_at is not None:
+        supplied_prior = _instant(previous_session_close_at)
+        if (supplied_prior is None
+                or supplied_prior.astimezone(ET).date() != previous
+                or supplied_prior.astimezone(ET).timetz().replace(tzinfo=None)
+                not in (time(13), time(16))):
+            raise ValueError("EXTERNAL_PREVIOUS_SESSION_CLOSE_TIMESTAMP_INVALID")
+        previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
     identity_claims = {field: {} for field in (
         "security_id", "issuer_class", "corporate_action_status", "previous_close_basis")}
-    close_end = datetime.combine(session, time(16), tzinfo=ET)
+    close_end = (_instant(session_close_at).astimezone(ET) if session_close_at is not None
+                 else datetime.combine(session, time(16), tzinfo=ET))
     collected = _instant(collected_at)
     count = max(len(reports), len(receipts))
     for index in range(count):
@@ -120,15 +133,18 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at):
                     or not parsed.get("issuer_class")
                     or parsed.get("issuer_class") != parsed.get("previous_issuer_class")):
                 faults.add("BODY_SECURITY_IDENTITY_NOT_STABLE")
-            for field, expected in (("regular_close_asof", session),
-                                    ("previous_regular_close_asof", previous)):
+            for field, expected, expected_close, explicit in (
+                    ("regular_close_asof", session, close_end, session_close_at is not None),
+                    ("previous_regular_close_asof", previous, previous_end,
+                     previous_session_close_at is not None)):
                 stamp = _instant(parsed.get(field))
                 if stamp is None or stamp.astimezone(ET).date() != expected:
                     faults.add("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH")
-                elif stamp != datetime.combine(expected, time(16), tzinfo=ET):
-                    # A 15:59 last trade or 16:01 afterhours quote is not the
-                    # exact regular-session close, even on the correct date.
-                    faults.add("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET")
+                elif stamp != expected_close:
+                    # A last trade or afterhours quote is not the official
+                    # regular-session close, including 13:00 ET early closes.
+                    faults.add("BODY_CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_CLOSE"
+                               if explicit else "BODY_CLOSE_ASOF_NOT_EXACT_1600_ET")
             publication = _instant(parsed.get("observed_at"))
             receipt_time = _instant(t.get("retrieved_at"))
             if (publication is None or receipt_time is None or collected is None

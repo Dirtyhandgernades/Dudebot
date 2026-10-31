@@ -91,7 +91,7 @@ def _host_parent_hint(host):
     return ".".join(labels[-count:])
 
 
-def audit_receipts(session, reports, receipts, collected_at):
+def audit_receipts(session, reports, receipts, collected_at, session_close_at=None):
     """Index every source by original index; reject omission and cherry-picking.
 
     ``receipts`` are caller-supplied dictionaries with ``raw_body`` bytes,
@@ -104,7 +104,16 @@ def audit_receipts(session, reports, receipts, collected_at):
         raise ValueError("SESSION_DATE_REQUIRED")
     if not isinstance(reports, list) or not isinstance(receipts, list):
         raise ValueError("COMPLETE_REPORT_AND_RECEIPT_LISTS_REQUIRED")
+    # An explicitly supplied early-close timestamp can describe a 13:00 ET
+    # session. This is only a structural assertion, NOT exchange authentication.
     end = datetime.combine(session, time(16), tzinfo=ET)
+    if session_close_at is not None:
+        supplied = _instant(session_close_at)
+        if (supplied is None or supplied.astimezone(ET).date() != session
+                or supplied.astimezone(ET).timetz().replace(tzinfo=None)
+                not in (time(13), time(16))):
+            raise ValueError("EXTERNAL_SESSION_CLOSE_TIMESTAMP_INVALID")
+        end = supplied.astimezone(ET)
     collected = _instant(collected_at)
     if collected is None or collected < end:
         raise ValueError("POSTCLOSE_COLLECTION_TIMESTAMP_REQUIRED")

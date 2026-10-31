@@ -338,5 +338,62 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED_CENSORED")
 
 
+    def test_supplied_early_close_and_prior_regular_close_still_censored(self):
+        # Synthetic 2026-11-27 early-close fixture; no calendar authentication.
+        r, t = packet()
+        for i in range(2):
+            r[i].update({
+                "session_date": "2026-11-27",
+                "previous_session_date": "2026-11-25",
+                "regular_close_asof": "2026-11-27T18:00:00Z",
+                "previous_regular_close_asof": "2026-11-25T21:00:00Z",
+                "observed_at": "2026-11-27T18:06:00Z",
+            })
+            r[i]["corporate_action"].update({
+                "coverage_start": "2026-11-25",
+                "coverage_end": "2026-11-27",
+                "checked_at": "2026-11-27T18:07:00Z",
+            })
+            t[i]["retrieved_at"] = "2026-11-27T18:08:00Z"
+            replace_body(t, i, json.dumps(
+                {k: v for k, v in r[i].items() if k != "source_url"},
+                sort_keys=True).encode())
+        args = (date(2026, 11, 27), date(2026, 11, 25), r, t,
+                "2026-11-27T18:10:00Z")
+        kwargs = {
+            "session_close_at": "2026-11-27T18:00:00Z",
+            "previous_session_close_at": "2026-11-25T21:00:00Z",
+        }
+        result = audit_body_bindings(*args, **kwargs)
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+        self.assertFalse(result["exchange_calendar_and_corporate_actions_authenticated"])
+
+        # A 16:00 ET print must not substitute for the actual 13:00 ET close.
+        r[1]["regular_close_asof"] = "2026-11-27T21:00:00Z"
+        replace_body(t, 1, json.dumps(
+            {k: v for k, v in r[1].items() if k != "source_url"},
+            sort_keys=True).encode())
+        wrong = audit_body_bindings(*args, **kwargs)
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_CLOSE",
+                      wrong["all_source_rows"][1]["issues"])
+        self.assertFalse(wrong["official_close_verified"])
+
+        # Without an explicit early-close time, the legacy 16:00 assumption
+        # fails closed on a 13:10 ET receipt.
+        with self.assertRaisesRegex(ValueError, "POSTCLOSE_COLLECTION_TIMESTAMP_REQUIRED"):
+            audit_body_bindings(*args)
+
+    def test_invalid_supplied_session_close_times_fail_closed(self):
+        r, t = packet()
+        with self.assertRaisesRegex(ValueError, "EXTERNAL_SESSION_CLOSE_TIMESTAMP_INVALID"):
+            audit_body_bindings(DAY, PRIOR, r, t, COLLECTED,
+                                session_close_at="2026-10-28T18:00:00Z")
+        with self.assertRaisesRegex(ValueError, "EXTERNAL_PREVIOUS_SESSION_CLOSE_TIMESTAMP_INVALID"):
+            audit_body_bindings(DAY, PRIOR, r, t, COLLECTED,
+                                previous_session_close_at="2026-10-27T18:00:00Z")
+
+
 if __name__ == "__main__":
     unittest.main()
