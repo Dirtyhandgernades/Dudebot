@@ -610,4 +610,43 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(good['body_sha256'], hashlib.sha256(raw).hexdigest())
         self.assertEqual(good['payload']['close'], 100)
 
+    def test_duplicate_content_length_headers_are_not_silently_collapsed(self):
+        # HTTP Message.get() exposes only the first of multiple headers.
+        # Identical duplicates are still ambiguous receipt framing.
+        from email.message import Message
+        raw = b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+
+        class RawResponse:
+            code = 200
+            def __init__(self, lengths):
+                self.headers = Message()
+                for length in lengths:
+                    self.headers.add_header("Content-Length", length)
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                if self_limit != 150001:
+                    raise AssertionError("unexpected read budget")
+                return raw
+
+        valid = str(len(raw))
+        for declarations in ((valid, valid), (valid, str(len(raw) + 5))):
+            with self.subTest(declarations=declarations), patch.object(
+                    m, '_open_no_redirect', return_value=RawResponse(declarations)):
+                got = m.get('https://api.massive.com/v1/open-close',
+                            {'apiKey': 'fixture'}, 'fixture')
+                self.assertEqual(got['error'], 'RESPONSE_LENGTH_MISMATCH')
+                self.assertTrue(got['body_length_mismatch'])
+                self.assertIsNone(got['payload'])
+                self.assertIsNone(got['body_sha256'])
+                self.assertEqual(
+                    m.observation('MASSIVE', 'AAPL', '2026-10-27', got)['validation_status'],
+                    'BLOCKED')
+        with patch.object(m, '_open_no_redirect',
+                          return_value=RawResponse((valid,))):
+            good = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertIsNone(good['error'])
+        self.assertEqual(good['payload']['close'], 100)
+
 if __name__=='__main__':unittest.main()

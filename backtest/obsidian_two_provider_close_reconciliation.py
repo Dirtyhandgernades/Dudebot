@@ -62,7 +62,15 @@ def get(url, params, token):
         with response:
             body = response.read(150001)
             status = response.code
-            length_header = response.headers.get("Content-Length")
+            # Message.get() returns only one value even if the server sent
+            # duplicate Content-Length headers. A duplicate is ambiguous
+            # framing (even if the two declarations happen to agree).
+            get_all_lengths = getattr(response.headers, "get_all", None)
+            if callable(get_all_lengths):
+                length_headers = get_all_lengths("Content-Length") or []
+            else:
+                single_length = response.headers.get("Content-Length")
+                length_headers = [] if single_length is None else [single_length]
             # Keep only bounded numeric quota headers. Arbitrary vendor header
             # strings (including echoed query tokens) are unsafe to archive.
             headers = {k.lower(): v.strip() for k, v in response.headers.items()
@@ -73,11 +81,11 @@ def get(url, params, token):
         # even when the prefix is valid JSON with an apparently usable close.
         # Content-Length is a transport check, NOT proof of official prices.
         body_truncated = len(body) > 150000
-        body_length_mismatch = (
-            length_header is not None and
-            (not isinstance(length_header, str) or
-             not re.fullmatch(r"[0-9]{1,16}", length_header.strip()) or
-             int(length_header.strip()) != len(body)))
+        body_length_mismatch = bool(length_headers) and (
+            len(length_headers) != 1 or
+            not isinstance(length_headers[0], str) or
+            not re.fullmatch(r"[0-9]{1,16}", length_headers[0].strip()) or
+            int(length_headers[0].strip()) != len(body))
         # Duplicate keys could overwrite an earlier error/status, symbol,
         # session or close. Reject at every nesting level; no last-key-wins
         # price or identity evidence enters even the diagnostic comparison.
