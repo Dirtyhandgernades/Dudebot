@@ -87,8 +87,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
     identity_claims = {field: {} for field in (
-        "symbol", "security_id", "previous_security_id", "issuer_class",
-        "previous_issuer_class", "action_security_id",
+        "symbol", "session_date", "previous_session_date",
+        "security_id", "previous_security_id", "issuer_class",
+        "previous_issuer_class", "action_coverage_start", "action_coverage_end",
+        "action_security_id",
         "action_previous_security_id", "action_issuer_class",
         "action_previous_issuer_class", "corporate_action_status",
         "previous_close_basis")}
@@ -170,6 +172,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             # including rejected rows; never cherry-pick two agreeing ones.
             for field, value in (
                 ("symbol", parsed.get("symbol")),
+                ("session_date", parsed.get("session_date")),
+                ("previous_session_date", parsed.get("previous_session_date")),
+                ("action_coverage_start", action.get("coverage_start") if isinstance(action, dict) else None),
+                ("action_coverage_end", action.get("coverage_end") if isinstance(action, dict) else None),
                 ("security_id", parsed.get("security_id")),
                 ("previous_security_id", parsed.get("previous_security_id")),
                 ("issuer_class", parsed.get("issuer_class")),
@@ -225,6 +231,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         })
     for field, issue in (
         ("symbol", "PARSED_BODY_SYMBOL_CLAIM_CONFLICT"),
+        ("session_date", "PARSED_BODY_SESSION_DATE_CLAIM_CONFLICT"),
+        ("previous_session_date", "PARSED_BODY_PREVIOUS_SESSION_DATE_CLAIM_CONFLICT"),
+        ("action_coverage_start", "PARSED_BODY_ACTION_COVERAGE_START_CLAIM_CONFLICT"),
+        ("action_coverage_end", "PARSED_BODY_ACTION_COVERAGE_END_CLAIM_CONFLICT"),
         ("security_id", "PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT"),
         ("previous_security_id", "PARSED_BODY_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT"),
         ("issuer_class", "PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT"),

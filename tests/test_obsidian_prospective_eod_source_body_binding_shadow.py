@@ -486,5 +486,73 @@ class BindingShadowTests(unittest.TestCase):
         self.assertNotIn("PARSED_BODY_SYMBOL_CLAIM_CONFLICT", result["issues"])
         self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
 
+
+    def test_rejected_current_session_date_disagreement_is_in_full_inventory(self):
+        r, t = packet()
+        r[1]["session_date"] = "2026-10-27"
+        body = json.loads(t[1]["raw_body"])
+        body["session_date"] = "2026-10-27"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_WRONG_SESSION_PAIR", result["issues"])
+        self.assertIn("PARSED_BODY_SESSION_DATE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_previous_session_date_disagreement_is_in_full_inventory(self):
+        r, t = packet()
+        r[1]["previous_session_date"] = "2026-10-26"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_session_date"] = "2026-10-26"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_WRONG_SESSION_PAIR", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_SESSION_DATE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_third_source_action_window_start_conflict_is_retained(self):
+        r, t = packet()
+        third_r, third_t = copy.deepcopy(r[1]), copy.deepcopy(t[1])
+        third_r["source_id"] = third_t["source_id"] = "source-2"
+        third_r["provider_organization"] = third_t["provider_organization"] = "group-2"
+        third_r["source_url"] = third_t["requested_url"] = third_t["response_url"] = "https://provider-c.example/close"
+        third_r["corporate_action"]["coverage_start"] = "2026-10-26"
+        body = json.loads(third_t["raw_body"])
+        body["source_id"] = "source-2"
+        body["provider_organization"] = "group-2"
+        body["corporate_action"]["coverage_start"] = "2026-10-26"
+        replace_body([third_t], 0, json.dumps(body).encode())
+        r.append(third_r)
+        t.append(third_t)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertIn("PARSED_BODY_ACTION_COVERAGE_START_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_action_window_end_conflict_is_retained(self):
+        r, t = packet()
+        r[1]["corporate_action"]["coverage_end"] = "2026-10-29"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["coverage_end"] = "2026-10-29"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_ACTION_COVERAGE_END_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("ACTION_WINDOW_OR_STATUS_NOT_CLEARED", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_agreeing_session_and_action_windows_have_no_window_conflict(self):
+        result = self.check()
+        for issue in (
+            "PARSED_BODY_SESSION_DATE_CLAIM_CONFLICT",
+            "PARSED_BODY_PREVIOUS_SESSION_DATE_CLAIM_CONFLICT",
+            "PARSED_BODY_ACTION_COVERAGE_START_CLAIM_CONFLICT",
+            "PARSED_BODY_ACTION_COVERAGE_END_CLAIM_CONFLICT",
+        ):
+            self.assertNotIn(issue, result["issues"])
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+
 if __name__ == "__main__":
     unittest.main()
