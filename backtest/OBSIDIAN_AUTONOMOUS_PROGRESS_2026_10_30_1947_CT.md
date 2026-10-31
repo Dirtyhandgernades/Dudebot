@@ -1,0 +1,21 @@
+# OBSIDIAN autonomous research engineering — 2026-10-30 19:47 CT
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Research branch only. This checkpoint occurred after regular-session close and outside the authorized 12:47 CT intraday and protected 14:45–14:58 CT preclose source gates. It created no IEX, SIP, Rug Proof, Morning Movers, After-Hours, independent-monitor, or Early Decision Board marker; no source-capture retry, trade, alert, main/production change, or credential access.
+
+## P0-1 source-chronology correction — calendar-specific early closes
+
+Read the Oct28 validation roadmap, Oct30 18:47 engineering retention report, Oct30 18:20 Rug Proof postclose report, and Oct30 19:25 After-Hours report. Reviewed the original protected preclose replay, independent-monitor and retention hosted runs before changing code. The original 136-name watchlist, JDZG stale/halt failure investigation, frozen cohort decisions, 8,510 original securities, 34,040 forward outcome slots, and source-receipt identities are untouched.
+
+Fixed an offline **structural false-censoring limitation** in the separate source receipt/body audit: its previous strict 16:00 ET assumption could not represent a legitimate 13:00 ET early regular-session close or a prior-session early close. Added optional explicit session-close timestamps to `obsidian_eod_receipt_integrity_shadow.audit_receipts` and `obsidian_eod_source_body_binding_shadow.audit_body_bindings`. Each timestamp must be timezone-aware, on the correct exchange-local session date, and at 13:00 or 16:00 ET. Body timestamps must equal the explicitly supplied close instant; a 16:00 afterhours observation cannot stand in for a 13:00 official close. Legacy callers retain the strict 16:00 assumption and fail closed; invalid or missing supplied close evidence never upgrades an outcome. New regression cases cover structurally consistent synthetic early-close claims, wrong-session-close rejection, and invalid supplied time rejection. **These caller-supplied calendar timestamps are not authenticated exchange evidence**, and no source is certified official.
+
+- Implementation commit `94791ffc17edcdc5d382c324181a0ae507edca49` used an expected-head GitHub branch lease.
+- Hosted prospective journal and capture tests [run 41151816564](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41151816564) completed **SUCCESS** at 2026-10-31 00:44:55 UTC on the implementation commit. Runner logs show **532/532 prospective offline tests passed** and **4/4 board tests passed**. These are synthetic/offline contracts, not provider entitlement, independently authenticated official prices, or prediction performance.
+- No original artifact was rewritten, and no new source capture or result was fabricated. This checkpoint did not rerun any other task's capture.
+
+## Unchanged P0 and evidence blockers
+
+October 30 protected preclose cohort remains 8,510 unique securities, 1,653 preliminary price-only early weakness labels, 21 exhausted, and 34,040 h0/+1/+2/+3 issuer-session slots. Oct30 h0 remains **8,510 CENSORED_MISSING**; Nov2/3/4 +1/+2/+3 remain **NOT_YET_MATURE** at the original replay's as-of. Two genuinely independent provider organizations' authenticated official regular-session and prior-session closes, ownership/upstream provenance, full third-source conflict inventory, exchange calendars, security identity/corporate actions, and actual SMG permission/borrow evidence are still absent. Massive quote coverage remains 136/136 missing; finite Nasdaq RSS halt events are not live clearance. No verified 20%+ prospective collapse hit, false-positive rate, precision/recall, hypothetical or real P&L, shares, fills, or executable short is established.
+
+The original seven pinned research artifacts passed the prior metadata retention audit, but the underlying original ZIPs still lack a verified approved off-platform backup and restore. Earliest pinned expiry: **2027-01-28 14:25:11 UTC**.
+
+**Next:** obtain authenticated independent official close and prior-close receipts with exact session calendar/early-close provenance and all conflicts; keep unavailable outcomes censored and retain matched untouched future cohorts. Separately arrange approved durable evidence storage with verified hashes and restore before expiry.
