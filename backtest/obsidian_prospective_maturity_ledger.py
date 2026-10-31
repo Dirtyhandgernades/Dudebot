@@ -114,11 +114,18 @@ def build(capture, calendar_rows, outcome_rows, as_of):
     finished = asof(manifest.get("finished_at"))
     if finished is None or now < finished:
         raise ValueError("AS_OF_PRECEDES_ORIGINAL_CAPTURE_COMPLETION")
+    first_day = asof(manifest["started_at"]).astimezone(EASTERN).date()
+    calendar = validate_calendar(calendar_rows, first_day)
+    # The exchange-calendar source may have been checked before the original
+    # capture, but must not be claimed as available at an earlier report as-of.
+    # Calendar assertions are still externally supplied, not authenticated.
+    for _session, _previous, _close_at, source_row in calendar:
+        checked = asof(source_row.get("source_checked_at"))
+        if checked is None or checked > now:
+            raise ValueError("CALENDAR_SOURCE_CHECK_AFTER_REPORT_AS_OF")
     preclose = manifest.get("status") == "IEX_PROSPECTIVE_SINGLE_VENUE_RAW_DISCOVERY_ONLY"
     coverage = (_audit_preclose(capture, calendar_rows, outcome_rows, manifest)
                 if preclose else audit(capture, calendar_rows, outcome_rows))
-    first_day = asof(manifest["started_at"]).astimezone(EASTERN).date()
-    calendar = validate_calendar(calendar_rows, first_day)
     supplied = {(r["ticker"], r["session_date"]): r for r in outcome_rows}
     rows = []
     per_horizon = [Counter() for _ in range(4)]
