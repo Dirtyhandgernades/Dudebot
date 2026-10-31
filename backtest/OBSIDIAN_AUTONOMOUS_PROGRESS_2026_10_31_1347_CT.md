@@ -1,0 +1,21 @@
+# OBSIDIAN Research Engineering — October 31, 2026, 13:47 CDT checkpoint
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Saturday; no regular U.S. equity session and no authorized 12:47 IEX intraday, 14:47 protected preclose, morning, afterhours, independent-monitor, delayed-SIP, or Rug Proof anchor/marker created. Re-read the October 28 validation roadmap, October 30 18:20 Rug Proof postclose audit, previous 12:44 engineering note, authorized branch head, recent CI, and three protected artifact records. No duplicate issuer/day evidence.
+
+## P0-1: reject ambiguous raw vendor JSON before diagnostic close intake
+
+The bounded two-provider vendor diagnostic previously used Python's default `json.loads`, which silently accepts duplicate object keys (last-key-wins) and nonstandard `NaN`/`Infinity` JSON constants. A duplicate `status`, `symbol`, `meta.symbol`, or `close` could overwrite a contradictory earlier vendor claim and make an ambiguous response look like a valid diagnostic bar. This is a **source-integrity risk**, not evidence of any real-world vendor incident.
+
+Implemented [research-only correction da97e17f225f15c85ed34cb97977351c9ba50dca](https://github.com/Dirtyhandgernades/Dudebot/commit/da97e17f225f15c85ed34cb97977351c9ba50dca) in `backtest/obsidian_two_provider_close_reconciliation.py`. Strict JSON decoding now rejects duplicate keys at every object nesting level, nonfinite JSON constants, and excessive nesting; the complete bounded response may still be SHA256-hashed as a *receipt*, but the malformed payload is censored before any price/identity observation. Existing HTTP 401/403/429 denial classification and one-request stop behavior remain unchanged. Added one table-driven regression test covering seven top-level/nested ambiguous or nonfinite raw responses.
+
+**Hosted verification:** [GitHub Actions run 41231268744](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41231268744) completed **SUCCESS** on the exact implementation SHA; job 124625811678 logs report **33 offline tests passed** (two-provider reconciliation plus ABC board). The vendor-fetch step was **SKIPPED**, and the upload step found **no artifact**. No live provider response, entitlement, authenticated official close, or market outcome was established. This run does not establish the broader prospective-suite status on this exact commit.
+
+## Preserved evidence and remaining acceptance gate
+
+Protected Oct 30 artifact metadata rechecked: preclose run 41118123273 / artifact 13006897253 (expires 2027-01-28T19:47:32Z); maturity replay run 41140665058 / artifact 13018333034 (expires 2027-01-28T22:49:48Z); independent monitor run 41122875006 / artifact 13010065001 (expires 2027-01-28T20:24:01Z). All report `expired=false`; underlying ZIP bytes were **not** rehashed in this pass, and durable off-platform backup remains **BACKUP_UNVERIFIED**.
+
+The frozen 8,510-issuer cohort, 34,040 0/+1/+2/+3 actual-trading-session slots, 136-name retained watchlist, JDZG stale/halt failure analysis, original source receipts/labels, and untouched future matched cohorts remain unchanged. Oct 30 h0 remains censored; Nov 2/3/4 remain future +1/+2/+3 sessions, not observed results. Missingness, false positives, late/exhausted cases, squeezes, and costs must remain in eventual matched evaluation.
+
+**P0-1 external blocker unchanged:** no two independently authenticated organization-level *official completed regular-session closes and previous closes*, verified security/issuer identity, corporate actions, calendar/chronology, and complete third-source conflict inventory. Massive real-time entitlement, authenticated SMG blocked-symbol/security/account permissions, and live independent halt clearance remain unverified. No 20%+ collapse prediction success, false-positive rate, executable short, share count, fill, or after-cost profitability is established.
+
+No main/production, credentials, paid live requests, trading actions/notifications, historical relabeling, altered original capture gates, retry/backfill, or duplicated other-task markers. Next priority: externally authenticated official-close provenance and durable restore-verified evidence storage, not inference from synthetic test passes.
