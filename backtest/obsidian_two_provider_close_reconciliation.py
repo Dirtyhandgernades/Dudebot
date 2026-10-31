@@ -74,6 +74,12 @@ def get(url, params, token):
 
 def category(receipt):
     status = receipt.get("http_status")
+    # HTTP denial is authoritative even when the error body is oversized or
+    # malformed. Keep the separate body_truncated flag for receipt integrity;
+    # never misclassify a confirmed 401/403/429 as merely a body parse failure.
+    if type(status) is int and status in (401, 403, 429):
+        return {401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
+                429: "RATE_LIMIT"}[status]
     if receipt.get("error"):
         return receipt["error"]
     # Only the transport's integer HTTP status is admissible. Malformed

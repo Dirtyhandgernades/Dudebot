@@ -384,4 +384,31 @@ class ReconciliationTests(unittest.TestCase):
         get.assert_called_once()
 
 
+    def test_http_denial_category_survives_oversized_or_malformed_body(self):
+        # Preserve the real provider access/quota blocker, without treating
+        # an incomplete response as hashable or as a valid price observation.
+        for status, reason in [(401, 'AUTHENTICATION'),
+                               (403, 'ENTITLEMENT_OR_ACCESS'),
+                               (429, 'RATE_LIMIT')]:
+            for body_error in ('RESPONSE_BODY_TOO_LARGE', 'MALFORMED_RESPONSE'):
+                with self.subTest(status=status, body_error=body_error):
+                    blocked = receipt(None, status)
+                    blocked.update(error=body_error, payload=None, body_sha256=None,
+                                   body_truncated=body_error == 'RESPONSE_BODY_TOO_LARGE')
+                    self.assertEqual(m.category(blocked), reason)
+                    row = m.observation('MASSIVE', 'AAPL', '2026-10-27', blocked)
+                    self.assertEqual(row['provider_error_category'], reason)
+                    self.assertEqual(row['response_body_truncated'],
+                                     body_error == 'RESPONSE_BODY_TOO_LARGE')
+                    self.assertIsNone(row['raw_response_hash'])
+                    self.assertIsNone(row['price'])
+                    self.assertEqual(row['validation_status'], 'BLOCKED')
+                    with patch.object(m, 'get', return_value=blocked) as get:
+                        budget = m.Budget(4)
+                        budget.fetch('url', {}, 'fixture')
+                        self.assertEqual(budget.fetch('url', {}, 'fixture')['error'], reason)
+                    get.assert_called_once()
+
+
+
 if __name__=='__main__':unittest.main()
