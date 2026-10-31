@@ -325,4 +325,63 @@ class ReconciliationTests(unittest.TestCase):
         self.assertNotIn('other-provider.example', json.dumps(row))
 
 
+    def test_oversized_provider_body_never_claims_complete_response_hash(self):
+        # A 150001-byte bounded read is only a prefix of an unknown body.
+        # It must be censored without retaining a misleading SHA256.
+        class Oversized:
+            code = 200
+            headers = {}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                if self_limit != 150001:
+                    raise AssertionError("unexpected read budget")
+                return b'{' + b'x' * 150000
+        with patch.object(m, '_open_no_redirect', return_value=Oversized()):
+            fetched = m.get('https://api.massive.com/v1/open-close',
+                            {'apiKey': 'canary'}, 'canary')
+        self.assertEqual(fetched['error'], 'RESPONSE_BODY_TOO_LARGE')
+        self.assertTrue(fetched['body_truncated'])
+        self.assertIsNone(fetched['body_sha256'])
+        self.assertIsNone(fetched['payload'])
+        row = m.observation('MASSIVE', 'AAPL', '2026-10-27', fetched)
+        self.assertEqual(row['provider_error_category'], 'RESPONSE_BODY_TOO_LARGE')
+        self.assertTrue(row['response_body_truncated'])
+        self.assertIsNone(row['raw_response_hash'])
+        self.assertEqual(row['validation_status'], 'BLOCKED')
+
+    def test_exact_boundary_body_is_complete_and_hashable(self):
+        import hashlib
+        raw = b'{"status":"OK"}'
+        raw += b' ' * (150000 - len(raw))
+        class Boundary:
+            code = 200
+            headers = {}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                if self_limit != 150001:
+                    raise AssertionError("unexpected read budget")
+                return raw
+        with patch.object(m, '_open_no_redirect', return_value=Boundary()):
+            fetched = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertFalse(fetched['body_truncated'])
+        self.assertIsNone(fetched['error'])
+        self.assertEqual(fetched['body_sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(fetched['payload'], {'status': 'OK'})
+
+    def test_oversized_429_still_stops_paid_request_budget(self):
+        blocked = dict(http_status=429, error='RESPONSE_BODY_TOO_LARGE',
+                       payload=None, body_truncated=True, body_sha256=None,
+                       headers={}, retrieved_at='2026-10-31T16:00:00Z')
+        with patch.object(m, 'get', return_value=blocked) as get:
+            budget = m.Budget(4)
+            self.assertEqual(budget.fetch('url', {}, 'token')['error'],
+                             'RESPONSE_BODY_TOO_LARGE')
+            self.assertEqual(budget.fetch('url', {}, 'token')['error'], 'RATE_LIMIT')
+        get.assert_called_once()
+
+
 if __name__=='__main__':unittest.main()

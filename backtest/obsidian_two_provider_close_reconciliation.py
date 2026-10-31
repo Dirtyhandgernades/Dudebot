@@ -52,15 +52,23 @@ def get(url, params, token):
             headers = {k.lower(): v.strip() for k, v in response.headers.items()
                        if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}
                        and isinstance(v, str) and re.fullmatch(r"[0-9]{1,16}", v.strip())}
-        payload = json.loads(body) if len(body) <= 150000 else None
+        # The bounded read deliberately includes one sentinel byte. A body
+        # beyond the limit is incomplete: NEVER hash its truncated prefix as
+        # if it were a complete authenticated provider response.
+        body_truncated = len(body) > 150000
+        payload = json.loads(body) if not body_truncated else None
     except (ValueError, UnicodeDecodeError):
         payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
-                "retrieved_at": utcnow(), "body_sha256": None, "headers": {}}
+                "retrieved_at": utcnow(), "body_sha256": None, "body_truncated": False,
+                "headers": {}}
     # Raw provider bodies and arbitrary error text must never reach the public
     # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
-    return {"http_status": status, "body_sha256": hashlib.sha256(body).hexdigest(),
+    return {"http_status": status,
+            "body_sha256": None if body_truncated else hashlib.sha256(body).hexdigest(),
+            "body_truncated": body_truncated,
+            "error": "RESPONSE_BODY_TOO_LARGE" if body_truncated else None,
             "payload": payload, "retrieved_at": utcnow(), "headers": headers}
 
 
@@ -108,7 +116,13 @@ class Budget:
         self.used += 1
         receipt = get(url, params, token)
         failure = category(receipt)
-        if failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
+        # Preserve quota safety even when a malformed/oversized body obscures
+        # an authoritative HTTP 401/403/429 status in the error category.
+        http_status = receipt.get("http_status")
+        if type(http_status) is int and http_status in (401, 403, 429):
+            self.stopped = {401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
+                            429: "RATE_LIMIT"}[http_status]
+        elif failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
             self.stopped = failure
         if receipt.get("headers", {}).get("x-ratelimit-remaining") == "0":
             self.stopped = "RATE_LIMIT"
@@ -134,7 +148,10 @@ def observation(provider, symbol, day, receipt):
               "price": None, "price_type": "VENDOR_DAILY_OHLC_CLOSE", "adjustment_basis": "UNKNOWN",
               "source_timestamp": None, "retrieval_timestamp": receipt.get("retrieved_at"),
               "http_status": receipt.get("http_status"), "provider_error_category": category(receipt),
-              "raw_response_hash": receipt.get("body_sha256"), "validation_status": "BLOCKED",
+              "raw_response_hash": None if receipt.get("body_truncated") is True
+                                   else receipt.get("body_sha256"),
+              "response_body_truncated": receipt.get("body_truncated") is True,
+              "validation_status": "BLOCKED",
               "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
                             else "https://api.twelvedata.com/time_series",
               "rate_limit_headers": receipt.get("headers", {}),
