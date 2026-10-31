@@ -563,4 +563,51 @@ class ReconciliationTests(unittest.TestCase):
         self.assertFalse(result['official_exchange_close_verified'])
         self.assertFalse(result['outcome_scoring_eligible'])
 
+
+    def test_declared_http_length_mismatch_censors_complete_hash_and_budget(self):
+        # A valid-looking JSON prefix cannot establish a complete receipt
+        # when Content-Length contradicts the bytes actually received.
+        import hashlib
+        raw = b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+        class FakeResponse:
+            code = 200
+            def __init__(self, declared): self.headers = {"Content-Length": declared}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                if self_limit != 150001: raise AssertionError("read bound changed")
+                return raw
+        for declared in (str(len(raw) - 1), str(len(raw) + 1),
+                         "malformed", "12, 12"):
+            with self.subTest(declared=declared), patch.object(
+                    m, '_open_no_redirect', return_value=FakeResponse(declared)):
+                r = m.get('https://api.massive.com/v1/open-close',
+                          {'apiKey': 'fixture'}, 'fixture')
+                self.assertEqual(r['http_status'], 200)
+                self.assertEqual(r['error'], 'RESPONSE_LENGTH_MISMATCH')
+                self.assertTrue(r['body_length_mismatch'])
+                self.assertIsNone(r['body_sha256'])
+                self.assertIsNone(r['payload'])
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+                self.assertEqual(row['provider_error_category'],
+                                 'RESPONSE_LENGTH_MISMATCH')
+                self.assertTrue(row['response_length_mismatch'])
+                self.assertIsNone(row['raw_response_hash'])
+                self.assertIsNone(row['price'])
+                with patch.object(m, 'get', return_value=r) as get:
+                    budget = m.Budget(4)
+                    budget.fetch('url', {}, 'fixture', expected_status='OK')
+                    self.assertEqual(budget.fetch('url', {}, 'fixture')['error'],
+                                     'UNVERIFIABLE_PROVIDER_RESPONSE')
+                    self.assertEqual(budget.used, 1)
+                get.assert_called_once()
+        with patch.object(m, '_open_no_redirect',
+                          return_value=FakeResponse(str(len(raw)))):
+            good = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertFalse(good['body_length_mismatch'])
+        self.assertIsNone(good['error'])
+        self.assertEqual(good['body_sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(good['payload']['close'], 100)
+
 if __name__=='__main__':unittest.main()

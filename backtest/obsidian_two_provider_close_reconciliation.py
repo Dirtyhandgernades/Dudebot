@@ -62,33 +62,43 @@ def get(url, params, token):
         with response:
             body = response.read(150001)
             status = response.code
+            length_header = response.headers.get("Content-Length")
             # Keep only bounded numeric quota headers. Arbitrary vendor header
             # strings (including echoed query tokens) are unsafe to archive.
             headers = {k.lower(): v.strip() for k, v in response.headers.items()
                        if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}
                        and isinstance(v, str) and re.fullmatch(r"[0-9]{1,16}", v.strip())}
-        # The bounded read deliberately includes one sentinel byte. A body
-        # beyond the limit is incomplete: NEVER hash its truncated prefix as
-        # if it were a complete authenticated provider response.
+        # A bounded read can return fewer bytes than the declared HTTP body
+        # length. Do not hash or parse an incomplete/contradictory receipt,
+        # even when the prefix is valid JSON with an apparently usable close.
+        # Content-Length is a transport check, NOT proof of official prices.
         body_truncated = len(body) > 150000
+        body_length_mismatch = (
+            length_header is not None and
+            (not isinstance(length_header, str) or
+             not re.fullmatch(r"[0-9]{1,16}", length_header.strip()) or
+             int(length_header.strip()) != len(body)))
         # Duplicate keys could overwrite an earlier error/status, symbol,
         # session or close. Reject at every nesting level; no last-key-wins
         # price or identity evidence enters even the diagnostic comparison.
         payload = (json.loads(body, object_pairs_hook=_unique_vendor_json_object,
                               parse_constant=_reject_vendor_nonfinite)
-                   if not body_truncated else None)
+                   if not (body_truncated or body_length_mismatch) else None)
     except (ValueError, UnicodeDecodeError, RecursionError):
         payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
                 "retrieved_at": utcnow(), "body_sha256": None, "body_truncated": False,
-                "headers": {}}
+                "headers": {}, "body_length_mismatch": False}
     # Raw provider bodies and arbitrary error text must never reach the public
     # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
     return {"http_status": status,
-            "body_sha256": None if body_truncated else hashlib.sha256(body).hexdigest(),
+            "body_sha256": (None if body_truncated or body_length_mismatch
+                            else hashlib.sha256(body).hexdigest()),
             "body_truncated": body_truncated,
-            "error": "RESPONSE_BODY_TOO_LARGE" if body_truncated else None,
+            "body_length_mismatch": body_length_mismatch,
+            "error": ("RESPONSE_BODY_TOO_LARGE" if body_truncated else
+                      "RESPONSE_LENGTH_MISMATCH" if body_length_mismatch else None),
             "payload": payload, "retrieved_at": utcnow(), "headers": headers}
 
 
@@ -163,7 +173,7 @@ class Budget:
             self.stopped = failure
         elif failure in {"MALFORMED_RESPONSE", "UNEXPECTED_PROVIDER_STATUS",
                          "PROVIDER_ERROR", "RESPONSE_BODY_TOO_LARGE",
-                         "MALFORMED_HTTP_STATUS"}:
+                         "RESPONSE_LENGTH_MISMATCH", "MALFORMED_HTTP_STATUS"}:
             # Ambiguous vendor errors may conceal a quota or entitlement
             # denial. Preserve the first receipt, but do not spend another
             # paid request on this provider in the same bounded checkpoint.
@@ -194,9 +204,11 @@ def observation(provider, symbol, day, receipt):
               "price": None, "price_type": "VENDOR_DAILY_OHLC_CLOSE", "adjustment_basis": "UNKNOWN",
               "source_timestamp": None, "retrieval_timestamp": receipt.get("retrieved_at"),
               "http_status": receipt.get("http_status"), "provider_error_category": category(receipt),
-              "raw_response_hash": None if receipt.get("body_truncated") is True
-                                   else receipt.get("body_sha256"),
+              "raw_response_hash": (None if receipt.get("body_truncated") is True
+                                    or receipt.get("body_length_mismatch") is True
+                                    else receipt.get("body_sha256")),
               "response_body_truncated": receipt.get("body_truncated") is True,
+              "response_length_mismatch": receipt.get("body_length_mismatch") is True,
               "validation_status": "BLOCKED",
               "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
                             else "https://api.twelvedata.com/time_series",
