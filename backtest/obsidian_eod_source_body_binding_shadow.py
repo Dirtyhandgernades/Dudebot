@@ -222,6 +222,14 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 if (checked is None or observed is None or receipt_time is None
                         or not close_end <= checked <= receipt_time <= observed):
                     faults.add("ACTION_CHECK_TIME_INVALID")
+                # The action record is embedded in the same source body as
+                # its publication claim. An action check occurring *after*
+                # that publication cannot have informed the published body,
+                # even if both timestamps precede retrieval. Distinct action
+                # sources need separate authenticated receipts; this shadow
+                # must not silently backdate their evidence.
+                if checked is not None and publication is not None and checked > publication:
+                    faults.add("EMBEDDED_ACTION_CHECK_POSTDATES_SOURCE_PUBLICATION")
         issues.update(faults)
         rows.append({
             "index": index,

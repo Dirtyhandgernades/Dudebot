@@ -30,7 +30,7 @@ def packet():
             "corporate_action": {
                 "status": "NONE", "coverage_start": "2026-10-27",
                 "coverage_end": "2026-10-28",
-                "checked_at": "2026-10-28T20:07:00Z",
+                "checked_at": "2026-10-28T20:05:00Z",
                 "previous_close_basis": "UNADJUSTED",
             },
         }
@@ -183,6 +183,27 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, json.dumps(body).encode())
         result = self.check(r, t)
         self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
+
+    def test_embedded_action_check_after_publication_is_censored(self):
+        r, t = packet()
+        # After source publication at 20:06 but before retrieval at 20:08:
+        # a timestamp-consistent HTTP receipt cannot validate time travel.
+        r[1]["corporate_action"]["checked_at"] = "2026-10-28T20:07:00Z"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["checked_at"] = r[1]["corporate_action"]["checked_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("EMBEDDED_ACTION_CHECK_POSTDATES_SOURCE_PUBLICATION", result["issues"])
+        self.assertNotIn("ACTION_CHECK_TIME_INVALID", result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertFalse(result["official_close_verified"])
+
+    def test_embedded_action_checked_before_publication_still_unauthenticated(self):
+        result = self.check()
+        self.assertNotIn("EMBEDDED_ACTION_CHECK_POSTDATES_SOURCE_PUBLICATION", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertFalse(result["official_close_verified"])
 
     def test_action_check_after_receipt_is_censored(self):
         r, t = packet()
