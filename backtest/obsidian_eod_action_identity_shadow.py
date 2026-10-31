@@ -117,6 +117,9 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             "action_evidence_host": action_host,
             "security_id_claim": security if isinstance(security, str) else None,
             "issuer_class_claim": issuer_class if isinstance(issuer_class, str) else None,
+            "previous_issuer_class_claim": prior_class if isinstance(prior_class, str) else None,
+            "action_previous_security_id_claim":
+                a.get("previous_security_id") if isinstance(a.get("previous_security_id"), str) else None,
             "action_status_claim": status if isinstance(status, str) else None,
             "previous_close_basis_claim": basis if isinstance(basis, str) else None,
             "coverage_start_claim": a.get("coverage_start") if isinstance(a.get("coverage_start"), str) else None,
@@ -150,6 +153,44 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
                            (4, "CROSS_SOURCE_PREVIOUS_CLOSE_BASIS_CLAIM_CONFLICT")):
         if len({x[position] for x in claims if isinstance(x[position], str)}) > 1:
             issues.add(code)
+    # A rejected third provider may agree on current class/identity but claim
+    # a different previous-session share class or action-record prior identity.
+    # Index those claims separately, including missing/unparseable claims,
+    # without treating rejected evidence as authenticated source truth.
+    previous_class_groups = {}
+    action_previous_security_groups = {}
+    missing_previous_class = []
+    missing_action_previous_security = []
+    for item in rows:
+        index = item["index"]
+        destination = ("valid" if item["status"] ==
+                       "STRUCTURALLY_VALID_UNAUTHENTICATED" else "rejected")
+        for value, groups, missing in (
+            (item["previous_issuer_class_claim"], previous_class_groups,
+             missing_previous_class),
+            (item["action_previous_security_id_claim"],
+             action_previous_security_groups, missing_action_previous_security),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                missing.append(index)
+                continue
+            groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
+    if len(previous_class_groups) > 1:
+        issues.add("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
+    if len(action_previous_security_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
+    previous_class_claim_groups = [
+        {"previous_issuer_class": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(previous_class_groups.items())
+    ]
+    action_previous_security_id_claim_groups = [
+        {"action_previous_security_id": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(action_previous_security_groups.items())
+    ]
     return {
         "mode": MODE, "policy": POLICY,
         "symbol": symbol, "session_date": session.isoformat(),
@@ -157,6 +198,11 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "supplied_report_count": len(reports), "retained_report_count": len(rows),
         "structurally_valid_report_count": len(valid),
         "all_source_rows": rows, "issues": sorted(issues),
+        "previous_issuer_class_claim_groups": previous_class_claim_groups,
+        "action_previous_security_id_claim_groups": action_previous_security_id_claim_groups,
+        "unparseable_previous_issuer_class_claim_source_indices": missing_previous_class,
+        "unparseable_action_previous_security_id_claim_source_indices":
+            missing_action_previous_security,
         "status": "BLOCKED_CENSORED" if issues else "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "provider_ownership_authenticated": False,
         "source_packet_authenticity_verified": False,

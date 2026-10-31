@@ -172,6 +172,50 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertIn("ACTION_OR_PREVIOUS_CLOSE_BASIS_UNRESOLVED", result["issues"])
         self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
 
+    def test_rejected_third_prior_issuer_class_conflict_is_indexed(self):
+        third = row("c", "gamma", "gamma.example")
+        third["previous_issuer_class"] = "ADR"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("CROSS_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["previous_issuer_class_claim_groups"], [
+            {"previous_issuer_class": "ADR",
+             "structurally_valid_source_indices": [], "rejected_source_indices": [2]},
+            {"previous_issuer_class": "COMMON",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []},
+        ])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_third_action_prior_identity_conflict_is_indexed(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["previous_security_id"] = "OTHER:ADR"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT",
+                      result["issues"])
+        self.assertNotIn("CROSS_SOURCE_SECURITY_IDENTITY_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["action_previous_security_id_claim_groups"], [
+            {"action_previous_security_id": "ID:COMMON",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []},
+            {"action_previous_security_id": "OTHER:ADR",
+             "structurally_valid_source_indices": [], "rejected_source_indices": [2]},
+        ])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_missing_third_prior_class_and_action_identity_are_censored(self):
+        third = row("c", "gamma", "gamma.example")
+        third.pop("previous_issuer_class")
+        third["corporate_action_evidence"].pop("previous_security_id")
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertEqual(result["unparseable_previous_issuer_class_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_action_previous_security_id_claim_source_indices"], [2])
+        self.assertNotIn("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT",
+                         result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
     def test_invalid_session_chain_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "VALID_SESSION_CHAIN_REQUIRED"):
             audit_action_identity("ZZZZ", DAY, DAY, [], COLLECTED)
