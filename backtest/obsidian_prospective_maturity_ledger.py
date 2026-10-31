@@ -138,10 +138,18 @@ def build(capture, calendar_rows, outcome_rows, as_of):
         for h, (session, _prior, close_at, _meta) in enumerate(calendar):
             day = session.isoformat()
             source = supplied.get((symbol, day))
-            evidence = original["horizons"][h]["source_evidence"]
+            raw_evidence = original["horizons"][h]["source_evidence"]
             # A future or untimed source must never alter a historical as-of
             # inventory, including by leaking a future provider conflict.
             receipt_at = asof(source.get("collected_at")) if source is not None else None
+            # Structural checks over caller-supplied future rows must never
+            # appear in a historical as-of inventory before source receipt.
+            if now < close_at:
+                evidence = "NOT_YET_OBSERVABLE"
+            elif receipt_at is not None and receipt_at > now:
+                evidence = "SOURCE_NOT_OBSERVABLE_AT_REPORT_AS_OF"
+            else:
+                evidence = raw_evidence
             # A provider_conflict boolean is a supplied claim, not a verified
             # conflict. Preserve its as-of inventory without granting it a
             # SOURCE_CONFLICT outcome or leaking later receipts backwards.

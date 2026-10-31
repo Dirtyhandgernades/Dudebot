@@ -118,6 +118,43 @@ class PrecloseMaturityTests(unittest.TestCase):
                          "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
         self.assertEqual(report["verified_outcomes"], 0)
 
+    def test_future_session_source_structure_is_not_visible_at_past_as_of(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[1],
+               "provider_conflict": True,
+               "collected_at": "2026-11-02T22:00:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        h1 = report["rows"][0]["horizons"][1]
+        self.assertEqual(h1["category"], "NOT_YET_MATURE")
+        self.assertEqual(h1["source_evidence"], "NOT_YET_OBSERVABLE")
+        self.assertFalse(h1["provider_conflict_claimed_as_of_unverified"])
+        self.assertEqual(report["per_horizon"][1]["unverified_conflict_claims_as_of"], 0)
+        self.assertEqual(report["verified_outcomes"], 0)
+
+    def test_postclose_future_receipt_structure_is_not_visible_at_past_as_of(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "provider_conflict": True,
+               "collected_at": "2026-11-02T21:00:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        h0 = report["rows"][0]["horizons"][0]
+        self.assertEqual(h0["category"], "CENSORED_BLOCKED")
+        self.assertEqual(h0["source_evidence"],
+                         "SOURCE_NOT_OBSERVABLE_AT_REPORT_AS_OF")
+        self.assertEqual(h0["reason"], "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
+        self.assertFalse(h0["provider_conflict_claimed_as_of_unverified"])
+        self.assertEqual(report["verified_outcomes"], 0)
+
+    def test_observable_rejected_source_still_exposes_structural_censor_reason(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "collected_at": "2026-10-30T21:01:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        h0 = report["rows"][0]["horizons"][0]
+        self.assertEqual(h0["category"], "CENSORED_BLOCKED")
+        self.assertEqual(h0["source_evidence"], "SUPPLIED_EOD_EVIDENCE_BLOCKED")
+        self.assertFalse(h0["official_close_authenticated"])
+
     def test_preclose_source_conflict_cannot_be_called_postclose(self):
         row = {"ticker": "AAAA", "session_date": DAYS[0],
                "provider_conflict": True, "collected_at": "2026-10-30T19:59:00Z"}
