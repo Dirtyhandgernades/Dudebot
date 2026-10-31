@@ -120,6 +120,26 @@ class PrecloseMaturityTests(unittest.TestCase):
         self.assertEqual(report["per_horizon"][0]["categories"]["SOURCE_CONFLICT"], 0)
         self.assertEqual(report["per_horizon"][0]["categories"]["CENSORED_BLOCKED"], 1)
 
+    def test_calendar_checked_after_as_of_is_rejected_for_every_horizon(self):
+        # A calendar source checked later cannot be claimed in an earlier
+        # as-of report, even when there are no supplied price outcome rows.
+        for horizon in range(4):
+            with self.subTest(horizon=horizon):
+                rows = calendar()
+                rows[horizon]["source_checked_at"] = "2026-11-02T12:00:00Z"
+                with self.assertRaisesRegex(
+                        ValueError, "CALENDAR_SOURCE_CHECK_AFTER_REPORT_AS_OF"):
+                    build(self.capture, rows, [], "2026-10-30T21:30:00Z")
+
+    def test_calendar_checked_at_exact_as_of_with_offset_is_allowed(self):
+        rows = calendar()
+        rows[3]["source_checked_at"] = "2026-10-30T16:30:00-05:00"
+        report = build(self.capture, rows, [], "2026-10-30T21:30:00Z")
+        self.assertEqual(report["expected_issuer_session_slots"], 12)
+        self.assertEqual(report["verified_outcomes"], 0)
+        self.assertEqual(
+            report["per_horizon"][0]["categories"]["CENSORED_MISSING"], 3)
+
     def test_as_of_cannot_precede_original_capture_completion(self):
         with self.assertRaisesRegex(ValueError, "AS_OF_PRECEDES_ORIGINAL"):
             build(self.capture, calendar(), [], "2026-10-30T19:49:00Z")
