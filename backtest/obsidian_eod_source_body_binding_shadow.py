@@ -87,7 +87,11 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
     identity_claims = {field: {} for field in (
-        "security_id", "issuer_class", "corporate_action_status", "previous_close_basis")}
+        "security_id", "previous_security_id", "issuer_class",
+        "previous_issuer_class", "action_security_id",
+        "action_previous_security_id", "action_issuer_class",
+        "action_previous_issuer_class", "corporate_action_status",
+        "previous_close_basis")}
     close_end = (_instant(session_close_at).astimezone(ET) if session_close_at is not None
                  else datetime.combine(session, time(16), tzinfo=ET))
     collected = _instant(collected_at)
@@ -166,7 +170,13 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             # including rejected rows; never cherry-pick two agreeing ones.
             for field, value in (
                 ("security_id", parsed.get("security_id")),
+                ("previous_security_id", parsed.get("previous_security_id")),
                 ("issuer_class", parsed.get("issuer_class")),
+                ("previous_issuer_class", parsed.get("previous_issuer_class")),
+                ("action_security_id", action.get("security_id") if isinstance(action, dict) else None),
+                ("action_previous_security_id", action.get("previous_security_id") if isinstance(action, dict) else None),
+                ("action_issuer_class", action.get("issuer_class") if isinstance(action, dict) else None),
+                ("action_previous_issuer_class", action.get("previous_issuer_class") if isinstance(action, dict) else None),
                 ("corporate_action_status", action.get("status") if isinstance(action, dict) else None),
                 ("previous_close_basis", action.get("previous_close_basis") if isinstance(action, dict) else None),
             ):
@@ -180,6 +190,21 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                             or not action.get(field)
                             or action.get(field) != report_action.get(field)):
                         faults.add("BODY_REPORT_ACTION_MISMATCH_" + field.upper())
+                # Some vendors include security/class identifiers inside their
+                # action record. When supplied, bind every one to the caller's
+                # action claim AND the parsed body identity; a contradictory
+                # rejected third source must remain visible in the inventory.
+                # Absence is not proof of identity or an authenticated action.
+                for field in ("security_id", "previous_security_id",
+                              "issuer_class", "previous_issuer_class"):
+                    if field in action or field in report_action:
+                        value = action.get(field)
+                        if (not isinstance(value, str) or not value
+                                or value != report_action.get(field)):
+                            faults.add("BODY_REPORT_ACTION_MISMATCH_" + field.upper())
+                        if (not isinstance(value, str) or not value
+                                or value != parsed.get(field)):
+                            faults.add("BODY_ACTION_IDENTITY_NOT_STABLE")
                 if (action.get("coverage_start") != previous.isoformat()
                         or action.get("coverage_end") != session.isoformat()
                         or action.get("status") != "NONE"
@@ -199,7 +224,13 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         })
     for field, issue in (
         ("security_id", "PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT"),
+        ("previous_security_id", "PARSED_BODY_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT"),
         ("issuer_class", "PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT"),
+        ("previous_issuer_class", "PARSED_BODY_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT"),
+        ("action_security_id", "PARSED_BODY_ACTION_SECURITY_ID_CLAIM_CONFLICT"),
+        ("action_previous_security_id", "PARSED_BODY_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT"),
+        ("action_issuer_class", "PARSED_BODY_ACTION_ISSUER_CLASS_CLAIM_CONFLICT"),
+        ("action_previous_issuer_class", "PARSED_BODY_ACTION_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT"),
         ("corporate_action_status", "PARSED_BODY_CORPORATE_ACTION_CLAIM_CONFLICT"),
         ("previous_close_basis", "PARSED_BODY_PREVIOUS_CLOSE_BASIS_CLAIM_CONFLICT"),
     ):

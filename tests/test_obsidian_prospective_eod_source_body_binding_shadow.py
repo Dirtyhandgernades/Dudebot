@@ -395,5 +395,55 @@ class BindingShadowTests(unittest.TestCase):
                                 previous_session_close_at="2026-10-27T18:00:00Z")
 
 
+    def test_rejected_prior_security_identity_conflict_from_original_bytes(self):
+        r, t = packet()
+        r[1]["previous_security_id"] = "DIFFERENT-PRIOR-ISSUER"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_security_id"] = "DIFFERENT-PRIOR-ISSUER"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_SECURITY_IDENTITY_NOT_STABLE", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_prior_issuer_class_conflict_from_original_bytes(self):
+        r, t = packet()
+        r[1]["previous_issuer_class"] = "ADR"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_issuer_class"] = "ADR"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+
+    def test_action_record_prior_identity_mismatch_is_byte_bound_and_censored(self):
+        r, t = packet()
+        r[1]["corporate_action"]["previous_security_id"] = "TEST-ISSUER"
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["previous_security_id"] = "DIFFERENT-ISSUER"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_ACTION_MISMATCH_PREVIOUS_SECURITY_ID", result["issues"])
+        self.assertIn("BODY_ACTION_IDENTITY_NOT_STABLE", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_action_record_prior_identity_conflict_is_retained(self):
+        r, t = packet()
+        for i, value in enumerate(("TEST-ISSUER", "DIFFERENT-ISSUER")):
+            r[i]["corporate_action"]["previous_security_id"] = value
+            body = json.loads(t[i]["raw_body"])
+            body["corporate_action"]["previous_security_id"] = value
+            replace_body(t, i, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT",
+                      result["issues"])
+        self.assertIn("BODY_ACTION_IDENTITY_NOT_STABLE", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()
