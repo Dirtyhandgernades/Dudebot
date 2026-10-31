@@ -125,6 +125,10 @@ def category(receipt):
             return "MALFORMED_RESPONSE"
         return {400: "BAD_REQUEST", 401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
                 429: "RATE_LIMIT"}.get(code, "PROVIDER_ERROR")
+    # A missing or unknown provider status cannot establish a successful
+    # vendor response. Fail closed before spending the remaining request budget.
+    if provider_status not in {"OK", "ok"}:
+        return "UNEXPECTED_PROVIDER_STATUS"
     return None
 
 
@@ -150,7 +154,16 @@ class Budget:
                             429: "RATE_LIMIT"}[http_status]
         elif failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
             self.stopped = failure
-        if receipt.get("headers", {}).get("x-ratelimit-remaining") == "0":
+        elif failure in {"MALFORMED_RESPONSE", "UNEXPECTED_PROVIDER_STATUS",
+                         "PROVIDER_ERROR", "RESPONSE_BODY_TOO_LARGE",
+                         "MALFORMED_HTTP_STATUS"}:
+            # Ambiguous vendor errors may conceal a quota or entitlement
+            # denial. Preserve the first receipt, but do not spend another
+            # paid request on this provider in the same bounded checkpoint.
+            self.stopped = "UNVERIFIABLE_PROVIDER_RESPONSE"
+        remaining = receipt.get("headers", {}).get("x-ratelimit-remaining")
+        if isinstance(remaining, str) and re.fullmatch(r"[0-9]{1,16}", remaining) and int(remaining) == 0:
+            # Numeric quota exhaustion includes zero-padded forms like "000".
             self.stopped = "RATE_LIMIT"
         # No automatic retries: preserve Retry-After/reset evidence and stop, never burn quota.
         return receipt

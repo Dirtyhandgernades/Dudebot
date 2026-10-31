@@ -452,4 +452,48 @@ class ReconciliationTests(unittest.TestCase):
 
 
 
+
+    def test_ambiguous_provider_errors_stop_remaining_paid_requests(self):
+        # No second paid request after an unknown or malformed provider
+        # response that could hide quota/entitlement denial.
+        cases = [
+            ({'status': 'error', 'code': '429'}, 'MALFORMED_RESPONSE'),
+            ({'status': 'error', 'code': 499}, 'PROVIDER_ERROR'),
+            ({'status': 'partial'}, 'UNEXPECTED_PROVIDER_STATUS'),
+            ({}, 'UNEXPECTED_PROVIDER_STATUS'),
+            (None, 'MALFORMED_RESPONSE'),
+        ]
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                first = receipt(payload)
+                with patch.object(m, 'get', return_value=first) as fetch:
+                    budget = m.Budget(4)
+                    self.assertEqual(m.category(budget.fetch('url', {}, 'token')), expected)
+                    self.assertEqual(budget.fetch('url', {}, 'token')['error'],
+                                     'UNVERIFIABLE_PROVIDER_RESPONSE')
+                    self.assertEqual(budget.used, 1)
+                fetch.assert_called_once()
+        oversized = receipt(None)
+        oversized.update(error='RESPONSE_BODY_TOO_LARGE', body_truncated=True)
+        with patch.object(m, 'get', return_value=oversized) as fetch:
+            budget = m.Budget(4)
+            budget.fetch('url', {}, 'token')
+            self.assertEqual(budget.fetch('url', {}, 'token')['error'],
+                             'UNVERIFIABLE_PROVIDER_RESPONSE')
+        fetch.assert_called_once()
+
+    def test_zero_padded_remaining_quota_stops_paid_requests(self):
+        for remaining in ('0', '00', '0000'):
+            with self.subTest(remaining=remaining):
+                first = massive()
+                first['headers'] = {'x-ratelimit-remaining': remaining}
+                with patch.object(m, 'get', return_value=first) as fetch:
+                    budget = m.Budget(4)
+                    budget.fetch('url', {}, 'token')
+                    self.assertEqual(budget.fetch('url', {}, 'token')['error'],
+                                     'RATE_LIMIT')
+                    self.assertEqual(budget.used, 1)
+                fetch.assert_called_once()
+
+
 if __name__=='__main__':unittest.main()
