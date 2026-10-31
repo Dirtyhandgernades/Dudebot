@@ -130,6 +130,7 @@ def build(capture, calendar_rows, outcome_rows, as_of):
     rows = []
     per_horizon = [Counter() for _ in range(4)]
     per_watch = [{True: Counter(), False: Counter()} for _ in range(4)]
+    unverified_conflict_claims = [Counter() for _ in range(4)]
     for original in coverage["rows"]:
         symbol = original["ticker"]
         watch = original["original_price_only_watch"]
@@ -141,6 +142,17 @@ def build(capture, calendar_rows, outcome_rows, as_of):
             # A future or untimed source must never alter a historical as-of
             # inventory, including by leaking a future provider conflict.
             receipt_at = asof(source.get("collected_at")) if source is not None else None
+            # A provider_conflict boolean is a supplied claim, not a verified
+            # conflict. Preserve its as-of inventory without granting it a
+            # SOURCE_CONFLICT outcome or leaking later receipts backwards.
+            conflict_claim_as_of = (
+                source is not None and receipt_at is not None
+                and close_at <= receipt_at <= now
+                and source.get("provider_conflict") is True
+            )
+            if conflict_claim_as_of:
+                unverified_conflict_claims[h]["all"] += 1
+                unverified_conflict_claims[h][str(watch).lower()] += 1
             if now < close_at:
                 category = "NOT_YET_MATURE"
                 reason = "REGULAR_SESSION_CLOSE_IN_FUTURE"
@@ -150,9 +162,6 @@ def build(capture, calendar_rows, outcome_rows, as_of):
             elif receipt_at is None or receipt_at < close_at or receipt_at > now:
                 category = "CENSORED_BLOCKED"
                 reason = "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF"
-            elif source.get("provider_conflict") is True:
-                category = "SOURCE_CONFLICT"
-                reason = "SUPPLIED_PROVIDER_CONFLICT_UNAUTHENTICATED"
             elif evidence == "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING":
                 chain = original["horizons"][h].get("chain_evidence")
                 if chain != "COMPLETE_PREFIX_UNAUTHENTICATED":
@@ -163,7 +172,9 @@ def build(capture, calendar_rows, outcome_rows, as_of):
                     reason = "PROVIDER_IDENTITY_AND_OFFICIAL_CLOSE_AUTH_PENDING"
             else:
                 category = "CENSORED_BLOCKED"
-                reason = "SUPPLIED_EOD_EVIDENCE_FAILED_STRUCTURAL_GATE"
+                reason = ("SUPPLIED_CONFLICT_CLAIM_FAILED_STRUCTURAL_GATE"
+                          if conflict_claim_as_of
+                          else "SUPPLIED_EOD_EVIDENCE_FAILED_STRUCTURAL_GATE")
             per_horizon[h][category] += 1
             per_watch[h][watch][category] += 1
             horizons.append({
@@ -171,6 +182,7 @@ def build(capture, calendar_rows, outcome_rows, as_of):
                 "regular_close_at": close_at.isoformat(),
                 "category": category, "reason": reason,
                 "source_evidence": evidence,
+                "provider_conflict_claimed_as_of_unverified": conflict_claim_as_of,
                 "official_close_authenticated": False,
                 "verified_prediction_or_trade": None,
             })
@@ -187,6 +199,10 @@ def build(capture, calendar_rows, outcome_rows, as_of):
         for category in CATEGORIES:
             if sum(per_watch[h][flag][category] for flag in (True, False)) != per_horizon[h][category]:
                 raise AssertionError("WATCH_DENOMINATOR_MISMATCH")
+        if (unverified_conflict_claims[h]["true"] +
+                unverified_conflict_claims[h]["false"] !=
+                unverified_conflict_claims[h]["all"]):
+            raise AssertionError("CONFLICT_CLAIM_DENOMINATOR_MISMATCH")
     return {
         "mode": MODE, "policy": POLICY,
         "capture_phase": "PRECLOSE" if preclose else manifest["phase"],
@@ -200,6 +216,10 @@ def build(capture, calendar_rows, outcome_rows, as_of):
             {"horizon": h, "session_date": calendar[h][0].isoformat(),
              "original_denominator": n,
              "categories": {key: per_horizon[h][key] for key in CATEGORIES},
+             "unverified_conflict_claims_as_of": unverified_conflict_claims[h]["all"],
+             "unverified_conflict_claims_by_watch": {
+                 key: unverified_conflict_claims[h][key] for key in ("true", "false")
+             },
              "watch_categories": {
                  str(flag).lower(): {key: per_watch[h][flag][key] for key in CATEGORIES}
                  for flag in (True, False)

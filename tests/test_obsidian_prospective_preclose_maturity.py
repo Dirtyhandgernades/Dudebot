@@ -82,11 +82,27 @@ class PrecloseMaturityTests(unittest.TestCase):
         report = build(self.capture, calendar(), rows,
                        "2026-11-05T22:00:00Z")
         categories = report["per_horizon"][0]["categories"]
-        self.assertEqual(categories["SOURCE_CONFLICT"], 1)
-        self.assertEqual(categories["CENSORED_BLOCKED"], 1)
+        self.assertEqual(categories["SOURCE_CONFLICT"], 0)
+        self.assertEqual(categories["CENSORED_BLOCKED"], 2)
         self.assertEqual(categories["CENSORED_MISSING"], 1)
+        self.assertEqual(report["per_horizon"][0]["unverified_conflict_claims_as_of"], 1)
         self.assertEqual(categories["VERIFIED"], 0)
         self.assertFalse(report["independent_official_close_authentication_performed"])
+
+    def test_bare_provider_conflict_is_only_an_unverified_claim(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "provider_conflict": True, "collected_at": "2026-10-30T21:01:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        horizon = report["per_horizon"][0]
+        self.assertEqual(horizon["categories"]["SOURCE_CONFLICT"], 0)
+        self.assertEqual(horizon["categories"]["CENSORED_BLOCKED"], 1)
+        self.assertEqual(horizon["unverified_conflict_claims_as_of"], 1)
+        self.assertEqual(sum(horizon["unverified_conflict_claims_by_watch"].values()), 1)
+        row_result = report["rows"][0]["horizons"][0]
+        self.assertTrue(row_result["provider_conflict_claimed_as_of_unverified"])
+        self.assertEqual(row_result["reason"], "SUPPLIED_CONFLICT_CLAIM_FAILED_STRUCTURAL_GATE")
+        self.assertFalse(row_result["official_close_authenticated"])
 
     def test_future_source_conflict_does_not_leak_into_past_as_of(self):
         row = {"ticker": "AAAA", "session_date": DAYS[0],
@@ -97,6 +113,7 @@ class PrecloseMaturityTests(unittest.TestCase):
         self.assertEqual(h0["SOURCE_CONFLICT"], 0)
         self.assertEqual(h0["CENSORED_BLOCKED"], 1)
         self.assertEqual(h0["CENSORED_MISSING"], 2)
+        self.assertEqual(report["per_horizon"][0]["unverified_conflict_claims_as_of"], 0)
         self.assertEqual(report["rows"][0]["horizons"][0]["reason"],
                          "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
         self.assertEqual(report["verified_outcomes"], 0)

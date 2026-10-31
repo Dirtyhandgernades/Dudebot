@@ -205,9 +205,10 @@ class CoverageTests(unittest.TestCase):
         rows[1]["corporate_actions_clear"] = False
         report = build_maturity_ledger(self.capture, calendar(), rows, "2026-11-04T21:00:00Z")
         categories = report["per_horizon"][0]["categories"]
-        self.assertEqual(categories["SOURCE_CONFLICT"], 1)
-        self.assertEqual(categories["CENSORED_BLOCKED"], 1)
+        self.assertEqual(categories["SOURCE_CONFLICT"], 0)
+        self.assertEqual(categories["CENSORED_BLOCKED"], 2)
         self.assertEqual(categories["CENSORED_MISSING"], 1)
+        self.assertEqual(report["per_horizon"][0]["unverified_conflict_claims_as_of"], 1)
         self.assertEqual(categories["VERIFIED"], 0)
         self.assertEqual(report["per_horizon"][1]["categories"]["CENSORED_MISSING"], 3)
 
