@@ -519,4 +519,45 @@ class ReconciliationTests(unittest.TestCase):
                 fetch.assert_called_once()
 
 
+
+    def test_provider_specific_status_mismatch_stops_paid_budget(self):
+        # A status accepted by the generic classifier can be wrong for the
+        # actual provider. Reject it before another paid request.
+        for returned, expected in [('ok', 'OK'), ('OK', 'ok')]:
+            with self.subTest(returned=returned, expected=expected):
+                first = receipt({'status': returned})
+                with patch.object(m, 'get', return_value=first) as fetch:
+                    budget = m.Budget(4)
+                    initial = budget.fetch('url', {}, 'fixture', expected_status=expected)
+                    self.assertEqual(m.category(initial), 'UNEXPECTED_PROVIDER_STATUS')
+                    self.assertEqual(budget.fetch('url', {}, 'fixture',
+                                                  expected_status=expected)['error'],
+                                     'UNEXPECTED_PROVIDER_STATUS')
+                    self.assertEqual(budget.used, 1)
+                fetch.assert_called_once()
+
+    def test_reconcile_wrong_massive_status_censors_fixed_denominator(self):
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                response = twelve([{'datetime': day, 'close': '100'} for day in m.SESSIONS])
+                response['payload']['meta']['symbol'] = params['symbol']
+                return response
+            response = massive(url.rsplit('/', 1)[-1], url.split('/')[-2])
+            response['payload']['status'] = 'ok'
+            return response
+        with patch.object(m, 'get', side_effect=fake) as fetch, patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture',
+                               'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual(result['request_budget']['massive_used'], 1)
+        self.assertEqual(result['total_ticker_dates'], 4)
+        self.assertEqual(result['both_bar_count'], 0)
+        self.assertEqual(result['missing_pair_count'], 4)
+        self.assertTrue(all(
+            row['providers']['MASSIVE']['provider_error_category'] ==
+            'UNEXPECTED_PROVIDER_STATUS' for row in result['rows']))
+        self.assertFalse(result['official_exchange_close_verified'])
+        self.assertFalse(result['outcome_scoring_eligible'])
+
 if __name__=='__main__':unittest.main()

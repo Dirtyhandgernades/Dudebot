@@ -138,7 +138,7 @@ class Budget:
     used: int = 0
     stopped: str | None = None
 
-    def fetch(self, url, params, token):
+    def fetch(self, url, params, token, expected_status=None):
         if not token:
             return {"error": "SECRET_ABSENT"}
         if self.stopped or self.used >= self.maximum:
@@ -146,6 +146,13 @@ class Budget:
         self.used += 1
         receipt = get(url, params, token)
         failure = category(receipt)
+        # The generic HTTP-200 classifier recognizes both OK and ok, but
+        # vendor success contracts differ. Stop the budget immediately on a
+        # provider-specific mismatch, before spending another paid request.
+        if expected_status is not None and failure is None:
+            if receipt["payload"].get("status") != expected_status:
+                receipt["error"] = "UNEXPECTED_PROVIDER_STATUS"
+                failure = "UNEXPECTED_PROVIDER_STATUS"
         # Preserve quota safety even when a malformed/oversized body obscures
         # an authoritative HTTP 401/403/429 status in the error category.
         http_status = receipt.get("http_status")
@@ -312,11 +319,11 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
                          {"symbol": symbol, "interval": "1day", "start_date": start_date,
                           "end_date": end_date, "adjust": "none",
                           "apikey": os.environ.get("TWELVE_DATA_API_KEY", "")},
-                         os.environ.get("TWELVE_DATA_API_KEY", ""))
+                         os.environ.get("TWELVE_DATA_API_KEY", ""), expected_status="ok")
         for day in sessions:
             m = massive.fetch("https://api.massive.com/v1/open-close/" + parse.quote(symbol, safe="") + "/" + day,
                               {"adjusted": "false", "apiKey": os.environ.get("MASSIVE_API_KEY", "")},
-                              os.environ.get("MASSIVE_API_KEY", ""))
+                              os.environ.get("MASSIVE_API_KEY", ""), expected_status="OK")
             a, b = observation("MASSIVE", symbol, day, m), observation("TWELVE_DATA", symbol, day, t)
             status, difference = compare(a, b)
             both = all(x["validation_status"] == "VALID_VENDOR_BAR" for x in (a, b))
