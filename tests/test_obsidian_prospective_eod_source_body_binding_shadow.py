@@ -445,5 +445,46 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
         self.assertFalse(result["official_close_verified"])
 
+    def test_distinct_symbols_cannot_pass_cross_provider_identity_check(self):
+        # Both receipts and JSON bodies are internally consistent, but they
+        # refer to different tickers. Same prices cannot erase the mismatch.
+        r, t = packet()
+        r[1]["symbol"] = "OTHER"
+        body = json.loads(t[1]["raw_body"])
+        body["symbol"] = "OTHER"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_SYMBOL_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_third_source_symbol_disagreement_is_retained(self):
+        # An invalid third source must remain in the complete conflict
+        # inventory instead of being dropped in favor of agreeing sources.
+        r, t = packet()
+        third_r, third_t = copy.deepcopy(r[1]), copy.deepcopy(t[1])
+        third_r["source_id"] = third_t["source_id"] = "source-2"
+        third_r["provider_organization"] = third_t["provider_organization"] = "group-2"
+        third_r["source_url"] = third_t["requested_url"] = third_t["response_url"] = "https://provider-c.example/close"
+        third_r["symbol"] = "OTHER"
+        third_r["previous_security_id"] = "WRONG-PRIOR-ISSUER"
+        body = json.loads(third_t["raw_body"])
+        body.update(source_id="source-2", symbol="OTHER",
+                    previous_security_id="WRONG-PRIOR-ISSUER")
+        replace_body([third_t], 0, json.dumps(body).encode())
+        r.append(third_r)
+        t.append(third_t)
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertIn("PARSED_BODY_SYMBOL_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_agreeing_symbol_does_not_create_symbol_conflict(self):
+        result = self.check()
+        self.assertNotIn("PARSED_BODY_SYMBOL_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+
 if __name__ == "__main__":
     unittest.main()

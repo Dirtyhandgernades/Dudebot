@@ -87,7 +87,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
     identity_claims = {field: {} for field in (
-        "security_id", "previous_security_id", "issuer_class",
+        "symbol", "security_id", "previous_security_id", "issuer_class",
         "previous_issuer_class", "action_security_id",
         "action_previous_security_id", "action_issuer_class",
         "action_previous_issuer_class", "corporate_action_status",
@@ -169,6 +169,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             # Compare every parseable source-body identity/action claim,
             # including rejected rows; never cherry-pick two agreeing ones.
             for field, value in (
+                ("symbol", parsed.get("symbol")),
                 ("security_id", parsed.get("security_id")),
                 ("previous_security_id", parsed.get("previous_security_id")),
                 ("issuer_class", parsed.get("issuer_class")),
@@ -223,6 +224,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             "issues": sorted(faults),
         })
     for field, issue in (
+        ("symbol", "PARSED_BODY_SYMBOL_CLAIM_CONFLICT"),
         ("security_id", "PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT"),
         ("previous_security_id", "PARSED_BODY_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT"),
         ("issuer_class", "PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT"),
