@@ -144,6 +144,8 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     all_parseable_claims = []
     unparseable_claim_indices = []
     security_identity_claims = []
+    previous_security_identity_claims = []
+    unparseable_previous_identity_indices = []
     rows = []
     for index, report in enumerate(reports):
         faults = set()
@@ -188,6 +190,15 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         # Matching prices must not silently merge different securities.
         if isinstance(security_id, str) and security_id.strip():
             security_identity_claims.append((index, security_id, not faults))
+        # A rejected third report can agree on the current share class while
+        # asserting a different prior-session class. Preserve that separate
+        # reference-identity conflict; otherwise the 20% denominator may be
+        # based on a different instrument without appearing in the inventory.
+        previous_id = r.get("previous_security_id")
+        if isinstance(previous_id, str) and previous_id.strip():
+            previous_security_identity_claims.append((index, previous_id, not faults))
+        else:
+            unparseable_previous_identity_indices.append(index)
         if faults:
             issues.update(faults)
         else:
@@ -230,6 +241,18 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
          "structurally_valid_source_indices": group["valid"],
          "rejected_source_indices": group["rejected"]}
         for security_id, group in sorted(identity_groups.items())
+    ]
+    previous_identity_groups = {}
+    for index, security_id, structurally_valid in previous_security_identity_claims:
+        entry = previous_identity_groups.setdefault(security_id, {"valid": [], "rejected": []})
+        entry["valid" if structurally_valid else "rejected"].append(index)
+    if len(previous_identity_groups) > 1:
+        issues.add("ALL_SOURCE_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
+    previous_security_identity_claim_groups = [
+        {"previous_security_id": security_id,
+         "structurally_valid_source_indices": group["valid"],
+         "rejected_source_indices": group["rejected"]}
+        for security_id, group in sorted(previous_identity_groups.items())
     ]
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
@@ -301,6 +324,8 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "retained_report_count": len(rows), "structurally_valid_report_count": len(valid),
         "distinct_claimed_provider_organizations": len(groups),
         "source_rows": rows, "security_identity_claim_groups": security_identity_claim_groups,
+        "previous_security_identity_claim_groups": previous_security_identity_claim_groups,
+        "unparseable_previous_security_id_claim_source_indices": unparseable_previous_identity_indices,
         "price_claim_groups": price_claim_groups,
         "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
         "unparseable_price_claim_source_indices": unparseable_claim_indices,

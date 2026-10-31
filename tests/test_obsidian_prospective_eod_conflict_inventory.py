@@ -360,5 +360,45 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertNotIn("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
         self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
 
+    def test_rejected_third_previous_identity_conflict_retained(self):
+        """Prior-session class disagreement cannot hide behind identical current IDs/prices."""
+        third = row("c", "three", "three.example")
+        third["previous_security_id"] = "ISSUER2:ADR"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertNotIn("ALL_SOURCE_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("ALL_SOURCE_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("SECURITY_IDENTITY_NOT_MATCHED", result["issues"])
+        self.assertEqual(result["previous_security_identity_claim_groups"], [
+            {"previous_security_id": "ISSUER1:COMMON",
+             "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+            {"previous_security_id": "ISSUER2:ADR",
+             "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+        ])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_missing_third_previous_identity_is_indexed_and_censored(self):
+        third = row("c", "three", "three.example")
+        third.pop("previous_security_id")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["unparseable_previous_security_id_claim_source_indices"], [2])
+        self.assertEqual(result["previous_security_identity_claim_groups"], [
+            {"previous_security_id": "ISSUER1:COMMON",
+             "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+        ])
+        self.assertIn("SECURITY_IDENTITY_NOT_MATCHED", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_agreeing_current_and_previous_identity_claims_still_unverified(self):
+        result = check([row(), row("b", "two", "two.example")])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["unparseable_previous_security_id_claim_source_indices"], [])
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
+
 if __name__ == "__main__":
     unittest.main()
