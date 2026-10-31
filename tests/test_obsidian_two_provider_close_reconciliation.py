@@ -325,6 +325,47 @@ class ReconciliationTests(unittest.TestCase):
         self.assertNotIn('other-provider.example', json.dumps(row))
 
 
+    def test_ambiguous_vendor_json_keys_and_nonfinite_constants_are_censored(self):
+        # A last-key-wins JSON decoder could turn a provider error into OK,
+        # change the security identity, or overwrite a close. The body hash
+        # remains a complete-byte receipt hash, NOT official-close proof.
+        import hashlib
+        class RawResponse:
+            code = 200
+            headers = {}
+            def __init__(self, raw): self.raw = raw
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                self_raw = self.raw
+                if self_limit != 150001:
+                    raise AssertionError("unexpected read budget")
+                return self_raw
+
+        bodies = [
+            b'{"status":"error","status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}',
+            b'{"status":"OK","symbol":"AAPL","symbol":"MSFT","from":"2026-10-27","close":100}',
+            b'{"status":"ok","meta":{"symbol":"AAPL","symbol":"MSFT"},"values":[]}',
+            b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100,"close":80}',
+            b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":NaN}',
+            b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":Infinity}',
+            b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":-Infinity}',
+        ]
+        for raw in bodies:
+            with self.subTest(raw=raw), patch.object(
+                    m, '_open_no_redirect', return_value=RawResponse(raw)):
+                fetched = m.get('https://api.massive.com/v1/open-close',
+                                {'apiKey': 'fixture'}, 'fixture')
+                self.assertEqual(fetched['http_status'], 200)
+                self.assertEqual(fetched['body_sha256'], hashlib.sha256(raw).hexdigest())
+                self.assertIsNone(fetched['payload'])
+                self.assertEqual(m.category(fetched), 'MALFORMED_RESPONSE')
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', fetched)
+                self.assertEqual(row['validation_status'], 'BLOCKED')
+                self.assertIsNone(row['price'])
+                self.assertFalse(row['raw_body_retained'])
+
     def test_oversized_provider_body_never_claims_complete_response_hash(self):
         # A 150001-byte bounded read is only a prefix of an unknown body.
         # It must be censored without retaining a misleading SHA256.

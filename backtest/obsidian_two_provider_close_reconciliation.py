@@ -35,6 +35,21 @@ def _open_no_redirect(req):
     return request.build_opener(_NoRedirectHandler()).open(req, timeout=18)
 
 
+def _unique_vendor_json_object(pairs):
+    """Reject duplicate keys at every nesting level of untrusted vendor JSON."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("DUPLICATE_VENDOR_JSON_KEY")
+        result[key] = value
+    return result
+
+
+def _reject_vendor_nonfinite(value):
+    # Python's default JSON decoder accepts NaN/Infinity despite JSON rules.
+    raise ValueError("NONFINITE_VENDOR_JSON_CONSTANT")
+
+
 def get(url, params, token):
     """Never log URLs, exceptions or provider messages that could echo credentials."""
     req = request.Request(url + "?" + parse.urlencode(params),
@@ -56,8 +71,13 @@ def get(url, params, token):
         # beyond the limit is incomplete: NEVER hash its truncated prefix as
         # if it were a complete authenticated provider response.
         body_truncated = len(body) > 150000
-        payload = json.loads(body) if not body_truncated else None
-    except (ValueError, UnicodeDecodeError):
+        # Duplicate keys could overwrite an earlier error/status, symbol,
+        # session or close. Reject at every nesting level; no last-key-wins
+        # price or identity evidence enters even the diagnostic comparison.
+        payload = (json.loads(body, object_pairs_hook=_unique_vendor_json_object,
+                              parse_constant=_reject_vendor_nonfinite)
+                   if not body_truncated else None)
+    except (ValueError, UnicodeDecodeError, RecursionError):
         payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
