@@ -123,10 +123,36 @@ def build(capture, calendar_rows, outcome_rows, as_of):
         checked = asof(source_row.get("source_checked_at"))
         if checked is None or checked > now:
             raise ValueError("CALENDAR_SOURCE_CHECK_AFTER_REPORT_AS_OF")
+    # Only evidence with no asserted receipt time or with a receipt at/before
+    # the report as-of may influence the retrospective ledger. A future receipt
+    # must be indistinguishable from an absent source row at this historical
+    # cutoff, including in category counts, prefix chains and provided counts.
+    # Untimed rows remain present but fail the receipt gate (censored).
+    if not isinstance(outcome_rows, list):
+        raise ValueError("OUTCOME_ROWS_MUST_BE_LIST")
+    visible_rows = [
+        row for row in outcome_rows
+        if isinstance(row, dict) and (
+            asof(row.get("collected_at")) is None
+            or asof(row.get("collected_at")) <= now
+        )
+    ]
     preclose = manifest.get("status") == "IEX_PROSPECTIVE_SINGLE_VENUE_RAW_DISCOVERY_ONLY"
-    coverage = (_audit_preclose(capture, calendar_rows, outcome_rows, manifest)
-                if preclose else audit(capture, calendar_rows, outcome_rows))
-    supplied = {(r["ticker"], r["session_date"]): r for r in outcome_rows}
+    coverage = (_audit_preclose(capture, calendar_rows, visible_rows, manifest)
+                if preclose else audit(capture, calendar_rows, visible_rows))
+    # Validate the complete input, including future rows, so filtering cannot
+    # conceal duplicate, out-of-cohort or malformed evidence packets.
+    allowed = {row["ticker"] for row in coverage["rows"]}
+    sessions = {session.isoformat() for session, *_ in calendar}
+    seen = set()
+    for row in outcome_rows:
+        if not isinstance(row, dict):
+            raise ValueError("INVALID_OUTCOME_ROW")
+        key = (row.get("ticker"), row.get("session_date"))
+        if key[0] not in allowed or key[1] not in sessions or key in seen:
+            raise ValueError("DUPLICATE_OR_OUTSIDE_ORIGINAL_COHORT")
+        seen.add(key)
+    supplied = {(r["ticker"], r["session_date"]): r for r in visible_rows}
     rows = []
     per_horizon = [Counter() for _ in range(4)]
     per_watch = [{True: Counter(), False: Counter()} for _ in range(4)]

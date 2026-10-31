@@ -111,11 +111,12 @@ class PrecloseMaturityTests(unittest.TestCase):
                        "2026-10-30T22:00:00Z")
         h0 = report["per_horizon"][0]["categories"]
         self.assertEqual(h0["SOURCE_CONFLICT"], 0)
-        self.assertEqual(h0["CENSORED_BLOCKED"], 1)
-        self.assertEqual(h0["CENSORED_MISSING"], 2)
+        self.assertEqual(h0["CENSORED_BLOCKED"], 0)
+        self.assertEqual(h0["CENSORED_MISSING"], 3)
+        self.assertEqual(report["provided_source_rows"], 0)
         self.assertEqual(report["per_horizon"][0]["unverified_conflict_claims_as_of"], 0)
         self.assertEqual(report["rows"][0]["horizons"][0]["reason"],
-                         "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
+                         "NO_SUPPLIED_OUTCOME_ROW")
         self.assertEqual(report["verified_outcomes"], 0)
 
     def test_future_session_source_structure_is_not_visible_at_past_as_of(self):
@@ -138,12 +139,38 @@ class PrecloseMaturityTests(unittest.TestCase):
         report = build(self.capture, calendar(), [row],
                        "2026-10-30T22:00:00Z")
         h0 = report["rows"][0]["horizons"][0]
-        self.assertEqual(h0["category"], "CENSORED_BLOCKED")
-        self.assertEqual(h0["source_evidence"],
-                         "SOURCE_NOT_OBSERVABLE_AT_REPORT_AS_OF")
-        self.assertEqual(h0["reason"], "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
+        self.assertEqual(h0["category"], "CENSORED_MISSING")
+        self.assertEqual(h0["source_evidence"], "MISSING_EOD_SOURCE_ROW")
+        self.assertEqual(h0["reason"], "NO_SUPPLIED_OUTCOME_ROW")
         self.assertFalse(h0["provider_conflict_claimed_as_of_unverified"])
         self.assertEqual(report["verified_outcomes"], 0)
+
+    def test_future_receipts_cannot_change_historical_asof_inventory(self):
+        # Future evidence must be indistinguishable from no evidence at all,
+        # including the public supplied-row count and full prefix inventory.
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "collected_at": "2026-11-03T22:00:00Z",
+               "provider_conflict": True}
+        cutoff = "2026-11-02T22:30:00Z"
+        baseline = build(self.capture, calendar(), [], cutoff)
+        with_future = build(self.capture, calendar(), [row], cutoff)
+        self.assertEqual(with_future, baseline)
+        after_receipt = build(self.capture, calendar(), [row],
+                              "2026-11-04T22:30:00Z")
+        self.assertEqual(after_receipt["provided_source_rows"], 1)
+        self.assertEqual(after_receipt["per_horizon"][0]
+                         ["unverified_conflict_claims_as_of"], 1)
+
+    def test_future_rows_still_fail_duplicate_and_cohort_validation(self):
+        future = {"ticker": "AAAA", "session_date": DAYS[0],
+                  "collected_at": "2026-11-03T22:00:00Z"}
+        with self.assertRaisesRegex(ValueError, "DUPLICATE_OR_OUTSIDE"):
+            build(self.capture, calendar(), [future, future],
+                  "2026-10-30T22:00:00Z")
+        with self.assertRaisesRegex(ValueError, "DUPLICATE_OR_OUTSIDE"):
+            build(self.capture, calendar(),
+                  [{**future, "ticker": "NOT_IN_COHORT"}],
+                  "2026-10-30T22:00:00Z")
 
     def test_observable_rejected_source_still_exposes_structural_censor_reason(self):
         row = {"ticker": "AAAA", "session_date": DAYS[0],
