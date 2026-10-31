@@ -140,9 +140,9 @@ def build(capture, calendar_rows, outcome_rows, as_of):
             elif source is None:
                 category = "CENSORED_MISSING"
                 reason = "NO_SUPPLIED_OUTCOME_ROW"
-            elif receipt_at is None or receipt_at > now:
+            elif receipt_at is None or receipt_at < close_at or receipt_at > now:
                 category = "CENSORED_BLOCKED"
-                reason = "SOURCE_RECEIPT_MISSING_OR_AFTER_AS_OF"
+                reason = "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF"
             elif source.get("provider_conflict") is True:
                 category = "SOURCE_CONFLICT"
                 reason = "SUPPLIED_PROVIDER_CONFLICT_UNAUTHENTICATED"

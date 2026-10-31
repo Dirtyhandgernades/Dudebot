@@ -98,8 +98,19 @@ class PrecloseMaturityTests(unittest.TestCase):
         self.assertEqual(h0["CENSORED_BLOCKED"], 1)
         self.assertEqual(h0["CENSORED_MISSING"], 2)
         self.assertEqual(report["rows"][0]["horizons"][0]["reason"],
-                         "SOURCE_RECEIPT_MISSING_OR_AFTER_AS_OF")
+                         "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
         self.assertEqual(report["verified_outcomes"], 0)
+
+    def test_preclose_source_conflict_cannot_be_called_postclose(self):
+        row = {"ticker": "AAAA", "session_date": DAYS[0],
+               "provider_conflict": True, "collected_at": "2026-10-30T19:59:00Z"}
+        report = build(self.capture, calendar(), [row],
+                       "2026-10-30T22:00:00Z")
+        h0 = report["per_horizon"][0]["categories"]
+        self.assertEqual(h0["SOURCE_CONFLICT"], 0)
+        self.assertEqual(h0["CENSORED_BLOCKED"], 1)
+        self.assertEqual(report["rows"][0]["horizons"][0]["reason"],
+                         "SOURCE_RECEIPT_NOT_POSTCLOSE_OR_AFTER_AS_OF")
 
     def test_unstamped_conflict_does_not_override_source_censoring(self):
         row = {"ticker": "AAAA", "session_date": DAYS[0],
