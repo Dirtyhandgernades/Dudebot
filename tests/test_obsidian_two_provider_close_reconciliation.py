@@ -532,7 +532,7 @@ class ReconciliationTests(unittest.TestCase):
                     self.assertEqual(m.category(initial), 'UNEXPECTED_PROVIDER_STATUS')
                     self.assertEqual(budget.fetch('url', {}, 'fixture',
                                                   expected_status=expected)['error'],
-                                     'UNEXPECTED_PROVIDER_STATUS')
+                                     'UNVERIFIABLE_PROVIDER_RESPONSE')
                     self.assertEqual(budget.used, 1)
                 fetch.assert_called_once()
 
@@ -554,9 +554,12 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(result['total_ticker_dates'], 4)
         self.assertEqual(result['both_bar_count'], 0)
         self.assertEqual(result['missing_pair_count'], 4)
+        self.assertEqual(result['rows'][0]['providers']['MASSIVE']['provider_error_category'],
+                         'UNEXPECTED_PROVIDER_STATUS')
         self.assertTrue(all(
-            row['providers']['MASSIVE']['provider_error_category'] ==
-            'UNEXPECTED_PROVIDER_STATUS' for row in result['rows']))
+            row['providers']['MASSIVE']['provider_error_category'] in
+            {'UNEXPECTED_PROVIDER_STATUS', 'UNVERIFIABLE_PROVIDER_RESPONSE'}
+            for row in result['rows']))
         self.assertFalse(result['official_exchange_close_verified'])
         self.assertFalse(result['outcome_scoring_eligible'])
 
