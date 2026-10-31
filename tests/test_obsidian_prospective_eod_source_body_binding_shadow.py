@@ -373,7 +373,7 @@ class BindingShadowTests(unittest.TestCase):
             r[i]["corporate_action"].update({
                 "coverage_start": "2026-11-25",
                 "coverage_end": "2026-11-27",
-                "checked_at": "2026-11-27T18:07:00Z",
+                "checked_at": "2026-11-27T18:05:00Z",
             })
             t[i]["retrieved_at"] = "2026-11-27T18:08:00Z"
             replace_body(t, i, json.dumps(
