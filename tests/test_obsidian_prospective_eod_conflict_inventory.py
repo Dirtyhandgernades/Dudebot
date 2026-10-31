@@ -400,5 +400,34 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertEqual(result["unparseable_previous_security_id_claim_source_indices"], [])
         self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
 
+    def test_rejected_third_close_disagreement_same_class_is_explicit(self):
+        """A rejected source's differing price must be visible even without threshold straddling."""
+        third = row("c", "three", "three.example", close="7.97")
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(result["all_parseable_price_claim_groups"][0]["rejected_source_indices"], [2])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_rejected_third_prior_disagreement_same_class_is_explicit(self):
+        third = row("c", "three", "three.example", prior="10.03")
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertIn("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_all_parseable_price_agreement_has_no_new_conflict_flags(self):
+        result = check([row(), row("b", "two", "two.example")])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT", result["issues"])
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
+
 if __name__ == "__main__":
     unittest.main()

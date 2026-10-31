@@ -303,6 +303,19 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     if len({g["claimed_20pct_drop"]
             for g in all_parseable_price_claim_groups}) > 1:
         issues.add("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD")
+    # Preserve numeric disagreement from rejected third-party reports too.
+    # A rejected receipt is never promoted to authenticated evidence, but a
+    # price discrepancy below the 20% event boundary is still a conflict
+    # that must not vanish from the complete-source inventory.
+    if all_parseable_claims:
+        all_closes = [x[1] for x in all_parseable_claims]
+        all_priors = [x[2] for x in all_parseable_claims]
+        if max(all_closes) - min(all_closes) > CENT:
+            issues.add("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT")
+        if max(all_priors) - min(all_priors) > CENT:
+            issues.add("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT")
+        if min(all_priors) != max(all_priors):
+            issues.add("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
     if valid:
         closes = [x[3] for x in valid]
         priors = [x[4] for x in valid]
