@@ -320,7 +320,9 @@ def observation(provider, symbol, day, receipt):
     result = {"provider_organization": provider, "ticker": symbol, "session_date": day,
               "security_identity": None, "identity_verified": False, "exchange": None,
               "price": None, "price_type": "VENDOR_DAILY_OHLC_CLOSE", "adjustment_basis": "UNKNOWN",
-              "source_timestamp": None, "retrieval_timestamp": receipt.get("retrieved_at"),
+              "source_timestamp": None, "vendor_session_label": None,
+              "source_timestamp_evidence_status": "NOT_PROVIDED_BY_VENDOR_DAILY_BAR",
+              "retrieval_timestamp": receipt.get("retrieved_at"),
               "request_started_at": receipt.get("requested_at"),
               "http_status": receipt.get("http_status"), "provider_error_category": category(receipt),
               "raw_response_hash": (None if receipt.get("body_truncated") is True
@@ -368,7 +370,7 @@ def observation(provider, symbol, day, receipt):
         bar = payload
         valid_identity = payload.get("symbol") == symbol
         valid_session = payload.get("from") == day
-        result["source_timestamp"] = day if payload.get("from") == day else None
+        result["vendor_session_label"] = day if payload.get("from") == day else None
         result["adjustment_basis"] = "UNADJUSTED_REQUESTED"
     else:
         meta = payload.get("meta", {})
@@ -398,7 +400,7 @@ def observation(provider, symbol, day, receipt):
             result["provider_error_category"] = "DUPLICATE_SESSION" if matches else "SESSION_MISSING"
             return result
         bar = matches[0]
-        result["source_timestamp"] = bar.get("datetime")
+        result["vendor_session_label"] = bar.get("datetime")
         valid_session = True
     if not valid_identity or not valid_session:
         result["provider_error_category"] = "IDENTITY_MISMATCH" if not valid_identity else "SESSION_MISMATCH"

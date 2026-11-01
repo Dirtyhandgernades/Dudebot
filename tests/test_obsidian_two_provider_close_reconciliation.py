@@ -1101,4 +1101,41 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(result['official_close_eligible_count'], 0)
         self.assertFalse(result['outcome_scoring_eligible'])
 
+    def test_vendor_daily_session_label_is_not_original_exchange_source_timestamp(self):
+        # Massive "from" and Twelve Data "datetime" are date-only labels.
+        # Neither is an original exchange auction/source event timestamp.
+        for provider, raw in (
+                ("MASSIVE", massive()),
+                ("TWELVE_DATA", twelve())):
+            with self.subTest(provider=provider):
+                row = m.observation(provider, "AAPL", "2026-10-27", raw)
+                self.assertEqual(row["validation_status"], "VALID_VENDOR_BAR")
+                self.assertEqual(row["vendor_session_label"], "2026-10-27")
+                self.assertIsNone(row["source_timestamp"])
+                self.assertEqual(row["source_timestamp_evidence_status"],
+                                 "NOT_PROVIDED_BY_VENDOR_DAILY_BAR")
+                self.assertFalse(row["identity_verified"])
+        # Even fully populated diagnostic bars do not discharge the
+        # original-exchange timestamp requirement or permit outcome scoring.
+        def fake(url, params, token):
+            if "twelvedata" in url:
+                r = twelve([{"datetime": d, "close": "100"} for d in m.SESSIONS])
+                r["payload"]["meta"]["symbol"] = params["symbol"]
+                return r
+            return massive(url.rsplit("/", 1)[-1], url.split("/")[-2])
+        with patch.object(m, "get", side_effect=fake), patch.dict(
+                "os.environ", {"MASSIVE_API_KEY": "fixture",
+                               "TWELVE_DATA_API_KEY": "fixture"}):
+            result = m.reconcile()
+        self.assertEqual(result["both_bar_count"], 4)
+        self.assertEqual(result["official_close_eligible_count"], 0)
+        for item in result["rows"]:
+            for vendor in item["providers"].values():
+                self.assertIsNone(vendor["source_timestamp"])
+                self.assertEqual(vendor["vendor_session_label"], item["session"])
+                self.assertEqual(vendor["source_timestamp_evidence_status"],
+                                 "NOT_PROVIDED_BY_VENDOR_DAILY_BAR")
+            self.assertIn("ORIGINAL_EXCHANGE_SOURCE_TIMESTAMP_NOT_AUTHENTICATED",
+                          item["missing_official_close_proofs"])
+
 if __name__=='__main__':unittest.main()
