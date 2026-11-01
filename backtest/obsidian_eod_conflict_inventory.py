@@ -173,18 +173,20 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         source = r.get("source_id")
         group = r.get("provider_organization")
         domain = host(r.get("source_url"))
-        if not isinstance(source, str) or not source or not isinstance(group, str) or not group or not domain:
+        if (not isinstance(source, str) or not source.strip()
+                or not isinstance(group, str) or not group.strip() or not domain):
             faults.add("SOURCE_OWNERSHIP_OR_URL_MISSING")
-        if not isinstance(source, str) or not source or source in seen_ids:
+        if not isinstance(source, str) or not source.strip() or source in seen_ids:
             faults.add("DUPLICATE_OR_MISSING_SOURCE_ID")
-        if isinstance(source, str) and source:
+        if isinstance(source, str) and source.strip():
             seen_ids.add(source)
         if (r.get("symbol") != symbol or r.get("session_date") != session.isoformat()
                 or r.get("previous_session_date") != previous.isoformat()
                 or r.get("kind") != "regular_close" or r.get("session_complete") is not True):
             faults.add("WRONG_SECURITY_SESSION_OR_PRICE_KIND")
         security_id = r.get("security_id")
-        if not isinstance(security_id, str) or not security_id or r.get("previous_security_id") != security_id:
+        if (not isinstance(security_id, str) or not security_id.strip()
+                or r.get("previous_security_id") != security_id):
             faults.add("SECURITY_IDENTITY_NOT_MATCHED")
         close = positive(r.get("regular_close"))
         prior = positive(r.get("previous_regular_close"))

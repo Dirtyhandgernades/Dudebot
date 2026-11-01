@@ -54,6 +54,35 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertEqual(r["source_rows"][2]["status"], "REJECTED_CENSORED")
         self.assertIn("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END", r["issues"])
 
+    def test_whitespace_only_source_id_censored_without_losing_row(self):
+        third = row("   ", "three", "three.example")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
+        self.assertIn("SOURCE_OWNERSHIP_OR_URL_MISSING", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_whitespace_only_provider_organization_is_not_distinct_source(self):
+        result = check([row(group="   "), row("b", "two", "two.example")])
+        self.assertEqual(result["structurally_valid_report_count"], 1)
+        self.assertIn("SOURCE_OWNERSHIP_OR_URL_MISSING", result["issues"])
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+
+    def test_whitespace_only_security_id_cannot_establish_identity(self):
+        third = row("c", "three", "three.example")
+        third["security_id"] = "   "
+        third["previous_security_id"] = "   "
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertIn("SECURITY_IDENTITY_NOT_MATCHED", result["issues"])
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
     def test_provider_aliases_do_not_count_as_independent(self):
         r = check([row(), row("b", "one", "another.example")])
         self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED", r["issues"])
