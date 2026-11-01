@@ -223,6 +223,13 @@ class Budget:
                             429: "RATE_LIMIT"}[http_status]
         elif failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
             self.stopped = failure
+        elif failure in {"NETWORK_UNAVAILABLE", "UNTRUSTED_REDIRECT"}:
+            # A provider endpoint with broken transport or an untrusted
+            # redirect cannot support source-origin evidence. Stop this
+            # provider for the bounded checkpoint (not future checkpoints),
+            # preserving its exact failure category in all remaining slots.
+            # No automatic same-run retry or additional paid requests.
+            self.stopped = failure
         elif failure in {"MALFORMED_RESPONSE", "UNEXPECTED_PROVIDER_STATUS",
                          "PROVIDER_ERROR", "RESPONSE_BODY_TOO_LARGE",
                          "RESPONSE_LENGTH_MISMATCH", "MALFORMED_HTTP_STATUS"}:

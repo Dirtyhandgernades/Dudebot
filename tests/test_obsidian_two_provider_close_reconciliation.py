@@ -877,4 +877,48 @@ class ReconciliationTests(unittest.TestCase):
                          'CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION')
         self.assertIsNone(row['price'])
 
+
+    def test_transport_and_redirect_failures_stop_same_run_provider_budget(self):
+        # A network failure or HTTP redirect cannot establish source origin.
+        # Neither may trigger more paid requests to that provider in the
+        # same bounded diagnostic, while the exact first error is retained.
+        for initial, expected in [
+            (dict(error='NETWORK_UNAVAILABLE', http_status=None,
+                  payload=None, headers={}), 'NETWORK_UNAVAILABLE'),
+            (receipt({'status': 'OK'}, status=302), 'UNTRUSTED_REDIRECT'),
+        ]:
+            with self.subTest(error=expected), patch.object(
+                    m, 'get', return_value=initial) as fetch:
+                budget = m.Budget(4)
+                first = budget.fetch('url', {}, 'fixture', expected_status='OK')
+                second = budget.fetch('url', {}, 'fixture', expected_status='OK')
+                self.assertEqual(m.category(first), expected)
+                self.assertEqual(second['error'], expected)
+                self.assertEqual(budget.stopped, expected)
+                self.assertEqual(budget.used, 1)
+                fetch.assert_called_once()
+
+    def test_transport_failure_keeps_original_four_row_denominator(self):
+        # A missing Massive transport receipt must not erase the remaining
+        # original issuer/session rows or invent an official-close result.
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                r = twelve([{'datetime': d, 'close': '100'} for d in m.SESSIONS])
+                r['payload']['meta']['symbol'] = params['symbol']
+                return r
+            return dict(error='NETWORK_UNAVAILABLE', http_status=None,
+                        payload=None, headers={})
+        with patch.object(m, 'get', side_effect=fake) as fetch, patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture',
+                               'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(fetch.call_count, 3)  # Two Twelve requests, one Massive.
+        self.assertEqual(result['request_budget']['massive_used'], 1)
+        self.assertEqual(result['total_ticker_dates'], 4)
+        self.assertEqual(result['official_close_censored_count'], 4)
+        self.assertEqual(result['official_close_eligible_count'], 0)
+        self.assertEqual(result['missing_pair_count'], 4)
+        self.assertTrue(all(row['providers']['MASSIVE']['provider_error_category']
+                            == 'NETWORK_UNAVAILABLE' for row in result['rows']))
+
 if __name__=='__main__':unittest.main()
