@@ -243,8 +243,13 @@ def inspect_sources(symbols, now, halt_xml=None, massive_payload=None):
 
 def fetch_once(symbols, now, massive_token=None, session=None):
     """At most one official halt GET and one Massive GET per research checkpoint."""
-    import requests
-    req=session if session is not None else requests.Session()
+    # Offline deterministic tests inject a read-only session; only the real
+    # hosted network collector needs the optional requests dependency.
+    if session is None:
+        import requests
+        req = requests.Session()
+    else:
+        req = session
     halts=None
     halt_error=None
     try:
@@ -258,7 +263,7 @@ def fetch_once(symbols, now, massive_token=None, session=None):
                 halt_error="HALT_RSS_UNTRUSTED_RESPONSE_ORIGIN"
         else:
             halt_error="HALT_RSS_HTTP_"+str(response.status_code)
-    except requests.RequestException:
+    except OSError:
         halt_error="HALT_RSS_UNAVAILABLE"
     prices=None
     massive_error=None
@@ -276,7 +281,7 @@ def fetch_once(symbols, now, massive_token=None, session=None):
                     massive_error="INDEPENDENT_QUOTES_UNTRUSTED_RESPONSE_ORIGIN"
             else:
                 massive_error="INDEPENDENT_QUOTES_HTTP_"+str(response.status_code)
-        except (requests.RequestException, ValueError):
+        except (OSError, ValueError):
             massive_error="INDEPENDENT_QUOTES_UNAVAILABLE"
     report=inspect_sources(symbols,now,halts,prices)
     report["halt_fetch_error"]=halt_error
