@@ -744,4 +744,58 @@ class ReconciliationTests(unittest.TestCase):
                                        r)['provider_error_category'],
                          'RECEIPT_TIMESTAMP_ORDER_UNVERIFIED')
 
+    def test_published_2026_full_closures_and_weekends_fail_before_paid_requests(self):
+        # NYSE 2026 published holiday list, plus Saturday/Sunday. A vendor
+        # bar on one of these dates is not a regular-session closing price.
+        closed = ('2026-01-01', '2026-01-19', '2026-02-16',
+                  '2026-04-03', '2026-05-25', '2026-06-19',
+                  '2026-07-03', '2026-09-07', '2026-11-26',
+                  '2026-12-25', '2026-10-31', '2026-11-01')
+        with patch.object(m, 'get') as get:
+            for day in closed:
+                with self.subTest(day=day):
+                    with self.assertRaisesRegex(ValueError,
+                            'CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION'):
+                        m.reconcile(symbols=('AAPL',), sessions=(day,))
+                    row = m.observation('MASSIVE', 'AAPL', day, massive(day=day))
+                    self.assertEqual(row['provider_error_category'],
+                                     'CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION')
+                    self.assertEqual(row['validation_status'], 'BLOCKED')
+                    self.assertIsNone(row['price'])
+            get.assert_not_called()
+
+    def test_static_calendar_is_not_proof_and_early_close_cutoff_stays_conservative(self):
+        for day in ('2026-10-12', '2026-10-27', '2026-11-11',
+                    '2026-11-27', '2026-12-24'):
+            with self.subTest(day=day):
+                self.assertEqual(m._bounded_request_window(('AAPL',), (day,)),
+                                 (day, day))
+        # Thanksgiving Friday 2026 closes at 13:00 ET, but a request
+        # starting at 15:59 ET is conservatively blocked until after 16:00.
+        r = massive(day='2026-11-27')
+        r['requested_at'] = '2026-11-27T20:59:59Z'
+        r['retrieved_at'] = '2026-11-27T21:00:02Z'
+        self.assertEqual(m.observation('MASSIVE', 'AAPL', '2026-11-27', r)[
+            'provider_error_category'],
+            'SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED')
+        r['requested_at'] = '2026-11-27T21:00:01Z'
+        row = m.observation('MASSIVE', 'AAPL', '2026-11-27', r)
+        self.assertEqual(row['validation_status'], 'VALID_VENDOR_BAR')
+        self.assertFalse(row['identity_verified'])
+        self.assertEqual(row['price_type'], 'VENDOR_DAILY_OHLC_CLOSE')
+        self.assertFalse(m.reconcile(symbols=('AAPL',), sessions=('2026-10-27',))[
+            'official_exchange_close_verified'])
+
+    def test_unknown_year_fails_closed_without_calendar_rollover(self):
+        with patch.object(m, 'get') as get:
+            with self.assertRaisesRegex(ValueError,
+                    'CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION'):
+                m.reconcile(symbols=('AAPL',), sessions=('2027-01-04',))
+            get.assert_not_called()
+        row = m.observation('MASSIVE', 'AAPL', '2027-01-04',
+                            massive(day='2027-01-04'))
+        self.assertEqual(row['provider_error_category'],
+                         'CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION')
+        self.assertIsNone(row['price'])
+
 if __name__=='__main__':unittest.main()

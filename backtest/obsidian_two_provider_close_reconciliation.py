@@ -16,6 +16,31 @@ OUT = Path("outputs/backtest/obsidian-two-provider-close-reconciliation.json")
 TOLERANCE = Decimal("0.005")
 
 
+# Conservative scheduled cash-equity calendar for 2026 only. Dates transcribed
+# from NYSE Group's published 2026 closure schedule (2025-12-23):
+# https://www.nyse.com/trade/hours-calendars
+# This static screen cannot prove an unscheduled exchange closure, an issuer
+# halt, an actual completed session, or an official auction closing price.
+_CLOSED_2026 = frozenset({
+    dt.date(2026, 1, 1), dt.date(2026, 1, 19),
+    dt.date(2026, 2, 16), dt.date(2026, 4, 3),
+    dt.date(2026, 5, 25), dt.date(2026, 6, 19),
+    dt.date(2026, 7, 3), dt.date(2026, 9, 7),
+    dt.date(2026, 11, 26), dt.date(2026, 12, 25),
+})
+
+
+def _scheduled_cash_session_2026(day):
+    """Only a scheduled weekday, not authenticated session/close evidence.
+
+    Out-of-scope years and known full closures fail closed. Early closes
+    (Nov 27, Dec 24) are scheduled sessions, but the separate 16:00 ET
+    request-start cutoff remains deliberately conservative.
+    """
+    return (isinstance(day, dt.date) and day.year == 2026
+            and day.weekday() < 5 and day not in _CLOSED_2026)
+
+
 def utcnow():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
@@ -272,6 +297,16 @@ def observation(provider, symbol, day, receipt):
               "raw_body_retained": False}
     if result["provider_error_category"]:
         return result
+    # A vendor daily bar on a known non-session date is not a completed
+    # regular-session close. This is a STATIC 2026 calendar screen, not proof
+    # that a scheduled session actually traded or that an auction was official.
+    try:
+        scheduled = _scheduled_cash_session_2026(dt.date.fromisoformat(day))
+    except (ValueError, TypeError):
+        scheduled = False
+    if not scheduled:
+        result["provider_error_category"] = "CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION"
+        return result
     # Keep the existing fail-closed session cutoff as the first gate so
     # malformed/missing request starts retain their original classification.
     if not _request_after_regular_close(day, receipt.get("requested_at")):
@@ -386,6 +421,11 @@ def _bounded_request_window(symbols, sessions):
         raise ValueError("BOUNDED_SESSION_DATES_REQUIRED") from exc
     if len(set(days)) != len(days) or days != sorted(days) or (days[-1] - days[0]).days > 31:
         raise ValueError("UNIQUE_ASCENDING_MAX_31_DAY_WINDOW_REQUIRED")
+    # Validate every requested date BEFORE any potentially billable request.
+    # Do not silently turn a weekend, published holiday or out-of-scope year
+    # into a fabricated completed cash-equity trading session.
+    if not all(_scheduled_cash_session_2026(day) for day in days):
+        raise ValueError("CLOSED_OR_UNVERIFIED_EXCHANGE_SESSION")
     return sessions[0], sessions[-1]
 
 
@@ -398,7 +438,8 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
               "official_exchange_close_verified": False, "outcome_scoring_eligible": False,
               "independent_underlying_exchange_feed_verified": False, "trade_authorized": False,
               "vendor_redirect_policy": "DENY_ALL_REDIRECTS",
-              "vendor_daily_bar_cutoff": "REQUEST_START_AFTER_16_ET_CONSERVATIVE_NOT_CALENDAR_PROOF"}
+              "vendor_daily_bar_cutoff": "REQUEST_START_AFTER_16_ET_CONSERVATIVE_NOT_CALENDAR_PROOF",
+              "vendor_calendar_screen": "STATIC_NYSE_2026_SCHEDULE_ONLY_NOT_SESSION_AUTHENTICATION"}
     for symbol in symbols:
         t = twelve.fetch("https://api.twelvedata.com/time_series",
                          {"symbol": symbol, "interval": "1day", "start_date": start_date,
