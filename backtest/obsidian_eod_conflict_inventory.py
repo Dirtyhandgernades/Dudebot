@@ -152,6 +152,11 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     # untrusted view; otherwise a contradictory rejected third report is
     # indexed but absent from the source-conflict comparison.
     all_parseable_claims = []
+    # A rejected third report may supply only one of the two prices. Preserve
+    # each independently parseable dimension: a missing prior close must not
+    # conceal a conflicting current close (or vice versa).
+    all_close_claims, all_previous_close_claims = [], []
+    unparseable_close_indices, unparseable_previous_close_indices = [], []
     unparseable_claim_indices = []
     security_identity_claims = []
     previous_security_identity_claims = []
@@ -192,6 +197,14 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             faults.add("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END")
         if stamp is None or end is None or not end <= stamp <= observed:
             faults.add("SOURCE_OBSERVATION_NOT_POSTCLOSE_OR_FUTURE")
+        if close is not None:
+            all_close_claims.append((index, close, not bool(faults)))
+        else:
+            unparseable_close_indices.append(index)
+        if prior is not None:
+            all_previous_close_claims.append((index, prior, not bool(faults)))
+        else:
+            unparseable_previous_close_indices.append(index)
         if close is not None and prior is not None:
             all_parseable_claims.append((index, close, prior, not bool(faults)))
         else:
@@ -326,6 +339,36 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             issues.add("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT")
         if min(all_priors) != max(all_priors):
             issues.add("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
+    # Full-pair groups above are unchanged. These supplemental one-sided
+    # groups expose partial rejected-source assertions without treating them
+    # as completed regular-close evidence or 20% event classifications.
+    def partial_groups(claims, field):
+        grouped = {}
+        for index, value, accepted in claims:
+            group = grouped.setdefault(value, {"all": [], "valid": [], "rejected": []})
+            group["all"].append(index)
+            group["valid" if accepted else "rejected"].append(index)
+        return [
+            {field: str(value), "source_indices": group["all"],
+             "structurally_valid_source_indices": group["valid"],
+             "rejected_source_indices": group["rejected"]}
+            for value, group in sorted(grouped.items())
+        ]
+
+    all_parseable_close_claim_groups = partial_groups(
+        all_close_claims, "regular_close")
+    all_parseable_previous_close_claim_groups = partial_groups(
+        all_previous_close_claims, "previous_regular_close")
+    if all_close_claims and (
+            max(x[1] for x in all_close_claims)
+            - min(x[1] for x in all_close_claims) > CENT):
+        issues.add("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT")
+    if all_previous_close_claims:
+        previous_values = [x[1] for x in all_previous_close_claims]
+        if max(previous_values) - min(previous_values) > CENT:
+            issues.add("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT")
+        if min(previous_values) != max(previous_values):
+            issues.add("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
     if valid:
         closes = [x[3] for x in valid]
         priors = [x[4] for x in valid]
@@ -351,6 +394,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "unparseable_previous_security_id_claim_source_indices": unparseable_previous_identity_indices,
         "price_claim_groups": price_claim_groups,
         "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
+        "all_parseable_regular_close_claim_groups": all_parseable_close_claim_groups,
+        "all_parseable_previous_close_claim_groups": all_parseable_previous_close_claim_groups,
+        "unparseable_regular_close_claim_source_indices": unparseable_close_indices,
+        "unparseable_previous_close_claim_source_indices": unparseable_previous_close_indices,
         "unparseable_price_claim_source_indices": unparseable_claim_indices,
         "all_supplied_rows_indexed": len(rows) == len(reports),
         "raw_source_packets_archived_by_module": False,

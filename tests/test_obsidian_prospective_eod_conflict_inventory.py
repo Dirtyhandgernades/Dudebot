@@ -195,6 +195,47 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertEqual(len(result["price_claim_groups"]), 1)
         self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
 
+
+    def test_rejected_partial_source_close_conflict_survives_missing_prior(self):
+        third = row("c", "three", "three.example", close="8.20", prior="UNKNOWN")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["unparseable_price_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_previous_close_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_regular_close_claim_source_indices"], [])
+        self.assertIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertEqual(result["all_parseable_regular_close_claim_groups"][-1],
+                         {"regular_close": "8.20", "source_indices": [2],
+                          "structurally_valid_source_indices": [],
+                          "rejected_source_indices": [2]})
+        self.assertEqual(len(result["all_parseable_price_claim_groups"]), 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+        self.assertIsNone(result["verified_20pct_prediction_success"])
+
+    def test_rejected_partial_source_prior_conflict_survives_missing_close(self):
+        third = row("c", "three", "three.example", close="UNKNOWN", prior="10.03")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["unparseable_regular_close_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_previous_close_claim_source_indices"], [])
+        self.assertIn("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT",
+                      result["issues"])
+        self.assertEqual(result["all_parseable_previous_close_claim_groups"][-1],
+                         {"previous_regular_close": "10.03", "source_indices": [2],
+                          "structurally_valid_source_indices": [],
+                          "rejected_source_indices": [2]})
+        self.assertEqual(len(result["all_parseable_price_claim_groups"]), 1)
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_matching_partial_claims_are_indexed_without_new_price_conflict(self):
+        third = row("c", "three", "three.example", close="7.99", prior="INVALID")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["all_parseable_regular_close_claim_groups"][0]
+                         ["rejected_source_indices"], [2])
+        self.assertNotIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+
     def test_missing_rows_are_censored_not_negative_outcomes(self):
         r = check([])
         self.assertIn("NO_EOD_SOURCE_REPORTS", r["issues"])
