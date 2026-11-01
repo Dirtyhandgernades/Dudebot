@@ -131,11 +131,16 @@ def get(url, params, token):
         # Duplicate keys could overwrite an earlier error/status, symbol,
         # session or close. Reject at every nesting level; no last-key-wins
         # price or identity evidence enters even the diagnostic comparison.
-        payload = (json.loads(body, object_pairs_hook=_unique_vendor_json_object,
-                              parse_constant=_reject_vendor_nonfinite)
-                   if not (body_truncated or body_length_mismatch) else None)
-    except (ValueError, UnicodeDecodeError, RecursionError):
+        # JSON decode errors are not transport failures. A ValueError thrown
+        # by response.read() or header inspection must fail closed as network
+        # unavailable, not escape through uninitialized receipt variables.
         payload = None
+        if not (body_truncated or body_length_mismatch):
+            try:
+                payload = json.loads(body, object_pairs_hook=_unique_vendor_json_object,
+                                     parse_constant=_reject_vendor_nonfinite)
+            except (ValueError, UnicodeDecodeError, RecursionError):
+                payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
                 "retrieved_at": utcnow(), "requested_at": requested_at,

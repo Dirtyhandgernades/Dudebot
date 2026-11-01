@@ -963,6 +963,46 @@ class ReconciliationTests(unittest.TestCase):
             for row in result["rows"]))
         self.assertFalse(result["outcome_scoring_eligible"])
 
+    def test_transport_read_and_header_errors_fail_closed_without_crashing(self):
+        # Transport exceptions must not be confused with malformed JSON,
+        # leaving status/body uninitialized and losing the fixed denominator.
+        class BrokenResponse:
+            code = 200
+            def __init__(self, failure, stage):
+                self.failure, self.stage = failure, stage
+                self.headers = {} if stage == 'read' else self
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                if self.stage == 'read':
+                    raise self.failure
+                return b'{"status":"OK"}'
+            def get_all(self, name):
+                raise self.failure
+
+        errors = (ValueError('bad stream'),
+                  UnicodeDecodeError('utf-8', bytes([255]), 0, 1, 'invalid'),
+                  RecursionError('broken decoder'))
+        for stage in ('read', 'headers'):
+            for failure in errors:
+                with self.subTest(stage=stage, error=type(failure).__name__), patch.object(
+                        m, '_open_no_redirect',
+                        return_value=BrokenResponse(failure, stage)):
+                    got = m.get('https://api.massive.com/v1/open-close',
+                                {'apiKey': 'canary'}, 'canary')
+                    self.assertEqual(got['error'], 'NETWORK_UNAVAILABLE')
+                    self.assertIsNone(got['http_status'])
+                    self.assertIsNone(got['body_sha256'])
+                    self.assertEqual(m.category(got), 'NETWORK_UNAVAILABLE')
+                    self.assertNotIn('canary', json.dumps(got))
+                    with patch.object(m, 'get', return_value=got) as fetch:
+                        budget = m.Budget(4)
+                        self.assertEqual(m.category(budget.fetch('url', {}, 'fixture')),
+                                         'NETWORK_UNAVAILABLE')
+                        self.assertEqual(budget.fetch('url', {}, 'fixture')['error'],
+                                         'NETWORK_UNAVAILABLE')
+                        fetch.assert_called_once()
+
     def test_transport_failure_keeps_original_four_row_denominator(self):
         # A missing Massive transport receipt must not erase the remaining
         # original issuer/session rows or invent an official-close result.
