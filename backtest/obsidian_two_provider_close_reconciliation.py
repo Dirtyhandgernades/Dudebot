@@ -228,6 +228,13 @@ class Budget:
                             429: "RATE_LIMIT"}[http_status]
         elif failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
             self.stopped = failure
+        elif failure == "BAD_REQUEST":
+            # A rejected query/parameter contract is not evidence that
+            # another paid request to this same endpoint will succeed.
+            # Keep the first HTTP 400 receipt intact, stop this provider
+            # within the bounded diagnostic, and preserve all original
+            # symbol/session slots as censored rather than spending quota.
+            self.stopped = "BAD_REQUEST"
         elif failure == "SERVER_ERROR":
             # A 5xx indicates provider-side failure, not a missing symbol.
             # Stop this provider within this bounded run instead of making

@@ -925,6 +925,43 @@ class ReconciliationTests(unittest.TestCase):
                 self.assertEqual(budget.used, 1)
                 fetch.assert_called_once()
 
+    def test_http_400_bad_request_stops_provider_but_preserves_other_budget(self):
+        # Invalid endpoint/query parameters should not cause a series of
+        # repeated paid requests to the same failing provider. A separate
+        # provider must retain its own request budget and the frozen four
+        # symbol/session slots remain censored, not deleted.
+        with patch.object(m, 'get', return_value=receipt({'status': 'error'}, 400)) as fetch:
+            budget = m.Budget(4)
+            first = budget.fetch('url', {}, 'fixture')
+            self.assertEqual(m.category(first), 'BAD_REQUEST')
+            self.assertEqual(budget.fetch('url', {}, 'fixture')['error'], 'BAD_REQUEST')
+            self.assertEqual(budget.used, 1)
+        fetch.assert_called_once()
+
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                result = twelve([{'datetime': day, 'close': '100'} for day in m.SESSIONS])
+                result['payload']['meta']['symbol'] = params['symbol']
+                return result
+            return receipt({'status': 'error'}, 400)
+
+        with patch.object(m, 'get', side_effect=fake) as fetch, patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture',
+                               'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(fetch.call_count, 3)  # 1 Massive + 2 Twelve.
+        self.assertEqual(result['request_budget']['massive_used'], 1)
+        self.assertEqual(result['request_budget']['twelve_data_used'], 2)
+        self.assertEqual(result['total_ticker_dates'], 4)
+        self.assertEqual(result['official_close_censored_count'], 4)
+        self.assertEqual(result['official_close_eligible_count'], 0)
+        self.assertEqual(result['missing_pair_count'], 4)
+        self.assertEqual(result['rows'][0]['providers']['MASSIVE']['provider_error_category'],
+                         'BAD_REQUEST')
+        self.assertTrue(all(row['providers']['MASSIVE']['provider_error_category']
+                            in {'BAD_REQUEST'} for row in result['rows']))
+        self.assertFalse(result['outcome_scoring_eligible'])
+
     def test_provider_5xx_stops_same_run_without_erasing_denominator(self):
         # Provider-side 5xx must not burn the remaining bounded request budget.
         # Other providers still receive their own requests and every original
