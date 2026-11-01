@@ -55,6 +55,16 @@ def host(value):
     return _source_host(value)
 
 
+def canonical_source_label(value):
+    """Conservative comparison key, never a provider-ownership certificate.
+
+    Case and repeated whitespace in caller-supplied provider names or receipt
+    IDs cannot manufacture independent organizations or unique source rows.
+    Original spellings remain in the indexed source records and SHA digests.
+    """
+    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+
+
 def report_digest(report):
     """Fingerprint the complete supplied JSON row without echoing URL secrets.
 
@@ -172,14 +182,15 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             faults.add("NON_JSON_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE")
         source = r.get("source_id")
         group = r.get("provider_organization")
+        source_key = canonical_source_label(source)
+        group_key = canonical_source_label(group)
         domain = host(r.get("source_url"))
-        if (not isinstance(source, str) or not source.strip()
-                or not isinstance(group, str) or not group.strip() or not domain):
+        if source_key is None or group_key is None or not domain:
             faults.add("SOURCE_OWNERSHIP_OR_URL_MISSING")
-        if not isinstance(source, str) or not source.strip() or source in seen_ids:
+        if source_key is None or source_key in seen_ids:
             faults.add("DUPLICATE_OR_MISSING_SOURCE_ID")
-        if isinstance(source, str) and source.strip():
-            seen_ids.add(source)
+        if source_key is not None:
+            seen_ids.add(source_key)
         if (r.get("symbol") != symbol or r.get("session_date") != session.isoformat()
                 or r.get("previous_session_date") != previous.isoformat()
                 or r.get("kind") != "regular_close" or r.get("session_complete") is not True):
@@ -227,9 +238,9 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         if faults:
             issues.update(faults)
         else:
-            groups.add(group)
+            groups.add(group_key)
             hosts.add(domain)
-            valid.append((index, group, domain, close, prior))
+            valid.append((index, group_key, domain, close, prior))
         rows.append({
             "index": index,
             "source_id": source if isinstance(source, str) else None,

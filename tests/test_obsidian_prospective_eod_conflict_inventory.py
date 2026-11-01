@@ -499,5 +499,46 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertTrue(result["outcome_censored_pending_external_evidence"])
 
 
+    def test_provider_organization_case_and_whitespace_alias_not_independent(self):
+        """Self-attested spelling variants cannot create a second provider."""
+        result = check([
+            row("a", "Acme Market Data", "one.example"),
+            row("b", "  aCME   MARKET data  ", "two.example"),
+        ])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertEqual(result["distinct_claimed_provider_organizations"], 1)
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["source_rows"][1]["provider_organization_claim"],
+                         "  aCME   MARKET data  ")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_receipt_id_case_and_whitespace_alias_is_duplicate(self):
+        """A second host/provider cannot launder one source receipt as two."""
+        result = check([
+            row("SOURCE-1", "one", "one.example"),
+            row(" source-1 ", "two", "two.example"),
+        ])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["structurally_valid_report_count"], 1)
+        self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
+        self.assertEqual(result["source_rows"][1]["source_id"], " source-1 ")
+        self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertIsNone(result["verified_20pct_prediction_success"])
+
+    def test_distinct_canonical_provider_groups_still_structurally_unverified(self):
+        result = check([
+            row("SOURCE-1", " Acme  Market Data ", "one.example"),
+            row("SOURCE-2", "Independent Quotes", "two.example"),
+        ])
+        self.assertEqual(result["distinct_claimed_provider_organizations"], 2)
+        self.assertEqual(result["structural_status"],
+                         "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["provider_organization_ownership_authenticated"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+
 if __name__ == "__main__":
     unittest.main()
