@@ -347,6 +347,33 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(result['both_bar_count'], 0)
         self.assertFalse(result['outcome_scoring_eligible'])
 
+    def test_twelve_missing_or_out_of_scope_exchange_is_censored(self):
+        # A symbol echo is insufficient: do not compare OTC or unverified
+        # exchange bars against a Nasdaq/NYSE listed security, and do not
+        # silently treat NYSE American as NYSE in the frozen cohort.
+        for venue in (None, "", "OTC", "NYSE American", "NYSE ARCA", "UNKNOWN"):
+            with self.subTest(exchange=venue):
+                r = twelve()
+                if venue is None:
+                    r["payload"]["meta"].pop("exchange")
+                else:
+                    r["payload"]["meta"]["exchange"] = venue
+                row = m.observation("TWELVE_DATA", "AAPL", "2026-10-27", r)
+                self.assertEqual(row["provider_error_category"],
+                                 "EXCHANGE_UNVERIFIED_OR_OUT_OF_SCOPE")
+                self.assertEqual(row["validation_status"], "BLOCKED")
+                self.assertIsNone(row["price"])
+                self.assertIsNone(row["exchange"])
+                a = m.observation("MASSIVE", "AAPL", "2026-10-27", massive())
+                self.assertEqual(m.compare(a, row)[0], "UNAVAILABLE")
+        for venue in ("NASDAQ", "NYSE"):
+            with self.subTest(eligible_exchange=venue):
+                r = twelve()
+                r["payload"]["meta"]["exchange"] = venue
+                row = m.observation("TWELVE_DATA", "AAPL", "2026-10-27", r)
+                self.assertEqual(row["validation_status"], "VALID_VENDOR_BAR")
+                self.assertEqual(row["exchange"], venue)
+
     def test_malformed_exchange_metadata_is_censored(self):
         for bad in ([], {}, 123):
             r = twelve()

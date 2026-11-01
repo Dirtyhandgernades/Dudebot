@@ -368,7 +368,14 @@ def observation(provider, symbol, day, receipt):
         if exchange is not None and not isinstance(exchange, str):
             result["provider_error_category"] = "MALFORMED_METADATA"
             return result
-        result["exchange"] = exchange if exchange in {"NASDAQ", "NYSE"} else None
+        # A ticker echo does not establish an eligible listed security.
+        # Unknown/OTC/NYSE American venues cannot be silently counted as
+        # Nasdaq/NYSE diagnostic bars. NYSE American needs a separately
+        # preregistered universe; do not rewrite the frozen cohort.
+        if exchange not in {"NASDAQ", "NYSE"}:
+            result["provider_error_category"] = "EXCHANGE_UNVERIFIED_OR_OUT_OF_SCOPE"
+            return result
+        result["exchange"] = exchange
         result["adjustment_basis"] = "UNADJUSTED_REQUESTED"
         bars = payload.get("values", [])
         if not isinstance(bars, list) or any(not isinstance(b, dict) for b in bars):
