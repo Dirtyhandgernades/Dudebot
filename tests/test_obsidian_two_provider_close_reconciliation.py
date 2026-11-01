@@ -37,8 +37,8 @@ class ReconciliationTests(unittest.TestCase):
         # supplying external identity-review flags.
         a, b = self.pair()
         reviewed = self.identity()
-        self.assertEqual(m.compare(a, b, reviewed), ("AGREE", "0"))
-        self.assertEqual(m.compare(b, a, reviewed), ("AGREE", "0"))
+        self.assertEqual(m.compare(a, b, reviewed), ("VENDOR_BAR_AGREEMENT_NOT_OFFICIAL", "0"))
+        self.assertEqual(m.compare(b, a, reviewed), ("VENDOR_BAR_AGREEMENT_NOT_OFFICIAL", "0"))
         for org_a, org_b in [("MASSIVE", "MASSIVE"),
                              ("TWELVE_DATA", "TWELVE_DATA"),
                              ("MASSIVE", "POLYGON"),
@@ -54,17 +54,33 @@ class ReconciliationTests(unittest.TestCase):
         self.assertFalse(a["identity_verified"])
         self.assertFalse(b["identity_verified"])
 
+    def test_self_attested_review_flags_cannot_be_official_close_agreement(self):
+        # A source_receipts list containing only caller-supplied strings is
+        # not independent authentication of official exchange closes.
+        a, b = self.pair()
+        forged = self.identity()
+        forged['source_receipts'] = ['self-attested-review-only']
+        status, difference = m.compare(a, b, forged)
+        self.assertEqual(status, 'VENDOR_BAR_AGREEMENT_NOT_OFFICIAL')
+        self.assertEqual(difference, '0')
+        self.assertNotIn(status, {'AGREE', 'DISAGREE'})
+        b['price'] = '100.01'
+        status, difference = m.compare(a, b, forged)
+        self.assertEqual(status, 'VENDOR_BAR_CONFLICT_NOT_OFFICIAL')
+        self.assertEqual(difference, '0.01')
+        self.assertNotIn(status, {'AGREE', 'DISAGREE'})
+
     def test_matching_requires_reviewed_identity(self):
         a, b = self.pair()
         self.assertEqual(m.compare(a, b)[0], 'IDENTITY_UNVERIFIED')
-        self.assertEqual(m.compare(a, b, self.identity()), ('AGREE', '0'))
+        self.assertEqual(m.compare(a, b, self.identity()), ('VENDOR_BAR_AGREEMENT_NOT_OFFICIAL', '0'))
 
     def test_exact_decimal_tolerance_and_disagreement(self):
         a, b = self.pair()
         b['price'] = '100.005'
-        self.assertEqual(m.compare(a, b, self.identity())[0], 'AGREE')
+        self.assertEqual(m.compare(a, b, self.identity())[0], 'VENDOR_BAR_AGREEMENT_NOT_OFFICIAL')
         b['price'] = '100.005001'
-        self.assertEqual(m.compare(a, b, self.identity())[0], 'DISAGREE')
+        self.assertEqual(m.compare(a, b, self.identity())[0], 'VENDOR_BAR_CONFLICT_NOT_OFFICIAL')
 
     def test_reverse_split_unknown_and_adjustment_mismatch(self):
         a, b = self.pair()
@@ -79,7 +95,7 @@ class ReconciliationTests(unittest.TestCase):
         for field, value in [('ticker', 'OTHER'), ('session_date', '2026-10-28'),
                              ('price_type', 'OFFICIAL_AUCTION')]:
             other = dict(b); other[field] = value
-            self.assertNotEqual(m.compare(a, other, self.identity())[0], 'AGREE')
+            self.assertNotEqual(m.compare(a, other, self.identity())[0], 'VENDOR_BAR_AGREEMENT_NOT_OFFICIAL')
 
     def test_duplicate_missing_and_malformed_bars(self):
         for bars, reason in [([], 'SESSION_MISSING'),

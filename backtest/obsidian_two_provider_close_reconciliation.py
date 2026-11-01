@@ -274,7 +274,7 @@ def observation(provider, symbol, day, receipt):
 
 
 def compare(a, b, identity=None):
-    """External reviewed identity/action evidence is mandatory for comparable pairs."""
+    """Diagnostic vendor comparison only; caller-supplied identity flags are not official proof."""
     if any(x["validation_status"] != "VALID_VENDOR_BAR" for x in (a, b)):
         return "UNAVAILABLE", None
     if a["ticker"] != b["ticker"] or a["session_date"] != b["session_date"]:
@@ -296,7 +296,12 @@ def compare(a, b, identity=None):
     if not identity.get("security_id") or not identity.get("source_receipts"):
         return "IDENTITY_UNVERIFIED", None
     difference = abs(Decimal(a["price"]) - Decimal(b["price"]))
-    return ("AGREE" if difference <= TOLERANCE else "DISAGREE"), str(difference)
+    # A caller-supplied identity mapping, even with review flags and receipt
+    # strings, is not independently authenticated exchange-official evidence.
+    # Never return bare AGREE/DISAGREE: those labels could be mistaken for
+    # eligible official-close corroboration by downstream reporting.
+    return ("VENDOR_BAR_AGREEMENT_NOT_OFFICIAL" if difference <= TOLERANCE
+            else "VENDOR_BAR_CONFLICT_NOT_OFFICIAL"), str(difference)
 
 
 def _bounded_request_window(symbols, sessions):
@@ -350,15 +355,17 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
             result["rows"].append({"symbol": symbol, "session": day, "providers": {"MASSIVE": a, "TWELVE_DATA": b},
                                    "both_bars_present": both, "comparison_status": status,
                                    "absolute_difference_usd": difference, "within_tolerance":
-                                   True if status == "AGREE" else False if status == "DISAGREE" else None,
+                                   True if status == "VENDOR_BAR_AGREEMENT_NOT_OFFICIAL"
+                                   else False if status == "VENDOR_BAR_CONFLICT_NOT_OFFICIAL" else None,
                                    "eligible_official_close": False,
                                    "diagnostic_numeric_agreement_only":
                                    abs(Decimal(a["price"]) - Decimal(b["price"])) <= TOLERANCE if both else None})
     rows = result["rows"]
     result.update(total_ticker_dates=len(rows), both_bar_count=sum(r["both_bars_present"] for r in rows),
-                  valid_same_session_pairs=sum(r["comparison_status"] in {"AGREE", "DISAGREE"} for r in rows),
-                  matching_bar_count=sum(r["comparison_status"] == "AGREE" for r in rows),
-                  conflict_count=sum(r["comparison_status"] == "DISAGREE" for r in rows),
+                  valid_same_session_pairs=sum(r["comparison_status"] in
+                      {"VENDOR_BAR_AGREEMENT_NOT_OFFICIAL", "VENDOR_BAR_CONFLICT_NOT_OFFICIAL"} for r in rows),
+                  matching_bar_count=sum(r["comparison_status"] == "VENDOR_BAR_AGREEMENT_NOT_OFFICIAL" for r in rows),
+                  conflict_count=sum(r["comparison_status"] == "VENDOR_BAR_CONFLICT_NOT_OFFICIAL" for r in rows),
                   missing_pair_count=sum(not r["both_bars_present"] for r in rows),
                   rate_limited_count=sum(any(p["provider_error_category"] == "RATE_LIMIT" for p in r["providers"].values()) for r in rows),
                   corporate_action_blocked_count=sum(r["comparison_status"] == "CORPORATE_ACTION_AMBIGUITY" for r in rows),
