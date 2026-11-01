@@ -12,7 +12,9 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
-from backtest.obsidian_eod_source_preflight import _source_host
+from backtest.obsidian_eod_source_preflight import (
+    _source_host, _published_2026_calendar_issues, _PUBLISHED_EARLY_CLOSES_2026,
+)
 from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
 from backtest.obsidian_forward_calendar_shadow import trusted_exchange_calendar_host
 
@@ -87,7 +89,13 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     observed = instant(collected_at)
     if observed is None:
         raise ValueError("AWARE_COLLECTION_TIME_REQUIRED")
-    issues = set()
+    # The all-source ledger must apply the same published-session and
+    # previous-session adjacency screen as the independent EOD preflight.
+    # A caller's exchange_calendar_url and session_open flag are not proof
+    # that a weekend, holiday, skipped trading day or 13:00 ET auction was
+    # an eligible normal 16:00 ET cash-equity session. This is still only a
+    # static 2026 schedule screen, not authentication of actual exchange data.
+    issues = _published_2026_calendar_issues(session, previous)
     # Fingerprints cover the caller's full ordered packet and calendar, not
     # authenticated source HTTP bytes. A changed row, order or calendar
     # assertion must not silently reuse an earlier audit.
@@ -105,6 +113,8 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     end = instant(cal.get("regular_close_at"))
     prior_end = instant(cal.get("previous_regular_close_at"))
     early = cal.get("early_close") is True
+    if (session in _PUBLISHED_EARLY_CLOSES_2026) != early:
+        issues.add("PUBLISHED_EARLY_CLOSE_CALENDAR_FLAG_MISMATCH")
     if (cal.get("session_date") != session.isoformat()
             or cal.get("previous_session_date") != previous.isoformat()
             or cal.get("session_open") is not True
