@@ -23,6 +23,44 @@ def twelve(bars=None):
 
 
 class ReconciliationTests(unittest.TestCase):
+    def test_official_close_proof_inventory_preserved_for_missing_and_matching_bars(self):
+        # Numeric vendor agreement is not an official close, and no collected
+        # third-source evidence must never be reported as no conflict.
+        with patch.dict("os.environ", {}, clear=True):
+            missing = m.reconcile()
+        self.assertEqual(missing["official_close_censored_count"], 4)
+        self.assertEqual(missing["official_close_eligible_count"], 0)
+        self.assertEqual(missing["third_source_conflict_inventory_count"], 0)
+        self.assertEqual(missing["third_source_conflict_inventory_status"], "NOT_COLLECTED")
+        self.assertEqual(len(missing["official_close_proof_requirements"]), 8)
+        for row in missing["rows"]:
+            self.assertEqual(row["missing_official_close_proofs"],
+                             missing["official_close_proof_requirements"])
+            self.assertEqual(row["official_close_evidence_status"], "CENSORED_UNVERIFIED")
+            self.assertEqual(row["third_source_conflict_status"], "NOT_COLLECTED")
+            self.assertFalse(row["eligible_official_close"])
+
+        def fake(url, params, token):
+            if "twelvedata" in url:
+                r = twelve([{"datetime": d, "close": "100"} for d in m.SESSIONS])
+                r["payload"]["meta"]["symbol"] = params["symbol"]
+                return r
+            return massive(url.rsplit("/", 1)[-1], url.split("/")[-2])
+        with patch.object(m, "get", side_effect=fake), patch.dict(
+                "os.environ", {"MASSIVE_API_KEY": "fixture", "TWELVE_DATA_API_KEY": "fixture"}):
+            paired = m.reconcile()
+        self.assertEqual(paired["both_bar_count"], 4)
+        self.assertEqual(paired["official_close_censored_count"], 4)
+        self.assertEqual(paired["official_close_eligible_count"], 0)
+        self.assertEqual(paired["third_source_conflict_inventory_count"], 0)
+        for row in paired["rows"]:
+            self.assertTrue(row["diagnostic_numeric_agreement_only"])
+            self.assertEqual(row["comparison_status"], "IDENTITY_UNVERIFIED")
+            self.assertEqual(row["missing_official_close_proofs"],
+                             paired["official_close_proof_requirements"])
+            self.assertEqual(row["third_source_conflict_status"], "NOT_COLLECTED")
+            self.assertFalse(row["eligible_official_close"])
+
     def pair(self):
         return (m.observation('MASSIVE', 'AAPL', '2026-10-27', massive()),
                 m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', twelve()))

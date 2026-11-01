@@ -15,6 +15,19 @@ SESSIONS = ("2026-10-27", "2026-10-28")
 OUT = Path("outputs/backtest/obsidian-two-provider-close-reconciliation.json")
 TOLERANCE = Decimal("0.005")
 
+# Vendor OHLC comparisons cannot discharge these official-close obligations.
+# Keep every missing proof for every original ticker/session, even when bars agree.
+OFFICIAL_CLOSE_PROOF_GAPS = (
+    "EXCHANGE_OFFICIAL_REGULAR_CLOSE_NOT_AUTHENTICATED",
+    "TWO_INDEPENDENT_UNDERLYING_PROVIDER_FEEDS_NOT_AUTHENTICATED",
+    "SECURITY_IDENTITY_ISSUER_CLASS_NOT_VERIFIED",
+    "PREVIOUS_SESSION_OFFICIAL_REFERENCE_NOT_AUTHENTICATED",
+    "CORPORATE_ACTION_ADJUSTMENT_PARITY_NOT_VERIFIED",
+    "ACTUAL_EXCHANGE_SESSION_NOT_AUTHENTICATED",
+    "ORIGINAL_EXCHANGE_SOURCE_TIMESTAMP_NOT_AUTHENTICATED",
+    "THIRD_SOURCE_CONFLICT_INVENTORY_NOT_COLLECTED",
+)
+
 
 # Conservative scheduled cash-equity calendar for 2026 only. Dates transcribed
 # from NYSE Group's published 2026 closure schedule (2025-12-23):
@@ -439,7 +452,9 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
               "independent_underlying_exchange_feed_verified": False, "trade_authorized": False,
               "vendor_redirect_policy": "DENY_ALL_REDIRECTS",
               "vendor_daily_bar_cutoff": "REQUEST_START_AFTER_16_ET_CONSERVATIVE_NOT_CALENDAR_PROOF",
-              "vendor_calendar_screen": "STATIC_NYSE_2026_SCHEDULE_ONLY_NOT_SESSION_AUTHENTICATION"}
+              "vendor_calendar_screen": "STATIC_NYSE_2026_SCHEDULE_ONLY_NOT_SESSION_AUTHENTICATION",
+              "official_close_proof_requirements": list(OFFICIAL_CLOSE_PROOF_GAPS),
+              "third_source_conflict_inventory_status": "NOT_COLLECTED"}
     for symbol in symbols:
         t = twelve.fetch("https://api.twelvedata.com/time_series",
                          {"symbol": symbol, "interval": "1day", "start_date": start_date,
@@ -459,10 +474,15 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
                                    True if status == "VENDOR_BAR_AGREEMENT_NOT_OFFICIAL"
                                    else False if status == "VENDOR_BAR_CONFLICT_NOT_OFFICIAL" else None,
                                    "eligible_official_close": False,
+                                   "official_close_evidence_status": "CENSORED_UNVERIFIED",
+                                   "missing_official_close_proofs": list(OFFICIAL_CLOSE_PROOF_GAPS),
+                                   "third_source_conflict_status": "NOT_COLLECTED",
                                    "diagnostic_numeric_agreement_only":
                                    abs(Decimal(a["price"]) - Decimal(b["price"])) <= TOLERANCE if both else None})
     rows = result["rows"]
-    result.update(total_ticker_dates=len(rows), both_bar_count=sum(r["both_bars_present"] for r in rows),
+    result.update(total_ticker_dates=len(rows), official_close_censored_count=len(rows),
+                  official_close_eligible_count=0, third_source_conflict_inventory_count=0,
+                  both_bar_count=sum(r["both_bars_present"] for r in rows),
                   valid_same_session_pairs=sum(r["comparison_status"] in
                       {"VENDOR_BAR_AGREEMENT_NOT_OFFICIAL", "VENDOR_BAR_CONFLICT_NOT_OFFICIAL"} for r in rows),
                   matching_bar_count=sum(r["comparison_status"] == "VENDOR_BAR_AGREEMENT_NOT_OFFICIAL" for r in rows),
