@@ -476,9 +476,17 @@ def _bounded_request_window(symbols, sessions):
 
 def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
     start_date, end_date = _bounded_request_window(symbols, sessions)
+    # A published scheduled session is not necessarily a completed session.
+    # Reject the ENTIRE diagnostic window before any billable request when
+    # any target session is still future/in progress. Never fetch a mutable
+    # current-day bar and misreport it as a completed vendor close. This
+    # conservative 16:00 ET gate is not official auction authentication.
+    started_at_utc = utcnow()
+    if not all(_request_after_regular_close(day, started_at_utc) for day in sessions):
+        raise ValueError("SESSION_NOT_COMPLETE_AT_DIAGNOSTIC_START")
     massive, twelve = Budget(4), Budget(2)
     result = {"mode": "RESEARCH_ONLY_NOT_AN_ORDER", "model_version": "vendor-corroboration-v2",
-              "captured_at_utc": utcnow(), "sessions": list(sessions), "symbols": list(symbols),
+              "captured_at_utc": started_at_utc, "sessions": list(sessions), "symbols": list(symbols),
               "comparison_tolerance_usd": str(TOLERANCE), "rows": [],
               "official_exchange_close_verified": False, "outcome_scoring_eligible": False,
               "independent_underlying_exchange_feed_verified": False, "trade_authorized": False,

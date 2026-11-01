@@ -1063,4 +1063,42 @@ class ReconciliationTests(unittest.TestCase):
         self.assertTrue(all(row['providers']['MASSIVE']['provider_error_category']
                             == 'NETWORK_UNAVAILABLE' for row in result['rows']))
 
+
+    def test_reconcile_rejects_future_or_incomplete_session_before_paid_requests(self):
+        # Even an otherwise valid scheduled weekday must not be queried as
+        # a completed daily close before the conservative 16:00 ET cutoff.
+        # Oct 30 uses EDT; Nov 2 follows the DST change and uses EST.
+        cases = [
+            (('2026-10-30',), '2026-10-30T19:59:59Z'),
+            (('2026-10-30',), '2026-10-30T20:00:00Z'),
+            (('2026-11-02',), '2026-11-01T13:00:00Z'),
+            (('2026-11-02',), '2026-11-02T20:59:59Z'),
+            (('2026-11-02',), '2026-11-02T21:00:00Z'),
+            (('2026-10-30', '2026-11-02'), '2026-11-01T13:00:00Z'),
+            (('2026-10-30',), '2026-11-01T13:00:00'),
+            (('2026-10-30',), 'invalid-timestamp'),
+        ]
+        for sessions, now in cases:
+            with self.subTest(sessions=sessions, now=now), patch.object(
+                    m, 'utcnow', return_value=now), patch.object(
+                    m, 'get') as fetch, patch.dict(
+                    'os.environ', {'MASSIVE_API_KEY': 'fixture',
+                                   'TWELVE_DATA_API_KEY': 'fixture'}):
+                with self.assertRaisesRegex(
+                        ValueError, 'SESSION_NOT_COMPLETE_AT_DIAGNOSTIC_START'):
+                    m.reconcile(symbols=('AAPL',), sessions=sessions)
+                fetch.assert_not_called()
+
+        # After the real 16:00 ET cutoff, the same requested session may
+        # enter a diagnostic but remains entirely censored without evidence.
+        with patch.object(m, 'utcnow', return_value='2026-11-01T13:00:00Z'), patch.dict(
+                'os.environ', {}, clear=True), patch.object(m, 'get') as fetch:
+            result = m.reconcile(symbols=('AAPL',), sessions=('2026-10-30',))
+        fetch.assert_not_called()
+        self.assertEqual(result['captured_at_utc'], '2026-11-01T13:00:00Z')
+        self.assertEqual(result['total_ticker_dates'], 1)
+        self.assertEqual(result['official_close_censored_count'], 1)
+        self.assertEqual(result['official_close_eligible_count'], 0)
+        self.assertFalse(result['outcome_scoring_eligible'])
+
 if __name__=='__main__':unittest.main()
