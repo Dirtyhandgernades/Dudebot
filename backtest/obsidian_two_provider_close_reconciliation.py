@@ -234,6 +234,25 @@ def _request_after_regular_close(day, requested_at):
         return False
 
 
+def _receipt_timestamps_ordered(receipt):
+    """Require monotonic local request/response times, not vendor assertions.
+
+    This checks internal receipt consistency only; it cannot authenticate an
+    exchange close, a provider's underlying feed, or a security's identity.
+    """
+    try:
+        requested = receipt.get("requested_at")
+        retrieved = receipt.get("retrieved_at")
+        if not isinstance(requested, str) or not isinstance(retrieved, str):
+            return False
+        start = dt.datetime.fromisoformat(requested.replace("Z", "+00:00"))
+        end = dt.datetime.fromisoformat(retrieved.replace("Z", "+00:00"))
+        return (start.utcoffset() is not None and end.utcoffset() is not None
+                and end >= start)
+    except (ValueError, TypeError, OverflowError):
+        return False
+
+
 def observation(provider, symbol, day, receipt):
     result = {"provider_organization": provider, "ticker": symbol, "session_date": day,
               "security_identity": None, "identity_verified": False, "exchange": None,
@@ -252,6 +271,12 @@ def observation(provider, symbol, day, receipt):
               "rate_limit_headers": receipt.get("headers", {}),
               "raw_body_retained": False}
     if result["provider_error_category"]:
+        return result
+    # A response timestamp before its request (or without a usable timezone)
+    # cannot support even a vendor-bar diagnostic. Never substitute a vendor
+    # payload timestamp for local retrieval instrumentation.
+    if not _receipt_timestamps_ordered(receipt):
+        result["provider_error_category"] = "RECEIPT_TIMESTAMP_ORDER_UNVERIFIED"
         return result
     if not _request_after_regular_close(day, receipt.get("requested_at")):
         result["provider_error_category"] = "SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED"

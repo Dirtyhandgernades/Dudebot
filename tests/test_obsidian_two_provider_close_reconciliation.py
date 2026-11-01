@@ -707,4 +707,40 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(row['validation_status'], 'BLOCKED')
         self.assertIsNone(row['price'])
 
+    def test_vendor_receipt_requires_monotonic_local_timestamps(self):
+        # A forged or broken local receipt cannot be a valid vendor bar even
+        # when the payload claims the right ticker, session and close.
+        cases = [
+            (None, '2026-10-29T17:00:00Z'),
+            ('2026-10-29T16:59:59Z', None),
+            ('2026-10-29T16:59:59', '2026-10-29T17:00:00Z'),
+            ('2026-10-29T16:59:59Z', '2026-10-29T17:00:00'),
+            ('2026-10-29T17:00:01Z', '2026-10-29T17:00:00Z'),
+            ('bad', '2026-10-29T17:00:00Z'),
+        ]
+        for started, finished in cases:
+            with self.subTest(started=started, finished=finished):
+                r = massive()
+                r['requested_at'] = started
+                r['retrieved_at'] = finished
+                r['payload']['retrieved_at'] = '2026-10-30T12:00:00Z'
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+                self.assertEqual(row['provider_error_category'],
+                                 'RECEIPT_TIMESTAMP_ORDER_UNVERIFIED')
+                self.assertEqual(row['validation_status'], 'BLOCKED')
+                self.assertIsNone(row['price'])
+                self.assertFalse(row['identity_verified'])
+
+    def test_receipt_timestamp_order_compares_instants_not_clock_strings(self):
+        r = massive()
+        # 12:59 -04:00 is 16:59Z; 17:00Z follows one minute later.
+        r['requested_at'] = '2026-10-29T12:59:00-04:00'
+        r['retrieved_at'] = '2026-10-29T17:00:00Z'
+        self.assertEqual(m.observation('MASSIVE', 'AAPL', '2026-10-27',
+                                       r)['validation_status'], 'VALID_VENDOR_BAR')
+        r['retrieved_at'] = '2026-10-29T12:58:59-04:00'
+        self.assertEqual(m.observation('MASSIVE', 'AAPL', '2026-10-27',
+                                       r)['provider_error_category'],
+                         'RECEIPT_TIMESTAMP_ORDER_UNVERIFIED')
+
 if __name__=='__main__':unittest.main()
