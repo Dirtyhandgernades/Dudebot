@@ -41,6 +41,15 @@ def _positive(value):
     return number
 
 
+def _canonical_label(value):
+    """Conservative case/whitespace comparison key for supplied labels.
+
+    Mirrors the complete-source inventory's alias screen. This does not
+    authenticate legal provider ownership or alter source receipts.
+    """
+    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+
+
 def _source_host(value):
     """Reuse the strict external HTTPS receipt host syntax guard.
 
@@ -115,10 +124,11 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         source = report.get("source_id")
         # A repeated source receipt cannot be counted as two independent reports,
         # even if its self-attested provider name and URL have changed.
-        if isinstance(source, str) and source.strip():
-            if source in seen_source_ids:
+        source_key = _canonical_label(source)
+        if source_key is not None:
+            if source_key in seen_source_ids:
                 issues.add("DUPLICATE_SOURCE_ID")
-            seen_source_ids.add(source)
+            seen_source_ids.add(source_key)
         group = report.get("provider_group")
         url = report.get("url")
         host = _source_host(url)
@@ -152,7 +162,10 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         if observed is None or not end <= observed <= collection_time:
             issues.add("STALE_OR_UNTIMED_SOURCE")
             continue
-        accepted.append((source, group, host, close, prior))
+        # Raw source/provider spellings are caller claims, not independent
+        # organizations. Normalize only the comparison keys, preserving the
+        # full supplied report and never promoting it to official evidence.
+        accepted.append((source_key, _canonical_label(group), host, close, prior))
     if len(accepted) < 2 or len({x[1] for x in accepted}) < 2 or len({x[2] for x in accepted}) < 2:
         issues.add("INSUFFICIENT_DISTINCT_HOST_AND_PROVIDER_EVIDENCE")
     # Different subdomains may share one vendor organization. A third source

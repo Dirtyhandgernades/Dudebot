@@ -223,5 +223,37 @@ class SourcePreflightTests(unittest.TestCase):
                 self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
 
+    def test_case_and_whitespace_provider_aliases_are_not_independent(self):
+        first = row("Acme Market Data", "one.example")
+        second = row("  aCME   MARKET data  ", "two.example")
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertEqual(result["distinct_provider_groups"], 1)
+        self.assertIn("INSUFFICIENT_DISTINCT_HOST_AND_PROVIDER_EVIDENCE", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_case_and_whitespace_source_receipt_alias_is_duplicate(self):
+        first = row("one", "one.example")
+        second = row("two", "two.example")
+        second["source_id"] = "  ONE_DAILY  "
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertIn("DUPLICATE_SOURCE_ID", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_same_parent_same_normalized_group_plus_independent_third(self):
+        first = row("Acme Data", "api.vendor.example")
+        second = row(" acme   DATA ", "data.vendor.example")
+        third = row("Independent", "independent.example")
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second, third], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 3)
+        self.assertEqual(result["distinct_provider_groups"], 2)
+        self.assertNotIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertEqual(result["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+
 if __name__ == "__main__":
     unittest.main()
