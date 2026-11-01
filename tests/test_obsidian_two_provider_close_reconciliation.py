@@ -61,6 +61,47 @@ class ReconciliationTests(unittest.TestCase):
             self.assertEqual(row["third_source_conflict_status"], "NOT_COLLECTED")
             self.assertFalse(row["eligible_official_close"])
 
+    def test_unreviewed_vendor_numeric_conflicts_are_not_silently_reported_as_zero(self):
+        # The authenticated-identity comparison is intentionally unavailable,
+        # but real numeric vendor disagreements still need an explicit,
+        # separately labeled diagnostic count and difference.
+        def fake(url, params, token):
+            if "twelvedata" in url:
+                r = twelve([{"datetime": d, "close": "100"} for d in m.SESSIONS])
+                r["payload"]["meta"]["symbol"] = params["symbol"]
+                return r
+            day = url.rsplit("/", 1)[-1]
+            symbol = url.split("/")[-2]
+            return massive(day, symbol, close="100.02" if day == "2026-10-27" else "100")
+        with patch.object(m, "get", side_effect=fake), patch.dict(
+                "os.environ", {"MASSIVE_API_KEY": "fixture", "TWELVE_DATA_API_KEY": "fixture"}):
+            result = m.reconcile()
+        self.assertEqual(result["total_ticker_dates"], 4)
+        self.assertEqual(result["both_bar_count"], 4)
+        self.assertEqual(result["conflict_count"], 0)  # No authenticated identity review.
+        self.assertEqual(result["vendor_bar_numeric_conflict_unverified_identity_count"], 2)
+        self.assertEqual(result["vendor_bar_numeric_agreement_unverified_identity_count"], 2)
+        self.assertEqual(result["official_close_eligible_count"], 0)
+        self.assertEqual(result["third_source_conflict_inventory_count"], 0)
+        for row in result["rows"]:
+            self.assertEqual(row["comparison_status"], "IDENTITY_UNVERIFIED")
+            self.assertEqual(row["official_close_evidence_status"], "CENSORED_UNVERIFIED")
+            self.assertEqual(len(row["missing_official_close_proofs"]), 8)
+            if row["session"] == "2026-10-27":
+                self.assertTrue(row["vendor_bar_numeric_conflict_unverified_identity"])
+                self.assertEqual(row["vendor_bar_numeric_difference_usd_unverified_identity"], "0.02")
+            else:
+                self.assertFalse(row["vendor_bar_numeric_conflict_unverified_identity"])
+                self.assertEqual(row["vendor_bar_numeric_difference_usd_unverified_identity"], "0")
+
+        with patch.dict("os.environ", {}, clear=True):
+            absent = m.reconcile()
+        self.assertEqual(absent["vendor_bar_numeric_conflict_unverified_identity_count"], 0)
+        self.assertEqual(absent["vendor_bar_numeric_agreement_unverified_identity_count"], 0)
+        self.assertTrue(all(row["vendor_bar_numeric_conflict_unverified_identity"] is None
+                            and row["vendor_bar_numeric_difference_usd_unverified_identity"] is None
+                            for row in absent["rows"]))
+
     def pair(self):
         return (m.observation('MASSIVE', 'AAPL', '2026-10-27', massive()),
                 m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', twelve()))

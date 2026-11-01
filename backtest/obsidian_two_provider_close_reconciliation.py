@@ -468,6 +468,11 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
             a, b = observation("MASSIVE", symbol, day, m), observation("TWELVE_DATA", symbol, day, t)
             status, difference = compare(a, b)
             both = all(x["validation_status"] == "VALID_VENDOR_BAR" for x in (a, b))
+            # A withheld identity review must NOT hide numeric disagreement
+            # between available vendor bars. Preserve this diagnostic conflict
+            # separately from authenticated official-close source conflicts.
+            vendor_difference = (abs(Decimal(a["price"]) - Decimal(b["price"]))
+                                 if both else None)
             result["rows"].append({"symbol": symbol, "session": day, "providers": {"MASSIVE": a, "TWELVE_DATA": b},
                                    "both_bars_present": both, "comparison_status": status,
                                    "absolute_difference_usd": difference, "within_tolerance":
@@ -477,8 +482,12 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
                                    "official_close_evidence_status": "CENSORED_UNVERIFIED",
                                    "missing_official_close_proofs": list(OFFICIAL_CLOSE_PROOF_GAPS),
                                    "third_source_conflict_status": "NOT_COLLECTED",
+                                   "vendor_bar_numeric_difference_usd_unverified_identity":
+                                   str(vendor_difference) if vendor_difference is not None else None,
+                                   "vendor_bar_numeric_conflict_unverified_identity":
+                                   vendor_difference > TOLERANCE if vendor_difference is not None else None,
                                    "diagnostic_numeric_agreement_only":
-                                   abs(Decimal(a["price"]) - Decimal(b["price"])) <= TOLERANCE if both else None})
+                                   vendor_difference <= TOLERANCE if vendor_difference is not None else None})
     rows = result["rows"]
     result.update(total_ticker_dates=len(rows), official_close_censored_count=len(rows),
                   official_close_eligible_count=0, third_source_conflict_inventory_count=0,
@@ -487,6 +496,10 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
                       {"VENDOR_BAR_AGREEMENT_NOT_OFFICIAL", "VENDOR_BAR_CONFLICT_NOT_OFFICIAL"} for r in rows),
                   matching_bar_count=sum(r["comparison_status"] == "VENDOR_BAR_AGREEMENT_NOT_OFFICIAL" for r in rows),
                   conflict_count=sum(r["comparison_status"] == "VENDOR_BAR_CONFLICT_NOT_OFFICIAL" for r in rows),
+                  vendor_bar_numeric_conflict_unverified_identity_count=sum(
+                      r["vendor_bar_numeric_conflict_unverified_identity"] is True for r in rows),
+                  vendor_bar_numeric_agreement_unverified_identity_count=sum(
+                      r["diagnostic_numeric_agreement_only"] is True for r in rows),
                   missing_pair_count=sum(not r["both_bars_present"] for r in rows),
                   rate_limited_count=sum(any(p["provider_error_category"] == "RATE_LIMIT" for p in r["providers"].values()) for r in rows),
                   corporate_action_blocked_count=sum(r["comparison_status"] == "CORPORATE_ACTION_AMBIGUITY" for r in rows),
