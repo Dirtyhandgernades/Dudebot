@@ -91,6 +91,15 @@ def _host_parent_hint(host):
     return ".".join(labels[-count:])
 
 
+def _canonical_label(value):
+    """Conservative alias key shared with EOD preflight/conflict inventory.
+
+    These are only caller-supplied labels, not authenticated provider identities.
+    Keep the original report and receipt strings intact in the audit rows.
+    """
+    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+
+
 def audit_receipts(session, reports, receipts, collected_at, session_close_at=None):
     """Index every source by original index; reject omission and cherry-picking.
 
@@ -135,15 +144,17 @@ def audit_receipts(session, reports, receipts, collected_at, session_close_at=No
             faults.add("MISSING_OR_MALFORMED_SOURCE_RECEIPT")
         source_id = r.get("source_id")
         group = r.get("provider_organization")
+        source_key = _canonical_label(source_id)
+        group_key = _canonical_label(group)
         source_url = r.get("source_url")
         source_host = _safe_host(source_url)
         request_host = _safe_host(t.get("requested_url"))
         response_host = _safe_host(t.get("response_url"))
-        if not isinstance(source_id, str) or not source_id.strip() or source_id in seen_sources:
+        if source_key is None or source_key in seen_sources:
             faults.add("MISSING_OR_DUPLICATE_SOURCE_ID")
         else:
-            seen_sources.add(source_id)
-        if (not isinstance(group, str) or not group.strip()
+            seen_sources.add(source_key)
+        if (group_key is None
                 or not source_host or not request_host or not response_host
                 or t.get("source_id") != source_id
                 or t.get("provider_organization") != group
@@ -169,7 +180,7 @@ def audit_receipts(session, reports, receipts, collected_at, session_close_at=No
         if faults:
             issues.update(faults)
         else:
-            valid.append((index, source_id, group, source_host, digest))
+            valid.append((index, source_key, group_key, source_host, digest))
         rows.append({
             "index": index,
             "source_id_claim": source_id if isinstance(source_id, str) else None,

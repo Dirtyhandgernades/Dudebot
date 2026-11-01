@@ -227,5 +227,40 @@ class ReceiptIntegrityTests(unittest.TestCase):
                 self.assertFalse(result["official_close_verified"])
 
 
+    def test_receipt_id_case_and_whitespace_alias_cannot_count_twice(self):
+        r, t = packet()
+        r[1]["source_id"] = t[1]["source_id"] = " SOURCE-0 "
+        result = self.run_audit(r, t)
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertEqual(result["byte_consistent_count"], 1)
+        self.assertIn("MISSING_OR_DUPLICATE_SOURCE_ID", result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["all_source_rows"][1]["source_id_claim"], " SOURCE-0 ")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_receipt_provider_label_aliases_on_distinct_hosts_do_not_count_as_two(self):
+        r, t = packet()
+        r[1]["provider_organization"] = t[1]["provider_organization"] = "  INDEPENDENT-A  "
+        result = self.run_audit(r, t)
+        self.assertEqual(result["byte_consistent_count"], 2)
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["provider_organization_claim"], "  INDEPENDENT-A  ")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_receipt_same_parent_claimed_groups_still_block_with_third_provider(self):
+        r, t = packet()
+        third_report, third_receipt = copy.deepcopy(r[0]), copy.deepcopy(t[0])
+        third_report["source_id"] = third_receipt["source_id"] = "source-2"
+        third_report["provider_organization"] = third_receipt["provider_organization"] = " independent-C "
+        third_report["source_url"] = third_receipt["requested_url"] = third_receipt["response_url"] = "https://data.a.example/close"
+        third_receipt["raw_body"] = b'{"provider":"independent-C","close":"8.00"}'
+        third_receipt["body_sha256"] = hashlib.sha256(third_receipt["raw_body"]).hexdigest()
+        r.append(third_report)
+        t.append(third_receipt)
+        result = self.run_audit(r, t)
+        self.assertEqual(result["indexed_count"], 3)
+        self.assertIn("CLAIMED_PROVIDER_GROUPS_SHARE_SOURCE_HOST_PARENT_HINT", result["issues"])
+        self.assertFalse(result["official_close_verified"])
+
+
 if __name__ == "__main__":
     unittest.main()
