@@ -223,6 +223,12 @@ class Budget:
                             429: "RATE_LIMIT"}[http_status]
         elif failure in {"RATE_LIMIT", "AUTHENTICATION", "ENTITLEMENT_OR_ACCESS"}:
             self.stopped = failure
+        elif failure == "SERVER_ERROR":
+            # A 5xx indicates provider-side failure, not a missing symbol.
+            # Stop this provider within this bounded run instead of making
+            # repeated billable calls against the same unavailable service.
+            # A later independently scheduled run has a fresh budget.
+            self.stopped = "SERVER_ERROR"
         elif failure in {"NETWORK_UNAVAILABLE", "UNTRUSTED_REDIRECT"}:
             # A provider endpoint with broken transport or an untrusted
             # redirect cannot support source-origin evidence. Stop this

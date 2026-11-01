@@ -898,6 +898,44 @@ class ReconciliationTests(unittest.TestCase):
                 self.assertEqual(budget.used, 1)
                 fetch.assert_called_once()
 
+    def test_provider_5xx_stops_same_run_without_erasing_denominator(self):
+        # Provider-side 5xx must not burn the remaining bounded request budget.
+        # Other providers still receive their own requests and every original
+        # ticker/session stays present and officially censored.
+        for status in (500, 502, 503, 504):
+            with self.subTest(status=status):
+                failure = receipt({"status": "error"}, status=status)
+                with patch.object(m, "get", return_value=failure) as fetch:
+                    budget = m.Budget(4)
+                    first = budget.fetch("url", {}, "fixture", expected_status="OK")
+                    second = budget.fetch("url", {}, "fixture", expected_status="OK")
+                    self.assertEqual(m.category(first), "SERVER_ERROR")
+                    self.assertEqual(second["error"], "SERVER_ERROR")
+                    self.assertEqual(budget.used, 1)
+                    fetch.assert_called_once()
+
+        def fake(url, params, token):
+            if "twelvedata" in url:
+                good = twelve([{"datetime": day, "close": "100"} for day in m.SESSIONS])
+                good["payload"]["meta"]["symbol"] = params["symbol"]
+                return good
+            return receipt({"status": "error"}, status=503)
+
+        with patch.object(m, "get", side_effect=fake) as fetch, patch.dict(
+                "os.environ", {"MASSIVE_API_KEY": "fixture",
+                               "TWELVE_DATA_API_KEY": "fixture"}):
+            result = m.reconcile()
+        self.assertEqual(fetch.call_count, 3)  # 2 Twelve; only 1 Massive.
+        self.assertEqual(result["request_budget"]["massive_used"], 1)
+        self.assertEqual(result["total_ticker_dates"], 4)
+        self.assertEqual(result["official_close_censored_count"], 4)
+        self.assertEqual(result["official_close_eligible_count"], 0)
+        self.assertEqual(result["missing_pair_count"], 4)
+        self.assertTrue(all(
+            row["providers"]["MASSIVE"]["provider_error_category"] == "SERVER_ERROR"
+            for row in result["rows"]))
+        self.assertFalse(result["outcome_scoring_eligible"])
+
     def test_transport_failure_keeps_original_four_row_denominator(self):
         # A missing Massive transport receipt must not erase the remaining
         # original issuer/session rows or invent an official-close result.
