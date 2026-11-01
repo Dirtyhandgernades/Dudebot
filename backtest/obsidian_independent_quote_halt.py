@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 import xml.etree.ElementTree as ET
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
@@ -20,6 +20,24 @@ CENTRAL = ZoneInfo("America/Chicago")
 EASTERN = ZoneInfo("America/New_York")
 ALLOWED_PHASES = ("MORNING", "INTRADAY", "EARLY_BOARD", "AFTERHOURS")
 SAFE_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}$")
+
+def _trusted_response_origin(actual, expected, exact_query=False):
+    """Reject redirected or substituted 200s before labeling official sources.
+
+    Pin HTTPS endpoint origin/path without archiving credential-bearing URLs.
+    This is a transport-origin gate, not an official-price entitlement proof.
+    """
+    if not isinstance(actual, str):
+        return False
+    try:
+        got, want = urlsplit(actual), urlsplit(expected)
+        return (got.scheme == want.scheme == "https"
+                and got.netloc == want.netloc
+                and got.path == want.path
+                and not got.fragment
+                and (not exact_query or got.query == want.query))
+    except ValueError:
+        return False
 
 
 def _local(tag):
@@ -230,9 +248,14 @@ def fetch_once(symbols, now, massive_token=None, session=None):
     halts=None
     halt_error=None
     try:
-        response=req.get(NASDAQ_RSS,timeout=20,headers={"User-Agent":"OBSIDIAN-research-only/1.0"})
+        response=req.get(NASDAQ_RSS,timeout=20,allow_redirects=False,
+                         headers={"User-Agent":"OBSIDIAN-research-only/1.0"})
         if response.status_code == 200:
-            halts=response.content
+            if _trusted_response_origin(getattr(response, "url", None), NASDAQ_RSS,
+                                        exact_query=True):
+                halts=response.content
+            else:
+                halt_error="HALT_RSS_UNTRUSTED_RESPONSE_ORIGIN"
         else:
             halt_error="HALT_RSS_HTTP_"+str(response.status_code)
     except requests.RequestException:
@@ -243,9 +266,14 @@ def fetch_once(symbols, now, massive_token=None, session=None):
         try:
             response=req.get(MASSIVE_SNAPSHOT,params={"tickers":",".join(symbols),
                                                         "apiKey":massive_token},
-                             timeout=25,headers={"User-Agent":"OBSIDIAN-research-only/1.0"})
+                             timeout=25,allow_redirects=False,
+                             headers={"User-Agent":"OBSIDIAN-research-only/1.0"})
             if response.status_code==200:
-                prices=response.json()
+                if _trusted_response_origin(getattr(response, "url", None),
+                                            MASSIVE_SNAPSHOT):
+                    prices=response.json()
+                else:
+                    massive_error="INDEPENDENT_QUOTES_UNTRUSTED_RESPONSE_ORIGIN"
             else:
                 massive_error="INDEPENDENT_QUOTES_HTTP_"+str(response.status_code)
         except (requests.RequestException, ValueError):

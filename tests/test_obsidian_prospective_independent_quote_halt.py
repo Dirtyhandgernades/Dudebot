@@ -1,8 +1,10 @@
 """Offline, source-accurate independent halt + quote intake tests."""
 import unittest
+from unittest.mock import Mock
 from datetime import datetime,timezone
 from backtest.obsidian_independent_quote_halt import (
-    parse_nasdaq_halts,parse_massive_snapshot,inspect_sources,phase,
+    parse_nasdaq_halts,parse_massive_snapshot,inspect_sources,phase,fetch_once,
+    NASDAQ_RSS,MASSIVE_SNAPSHOT,
 )
 AT=datetime(2026,10,28,19,28,tzinfo=timezone.utc)
 XML=b"""<?xml version="1.0"?><rss version="2.0" xmlns:n="http://www.nasdaqtrader.com/rss"><channel><title>Current Trade Halts</title><item><n:IssueSymbol>JDZG</n:IssueSymbol><n:HaltDate>10/28/2026</n:HaltDate><n:HaltTime>14:14:21</n:HaltTime><n:ReasonCode>LUDP</n:ReasonCode><n:ResumptionDate>10/28/2026</n:ResumptionDate><n:TradeResumptionTime>15:29:22</n:TradeResumptionTime></item></channel></rss>"""
@@ -88,6 +90,53 @@ class SourceGateTests(unittest.TestCase):
                 self.assertIsNone(parsed[0]["resume_et"])
                 self.assertEqual(parsed[0]["halt_state_at_receipt"],
                                  "HALT_REPORTED_WITHOUT_VERIFIED_RESUME")
+
+
+    def test_redirects_are_never_followed_for_official_halts_or_independent_quotes(self):
+        class Session:
+            def __init__(self, statuses, urls):
+                self.statuses=list(statuses)
+                self.urls=list(urls)
+                self.calls=[]
+            def get(self, url, **kwargs):
+                self.calls.append((url,kwargs))
+                return Mock(status_code=self.statuses.pop(0),url=self.urls.pop(0))
+        session=Session([302,307],[NASDAQ_RSS,MASSIVE_SNAPSHOT])
+        report=fetch_once(["JDZG"],AT,massive_token="fixture",session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_HTTP_302")
+        self.assertEqual(report["quote_fetch_error"],"INDEPENDENT_QUOTES_HTTP_307")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["quote_source_connected"])
+        self.assertFalse(report["trade_authorized"])
+        self.assertEqual(len(session.calls),2)
+        self.assertTrue(all(call[1].get("allow_redirects") is False for call in session.calls))
+
+    def test_spoofed_200_origin_is_censored_without_parsing_body_or_token_leak(self):
+        class Session:
+            def __init__(self):
+                self.calls=[]
+            def get(self, url, **kwargs):
+                self.calls.append((url,kwargs))
+                return Mock(status_code=200,url="https://attacker.invalid/rss.aspx?feed=tradehalts")
+        session=Session()
+        report=fetch_once(["JDZG"],AT,massive_token="fixture-secret",session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_UNTRUSTED_RESPONSE_ORIGIN")
+        self.assertEqual(report["quote_fetch_error"],"INDEPENDENT_QUOTES_UNTRUSTED_RESPONSE_ORIGIN")
+        self.assertEqual(report["halt_feed_status"],"NASDAQ_HALT_FEED_NOT_RETRIEVED")
+        self.assertFalse(report["quote_source_connected"])
+        self.assertNotIn("fixture-secret",str(report))
+        self.assertFalse(report["actual_smg_platform_eligibility_verified"])
+        self.assertTrue(all(call[1].get("allow_redirects") is False for call in session.calls))
+
+    def test_pinned_nasdaq_response_is_parsed_without_claiming_open_or_shortable(self):
+        session=Mock()
+        session.get.return_value=Mock(status_code=200,url=NASDAQ_RSS,content=XML)
+        report=fetch_once(["JDZG"],AT,session=session)
+        self.assertEqual(report["halt_feed_status"],"NASDAQ_RSS_PARSED_WITH_ASOF_LIMITATIONS")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING")
+        self.assertFalse(report["trade_authorized"])
+        self.assertFalse(report["quote_source_connected"])
+        self.assertFalse(session.get.call_args.kwargs["allow_redirects"])
 
 if __name__=="__main__":
     unittest.main()
