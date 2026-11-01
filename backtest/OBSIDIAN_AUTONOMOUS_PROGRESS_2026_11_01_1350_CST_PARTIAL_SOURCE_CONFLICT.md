@@ -1,0 +1,21 @@
+# OBSIDIAN autonomous engineering — November 1, 2026 13:50 CST: one-sided EOD source conflicts
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Scope exclusively `Dirtyhandgernades/Dudebot` branch `research/obsidian-early-rug-20261025`. Sunday is not an open cash-equity trading session. No protected 12:47 intraday IEX or 14:47 preclose marker, Rug Proof anchor, Morning Movers, After-Hours, Early Decision Board capture, retry, backfill, trade, notification, credential, production or main-branch change was made.
+
+## Verified P0-1 improvement
+
+The complete-source EOD conflict inventory previously grouped price claims only when **both** the current close and previous-session close were parseable. A rejected third source that supplied a conflicting current close but a missing/invalid prior close (or a conflicting prior close but missing/invalid current close) was indexed and censored, yet its *parseable individual price* did not enter the cross-source price-conflict view. This could conceal a partial source disagreement in the diagnostic, although it could not certify an official outcome.
+
+The isolated research-only correction independently indexes every parseable current-close and prior-close assertion, including rejected partial reports, with per-price valid/rejected source indices. New separate unparseable-index arrays retain exact missingness. Partial reports remain **rejected and censored**; the original complete-pair groups, original historical denominator, source rows, source digests, security identities, calendar checks, 20% threshold rules, and frozen prospective scoring are unchanged. This does not authenticate provider ownership, official exchange closing-auction timestamps, corporate actions, or actual source entitlement.
+
+Implementation: [commit `3d1991a`](https://github.com/Dirtyhandgernades/Dudebot/commit/3d1991a52439cec932baeaeb5250556ff1be2362). Three new offline regressions cover (1) rejected third-source conflicting current close with missing prior, (2) conflicting prior with missing current close, and (3) matching partial price retained without an invented price disagreement. **Hosted CI independently verified SUCCESS**: [GitHub Actions run 41343865709](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41343865709), exact implementation SHA `3d1991a52439cec932baeaeb5250556ff1be2362`. Runner logs show **587 prospective + 4 ABC-board tests passed (591 total)**, including all three new regressions.
+
+## Frozen evidence and protected artifact metadata
+
+Read the October 28 roadmap, prior November 1 progress, and original October 30 Rug Proof postclose audit. Requeried all seven original October 30 GitHub Actions run-artifact records and verified each artifact ID **present, unexpired**, with expiry **January 28, 2027**: `12985950392`, `12995764777`, `13006191628`, `13006897253`, `13008429628`, `13010065001`, `13018333034`. This checkpoint checked fresh metadata, **not ZIP bytes**; preceding engineering checkpoints independently rehashed the seven archives. Durable off-platform backup/restore remains **BACKUP_UNVERIFIED**.
+
+The original 8,510-security October 30 prospective cohort, 34,040 original 0/+1/+2/+3 *actual trading-session* evaluation slots, 1,653 price-only watches and 6,857 nonwatches, all frozen baseline labels and denominator, separate 136-name monitor (127 in-cohort and nine off-universe), and JDZG stale-IEX/halt/SMG-shortability investigation remain untouched. No issuer/day was counted twice.
+
+## Hard gates unchanged
+
+**Zero** independently authenticated official regular-session closes and previous-session reference closes from two genuinely independent underlying provider organizations. No complete externally authenticated source/conflict, actual-session, issuer identity, corporate-action, source timestamp, or Massive live entitlement proof. No actual SMG blocked-symbol/account short approval. Original forward outcomes remain censored where missing; Oct30 +1/+2/+3 sessions have not yet occurred as of this Sunday checkpoint. No verified 20%+ prediction success, precision, recall, false-positive rate, early/exhausted catchability, squeeze/cost-adjusted edge, shares, fills or profit. Next priorities: real independent official-close evidence and authorized durable raw artifact backup with tested restore. Research only, no orders.
