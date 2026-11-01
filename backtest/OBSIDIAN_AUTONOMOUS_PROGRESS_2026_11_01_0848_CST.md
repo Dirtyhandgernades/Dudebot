@@ -1,0 +1,21 @@
+# OBSIDIAN autonomous research engineering — November 1, 2026, 08:48 CST
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Sunday is not a U.S. cash-equity trading day. No original IEX, preclose, Rug Proof, Morning Movers, After-Hours, Early Decision Board, or independent-monitor trigger was created, retried, or backfilled. The existing 12:47 CT and protected 14:45–14:58 CT trading-day gates were not changed.
+
+## P0-1 — vendor session date is not an authenticated source timestamp
+
+Read the October 28 autonomous validation roadmap, the October 30 original Rug Proof postclose audit and delayed SIP verification, the 07:43 CST engineering report, current branch code/tests, latest CI and original artifact metadata. The bounded Massive and Twelve Data daily OHLC diagnostic previously copied Massive's date-only `from` and Twelve Data's date-only `datetime` into an observation field named `source_timestamp`. Those date-only vendor session labels are **not** original exchange event/auction timestamps. Their presence risked a misleading appearance of source-time provenance even though official-close scoring was already blocked.
+
+Research-only implementation [02f19b0](https://github.com/Dirtyhandgernades/Dudebot/commit/02f19b0893d4e12c51cb82d10f0ef46281cd399d) now retains each vendor's date in a separate `vendor_session_label` field, keeps `source_timestamp=null` for both daily-bar providers, and records `source_timestamp_evidence_status=NOT_PROVIDED_BY_VENDOR_DAILY_BAR`. Request/retrieval instrumentation timestamps remain distinct and do not establish original source times. No third-party data was fetched. No independent official exchange-close evidence or provider entitlement is implied.
+
+[Hosted CI run 41318103427](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41318103427) completed **SUCCESS**, **58/58 offline tests** including the new regression that checks both providers and the fixed four-slot diagnostic cohort. The live vendor-fetch step was **SKIPPED**; the artifact uploader explicitly reported **no matching vendor-data artifact**. This tests software labeling only, not market-data availability, official closes, or prediction accuracy.
+
+## Frozen evidence and cross-task separation
+
+GitHub artifact metadata was refreshed (not the ZIP bytes): protected Oct30 preclose **13006897253**, SHA256 `ba983a61e2503b44e2e5501519ff3ee4a85be41a3312c2d1948a18175570cbc4`, expiry 2027-01-28T19:47:32Z; maturity replay **13018333034**, SHA256 `956448af203a64b16551f2921cac85997f53dbbceeaf725b8b816a2c5173c8bc`, expiry 2027-01-28T22:49:48Z; independent monitor **13010065001**, SHA256 `f401405bea705ea0c5cb461e168385c07206a8429f1874acde69ed02e5931359`, expiry 2027-01-28T20:24:01Z. All returned `expired=false`. Independent ZIP rehash/restore and durable off-platform backup remain **BACKUP_UNVERIFIED**.
+
+Original Oct30 **8,510-security cohort**, **34,040** issuer×0/+1/+2/+3 actual-trading-session slots, **136-name watchlist**, JDZG stale/halt/$3-floor failure analysis, original Rug Proof markers and frozen baseline/challenger matching rules remain unchanged. Oct30 +1/+2/+3 sessions are Nov2/3/4 and are not yet mature. The separate Rug Proof task owns its authentic anchors, delayed SIP and after-close review; no issuer/day counted twice.
+
+**External P0-1 blocker unchanged:** zero independently authenticated completed regular-session official closes from two genuinely independent underlying provider organizations, including original source event timestamps, previous official reference close, verified issuer/security class, corporate actions, actual session, and full third-source conflict inventory. Massive key/real-time entitlement and SMG account-level security permissions remain unverified. Missing outcomes are censored, not scored as failures or successes. No verified 20%+ prospective collapse accuracy, false-positive rate, SMG short, fill, shares, cost-adjusted profit or trading edge. No main, production, credentials, notifications, or trading operations changed.
+
+**Next gate:** externally authenticate two independent official-close providers and preserve their source-time/identity/corporate-action/conflict evidence; separately verify durable raw-artifact backup and restore.
