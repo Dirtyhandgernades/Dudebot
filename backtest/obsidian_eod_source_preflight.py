@@ -4,9 +4,10 @@ Does not produce an official-close verdict, change frozen scoring, query a
 provider, or authorize a trade. All collected reports must be supplied: do not
 select two agreeing reports while silently dropping a contradictory third.
 """
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint, _safe_host
+from backtest.obsidian_two_provider_close_reconciliation import _scheduled_cash_session_2026
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -49,6 +50,40 @@ def _source_host(value):
     return _safe_host(value)
 
 
+
+# NYSE's published 2026 cash-equity calendar lists 13:00 ET early closes
+# on Nov 27 and Dec 24. These cannot satisfy this normal-session-only
+# 16:00 ET source contract; do not relabel the frozen scoring calendar.
+# https://www.nyse.com/trade/hours-calendars
+_PUBLISHED_EARLY_CLOSES_2026 = frozenset({
+    date(2026, 11, 27), date(2026, 12, 24),
+})
+
+
+def _published_2026_calendar_issues(session_date, previous_session_date):
+    """Static NYSE schedule screen, NOT authenticated actual-session evidence.
+
+    Reject a non-adjacent prior trading date, scheduled closures, out-of-scope
+    years and early-close 13:00 ET auctions. An unexpected exchange closure,
+    security halt or provider-specific calendar remains externally unverified.
+    """
+    issues = set()
+    current_scheduled = _scheduled_cash_session_2026(session_date)
+    previous_scheduled = _scheduled_cash_session_2026(previous_session_date)
+    if not current_scheduled or not previous_scheduled:
+        issues.add("CLOSED_OR_UNVERIFIED_PUBLISHED_2026_SESSION")
+    if (session_date in _PUBLISHED_EARLY_CLOSES_2026
+            or previous_session_date in _PUBLISHED_EARLY_CLOSES_2026):
+        issues.add("EARLY_CLOSE_REQUIRES_SEPARATE_1300_ET_SOURCE_CONTRACT")
+    if current_scheduled and previous_scheduled:
+        preceding = session_date - timedelta(days=1)
+        while preceding.year == 2026 and not _scheduled_cash_session_2026(preceding):
+            preceding -= timedelta(days=1)
+        if preceding != previous_session_date:
+            issues.add("PREVIOUS_SESSION_NOT_ADJACENT_ON_PUBLISHED_2026_CALENDAR")
+    return issues
+
+
 def preflight(symbol, session_date, previous_session_date, reports, collected_at):
     """Fail closed on *any* supplied conflict, stale record or provider alias.
 
@@ -71,7 +106,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     collection_time = _aware(collected_at)
     if collection_time is None or collection_time < end:
         raise ValueError("POST_CLOSE_COLLECTION_TIMESTAMP_REQUIRED")
-    issues, accepted = set(), []
+    issues, accepted = _published_2026_calendar_issues(session_date, previous_session_date), []
     seen_source_ids = set()
     for report in reports:
         if not isinstance(report, dict):
@@ -156,6 +191,8 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         "distinct_hosts": len({x[2] for x in accepted}),
         "status": "BLOCKED_SOURCE_EVIDENCE" if issues else "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE",
         "issues": sorted(issues),
+        "published_2026_calendar_screen_only": True,
+        "actual_exchange_session_authenticated": False,
         "corporate_action_and_security_identity_verified": False,
         "eligible_for_frozen_forward_scoring": False,
         "early_hit_or_profit_verified": False,
