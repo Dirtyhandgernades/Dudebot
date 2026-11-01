@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib import request, parse, error
+from zoneinfo import ZoneInfo
 
 SYMBOLS = ("AAPL", "MSFT")
 SESSIONS = ("2026-10-27", "2026-10-28")
@@ -54,6 +55,9 @@ def get(url, params, token):
     """Never log URLs, exceptions or provider messages that could echo credentials."""
     req = request.Request(url + "?" + parse.urlencode(params),
                           headers={"User-Agent": "OBSIDIAN-research-only/2.0"})
+    # The request START, not response completion, determines whether a daily
+    # bar could have been a completed regular-session observation.
+    requested_at = utcnow()
     try:
         try:
             response = _open_no_redirect(req)
@@ -96,7 +100,8 @@ def get(url, params, token):
         payload = None
     except Exception:
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
-                "retrieved_at": utcnow(), "body_sha256": None, "body_truncated": False,
+                "retrieved_at": utcnow(), "requested_at": requested_at,
+                "body_sha256": None, "body_truncated": False,
                 "headers": {}, "body_length_mismatch": False}
     # Raw provider bodies and arbitrary error text must never reach the public
     # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
@@ -107,7 +112,8 @@ def get(url, params, token):
             "body_length_mismatch": body_length_mismatch,
             "error": ("RESPONSE_BODY_TOO_LARGE" if body_truncated else
                       "RESPONSE_LENGTH_MISMATCH" if body_length_mismatch else None),
-            "payload": payload, "retrieved_at": utcnow(), "headers": headers}
+            "payload": payload, "retrieved_at": utcnow(),
+            "requested_at": requested_at, "headers": headers}
 
 
 def category(receipt):
@@ -206,11 +212,34 @@ def price(value):
         return None
 
 
+def _request_after_regular_close(day, requested_at):
+    """Conservative 16:00 New York wall-clock cutoff, NOT exchange-calendar proof.
+
+    A daily OHLC response requested before the session ends can represent a
+    partial, mutable bar. The request-start timestamp is local instrumentation,
+    not vendor self-attestation. Closed holidays/early-close exceptions and
+    official auction provenance remain independently unverified.
+    """
+    try:
+        session = dt.date.fromisoformat(day)
+        if not isinstance(requested_at, str):
+            return False
+        started = dt.datetime.fromisoformat(requested_at)
+        if started.tzinfo is None or started.utcoffset() is None:
+            return False
+        cutoff = dt.datetime.combine(session, dt.time(16, 0),
+                                     tzinfo=ZoneInfo("America/New_York"))
+        return started > cutoff
+    except (ValueError, TypeError, OverflowError):
+        return False
+
+
 def observation(provider, symbol, day, receipt):
     result = {"provider_organization": provider, "ticker": symbol, "session_date": day,
               "security_identity": None, "identity_verified": False, "exchange": None,
               "price": None, "price_type": "VENDOR_DAILY_OHLC_CLOSE", "adjustment_basis": "UNKNOWN",
               "source_timestamp": None, "retrieval_timestamp": receipt.get("retrieved_at"),
+              "request_started_at": receipt.get("requested_at"),
               "http_status": receipt.get("http_status"), "provider_error_category": category(receipt),
               "raw_response_hash": (None if receipt.get("body_truncated") is True
                                     or receipt.get("body_length_mismatch") is True
@@ -223,6 +252,9 @@ def observation(provider, symbol, day, receipt):
               "rate_limit_headers": receipt.get("headers", {}),
               "raw_body_retained": False}
     if result["provider_error_category"]:
+        return result
+    if not _request_after_regular_close(day, receipt.get("requested_at")):
+        result["provider_error_category"] = "SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED"
         return result
     payload = receipt["payload"]
     # Provider-specific success status is required before a numeric bar may
@@ -338,7 +370,8 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
               "comparison_tolerance_usd": str(TOLERANCE), "rows": [],
               "official_exchange_close_verified": False, "outcome_scoring_eligible": False,
               "independent_underlying_exchange_feed_verified": False, "trade_authorized": False,
-              "vendor_redirect_policy": "DENY_ALL_REDIRECTS"}
+              "vendor_redirect_policy": "DENY_ALL_REDIRECTS",
+              "vendor_daily_bar_cutoff": "REQUEST_START_AFTER_16_ET_CONSERVATIVE_NOT_CALENDAR_PROOF"}
     for symbol in symbols:
         t = twelve.fetch("https://api.twelvedata.com/time_series",
                          {"symbol": symbol, "interval": "1day", "start_date": start_date,

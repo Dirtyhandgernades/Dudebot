@@ -9,7 +9,8 @@ from backtest import obsidian_two_provider_close_reconciliation as m
 
 def receipt(payload=None, status=200):
     return dict(http_status=status, payload=payload, body_sha256='fixture',
-                retrieved_at='2026-10-29T17:00:00+00:00', headers={})
+                retrieved_at='2026-10-29T17:00:00+00:00',
+                requested_at='2026-10-29T16:59:59+00:00', headers={})
 
 
 def massive(day='2026-10-27', symbol='AAPL', close=100):
@@ -664,5 +665,46 @@ class ReconciliationTests(unittest.TestCase):
             good = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
         self.assertIsNone(good['error'])
         self.assertEqual(good['payload']['close'], 100)
+
+
+    def test_same_day_vendor_daily_bar_censored_until_request_after_16_et(self):
+        # Oct 27 is EDT (20:00Z cutoff); Nov 2 is EST (21:00Z).
+        # Response completion after close cannot rescue a preclose request.
+        for day, before, boundary, after in [
+            ('2026-10-27', '2026-10-27T19:59:59Z',
+             '2026-10-27T20:00:00Z', '2026-10-27T20:00:01Z'),
+            ('2026-11-02', '2026-11-02T20:59:59Z',
+             '2026-11-02T21:00:00Z', '2026-11-02T21:00:01Z'),
+        ]:
+            for requested in (before, boundary, None, 'bad',
+                              day + 'T23:59:59'):
+                with self.subTest(day=day, requested=requested):
+                    r = massive(day=day)
+                    r['requested_at'] = requested
+                    r['retrieved_at'] = after
+                    row = m.observation('MASSIVE', 'AAPL', day, r)
+                    self.assertEqual(row['provider_error_category'],
+                                     'SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED')
+                    self.assertEqual(row['validation_status'], 'BLOCKED')
+                    self.assertIsNone(row['price'])
+                    self.assertFalse(row['identity_verified'])
+            r = massive(day=day)
+            r['requested_at'] = after
+            r['retrieved_at'] = after
+            row = m.observation('MASSIVE', 'AAPL', day, r)
+            self.assertEqual(row['validation_status'], 'VALID_VENDOR_BAR')
+            self.assertFalse(row['identity_verified'])
+
+    def test_request_start_timestamp_not_vendor_body_controls_completion(self):
+        # No timestamp from the vendor payload can replace a missing local
+        # request-start receipt. This gate does not prove official closes.
+        r = massive()
+        r['payload']['retrieved_at'] = '2026-10-29T00:00:00Z'
+        r.pop('requested_at')
+        row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+        self.assertEqual(row['provider_error_category'],
+                         'SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED')
+        self.assertEqual(row['validation_status'], 'BLOCKED')
+        self.assertIsNone(row['price'])
 
 if __name__=='__main__':unittest.main()
