@@ -272,14 +272,16 @@ def observation(provider, symbol, day, receipt):
               "raw_body_retained": False}
     if result["provider_error_category"]:
         return result
+    # Keep the existing fail-closed session cutoff as the first gate so
+    # malformed/missing request starts retain their original classification.
+    if not _request_after_regular_close(day, receipt.get("requested_at")):
+        result["provider_error_category"] = "SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED"
+        return result
     # A response timestamp before its request (or without a usable timezone)
     # cannot support even a vendor-bar diagnostic. Never substitute a vendor
     # payload timestamp for local retrieval instrumentation.
     if not _receipt_timestamps_ordered(receipt):
         result["provider_error_category"] = "RECEIPT_TIMESTAMP_ORDER_UNVERIFIED"
-        return result
-    if not _request_after_regular_close(day, receipt.get("requested_at")):
-        result["provider_error_category"] = "SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED"
         return result
     payload = receipt["payload"]
     # Provider-specific success status is required before a numeric bar may

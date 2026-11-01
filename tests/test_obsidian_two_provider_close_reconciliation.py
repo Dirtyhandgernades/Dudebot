@@ -710,23 +710,24 @@ class ReconciliationTests(unittest.TestCase):
     def test_vendor_receipt_requires_monotonic_local_timestamps(self):
         # A forged or broken local receipt cannot be a valid vendor bar even
         # when the payload claims the right ticker, session and close.
+        session_block = 'SESSION_NOT_COMPLETE_AT_REQUEST_OR_TIMESTAMP_UNVERIFIED'
+        receipt_block = 'RECEIPT_TIMESTAMP_ORDER_UNVERIFIED'
         cases = [
-            (None, '2026-10-29T17:00:00Z'),
-            ('2026-10-29T16:59:59Z', None),
-            ('2026-10-29T16:59:59', '2026-10-29T17:00:00Z'),
-            ('2026-10-29T16:59:59Z', '2026-10-29T17:00:00'),
-            ('2026-10-29T17:00:01Z', '2026-10-29T17:00:00Z'),
-            ('bad', '2026-10-29T17:00:00Z'),
+            (None, '2026-10-29T17:00:00Z', session_block),
+            ('2026-10-29T16:59:59Z', None, receipt_block),
+            ('2026-10-29T16:59:59', '2026-10-29T17:00:00Z', session_block),
+            ('2026-10-29T16:59:59Z', '2026-10-29T17:00:00', receipt_block),
+            ('2026-10-29T17:00:01Z', '2026-10-29T17:00:00Z', receipt_block),
+            ('bad', '2026-10-29T17:00:00Z', session_block),
         ]
-        for started, finished in cases:
+        for started, finished, expected in cases:
             with self.subTest(started=started, finished=finished):
                 r = massive()
                 r['requested_at'] = started
                 r['retrieved_at'] = finished
                 r['payload']['retrieved_at'] = '2026-10-30T12:00:00Z'
                 row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
-                self.assertEqual(row['provider_error_category'],
-                                 'RECEIPT_TIMESTAMP_ORDER_UNVERIFIED')
+                self.assertEqual(row['provider_error_category'], expected)
                 self.assertEqual(row['validation_status'], 'BLOCKED')
                 self.assertIsNone(row['price'])
                 self.assertFalse(row['identity_verified'])
