@@ -20,6 +20,47 @@ PINNED = {
     13010065001: ("f401405bea705ea0c5cb461e168385c07206a8429f1874acde69ed02e5931359", ("obsidian-independent-source-41122875006.json",)),
 }
 
+# Exact sorted roster identity from original October 30 monitor artifact 13010065001.
+# The 136 retained names intentionally include nine off-universe references.
+FROZEN_MONITOR_ROSTER_SHA256 = "6fd523c5d8142724a799527b28dede2e260f1a6230ea89832e5655ad1e8615c1"
+CAPTURE_COHORT_IDS = (13006897253, 12985950392, 12995764777, 13006191628, 13008429628)
+
+
+def cohort_identity_report(captures, ledger_symbols, monitor_symbols,
+                           expected_roster_sha=FROZEN_MONITOR_ROSTER_SHA256):
+    """Verify exact cross-capture membership, without treating monitors as predictions.
+
+    A fixed denominator alone cannot detect a dropped symbol replaced by
+    another symbol. The monitor is a separately retained watchlist: its nine
+    off-universe references must NOT be silently inserted into the 8,510
+    original cohort or scored as independent issuer/day predictions.
+    """
+    require(isinstance(captures, dict) and set(captures) == set(CAPTURE_COHORT_IDS),
+            "CAPTURE_COHORT_SET_INCOMPLETE")
+    base = set(captures[13006897253])
+    require(len(base) == 8510 and len(captures[13006897253]) == 8510,
+            "PRECLOSE_COHORT_IDENTITY_INVALID")
+    for artifact_id in CAPTURE_COHORT_IDS:
+        names = captures[artifact_id]
+        require(len(names) == 8510 and len(set(names)) == 8510 and set(names) == base,
+                "CROSS_ARTIFACT_COHORT_IDENTITY_DRIFT")
+    require(len(ledger_symbols) == 8510 and len(set(ledger_symbols)) == 8510
+            and set(ledger_symbols) == base, "MATURITY_LEDGER_COHORT_IDENTITY_DRIFT")
+    require(len(monitor_symbols) == 136 and len(set(monitor_symbols)) == 136,
+            "FROZEN_MONITOR_ROSTER_COUNT_OR_DUPLICATES")
+    roster_sha = sha256(("\\n".join(sorted(monitor_symbols)) + "\\n").encode("utf-8"))
+    require(roster_sha == expected_roster_sha, "FROZEN_136_ROSTER_SHA256_MISMATCH")
+    off_universe = sorted(set(monitor_symbols) - base)
+    return {
+        "capture_and_maturity_symbol_sets_identical": True,
+        "frozen_monitor_roster_sha256": roster_sha,
+        "monitor_on_original_universe_count": 136 - len(off_universe),
+        "monitor_off_original_universe_count": len(off_universe),
+        "monitor_off_original_universe_symbols": off_universe,
+        "off_universe_names_added_to_frozen_cohort": False,
+        "duplicate_issuer_day_predictions_created": False,
+    }
+
 
 def require(condition, reason):
     if not condition:
@@ -57,6 +98,7 @@ def jsonl_symbols(raw):
 def audit_directory(directory):
     """Validate all seven pinned receipts and original cross-artifact links."""
     restored = {}
+    captured_cohorts = {}
     rows = []
     for artifact_id, (expected_sha, members) in PINNED.items():
         path = Path(directory) / f"github-actions-artifact-{artifact_id}.zip"
@@ -69,6 +111,7 @@ def audit_directory(directory):
             manifest = json.loads(contents["manifest.json"])
             if "universe.jsonl" in contents:
                 symbols = jsonl_symbols(contents["universe.jsonl"])
+                captured_cohorts[artifact_id] = symbols
                 require(len(symbols) == 8510 == manifest["universe_count"], "UNIVERSE_DENOMINATOR_MISMATCH")
                 require(sha256(contents["universe.jsonl"]) == manifest["universe_sha256"],
                         "UNIVERSE_INNER_SHA256_MISMATCH")
@@ -80,6 +123,7 @@ def audit_directory(directory):
                 row["unique_symbols"] = len(symbols)
             if "rescue.jsonl" in contents:
                 symbols = jsonl_symbols(contents["rescue.jsonl"])
+                captured_cohorts[artifact_id] = symbols
                 require(len(symbols) == 8510 == manifest["original_universe_count"],
                         "DELAYED_SIP_DENOMINATOR_MISMATCH")
                 require(sha256(contents["rescue.jsonl"]) == manifest["rescue_rows_sha256"],
@@ -116,7 +160,11 @@ def audit_directory(directory):
     require(len(monitor["rows"]) == monitor["requested_symbols"] == 136 and
             len({r["ticker"] for r in monitor["rows"]}) == 136,
             "INDEPENDENT_MONITOR_136_NAME_DENOMINATOR_MISMATCH")
+    identity = cohort_identity_report(captured_cohorts,
+                                      [r["ticker"] for r in ledger["rows"]],
+                                      [r["ticker"] for r in monitor["rows"]])
     return {"mode": "RESEARCH_ONLY_NOT_AN_ORDER", "pinned_zips_verified": len(rows),
+            **identity,
             "rows": rows, "original_issuer_count": 8510, "original_horizon_slots": 34040,
             "independent_monitor_symbols": 136, "cross_artifact_source_links_verified": True,
             "official_closes_authenticated": False, "backup_status": "BACKUP_UNVERIFIED",
