@@ -119,7 +119,7 @@ def parse_nasdaq_halts(raw, captured_at):
     if channel is None:
         raise ValueError("RSS_CHANNEL_MISSING")
     rows = []
-    seen = set()
+    seen = {}
     for item in channel:
         if _local(item.tag)!="item":
             continue
@@ -153,10 +153,19 @@ def parse_nasdaq_halts(raw, captured_at):
                         else "EXPLICIT_DATE_AND_TRADE_TIME")
         if resume_quality != "EXPLICIT_DATE_AND_TRADE_TIME":
             resume=None
-        key=(symbol,halt.isoformat(),resume.isoformat() if resume else "")
-        if key in seen:
+        # The same symbol+halt timestamp is one event. A duplicate RSS row
+        # with a changed reason or trade-resumption claim is contradictory
+        # evidence, not an additional independent halt or a safe overwrite.
+        # Preserve exact identical duplicates only; fail closed on revisions
+        # without an authenticated publication-order/source receipt.
+        event_key=(symbol,halt.isoformat())
+        event_claim=(resume.isoformat() if resume else None,
+                     resume_quality, fields.get("reasoncode") or None)
+        if event_key in seen:
+            if seen[event_key] != event_claim:
+                raise ValueError("HALT_RSS_CONFLICTING_DUPLICATE_EVENT")
             continue
-        seen.add(key)
+        seen[event_key]=event_claim
         if halt > captured_at.astimezone(EASTERN):
             state="HALT_FUTURE_EVENT_NOT_YET_EFFECTIVE"
         elif resume is None:

@@ -44,6 +44,33 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(report["trade_authorized"])
         self.assertFalse(report["complete_halt_history_or_guaranteed_open"])
 
+    def test_identical_repeated_halt_event_is_one_source_event(self):
+        item=XML.split(b"<item>")[1].split(b"</item>")[0]
+        duplicate=XML.replace(b"</channel>",b"<item>"+item+b"</item></channel>")
+        parsed=parse_nasdaq_halts(duplicate,AT)
+        self.assertEqual(len(parsed),1)
+        self.assertEqual(parsed[0]["ticker"],"JDZG")
+
+    def test_conflicting_reason_on_same_halt_event_rejects_rss(self):
+        item=XML.split(b"<item>")[1].split(b"</item>")[0]
+        changed=item.replace(b"<n:ReasonCode>LUDP</n:ReasonCode>",
+                             b"<n:ReasonCode>T12</n:ReasonCode>")
+        conflicting=XML.replace(b"</channel>",b"<item>"+changed+b"</item></channel>")
+        with self.assertRaisesRegex(ValueError,"HALT_RSS_CONFLICTING_DUPLICATE_EVENT"):
+            parse_nasdaq_halts(conflicting,AT)
+
+    def test_conflicting_resume_on_same_halt_event_censors_collection(self):
+        item=XML.split(b"<item>")[1].split(b"</item>")[0]
+        changed=item.replace(b"15:29:22",b"15:30:22")
+        conflicting=XML.replace(b"</channel>",b"<item>"+changed+b"</item></channel>")
+        session=Mock()
+        session.get.return_value=Mock(status_code=200,url=NASDAQ_RSS,content=conflicting)
+        report=fetch_once(["JDZG"],AT,session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_MALFORMED_OR_UNVERIFIABLE")
+        self.assertEqual(report["rows"][0]["halt_attention"],
+                         "HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["trade_authorized"])
+
     def test_nasdaq_namespace_is_supported(self):
         self.assertEqual(phase(AT),"EARLY_BOARD")
 
