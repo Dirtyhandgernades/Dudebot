@@ -4,7 +4,7 @@
 
 ## P0-1 independent-quote freshness containment
 
-The optional Massive snapshot parser previously retained a non-null `price` for `DELAYED_OR_STALE_PROVIDER_PRINT` and `FUTURE_DATED_PROVIDER_PRINT`. A downstream reader could use that price without inspecting the status, falsely treating stale or future-dated evidence as a current quote. The research-only parser now censors the usable price for both conditions, while preserving the observed timestamp, age and explicit freshness status. A fresh (< =60 seconds, nonfuture) diagnostic trade still exposes its price, but remains explicitly **entitlement unverified, not an official close, and not SMG shortability proof**.
+The optional Massive snapshot parser previously retained a non-null `price` for `DELAYED_OR_STALE_PROVIDER_PRINT` and `FUTURE_DATED_PROVIDER_PRINT`. A downstream reader could use that price without inspecting the status, falsely treating stale or future-dated evidence as a current quote. The research-only parser now censors the usable price for both conditions, while preserving the observed timestamp, age and explicit freshness status. A fresh (at most 60 seconds old, nonfuture) diagnostic trade still exposes its price, but remains explicitly **entitlement unverified, not an official close, and not SMG shortability proof**.
 
 Added regression tests for stale, future-dated and fresh diagnostic prices. This is a defensive source-evidence change, not a new provider entitlement or prediction result.
 
@@ -16,4 +16,7 @@ The frozen 8,510-security cohort, 34,040 0/+1/+2/+3 evaluation slots, 136-name w
 
 ## Acceptance remains blocked
 
-No two independently authenticated exchange-official regular-session closes with matching previous close, source ownership, security identity, corporate-action parity, session calendar, timestamps and conflict inventory have been collected. Massive entitlement and SMG account authorization remain unverified. Missing forward outcomes stay censored; 20%+ prediction success, false-positive rates, shortability, fills and profitability are not established. Hosted CI verification is pending at the time of this initial note.
+No two independently authenticated exchange-official regular-session closes with matching previous close, source ownership, security identity, corporate-action parity, session calendar, timestamps and conflict inventory have been collected. Massive entitlement and SMG account authorization remain unverified. Missing forward outcomes stay censored; 20%+ prediction success, false-positive rates, shortability, fills and profitability are not established. Implementation commit `50a93cb7af65970c4407f2f18a73a3e5ac879109`. Hosted CI independently checked after the implementation:
+- [Independent halt/SMG tests — run 41494701562](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41494701562): completed **SUCCESS**, runner logs **53/53 tests passed**, including the three freshness regression assertions.
+- [Prospective journal and capture tests — run 41494701560](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41494701560): completed **SUCCESS**, runner logs **638/638 prospective tests passed** and **4/4 ABC-board tests passed**.
+These offline tests do not establish live Massive entitlement, authenticated official closes or predictive performance.
