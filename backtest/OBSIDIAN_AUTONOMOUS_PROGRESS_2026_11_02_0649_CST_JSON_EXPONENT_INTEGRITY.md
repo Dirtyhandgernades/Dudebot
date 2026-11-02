@@ -1,0 +1,19 @@
+# OBSIDIAN Research Engineering — 2026-11-02 06:49 CST, vendor JSON exponent integrity
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Authorized research branch only. Monday 06:47–06:49 CST is outside original 12:47 CT INTRADAY IEX and 14:45–14:58 CT protected preclose windows. No IEX, Morning Movers, After-Hours, Early Decision Board, Rug Proof, independent monitor trigger, capture, order, account action, credential or production/main edit was created or retried.
+
+## P0-1 research-only source fidelity correction
+
+The bounded Massive/Twelve Data daily-bar diagnostic previously used Python's default JSON float decoder. A finite-looking numeric token such as `1e309` silently decoded to positive infinity, and `1e-400` silently decoded to zero. Even when placed in nested auxiliary metadata rather than the close field, such a lossy response could still be classified as a valid vendor bar. This is inconsistent with strict raw-source claim fidelity and can hide contradictory data.
+
+Implementation [abc38faa82396637e958a0af6d8f81afd106aa5d](https://github.com/Dirtyhandgernades/Dudebot/commit/abc38faa82396637e958a0af6d8f81afd106aa5d) introduces a bounded JSON float parser that rejects nonfinite overflow and nonzero underflow anywhere in the payload, while allowing ordinary representable values and explicit numeric zero. Unrepresentable receipts retain a bounded raw-body SHA-256 fingerprint, but their parsed vendor bars are censored as `MALFORMED_RESPONSE`; the same-run provider request budget stops under its existing fail-closed response policy. No raw bodies or credentials are archived.
+
+Hosted two-provider reconciliation CI [#41447799512](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41447799512) **SUCCESS** with **60/60** offline tests (including the new overflow/underflow regression and 4/4 ABC-board tests). The parallel EOD calendar/source-contract shadow [#41447799425](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41447799425) **SUCCESS**, **36/36** offline tests. Hosted job steps and test totals were read. The vendor network retrieval step was **skipped**; no provider key or live entitlement is established. Both jobs are code-contract checks, not outcome validation.
+
+## Preserved evidence and remaining gates
+
+Read the Oct 28 validation roadmap, Oct 30 Rug Proof postclose audit, latest Nov 2 engineering report and current branch/workflow history before editing. The frozen Oct 30 8,510-security cohort, 34,040 original 0/+1/+2/+3 actual trading-session slots, 1,653 watch / 6,857 nonwatch split, original 136-name watchlist (including JDZG), nine retained off-universe names and historical baseline labels/denominator remain unchanged. Same issuer/day cannot be counted twice. No prospective performance observation was scored.
+
+Rechecked all seven original Oct 30 GitHub artifact IDs `12985950392`, `12995764777`, `13006191628`, `13006897253`, `13008429628`, `13010065001`, `13018333034`: each exists with `expired=false`, SHA-256 digest metadata and Jan 28, 2027 expiry. ZIP bytes were **not** downloaded/rehashed; durable off-platform restoration remains **BACKUP_UNVERIFIED**.
+
+**Primary blocker remains:** zero independently authenticated exchange-official regular-session closes from two genuinely independent underlying provider organizations. No authenticated official previous close, corporate-action/security-identity continuity, real exchange-session proof, full third-source conflict inventory or original exchange source timestamps. Optional Massive live quote entitlement and actual SMG platform symbol/security/account short permissions remain unverified. All missing outcomes remain **CENSORED**; no verified 20%+ prospective collapse success, false-positive rate, precision/recall, squeeze/cost-adjusted profit, shares, fills or trading authorization. This change improves diagnostic source fidelity only.
