@@ -273,6 +273,37 @@ class ReconciliationTests(unittest.TestCase):
                 get.assert_not_called()
             self.assertEqual(path.read_text(),'original')
 
+    def test_vendor_json_exponent_overflow_and_underflow_are_censored(self):
+        # Python's standard JSON float decoder otherwise turns these exact
+        # source claims into infinity or zero, even in nested sideband fields.
+        class FakeResponse:
+            code = 200
+            headers = {'Content-Type': 'application/json'}
+            def __init__(self, raw): self.raw = raw
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, n): return self.raw[:n]
+
+        for exponent in ('1e309', '1e-400', '-1e-400'):
+            raw = ('{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                   '"close":100,"nested":{"vendor_numeric":' + exponent + '}}').encode()
+            with self.subTest(exponent=exponent), patch.object(
+                    m, '_open_no_redirect', return_value=FakeResponse(raw)):
+                r = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+                self.assertIsNone(r['payload'])
+                self.assertEqual(m.category(r), 'MALFORMED_RESPONSE')
+                self.assertIsNotNone(r['body_sha256'])
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+                self.assertEqual(row['validation_status'], 'BLOCKED')
+                self.assertIsNone(row['price'])
+
+        valid = (b'{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                 b'"close":1.25e2,"nested":{"vendor_numeric":0.0}}')
+        with patch.object(m, '_open_no_redirect', return_value=FakeResponse(valid)):
+            r = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertIsNone(m.category(r))
+        self.assertEqual(r['payload']['close'], 125.0)
+
     def test_transport_does_not_emit_network_exception(self):
         with patch.object(m,'_open_no_redirect',side_effect=OSError('credential-value')):
             r=m.get('https://example.com',{},'credential-value')

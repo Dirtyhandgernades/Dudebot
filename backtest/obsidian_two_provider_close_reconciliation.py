@@ -2,6 +2,7 @@
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -89,6 +90,22 @@ def _reject_vendor_nonfinite(value):
     raise ValueError("NONFINITE_VENDOR_JSON_CONSTANT")
 
 
+def _finite_vendor_float(value):
+    """Reject overflow and silent underflow in any vendor JSON numeric field.
+
+    A JSON exponent such as 1e309 normally decodes to float('inf'), while
+    1e-400 silently becomes 0. Neither preserves the supplied price/source
+    claim, including when it appears in a nested field rather than 'close'.
+    """
+    try:
+        number = float(value)
+        if not math.isfinite(number) or (number == 0.0 and Decimal(value) != 0):
+            raise ValueError("NONREPRESENTABLE_VENDOR_JSON_FLOAT")
+        return number
+    except (InvalidOperation, OverflowError) as exc:
+        raise ValueError("NONREPRESENTABLE_VENDOR_JSON_FLOAT") from exc
+
+
 def get(url, params, token):
     """Never log URLs, exceptions or provider messages that could echo credentials."""
     req = request.Request(url + "?" + parse.urlencode(params),
@@ -149,7 +166,8 @@ def get(url, params, token):
         if not (body_truncated or body_length_mismatch or media_type_unverified):
             try:
                 payload = json.loads(body, object_pairs_hook=_unique_vendor_json_object,
-                                     parse_constant=_reject_vendor_nonfinite)
+                                     parse_constant=_reject_vendor_nonfinite,
+                                     parse_float=_finite_vendor_float)
             except (ValueError, UnicodeDecodeError, RecursionError):
                 payload = None
     except Exception:
