@@ -113,6 +113,14 @@ def get(url, params, token):
             else:
                 single_length = response.headers.get("Content-Length")
                 length_headers = [] if single_length is None else [single_length]
+            # A JSON-looking body with missing, contradictory or non-JSON
+            # Content-Type is not a trustworthy vendor JSON receipt. Inspect
+            # every header value: Message.get() silently hides duplicates.
+            if callable(get_all_lengths):
+                media_headers = get_all_lengths("Content-Type") or []
+            else:
+                single_media = response.headers.get("Content-Type")
+                media_headers = [] if single_media is None else [single_media]
             # Keep only bounded numeric quota headers. Arbitrary vendor header
             # strings (including echoed query tokens) are unsafe to archive.
             headers = {k.lower(): v.strip() for k, v in response.headers.items()
@@ -128,6 +136,9 @@ def get(url, params, token):
             not isinstance(length_headers[0], str) or
             not re.fullmatch(r"[0-9]{1,16}", length_headers[0].strip()) or
             int(length_headers[0].strip()) != len(body))
+        media_type_unverified = (
+            len(media_headers) != 1 or not isinstance(media_headers[0], str)
+            or media_headers[0].split(";", 1)[0].strip().lower() != "application/json")
         # Duplicate keys could overwrite an earlier error/status, symbol,
         # session or close. Reject at every nesting level; no last-key-wins
         # price or identity evidence enters even the diagnostic comparison.
@@ -135,7 +146,7 @@ def get(url, params, token):
         # by response.read() or header inspection must fail closed as network
         # unavailable, not escape through uninitialized receipt variables.
         payload = None
-        if not (body_truncated or body_length_mismatch):
+        if not (body_truncated or body_length_mismatch or media_type_unverified):
             try:
                 payload = json.loads(body, object_pairs_hook=_unique_vendor_json_object,
                                      parse_constant=_reject_vendor_nonfinite)
@@ -145,7 +156,8 @@ def get(url, params, token):
         return {"http_status": None, "error": "NETWORK_UNAVAILABLE", "payload": None,
                 "retrieved_at": utcnow(), "requested_at": requested_at,
                 "body_sha256": None, "body_truncated": False,
-                "headers": {}, "body_length_mismatch": False}
+                "headers": {}, "body_length_mismatch": False,
+                "content_type_unverified": None}
     # Raw provider bodies and arbitrary error text must never reach the public
     # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
     return {"http_status": status,
@@ -154,9 +166,11 @@ def get(url, params, token):
             "body_truncated": body_truncated,
             "body_length_mismatch": body_length_mismatch,
             "error": ("RESPONSE_BODY_TOO_LARGE" if body_truncated else
-                      "RESPONSE_LENGTH_MISMATCH" if body_length_mismatch else None),
+                      "RESPONSE_LENGTH_MISMATCH" if body_length_mismatch else
+                      "UNVERIFIED_JSON_CONTENT_TYPE" if media_type_unverified else None),
             "payload": payload, "retrieved_at": utcnow(),
-            "requested_at": requested_at, "headers": headers}
+            "requested_at": requested_at, "headers": headers,
+            "content_type_unverified": media_type_unverified}
 
 
 def category(receipt):
@@ -250,7 +264,8 @@ class Budget:
             self.stopped = failure
         elif failure in {"MALFORMED_RESPONSE", "UNEXPECTED_PROVIDER_STATUS",
                          "PROVIDER_ERROR", "RESPONSE_BODY_TOO_LARGE",
-                         "RESPONSE_LENGTH_MISMATCH", "MALFORMED_HTTP_STATUS"}:
+                         "RESPONSE_LENGTH_MISMATCH", "UNVERIFIED_JSON_CONTENT_TYPE",
+                         "MALFORMED_HTTP_STATUS"}:
             # Ambiguous vendor errors may conceal a quota or entitlement
             # denial. Preserve the first receipt, but do not spend another
             # paid request on this provider in the same bounded checkpoint.
@@ -330,6 +345,7 @@ def observation(provider, symbol, day, receipt):
                                     else receipt.get("body_sha256")),
               "response_body_truncated": receipt.get("body_truncated") is True,
               "response_length_mismatch": receipt.get("body_length_mismatch") is True,
+              "response_content_type_unverified": receipt.get("content_type_unverified") is True,
               "validation_status": "BLOCKED",
               "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
                             else "https://api.twelvedata.com/time_series",

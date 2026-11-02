@@ -285,7 +285,8 @@ class ReconciliationTests(unittest.TestCase):
         class FakeResponse:
             code=200
             headers={'Retry-After':'60', 'X-RateLimit-Remaining':'2',
-                     'X-RateLimit-Reset':'token='+secret}
+                     'X-RateLimit-Reset':'token='+secret,
+                     'Content-Type':'application/json'}
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, n):
@@ -478,7 +479,7 @@ class ReconciliationTests(unittest.TestCase):
         import hashlib
         class RawResponse:
             code = 200
-            headers = {}
+            headers = {"Content-Type": "application/json"}
             def __init__(self, raw): self.raw = raw
             def __enter__(self): return self
             def __exit__(self, *args): return False
@@ -517,7 +518,7 @@ class ReconciliationTests(unittest.TestCase):
         # It must be censored without retaining a misleading SHA256.
         class Oversized:
             code = 200
-            headers = {}
+            headers = {"Content-Type": "application/json"}
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, limit):
@@ -544,7 +545,7 @@ class ReconciliationTests(unittest.TestCase):
         raw += b' ' * (150000 - len(raw))
         class Boundary:
             code = 200
-            headers = {}
+            headers = {"Content-Type": "application/json"}
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, limit):
@@ -687,6 +688,61 @@ class ReconciliationTests(unittest.TestCase):
         self.assertFalse(result['outcome_scoring_eligible'])
 
 
+    def test_json_content_type_missing_wrong_or_duplicate_fails_closed(self):
+        # HTTP 200 plus parseable JSON is insufficient if the server did not
+        # provide one unambiguous JSON media type. Preserve a bounded hash,
+        # but never treat the payload as a valid vendor daily bar.
+        from email.message import Message
+        raw = b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+
+        class Response:
+            def __init__(self, types, code=200):
+                self.code = code
+                self.headers = Message()
+                for value in types:
+                    self.headers.add_header("Content-Type", value)
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                self_limit = limit
+                if self_limit != 150001: raise AssertionError("bounded read changed")
+                return raw
+
+        for types in ((), ("text/plain",), ("application/octet-stream",),
+                      ("application/json", "application/json"),
+                      ("application/json", "text/html")):
+            with self.subTest(types=types), patch.object(
+                    m, "_open_no_redirect", return_value=Response(types)):
+                got = m.get("https://api.massive.com/v1/open-close", {}, "fixture")
+            self.assertEqual(got["error"], "UNVERIFIED_JSON_CONTENT_TYPE")
+            self.assertTrue(got["content_type_unverified"])
+            self.assertIsNone(got["payload"])
+            self.assertIsNotNone(got["body_sha256"])
+            self.assertEqual(m.category(got), "UNVERIFIED_JSON_CONTENT_TYPE")
+            row = m.observation("MASSIVE", "AAPL", "2026-10-27", got)
+            self.assertEqual(row["validation_status"], "BLOCKED")
+            self.assertTrue(row["response_content_type_unverified"])
+            self.assertIsNone(row["price"])
+            with patch.object(m, "get", return_value=got) as fetch:
+                budget = m.Budget(4)
+                budget.fetch("url", {}, "fixture", expected_status="OK")
+                self.assertEqual(budget.fetch("url", {}, "fixture")["error"],
+                                 "UNVERIFIABLE_PROVIDER_RESPONSE")
+                fetch.assert_called_once()
+
+        with patch.object(m, "_open_no_redirect",
+                          return_value=Response(("application/json; charset=utf-8",))):
+            valid = m.get("https://api.massive.com/v1/open-close", {}, "fixture")
+        self.assertIsNone(valid["error"])
+        self.assertFalse(valid["content_type_unverified"])
+        self.assertEqual(valid["payload"]["close"], 100)
+
+        # An explicit HTTP authorization denial takes precedence over a
+        # missing media type; the budget still stops on that first request.
+        with patch.object(m, "_open_no_redirect", return_value=Response((), 403)):
+            denied = m.get("https://api.massive.com/v1/open-close", {}, "fixture")
+        self.assertEqual(m.category(denied), "ENTITLEMENT_OR_ACCESS")
+
     def test_declared_http_length_mismatch_censors_complete_hash_and_budget(self):
         # A valid-looking JSON prefix cannot establish a complete receipt
         # when Content-Length contradicts the bytes actually received.
@@ -694,7 +750,8 @@ class ReconciliationTests(unittest.TestCase):
         raw = b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
         class FakeResponse:
             code = 200
-            def __init__(self, declared): self.headers = {"Content-Length": declared}
+            def __init__(self, declared):
+                self.headers = {"Content-Length": declared, "Content-Type": "application/json"}
             def __enter__(self): return self
             def __exit__(self, *args): return False
             def read(self, limit):
@@ -743,6 +800,7 @@ class ReconciliationTests(unittest.TestCase):
             code = 200
             def __init__(self, lengths):
                 self.headers = Message()
+                self.headers.add_header("Content-Type", "application/json")
                 for length in lengths:
                     self.headers.add_header("Content-Length", length)
             def __enter__(self): return self
