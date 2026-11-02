@@ -1,0 +1,23 @@
+# OBSIDIAN Research Engineering — 2026-11-02 15:53 CST, exact EOD conflict inventory
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Branch `research/obsidian-early-rug-20261025` only. P0-1 source-claim audit integrity; NOT official closing-price authentication, a verified forward outcome, a prediction success, a trade or SMG permission.
+
+## Defect and tested correction
+
+The all-source EOD conflict inventory used Python Decimal's default 28-digit arithmetic context. Although it parsed high-precision supplied source prices as Decimal, the expression `close <= prior * Decimal("0.8")` could round the previous-close threshold and classify a source claim on the wrong side of a 20% decline. Likewise `max(price) - min(price) > 0.005` could round a real difference just above half a cent into apparent agreement. This affected both structurally valid sources and rejected third-source conflict claims. It did NOT establish that any observed vendor price was authentic.
+
+Implementation commit `169f4aad8b4a1e6d1cd049a6d117aaafa4b5f59b` introduced exact high-precision diagnostic helpers with a 512-digit local arithmetic context and a documented 100-significant-digit bound on supplied numeric price claims (consistent with the bounded vendor diagnostic). Oversized claims are indexed, retained as unparseable/censored, and never silently discarded. Original source rows, price thresholds, frozen labels and denominator are not changed. Four new synthetic regression tests cover a misrounded 20% threshold, a sub-cent conflict beyond the half-cent tolerance, a conflicting rejected third source, and overprecision censoring.
+
+Hosted [prospective research CI run 41532340441](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41532340441) completed **SUCCESS** against implementation commit `169f4aad8b4a1e6d1cd049a6d117aaafa4b5f59b`. Downloaded job log confirms **644/644 prospective tests** and **4/4 ABC-board tests** passed; all four new tests passed. This was offline deterministic verification only. No live vendor retrieval, provider entitlement, exchange-close provenance or accuracy claim was established by CI.
+
+## Cross-task coordination and source evidence
+
+At this checkpoint, reviewed the October 28 roadmap, November 2 14:53 protected preclose report, original Rug Proof 12:20 intraday verification, original 15:22 After-Hours marker, current research branch and recent GitHub workflow runs. The separate After-Hours owner already created its original November 2 AFTERHOURS IEX and independent monitor markers; hosted runs [41527983788](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41527983788) and [41527983597](https://github.com/Dirtyhandgernandes/Dudebot/actions/runs/41527983597) completed success. Their artifacts 13179494453 and 13179429754 are present/unexpired by GitHub metadata, expiry 2027-01-31; no ZIP rehash was performed in this checkpoint. The protected 14:52 IEX artifact 13177274914 and Rug Proof delayed-SIP artifact 13176201670 also remain present/unexpired by metadata. Durable off-platform archive remains **BACKUP_UNVERIFIED**.
+
+No Morning Movers, After-Hours, Early Decision Board, Rug Proof, IEX or independent-monitor marker was created, retried, duplicated or backfilled in this 15:53 engineering pass. The 12:47 intraday and 14:45–14:58 preclose gates were not invoked outside their original windows. No double-counted issuer/day outcomes.
+
+## Unresolved external acceptance gates
+
+The original frozen 8,510-security cohort, 34,040 issuer×0/+1/+2/+3 actual-trading-session slots, 136-name watchlist, JDZG stale/halt investigation and historical baseline labels remain unchanged. The November 2 8,501-security IEX captures are separate, single-venue, source-limited prospective evidence, not authenticated regular-session official closes. **Zero independently authenticated regular-session close pairs from two genuinely independent underlying provider organizations**; missing or immature outcomes remain **CENSORED**. No complete authenticated prior-close, security-ID, corporate-action, exchange-session, source-timestamp, provider ownership or third-source conflict proof. Massive live entitlement remains unverified; no actual SMG blocked-symbol/account permissions or shortability established. No verified 20%+ prediction success, false-positive rate, fills, costs, squeezes, profits or trading edge.
+
+Next P0-1 gate requires genuine independent official close and prior-close receipts with raw source provenance and identity/action/session/conflict inventory. No credentials, main/production changes, market orders, trading notifications, or silent baseline policy changes.
