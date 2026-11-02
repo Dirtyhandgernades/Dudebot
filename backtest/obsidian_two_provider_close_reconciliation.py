@@ -181,6 +181,11 @@ def category(receipt):
     if type(status) is int and status in (401, 403, 429):
         return {401: "AUTHENTICATION", 403: "ENTITLEMENT_OR_ACCESS",
                 429: "RATE_LIMIT"}[status]
+    # A redirect can change the claimed provider origin. Its HTTP status
+    # takes precedence over a missing/ambiguous JSON Content-Type or body
+    # framing; never let a secondary parse error obscure a 3xx response.
+    if type(status) is int and 300 <= status < 400:
+        return "UNTRUSTED_REDIRECT"
     if receipt.get("error"):
         return receipt["error"]
     # Only the transport's integer HTTP status is admissible. Malformed
