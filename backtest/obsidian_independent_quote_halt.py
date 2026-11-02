@@ -153,19 +153,23 @@ def parse_nasdaq_halts(raw, captured_at):
                         else "EXPLICIT_DATE_AND_TRADE_TIME")
         if resume_quality != "EXPLICIT_DATE_AND_TRADE_TIME":
             resume=None
-        # The same symbol+halt timestamp is one event. A duplicate RSS row
-        # with a changed reason or trade-resumption claim is contradictory
-        # evidence, not an additional independent halt or a safe overwrite.
-        # Preserve exact identical duplicates only; fail closed on revisions
-        # without an authenticated publication-order/source receipt.
+        # The same symbol+halt timestamp is one event. Different explicit
+        # trade-resumption times or reason codes are contradictory claims.
+        # A missing/incomplete resumption beside a complete one is NOT a
+        # competing time: retain both source rows, and let the downstream
+        # conservative halt-attention rule prefer the unresolved observation.
+        # Exact repeated rows are deduplicated without erasing conflicts.
         event_key=(symbol,halt.isoformat())
         event_claim=(resume.isoformat() if resume else None,
                      resume_quality, fields.get("reasoncode") or None)
-        if event_key in seen:
-            if seen[event_key] != event_claim:
-                raise ValueError("HALT_RSS_CONFLICTING_DUPLICATE_EVENT")
+        prior_claims=seen.setdefault(event_key,set())
+        if (any(old[2] != event_claim[2] for old in prior_claims)
+                or any(old[0] is not None and event_claim[0] is not None
+                       and old[0] != event_claim[0] for old in prior_claims)):
+            raise ValueError("HALT_RSS_CONFLICTING_DUPLICATE_EVENT")
+        if event_claim in prior_claims:
             continue
-        seen[event_key]=event_claim
+        prior_claims.add(event_claim)
         if halt > captured_at.astimezone(EASTERN):
             state="HALT_FUTURE_EVENT_NOT_YET_EFFECTIVE"
         elif resume is None:
