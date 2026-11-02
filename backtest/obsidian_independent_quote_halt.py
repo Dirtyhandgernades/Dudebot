@@ -243,6 +243,10 @@ def inspect_sources(symbols, now, halt_xml=None, massive_payload=None):
 
 def fetch_once(symbols, now, massive_token=None, session=None):
     """At most one official halt GET and one Massive GET per research checkpoint."""
+    # Validate time, phase, symbol syntax and uniqueness BEFORE any HTTP GET.
+    # Direct callers must not bypass the main() collection gate or send malformed
+    # tickers to a credential-bearing optional provider request.
+    inspect_sources(symbols, now)
     # Offline deterministic tests inject a read-only session; only the real
     # hosted network collector needs the optional requests dependency.
     if session is None:

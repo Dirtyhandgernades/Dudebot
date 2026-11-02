@@ -138,6 +138,27 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(report["quote_source_connected"])
         self.assertFalse(session.get.call_args.kwargs["allow_redirects"])
 
+    def test_direct_collector_rejects_weekend_before_any_get(self):
+        session=Mock()
+        with self.assertRaisesRegex(ValueError,"OUTSIDE_RESEARCH_CHECKPOINT"):
+            fetch_once(["JDZG"],datetime(2026,11,1,20,49,tzinfo=timezone.utc),
+                       massive_token="fixture-secret",session=session)
+        session.get.assert_not_called()
+
+    def test_direct_collector_rejects_bad_symbols_before_any_get(self):
+        session=Mock()
+        with self.assertRaisesRegex(ValueError,"INVALID_REQUESTED_SYMBOLS"):
+            fetch_once(["JDZG&apiKey=leak"],AT,massive_token="fixture-secret",
+                       session=session)
+        session.get.assert_not_called()
+
+    def test_direct_collector_rejects_duplicates_before_any_get(self):
+        session=Mock()
+        with self.assertRaisesRegex(ValueError,"DUPLICATE_REQUESTED_SYMBOL"):
+            fetch_once(["JDZG","JDZG"],AT,massive_token="fixture-secret",
+                       session=session)
+        session.get.assert_not_called()
+
     def test_network_adapter_failures_are_censored_without_leaking_tokens(self):
         class BrokenSession:
             def get(self, url, **kwargs):
