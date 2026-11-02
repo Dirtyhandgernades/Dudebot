@@ -1,0 +1,3 @@
+# OBSIDIAN Rug Proof — 2026-11-02 INTRADAY source marker
+
+RESEARCH_ONLY_NOT_AN_ORDER. This marker authorizes exactly one new, independently timestamped IEX source collection in the genuine 12:10–12:30 America/Chicago window on the regular Monday 2026-11-02 market session. Preserve the entire original attempted universe, missing/stale/blocked observations, source clock and hashes. This is not a backfill of the missed morning checkpoint, not an official close, and not a trade signal. GitHub Actions must independently reject capture unless its authenticated paper-provider market clock confirms is_open=true.
