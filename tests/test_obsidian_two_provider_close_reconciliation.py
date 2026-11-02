@@ -1296,4 +1296,47 @@ class ReconciliationTests(unittest.TestCase):
             self.assertIn("ORIGINAL_EXCHANGE_SOURCE_TIMESTAMP_NOT_AUTHENTICATED",
                           item["missing_official_close_proofs"])
 
+    def test_vendor_json_fraction_preserves_exact_source_digits_at_tolerance(self):
+        # Python json.loads normally rounds 100.0050000000000001 to 100.005,
+        # turning a genuine diagnostic >$0.005 disagreement into agreement.
+        class FakeResponse:
+            code = 200
+            headers = {'Content-Type': 'application/json'}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return (b'{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                        b'"close":100.0050000000000001,"sideband":0.0}')
+
+        with patch.object(m, '_open_no_redirect', return_value=FakeResponse()):
+            raw = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertIsNone(raw['error'])
+        self.assertEqual(str(raw['payload']['close']), '100.0050000000000001')
+        a = m.observation('MASSIVE', 'AAPL', '2026-10-27', raw)
+        b = m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', twelve())
+        self.assertEqual(a['price'], '100.0050000000000001')
+        self.assertEqual(m.compare(a, b, self.identity()),
+                         ('VENDOR_BAR_CONFLICT_NOT_OFFICIAL', '0.0050000000000001'))
+        self.assertFalse(a['identity_verified'])
+        self.assertIsNone(a['source_timestamp'])
+
+    def test_vendor_json_extreme_and_overprecise_auxiliary_values_still_censor(self):
+        class FakeResponse:
+            code = 200
+            headers = {'Content-Type': 'application/json'}
+            def __init__(self, extra): self.extra = extra
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return ('{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                        '"close":100,"aux":' + self.extra + '}').encode()
+        for extra in ('1e309', '1e-400', '0.' + '1' * 101):
+            with self.subTest(extra=extra[:20]), patch.object(
+                    m, '_open_no_redirect', return_value=FakeResponse(extra)):
+                raw = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+                self.assertIsNone(raw['payload'])
+                self.assertEqual(m.category(raw), 'MALFORMED_RESPONSE')
+                self.assertEqual(m.observation('MASSIVE', 'AAPL', '2026-10-27',
+                                               raw)['validation_status'], 'BLOCKED')
+
 if __name__=='__main__':unittest.main()

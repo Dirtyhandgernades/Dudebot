@@ -91,15 +91,19 @@ def _reject_vendor_nonfinite(value):
 
 
 def _finite_vendor_float(value):
-    """Reject overflow and silent underflow in any vendor JSON numeric field.
+    """Preserve exact vendor decimal digits; reject extreme exponents/precision.
 
-    A JSON exponent such as 1e309 normally decodes to float('inf'), while
-    1e-400 silently becomes 0. Neither preserves the supplied price/source
-    claim, including when it appears in a nested field rather than 'close'.
+    Python's JSON float decoder rounds 100.0050000000000001 to 100.005,
+    potentially hiding a diagnostic conflict at the $0.005 tolerance.
+    Decimal preserves the source token. The bounded receipt still rejects
+    1e309/1e-400, including in auxiliary fields, without float overflow or
+    underflow. This is vendor-bar integrity, NOT official-close proof.
     """
     try:
-        number = float(value)
-        if not math.isfinite(number) or (number == 0.0 and Decimal(value) != 0):
+        number = Decimal(value)
+        if (not number.is_finite()
+                or (number != 0 and not -100 <= number.adjusted() <= 100)
+                or len(number.as_tuple().digits) > 100):
             raise ValueError("NONREPRESENTABLE_VENDOR_JSON_FLOAT")
         return number
     except (InvalidOperation, OverflowError) as exc:
