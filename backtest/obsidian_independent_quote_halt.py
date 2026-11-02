@@ -238,12 +238,21 @@ def inspect_sources(symbols, now, halt_xml=None, massive_payload=None):
     result=[]
     for s in symbols:
         hs=bysymbol.get(s,[])
-        state=("HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING" if any(
-            x["halt_state_at_receipt"] in ("HALT_REPORTED_WITHOUT_VERIFIED_RESUME",
-                "HALT_SCHEDULED_RESUMPTION_NOT_YET_ELAPSED") for x in hs)
-            else "NO_ACTIVE_HALT_CONFIRMED_FROM_RECEIVED_FEED_ONLY")
+        # A finite RSS feed cannot certify a symbol is actively tradable.
+        # Even an elapsed scheduled resumption requires a new live exchange
+        # status check; future halt notices must not become past-asof halts.
+        states={x["halt_state_at_receipt"] for x in hs}
         if halt_xml is None:
             state="HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION"
+        elif states.intersection(("HALT_REPORTED_WITHOUT_VERIFIED_RESUME",
+                                  "HALT_SCHEDULED_RESUMPTION_NOT_YET_ELAPSED")):
+            state="HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING"
+        elif "RESUMPTION_TIME_HAS_PASSED_RECHECK_LIVE_STATUS" in states:
+            state="RESUMPTION_TIME_ELAPSED_LIVE_STATUS_UNVERIFIED"
+        elif "HALT_FUTURE_EVENT_NOT_YET_EFFECTIVE" in states:
+            state="FUTURE_HALT_NOTICE_LIVE_STATUS_UNVERIFIED"
+        else:
+            state="NO_HALT_ROW_IN_FINITE_RSS_NOT_LIVE_CLEARANCE"
         result.append({"ticker":s,"independent_quote":quotes[s],
                        "halt_evidence":hs,"halt_attention":state,
                        "smg_short_authorized":False,

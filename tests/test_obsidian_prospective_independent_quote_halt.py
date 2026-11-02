@@ -31,8 +31,32 @@ class SourceGateTests(unittest.TestCase):
         empty=b"<rss><channel><title>No halts</title></channel></rss>"
         row=inspect_sources(["JDZG"],AT,empty)
         self.assertEqual(row["rows"][0]["halt_attention"],
-                         "NO_ACTIVE_HALT_CONFIRMED_FROM_RECEIVED_FEED_ONLY")
+                         "NO_HALT_ROW_IN_FINITE_RSS_NOT_LIVE_CLEARANCE")
         self.assertFalse(row["complete_halt_history_or_guaranteed_open"])
+
+    def test_elapsed_resumption_never_becomes_positive_live_clearance(self):
+        after=datetime(2026,10,28,20,40,tzinfo=timezone.utc)
+        row=inspect_sources(["JDZG"],after,XML)["rows"][0]
+        self.assertEqual(row["halt_attention"],
+                         "RESUMPTION_TIME_ELAPSED_LIVE_STATUS_UNVERIFIED")
+        self.assertFalse(row["smg_short_authorized"])
+
+    def test_future_halt_notice_not_retroactively_active_or_cleared(self):
+        future=XML.replace(b"10/28/2026",b"10/29/2026")
+        row=inspect_sources(["JDZG"],AT,future)["rows"][0]
+        self.assertEqual(row["halt_attention"],
+                         "FUTURE_HALT_NOTICE_LIVE_STATUS_UNVERIFIED")
+        self.assertFalse(row["smg_short_authorized"])
+
+    def test_mixed_halt_history_prefers_unresolved_halt_over_elapsed_resume(self):
+        unresolved=XML.replace(b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime>",b"")
+        extra=unresolved.split(b"<item>")[1].split(b"</item>")[0]
+        mixed=XML.replace(b"</channel>",b"<item>"+extra+b"</item></channel>")
+        after=datetime(2026,10,28,20,40,tzinfo=timezone.utc)
+        row=inspect_sources(["JDZG"],after,mixed)["rows"][0]
+        self.assertEqual(row["halt_attention"],
+                         "HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING")
+        self.assertFalse(row["smg_short_authorized"])
 
     def test_stale_massive_quote_blocks_freshness(self):
         t=int(datetime(2026,10,28,19,00,tzinfo=timezone.utc).timestamp()*1e9)
