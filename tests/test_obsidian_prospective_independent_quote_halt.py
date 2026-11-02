@@ -138,5 +138,43 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(report["quote_source_connected"])
         self.assertFalse(session.get.call_args.kwargs["allow_redirects"])
 
+    def test_network_adapter_failures_are_censored_without_leaking_tokens(self):
+        class BrokenSession:
+            def get(self, url, **kwargs):
+                raise RuntimeError("private credential echoed by transport")
+        report=fetch_once(["JDZG"],AT,massive_token="secret-fixture",session=BrokenSession())
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_UNAVAILABLE_OR_TRANSPORT_ERROR")
+        self.assertEqual(report["quote_fetch_error"],"INDEPENDENT_QUOTES_UNAVAILABLE_OR_TRANSPORT_ERROR")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["quote_source_connected"])
+        self.assertNotIn("secret-fixture",str(report))
+        self.assertFalse(report["trade_authorized"])
+
+    def test_malformed_200_nasdaq_xml_is_censored_not_open(self):
+        session=Mock()
+        session.get.return_value=Mock(status_code=200,url=NASDAQ_RSS,
+                                      content=b"<rss><channel><item>")
+        report=fetch_once(["JDZG"],AT,session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_MALFORMED_OR_UNVERIFIABLE")
+        self.assertEqual(report["halt_feed_status"],"NASDAQ_HALT_FEED_NOT_RETRIEVED")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["complete_halt_history_or_guaranteed_open"])
+
+    def test_malformed_200_massive_payload_is_censored_without_losing_halt(self):
+        session=Mock()
+        session.get.side_effect=[
+            Mock(status_code=200,url=NASDAQ_RSS,content=XML),
+            Mock(status_code=200,url=MASSIVE_SNAPSHOT,
+                 json=Mock(return_value={"status":"OK","tickers":"not-a-list"})),
+        ]
+        report=fetch_once(["JDZG"],AT,massive_token="secret-fixture",session=session)
+        self.assertEqual(report["quote_fetch_error"],"INDEPENDENT_QUOTES_MALFORMED_OR_UNVERIFIABLE")
+        self.assertFalse(report["quote_source_connected"])
+        self.assertEqual(report["rows"][0]["independent_quote"]["status"],
+                         "INDEPENDENT_QUOTE_PROVIDER_NOT_CONNECTED")
+        self.assertEqual(report["halt_feed_status"],"NASDAQ_RSS_PARSED_WITH_ASOF_LIMITATIONS")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING")
+        self.assertFalse(report["trade_authorized"])
+
 if __name__=="__main__":
     unittest.main()

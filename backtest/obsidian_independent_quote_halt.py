@@ -263,8 +263,10 @@ def fetch_once(symbols, now, massive_token=None, session=None):
                 halt_error="HALT_RSS_UNTRUSTED_RESPONSE_ORIGIN"
         else:
             halt_error="HALT_RSS_HTTP_"+str(response.status_code)
-    except OSError:
-        halt_error="HALT_RSS_UNAVAILABLE"
+    except Exception:
+        # Requests and injected read-only adapters can raise non-OSError
+        # transport exceptions. Never expose provider error text or tokens.
+        halt_error="HALT_RSS_UNAVAILABLE_OR_TRANSPORT_ERROR"
     prices=None
     massive_error=None
     if massive_token:
@@ -281,8 +283,25 @@ def fetch_once(symbols, now, massive_token=None, session=None):
                     massive_error="INDEPENDENT_QUOTES_UNTRUSTED_RESPONSE_ORIGIN"
             else:
                 massive_error="INDEPENDENT_QUOTES_HTTP_"+str(response.status_code)
-        except (OSError, ValueError):
-            massive_error="INDEPENDENT_QUOTES_UNAVAILABLE"
+        except Exception:
+            # Provider adapters may fail with RequestException, JSON decoding
+            # errors or other transport failures. Censor without leaking URLs.
+            massive_error="INDEPENDENT_QUOTES_UNAVAILABLE_OR_TRANSPORT_ERROR"
+    # HTTP 200 and an expected origin do not establish parseable source data.
+    # Reject malformed payloads BEFORE inspect_sources, so a broken upstream
+    # response cannot crash the finite checkpoint or imply an unhalted symbol.
+    if halts is not None:
+        try:
+            parse_nasdaq_halts(halts, now)
+        except (ValueError, TypeError, ET.ParseError, OverflowError):
+            halts=None
+            halt_error="HALT_RSS_MALFORMED_OR_UNVERIFIABLE"
+    if prices is not None:
+        try:
+            parse_massive_snapshot(prices, symbols, now)
+        except (ValueError, TypeError, OverflowError):
+            prices=None
+            massive_error="INDEPENDENT_QUOTES_MALFORMED_OR_UNVERIFIABLE"
     report=inspect_sources(symbols,now,halts,prices)
     report["halt_fetch_error"]=halt_error
     report["quote_fetch_error"]=massive_error
