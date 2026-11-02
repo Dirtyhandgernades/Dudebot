@@ -255,5 +255,43 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
 
+
+    def test_high_precision_half_cent_conflict_cannot_round_into_agreement(self):
+        # Default Decimal(28) subtraction rounds this to exactly 0.005.
+        # Preserve the supplied digits and censor the complete source set.
+        low = "100." + "0" * 60 + "1"
+        high = "100.005" + "0" * 57 + "2"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close=low),
+            row("two", "two.example", close=high),
+        ], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertIn("CONFLICTING_REGULAR_CLOSE_REPORTS", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_high_precision_20pct_threshold_cannot_round_away_straddle(self):
+        # Exact 80%-of-prior threshold lies between the two claimed closes;
+        # Decimal(28) rounds the threshold down to 8.0 and misses it.
+        prior = "10." + "0" * 59 + "1"
+        below = "8." + "0" * 60 + "4"
+        above = "8." + "0" * 60 + "9"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close=below, prior=prior),
+            row("two", "two.example", close=above, prior=prior),
+        ], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertIn("TWENTY_PERCENT_THRESHOLD_STRADDLED", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_overprecision_vendor_claim_is_censored_without_denominator_loss(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"),
+            row("two", "two.example", prior="1." + "0" * 101 + "1"),
+        ], COLLECTED)
+        self.assertEqual(result["supplied_reports"], 2)
+        self.assertEqual(result["accepted_reports"], 1)
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

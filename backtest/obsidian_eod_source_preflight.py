@@ -5,7 +5,7 @@ provider, or authorize a trade. All collected reports must be supplied: do not
 select two agreeing reports while silently dropping a contradictory third.
 """
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint, _safe_host
 from backtest.obsidian_two_provider_close_reconciliation import _scheduled_cash_session_2026
 from zoneinfo import ZoneInfo
@@ -36,9 +36,25 @@ def _positive(value):
     # a later 20%-threshold multiplication raises decimal.Overflow and aborts
     # the entire complete-source audit. Keep them as rejected/censored rows.
     # This is a generous arithmetic guard, NOT an SMG price eligibility rule.
-    if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
+    if (not number.is_finite() or number <= 0
+            or not -100 <= number.adjusted() <= 100
+            or len(number.as_tuple().digits) > 100):
         return None
     return number
+
+
+def _exact_spread(values):
+    """Exact source-price spread within the 100-significant-digit intake bound."""
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return max(values) - min(values)
+
+
+def _exact_threshold(prior):
+    """Avoid default-context rounding at the 20% claim boundary."""
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return prior * Decimal("0.8")
 
 
 def _canonical_label(value):
@@ -181,9 +197,9 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     if accepted:
         closes = [x[3] for x in accepted]
         priors = [x[4] for x in accepted]
-        if max(closes) - min(closes) > MAX_PRICE_DIFFERENCE:
+        if _exact_spread(closes) > MAX_PRICE_DIFFERENCE:
             issues.add("CONFLICTING_REGULAR_CLOSE_REPORTS")
-        if max(priors) - min(priors) > MAX_PRICE_DIFFERENCE:
+        if _exact_spread(priors) > MAX_PRICE_DIFFERENCE:
             issues.add("CONFLICTING_PREVIOUS_CLOSE_REPORTS")
     # Numerical half-cent agreement can still straddle the exact 20% event
     # boundary. Never silently turn an ambiguous classification into a hit.
@@ -192,7 +208,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     if len(accepted) >= 2:
         if len(set(priors)) > 1:
             issues.add("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
-        elif min(closes) <= priors[0] * Decimal("0.8") < max(closes):
+        elif min(closes) <= _exact_threshold(priors[0]) < max(closes):
             issues.add("TWENTY_PERCENT_THRESHOLD_STRADDLED")
     return {
         "mode": MODE,
