@@ -147,6 +147,35 @@ class SourceGateTests(unittest.TestCase):
         self.assertTrue(result["JDZG"]["quote_price_censored"])
         self.assertIsNotNone(result["JDZG"]["price_at"])
 
+    def test_massive_nanosecond_freshness_boundaries_fail_closed(self):
+        # A float timestamp would round these 1ns violations to zero or
+        # exactly 60 seconds and incorrectly expose an unverified price.
+        receipt_ns = int(AT.timestamp()) * 1_000_000_000
+        cases = (
+            (receipt_ns + 1, "FUTURE_DATED_PROVIDER_PRINT", -1, False),
+            (receipt_ns - 60_000_000_001, "DELAYED_OR_STALE_PROVIDER_PRINT",
+             60_000_000_001, False),
+            (receipt_ns - 60_000_000_000,
+             "FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED", 60_000_000_000, True),
+        )
+        for stamp, expected, age_ns, fresh in cases:
+            with self.subTest(stamp=stamp):
+                payload={"status":"OK","tickers":[
+                    {"ticker":"JDZG","lastTrade":{"t":stamp,"p":5.21}}]}
+                row=parse_massive_snapshot(payload,["JDZG"],AT)["JDZG"]
+                self.assertEqual(row["status"],expected)
+                self.assertEqual(row["age_nanoseconds"],age_ns)
+                self.assertEqual(row["source_trade_epoch_ns"],stamp)
+                self.assertEqual(row["price"],5.21 if fresh else None)
+                self.assertEqual(row["quote_price_censored"],not fresh)
+                self.assertFalse(row["has_verified_realtime_entitlement"])
+                self.assertFalse(row["independent_official_close_verified"])
+
+    def test_massive_direct_parser_rejects_naive_capture_clock(self):
+        payload={"status":"OK","tickers":[]}
+        with self.assertRaisesRegex(ValueError,"AWARE_INDEPENDENT_CAPTURE_TIME_REQUIRED"):
+            parse_massive_snapshot(payload,["JDZG"],datetime(2026,10,28,19,28))
+
     def test_future_massive_quote_is_censored_not_usable_price(self):
         t=int(datetime(2026,10,28,19,28,10,tzinfo=timezone.utc).timestamp()*1e9)
         payload={"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":t,"p":9.01}}]}

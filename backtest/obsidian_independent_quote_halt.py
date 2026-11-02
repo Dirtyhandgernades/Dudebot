@@ -252,6 +252,15 @@ def _strict_massive_json(raw):
 
 def parse_massive_snapshot(payload, symbols, captured_at):
     """Independently supplied timestamped trades; provider plan is unverified."""
+    if not isinstance(captured_at, datetime) or captured_at.utcoffset() is None:
+        raise ValueError("AWARE_INDEPENDENT_CAPTURE_TIME_REQUIRED")
+    # Massive timestamps are integer nanoseconds. Float conversion rounds
+    # away sub-microsecond future/stale boundary violations and can incorrectly
+    # release a quote into the fresh diagnostic price field.
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    elapsed = captured_at.astimezone(timezone.utc) - epoch
+    captured_ns = ((elapsed.days * 86400 + elapsed.seconds) * 1_000_000
+                   + elapsed.microseconds) * 1000
     if not isinstance(payload,dict) or payload.get("status")!="OK":
         raise ValueError("INDEPENDENT_PROVIDER_RETURNED_NON_OK")
     if not isinstance(payload.get("tickers"),list):
@@ -272,14 +281,20 @@ def parse_massive_snapshot(payload, symbols, captured_at):
                          "price_at":None,"independent_provider":"MASSIVE"}
             continue
         try:
-            when=datetime.fromtimestamp(t / 1_000_000_000, tz=timezone.utc)
-        except (OverflowError,OSError,ValueError):
+            seconds, nanoseconds = divmod(t, 1_000_000_000)
+            when = epoch + timedelta(seconds=seconds,
+                                     microseconds=nanoseconds // 1000)
+        except (OverflowError, OSError, ValueError):
             output[sym]={"status":"INVALID_INDEPENDENT_TIMESTAMP","price":None,
                          "price_at":None,"independent_provider":"MASSIVE"}
             continue
-        age=(captured_at-when).total_seconds()
-        status=("FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED" if 0<=age<=60
-                else "FUTURE_DATED_PROVIDER_PRINT" if age<0
+        # Compare exact source nanoseconds, not the microsecond-truncated
+        # display datetime. One nanosecond in the future or past the 60s
+        # freshness boundary is enough to censor the diagnostic price.
+        age_ns = captured_ns - t
+        status=("FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED"
+                if 0 <= age_ns <= 60_000_000_000
+                else "FUTURE_DATED_PROVIDER_PRINT" if age_ns < 0
                 else "DELAYED_OR_STALE_PROVIDER_PRINT")
         # A stale or future-dated trade may be retained as a timestamped
         # diagnostic, but its value must not escape as a usable quote. Status
@@ -287,7 +302,9 @@ def parse_massive_snapshot(payload, symbols, captured_at):
         # a non-null price without checking the source-freshness label.
         fresh = status == "FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED"
         output[sym]={"status":status,"price":p if fresh else None,
-                     "price_at":when.isoformat(),"age_seconds":round(age,3),
+                     "price_at":when.isoformat(),
+                     "source_trade_epoch_ns":t, "age_nanoseconds":age_ns,
+                     "age_seconds":round(age_ns / 1_000_000_000,3),
                      "independent_provider":"MASSIVE",
                      "quote_price_censored":not fresh,
                      "has_verified_realtime_entitlement":False,
