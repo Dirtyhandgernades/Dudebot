@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 import hashlib
 import json
+import math
 import re
 import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
@@ -170,6 +171,40 @@ def parse_nasdaq_halts(raw, captured_at):
     return rows
 
 
+def _strict_massive_json(raw):
+    """Reject ambiguous vendor JSON before interpreting any trade price.
+
+    A raw-body fingerprint is useful for later audits, but neither the hash
+    nor a successful HTTPS response authenticates feed entitlement or closes.
+    """
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= 3_000_000:
+        raise ValueError("MISSING_OR_OVERSIZE_INDEPENDENT_JSON")
+
+    def unique_pairs(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                raise ValueError("DUPLICATE_INDEPENDENT_JSON_KEY")
+            obj[key] = value
+        return obj
+
+    def reject_constant(value):
+        raise ValueError("NONFINITE_INDEPENDENT_JSON_CONSTANT")
+
+    def finite_float(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("NONFINITE_INDEPENDENT_JSON_EXPONENT")
+        return number
+
+    try:
+        return json.loads(raw.decode("utf-8", errors="strict"),
+                          object_pairs_hook=unique_pairs,
+                          parse_constant=reject_constant, parse_float=finite_float)
+    except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
+        raise ValueError("MALFORMED_OR_AMBIGUOUS_INDEPENDENT_JSON") from exc
+
+
 def parse_massive_snapshot(payload, symbols, captured_at):
     """Independently supplied timestamped trades; provider plan is unverified."""
     if not isinstance(payload,dict) or payload.get("status")!="OK":
@@ -304,6 +339,7 @@ def fetch_once(symbols, now, massive_token=None, session=None):
         # transport exceptions. Never expose provider error text or tokens.
         halt_error="HALT_RSS_UNAVAILABLE_OR_TRANSPORT_ERROR"
     prices=None
+    massive_raw=None
     massive_error=None
     if massive_token:
         try:
@@ -314,7 +350,7 @@ def fetch_once(symbols, now, massive_token=None, session=None):
             if response.status_code==200:
                 if _trusted_response_origin(getattr(response, "url", None),
                                             MASSIVE_SNAPSHOT):
-                    prices=response.json()
+                    massive_raw=response.content
                 else:
                     massive_error="INDEPENDENT_QUOTES_UNTRUSTED_RESPONSE_ORIGIN"
             else:
@@ -332,8 +368,9 @@ def fetch_once(symbols, now, massive_token=None, session=None):
         except (ValueError, TypeError, ET.ParseError, OverflowError):
             halts=None
             halt_error="HALT_RSS_MALFORMED_OR_UNVERIFIABLE"
-    if prices is not None:
+    if massive_raw is not None:
         try:
+            prices=_strict_massive_json(massive_raw)
             parse_massive_snapshot(prices, symbols, now)
         except (ValueError, TypeError, OverflowError):
             prices=None
@@ -341,6 +378,14 @@ def fetch_once(symbols, now, massive_token=None, session=None):
     report=inspect_sources(symbols,now,halts,prices)
     report["halt_fetch_error"]=halt_error
     report["quote_fetch_error"]=massive_error
+    # Hash only a bounded body; never archive raw provider JSON or URLs
+    # containing query credentials. Rejected claims remain censored.
+    bounded_raw=(isinstance(massive_raw,bytes) and
+                 0 < len(massive_raw) <= 3_000_000)
+    report["independent_quote_receipt_sha256"]=(
+        hashlib.sha256(massive_raw).hexdigest() if bounded_raw else None)
+    report["independent_quote_receipt_bytes"]=len(massive_raw) if bounded_raw else None
+    report["independent_quote_receipt_independently_authenticated"]=False
     return report
 
 
