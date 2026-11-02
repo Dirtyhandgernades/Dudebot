@@ -1,0 +1,19 @@
+# OBSIDIAN Research Engineering — November 1, 2026, 18:47 CST: partial source-body price conflicts
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Sunday was not an open U.S. cash-equity trading session. No IEX/SIP or protected preclose capture, no prospective marker, no Rug Proof duplicate, no market order, no main/production, credential, or notification change.
+
+## P0-1: complete-source conflict evidence integrity
+
+Implementation commit [33d9f09e958e3be8575d42b4d722ca070d249193](https://github.com/Dirtyhandgernades/Dudebot/commit/33d9f09e958e3be8575d42b4d722ca070d249193) corrects a gap in `backtest/obsidian_eod_source_body_binding_shadow.py`. Previously, its byte-bound price-conflict inventory grouped only sources where **both** current and previous regular-close prices were parseable. A rejected third source with a parseable, contradictory current close but an absent/unparseable prior close (or vice versa) was retained as a rejected row but its available price did not participate in the price-conflict inventory. That could conceal a material disagreement when comparing the complete source packet.
+
+The isolated research-only change indexes parseable current-close and previous-close assertions **independently**, including from rejected rows. It retains original indexed source positions, full paired-price groups, all original receipt faults, and explicit new current/prior single-field groups. Any contradiction sets the original generic `PARSED_BODY_PRICE_CLAIM_CONFLICT` block plus a field-specific issue. Missing fields without disagreement do not invent a conflict. It does **not** promote rejected source evidence to a verified close, change baseline labels, or authorize frozen-cohort scoring.
+
+Hosted [prospective journal run 41368973961](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41368973961) completed **SUCCESS** at exact implementation SHA `33d9f09e958e3be8575d42b4d722ca070d249193`; inspected runner log: **602/602 prospective tests and 4/4 ABC-board tests passed (606 total)**. Three new synthetic regressions passed: rejected partial current-price conflict, rejected partial prior-price conflict, and absent prior price with no disagreement. Passing tests prove only the offline guard.
+
+## Protected source/forward cohort preservation
+
+Rechecked the original seven October 30 Actions artifacts via their respective run IDs: `12985950392`, `12995764777`, `13006191628`, `13006897253`, `13008429628`, `13010065001`, `13018333034`. All remain present, `expired=false`, with unchanged reported SHA-256 digests and January 28, 2027 expiration dates. This pass inspected metadata, **not** ZIP bytes; earlier independent ZIP rehash remains separate. Approved off-platform durable backup/restore remains **BACKUP_UNVERIFIED**.
+
+The frozen October 30 8,510-security cohort, 34,040 original 0/+1/+2/+3 actual-trading-session slots, 1,653 original price-only watches / 6,857 nonwatches, 136-name independent monitor roster (including nine off-universe references), JDZG stale/halt/floor investigation, and all historical labels remain untouched. The Oct 30 +1/+2/+3 actual sessions are Nov 2, 3 and 4 and were not mature Sunday. Separate Rug Proof anchors, 14:20 delayed SIP and after-close review were read and not duplicated.
+
+**Primary P0-1 blocker remains:** zero independently authenticated official regular-session close outcomes from two genuinely independent underlying provider organizations, with source-owned timestamps, exact previous-session close, complete third-source conflicts, verified security/class and corporate-action continuity, and actual exchange calendar. Massive live entitlement and SMG account-level short permission remain unverified. Missing observations remain censored; no 20%+ forward prediction success, precision/recall, false-positive rate, shares, fills, costs, squeezes or profit established. Next gates: authenticated official-close evidence and verified durable off-platform storage/restore.
