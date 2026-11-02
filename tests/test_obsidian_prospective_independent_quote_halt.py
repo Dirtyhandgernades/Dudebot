@@ -21,6 +21,29 @@ class SourceGateTests(unittest.TestCase):
         self.assertEqual(parsed[0]["halt_state_at_receipt"],
                          "HALT_SCHEDULED_RESUMPTION_NOT_YET_ELAPSED")
 
+    def test_duplicate_issue_symbol_does_not_silently_replace_halt_identity(self):
+        conflict=XML.replace(b"<n:IssueSymbol>JDZG</n:IssueSymbol>",
+                             b"<n:IssueSymbol>JDZG</n:IssueSymbol><n:IssueSymbol>TJGC</n:IssueSymbol>")
+        with self.assertRaisesRegex(ValueError,"HALT_RSS_DUPLICATE_FIELD"):
+            parse_nasdaq_halts(conflict,AT)
+
+    def test_duplicate_halt_time_does_not_silently_replace_event_time(self):
+        conflict=XML.replace(b"<n:HaltTime>14:14:21</n:HaltTime>",
+                             b"<n:HaltTime>14:14:21</n:HaltTime><n:HaltTime>15:14:21</n:HaltTime>")
+        with self.assertRaisesRegex(ValueError,"HALT_RSS_DUPLICATE_FIELD"):
+            parse_nasdaq_halts(conflict,AT)
+
+    def test_duplicate_resume_time_censors_feed_before_halt_clearance(self):
+        conflict=XML.replace(b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime>",
+                             b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime><n:TradeResumptionTime>14:15:00</n:TradeResumptionTime>")
+        session=Mock()
+        session.get.return_value=Mock(status_code=200,url=NASDAQ_RSS,content=conflict)
+        report=fetch_once(["JDZG"],AT,session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_MALFORMED_OR_UNVERIFIABLE")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["trade_authorized"])
+        self.assertFalse(report["complete_halt_history_or_guaranteed_open"])
+
     def test_nasdaq_namespace_is_supported(self):
         self.assertEqual(phase(AT),"EARLY_BOARD")
 

@@ -123,7 +123,14 @@ def parse_nasdaq_halts(raw, captured_at):
     for item in channel:
         if _local(item.tag)!="item":
             continue
-        fields={_local(c.tag).replace("_",""): (c.text or "").strip() for c in item}
+        # Duplicate RSS fields are ambiguous evidence, not last-value-wins.
+        # Namespace and underscore aliases normalize to the same source key.
+        fields={}
+        for child in item:
+            key=_local(child.tag).replace("_","")
+            if key in fields:
+                raise ValueError("HALT_RSS_DUPLICATE_FIELD")
+            fields[key]=(child.text or "").strip()
         symbol=(fields.get("issuesymbol") or "").upper()
         if not SAFE_SYMBOL.fullmatch(symbol):
             raise ValueError("HALT_RSS_INVALID_SYMBOL")
