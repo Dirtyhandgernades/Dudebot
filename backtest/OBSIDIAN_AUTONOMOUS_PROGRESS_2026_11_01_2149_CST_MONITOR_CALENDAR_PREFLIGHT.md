@@ -1,0 +1,17 @@
+# OBSIDIAN Research Engineering — 2026-11-01 21:49 CST: exchange-session monitor preflight
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Implemented and hosted-verified a research-only P0-1 source-collection safety correction on branch `research/obsidian-early-rug-20261025`. No main/production/credentials/trades, original 14:45–14:58 prospective marker, Rug Proof captures, Morning/After-Hours markers, or frozen labels changed.
+
+## Verified change
+
+Implementation [3966345d7b6ddb94a8d509454313b3dac2a946fa](https://github.com/Dirtyhandgernades/Dudebot/commit/3966345d7b6ddb94a8d509454313b3dac2a946fa) prevents the finite independent Nasdaq RSS/optional Massive monitor from issuing GETs during published 2026 NYSE/Nasdaq full-day holidays or post-13:00 ET early-close INTRADAY/EARLY_BOARD intervals. The previous weekday-only gate could request provider data on Thanksgiving/Christmas or label a 12:47 CST early-close day as intraday. 2026 published calendar references are explicitly pinned in [the source contract](https://github.com/Dirtyhandgernades/Dudebot/blob/research/obsidian-early-rug-20261025/backtest/OBSIDIAN_INDEPENDENT_MONITOR_CALENDAR_GUARD_2026_11_01.md). Unknown 2027+ calendar years fail closed until reviewed; extraordinary closures still need independent live-open evidence. Morning and postclose research windows remain distinct, and no original capture schedule is expanded or backfilled.
+
+Hosted [independent-source CI run 41385224282](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41385224282) **SUCCESS**, runner log **34/34** tests; hosted [prospective-journal CI run 41385224200](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/41385224200) **SUCCESS**, runner log **612 prospective + 4 ABC = 616/616** tests. Both jobs ran on exact implementation SHA `3966345d7b6ddb94a8d509454313b3dac2a946fa`; four new holiday/early-close/unknown-year regressions passed. This is software safety verification, not market-data entitlement or forecasting validation.
+
+## Protected evidence and remaining blockers
+
+Read Oct 28 Rug Proof preregistration and Oct 30 18:20 postclose audit, and rechecked all seven original Oct 30 artifact metadata records: `12985950392`, `12995764777`, `13006191628`, `13006897253`, `13008429628`, `13010065001`, `13018333034`. All still reported `expired=false`, original digest metadata, and January 28, 2027 expiration. ZIP bodies were **not** rehashed and off-platform backup/restore remains **BACKUP_UNVERIFIED**.
+
+Original Oct 30 8,510-security cohort, 34,040 security×0/+1/+2/+3 slots, 1,653 watch/6,857 nonwatch split, 136-name roster with nine off-universe references, JDZG stale/halt/$3-floor analysis, and frozen labels/denominators remain unchanged. Oct 30 +1/+2/+3 actual sessions Nov 2/3/4 had not matured at this Sunday checkpoint. No new prospective anchor, preclose, morning, after-hours, Rug Proof, or independent-monitor marker was created.
+
+**P0-1 remains blocked:** no independently authenticated completed official regular-session close pairs from two genuinely independent underlying provider organizations, with source ownership, full third-source conflict inventory, issuer/security identity, corporate-action, previous-session and timestamp parity. Missing outcomes stay censored. No verified 20%+ forward prediction accuracy, false-positive/late/exhausted/squeeze/cost performance, actual SMG blocked-symbol/account permission/borrow, fills or profits. Nasdaq RSS remains halt-only; optional Massive quote entitlement remains unproven.
