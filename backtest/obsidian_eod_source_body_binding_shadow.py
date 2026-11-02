@@ -86,6 +86,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             raise ValueError("EXTERNAL_PREVIOUS_SESSION_CLOSE_TIMESTAMP_INVALID")
         previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
+    # Index each parseable price independently, even when a rejected third
+    # source supplies only one side of the close/prior-close pair. A complete
+    # pair-only ledger could otherwise conceal an explicit contradiction.
+    close_claims, prior_claims = {}, {}
     identity_claims = {field: {} for field in (
         "symbol", "session_date", "previous_session_date",
         "security_id", "previous_security_id", "issuer_class",
@@ -168,6 +172,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                     faults.add("BODY_REPORT_PRICE_MISMATCH_" + field.upper())
             close = _positive(parsed.get("regular_close"))
             prior = _positive(parsed.get("previous_regular_close"))
+            if close is not None:
+                close_claims.setdefault(close, []).append(index)
+            if prior is not None:
+                prior_claims.setdefault(prior, []).append(index)
             if close is not None and prior is not None:
                 bucket = prices.setdefault((close, prior), [])
                 bucket.append(index)
@@ -269,7 +277,19 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
          "claimed_20pct_drop": close <= prior * Decimal("0.8")}
         for (close, prior), indices in sorted(prices.items())
     ]
-    if len(groups) > 1:
+    current_groups = [
+        {"regular_close": str(value), "source_indices": indices}
+        for value, indices in sorted(close_claims.items())
+    ]
+    previous_groups = [
+        {"previous_regular_close": str(value), "source_indices": indices}
+        for value, indices in sorted(prior_claims.items())
+    ]
+    if len(current_groups) > 1:
+        issues.add("PARSED_BODY_REGULAR_CLOSE_CLAIM_CONFLICT")
+    if len(previous_groups) > 1:
+        issues.add("PARSED_BODY_PREVIOUS_CLOSE_CLAIM_CONFLICT")
+    if len(groups) > 1 or len(current_groups) > 1 or len(previous_groups) > 1:
         issues.add("PARSED_BODY_PRICE_CLAIM_CONFLICT")
     if len({g["claimed_20pct_drop"] for g in groups}) > 1:
         issues.add("PARSED_BODY_CLAIMS_STRADDLE_20PCT_THRESHOLD")
@@ -284,6 +304,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             x["status"] == "BODY_FIELDS_MATCH_UNAUTHENTICATED" for x in rows),
         "all_source_rows": rows,
         "all_parseable_body_price_claim_groups": groups,
+        "all_parseable_body_current_close_claim_groups": current_groups,
+        "all_parseable_body_previous_close_claim_groups": previous_groups,
         "issues": sorted(issues),
         "status": "BLOCKED_CENSORED" if issues else "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "source_ownership_and_transport_authenticated": False,

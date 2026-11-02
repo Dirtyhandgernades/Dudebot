@@ -599,5 +599,54 @@ class BindingShadowTests(unittest.TestCase):
             self.assertNotIn(issue, result["issues"])
         self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
 
+
+    def test_rejected_third_body_current_close_only_conflict_retained(self):
+        r, t = packet()
+        r[1]["regular_close"] = "9.00"
+        r[1]["previous_regular_close"] = None
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = "9.00"
+        body["previous_regular_close"] = None
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_PREVIOUS_REGULAR_CLOSE", result["issues"])
+        self.assertIn("PARSED_BODY_REGULAR_CLOSE_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("PARSED_BODY_PRICE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+        self.assertEqual(len(result["all_parseable_body_current_close_claim_groups"]), 2)
+        self.assertEqual(result["all_parseable_body_current_close_claim_groups"][1]["source_indices"], [1])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_third_body_previous_close_only_conflict_retained(self):
+        r, t = packet()
+        r[1]["regular_close"] = None
+        r[1]["previous_regular_close"] = "11.00"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = None
+        body["previous_regular_close"] = "11.00"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_CLOSE_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("PARSED_BODY_PRICE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+        self.assertEqual(len(result["all_parseable_body_previous_close_claim_groups"]), 2)
+        self.assertEqual(result["all_parseable_body_previous_close_claim_groups"][1]["source_indices"], [1])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_missing_one_price_without_disagreement_does_not_invent_conflict(self):
+        r, t = packet()
+        r[1]["previous_regular_close"] = None
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close"] = None
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_PREVIOUS_REGULAR_CLOSE", result["issues"])
+        self.assertNotIn("PARSED_BODY_PRICE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(len(result["all_parseable_body_current_close_claim_groups"]), 1)
+        self.assertEqual(len(result["all_parseable_body_previous_close_claim_groups"]), 1)
+        self.assertEqual(result["all_parseable_body_previous_close_claim_groups"][0]["source_indices"], [0])
+        self.assertFalse(result["official_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()
