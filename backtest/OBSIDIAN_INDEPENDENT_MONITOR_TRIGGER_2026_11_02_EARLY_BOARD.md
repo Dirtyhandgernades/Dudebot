@@ -1,0 +1,3 @@
+# OBSIDIAN independent EARLY_BOARD monitor trigger — 2026-11-02
+
+RESEARCH_ONLY_NOT_AN_ORDER. Monday November 2 2026 scheduled regular NYSE/Nasdaq session; 14:21 CST authorized early-board window. One-shot official Nasdaq Trader RSS halt and optional Massive quote monitor on research/obsidian-early-rug-20261025, separate from original IEX MORNING/INTRADAY markers and Rug Proof's exclusive 14:20 17-minute-lag SIP capture (run 41518173539). NEVER trigger protected 14:45–14:58 preclose. This marker is NOT a completed source check, fresh quote, halt clearance, official close, shortable permission or trade. Preserve all 136 historical names including JDZG, original hashes, baseline, no main/production edits. Source https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts .
