@@ -342,6 +342,40 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(result["official_close_eligible_count"], 0)
         self.assertTrue(all(not row["eligible_official_close"] for row in result["rows"]))
 
+    def test_vendor_oversized_integer_tokens_censor_even_in_auxiliary_fields(self):
+        # JSON's default parse_int accepts very large integer tokens or
+        # throws at interpreter-specific limits. Neither may silently
+        # produce a usable price receipt from an ambiguous vendor body.
+        class FakeResponse:
+            code = 200
+            headers = {'Content-Type': 'application/json'}
+            def __init__(self, extra): self.extra = extra
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return ('{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                        '"close":100,"aux":{"value":' + self.extra + '}}').encode()
+
+        for extra in ('9' * 101, '-' + '9' * 101, '9' * 5000):
+            with self.subTest(length=len(extra)), patch.object(
+                    m, '_open_no_redirect', return_value=FakeResponse(extra)):
+                r = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+                self.assertIsNone(r['payload'])
+                self.assertEqual(m.category(r), 'MALFORMED_RESPONSE')
+                self.assertIsNotNone(r['body_sha256'])
+                row = m.observation('MASSIVE', 'AAPL', '2026-10-27', r)
+                self.assertEqual(row['validation_status'], 'BLOCKED')
+                self.assertIsNone(row['price'])
+
+        # A 100-digit bounded sideband integer and ordinary integer status
+        # codes retain their existing exact semantics.
+        with patch.object(m, '_open_no_redirect',
+                          return_value=FakeResponse('9' * 100)):
+            valid = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        self.assertIsNone(m.category(valid))
+        self.assertEqual(len(str(valid['payload']['aux']['value'])), 100)
+        self.assertEqual(m._bounded_vendor_int('429'), 429)
+
     def test_vendor_json_exponent_overflow_and_underflow_are_censored(self):
         # Python's standard JSON float decoder otherwise turns these exact
         # source claims into infinity or zero, even in nested sideband fields.

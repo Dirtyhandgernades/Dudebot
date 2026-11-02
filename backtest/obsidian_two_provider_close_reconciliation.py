@@ -110,6 +110,21 @@ def _finite_vendor_float(value):
         raise ValueError("NONREPRESENTABLE_VENDOR_JSON_FLOAT") from exc
 
 
+def _bounded_vendor_int(value):
+    """Bound JSON integer tokens before Python conversion, including sidebands.
+
+    The float parser rejects extreme source tokens, but json.loads otherwise
+    accepts arbitrary-size integer tokens (or raises at Python's int digit
+    limit). Both outcomes bypass the same bounded numeric evidence policy.
+    Preserve ordinary integer status/error codes without accepting unbounded
+    auxiliary numeric claims as a usable vendor receipt.
+    """
+    digits = value[1:] if value.startswith("-") else value
+    if len(digits) > 100:
+        raise ValueError("NONREPRESENTABLE_VENDOR_JSON_INTEGER")
+    return int(value)
+
+
 def get(url, params, token):
     """Never log URLs, exceptions or provider messages that could echo credentials."""
     req = request.Request(url + "?" + parse.urlencode(params),
@@ -187,7 +202,8 @@ def get(url, params, token):
             try:
                 payload = json.loads(body, object_pairs_hook=_unique_vendor_json_object,
                                      parse_constant=_reject_vendor_nonfinite,
-                                     parse_float=_finite_vendor_float)
+                                     parse_float=_finite_vendor_float,
+                                     parse_int=_bounded_vendor_int)
             except (ValueError, UnicodeDecodeError, RecursionError):
                 payload = None
     except Exception:
