@@ -138,11 +138,27 @@ def get(url, params, token):
             else:
                 single_media = response.headers.get("Content-Type")
                 media_headers = [] if single_media is None else [single_media]
+            # A duplicate/invalid remaining-quota header could hide a zero
+            # allowance behind a later nonzero value. Do not select one
+            # declaration or spend another paid request on ambiguous framing.
+            if callable(get_all_lengths):
+                quota_values = get_all_lengths("X-RateLimit-Remaining") or []
+            else:
+                single_quota = response.headers.get("X-RateLimit-Remaining")
+                quota_values = [] if single_quota is None else [single_quota]
+            quota_header_unverified = (
+                not isinstance(quota_values, (list, tuple))
+                or len(quota_values) > 1
+                or (len(quota_values) == 1 and
+                    (not isinstance(quota_values[0], str) or
+                     not re.fullmatch(r"[0-9]{1,16}", quota_values[0].strip()))))
             # Keep only bounded numeric quota headers. Arbitrary vendor header
             # strings (including echoed query tokens) are unsafe to archive.
             headers = {k.lower(): v.strip() for k, v in response.headers.items()
                        if k.lower() in {"retry-after", "x-ratelimit-remaining", "x-ratelimit-reset"}
                        and isinstance(v, str) and re.fullmatch(r"[0-9]{1,16}", v.strip())}
+            if quota_header_unverified:
+                headers.pop("x-ratelimit-remaining", None)
         # A bounded read can return fewer bytes than the declared HTTP body
         # length. Do not hash or parse an incomplete/contradictory receipt,
         # even when the prefix is valid JSON with an apparently usable close.
@@ -175,7 +191,7 @@ def get(url, params, token):
                 "retrieved_at": utcnow(), "requested_at": requested_at,
                 "body_sha256": None, "body_truncated": False,
                 "headers": {}, "body_length_mismatch": False,
-                "content_type_unverified": None}
+                "content_type_unverified": None, "quota_header_unverified": None}
     # Raw provider bodies and arbitrary error text must never reach the public
     # GitHub Actions artifact: a vendor may echo URL query credentials verbatim.
     return {"http_status": status,
@@ -185,10 +201,12 @@ def get(url, params, token):
             "body_length_mismatch": body_length_mismatch,
             "error": ("RESPONSE_BODY_TOO_LARGE" if body_truncated else
                       "RESPONSE_LENGTH_MISMATCH" if body_length_mismatch else
-                      "UNVERIFIED_JSON_CONTENT_TYPE" if media_type_unverified else None),
+                      "UNVERIFIED_JSON_CONTENT_TYPE" if media_type_unverified else
+                      "UNVERIFIED_QUOTA_HEADER" if quota_header_unverified else None),
             "payload": payload, "retrieved_at": utcnow(),
             "requested_at": requested_at, "headers": headers,
-            "content_type_unverified": media_type_unverified}
+            "content_type_unverified": media_type_unverified,
+            "quota_header_unverified": quota_header_unverified}
 
 
 def category(receipt):
@@ -288,7 +306,7 @@ class Budget:
         elif failure in {"MALFORMED_RESPONSE", "UNEXPECTED_PROVIDER_STATUS",
                          "PROVIDER_ERROR", "RESPONSE_BODY_TOO_LARGE",
                          "RESPONSE_LENGTH_MISMATCH", "UNVERIFIED_JSON_CONTENT_TYPE",
-                         "MALFORMED_HTTP_STATUS"}:
+                         "UNVERIFIED_QUOTA_HEADER", "MALFORMED_HTTP_STATUS"}:
             # Ambiguous vendor errors may conceal a quota or entitlement
             # denial. Preserve the first receipt, but do not spend another
             # paid request on this provider in the same bounded checkpoint.
@@ -369,6 +387,7 @@ def observation(provider, symbol, day, receipt):
               "response_body_truncated": receipt.get("body_truncated") is True,
               "response_length_mismatch": receipt.get("body_length_mismatch") is True,
               "response_content_type_unverified": receipt.get("content_type_unverified") is True,
+              "response_quota_header_unverified": receipt.get("quota_header_unverified") is True,
               "validation_status": "BLOCKED",
               "provenance": "https://api.massive.com/v1/open-close" if provider == "MASSIVE"
                             else "https://api.twelvedata.com/time_series",

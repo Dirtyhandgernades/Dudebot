@@ -273,6 +273,75 @@ class ReconciliationTests(unittest.TestCase):
                 get.assert_not_called()
             self.assertEqual(path.read_text(),'original')
 
+    def test_duplicate_or_invalid_remaining_quota_headers_fail_closed(self):
+        # A last-header-wins dict can turn '0, 9' into nine apparently
+        # remaining paid calls. Preserve no selected ambiguous quota value.
+        from email.message import Message
+
+        class FakeResponse:
+            code = 200
+            def __init__(self, values):
+                self.headers = Message()
+                self.headers.add_header("Content-Type", "application/json")
+                for value in values:
+                    self.headers.add_header("X-RateLimit-Remaining", value)
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+
+        for values in (("0", "9"), ("0", "0"), ("not-numeric",), ("0, 9",)):
+            with self.subTest(values=values), patch.object(
+                    m, "_open_no_redirect", side_effect=lambda req: FakeResponse(values)) as opened:
+                budget = m.Budget(4)
+                first = budget.fetch("https://api.massive.com/v1/open-close", {}, "fixture")
+                self.assertEqual(first["error"], "UNVERIFIED_QUOTA_HEADER")
+                self.assertTrue(first["quota_header_unverified"])
+                self.assertNotIn("x-ratelimit-remaining", first["headers"])
+                self.assertIsNotNone(first["body_sha256"])
+                self.assertEqual(m.category(first), "UNVERIFIED_QUOTA_HEADER")
+                row = m.observation("MASSIVE", "AAPL", "2026-10-27", first)
+                self.assertTrue(row["response_quota_header_unverified"])
+                self.assertEqual(row["validation_status"], "BLOCKED")
+                self.assertIsNone(row["price"])
+                self.assertEqual(budget.fetch("url", {}, "fixture")["error"],
+                                 "UNVERIFIABLE_PROVIDER_RESPONSE")
+                opened.assert_called_once()
+        for values, expected in [(("0",), "RATE_LIMIT"), (("2",), None), ((), None)]:
+            with self.subTest(valid_values=values), patch.object(
+                    m, "_open_no_redirect", side_effect=lambda req: FakeResponse(values)):
+                budget = m.Budget(4)
+                first = budget.fetch("https://api.massive.com/v1/open-close", {}, "fixture")
+                self.assertIsNone(first["error"])
+                self.assertFalse(first["quota_header_unverified"])
+                self.assertEqual(budget.stopped, expected)
+
+    def test_ambiguous_quota_preserves_full_censored_cohort(self):
+        from email.message import Message
+
+        class FakeResponse:
+            code = 200
+            def __init__(self):
+                self.headers = Message()
+                self.headers.add_header("Content-Type", "application/json")
+                self.headers.add_header("X-RateLimit-Remaining", "0")
+                self.headers.add_header("X-RateLimit-Remaining", "99")
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return b'{"status":"OK","symbol":"AAPL","from":"2026-10-27","close":100}'
+
+        with patch.object(m, "_open_no_redirect", side_effect=lambda req: FakeResponse()) as opened, \
+                patch.dict("os.environ", {"MASSIVE_API_KEY": "fixture",
+                                           "TWELVE_DATA_API_KEY": "fixture"}):
+            result = m.reconcile()
+        self.assertEqual(opened.call_count, 2)
+        self.assertEqual(result["total_ticker_dates"], 4)
+        self.assertEqual(result["missing_pair_count"], 4)
+        self.assertEqual(result["both_bar_count"], 0)
+        self.assertEqual(result["official_close_eligible_count"], 0)
+        self.assertTrue(all(not row["eligible_official_close"] for row in result["rows"]))
+
     def test_vendor_json_exponent_overflow_and_underflow_are_censored(self):
         # Python's standard JSON float decoder otherwise turns these exact
         # source claims into infinity or zero, even in nested sideband fields.
