@@ -143,6 +143,27 @@ class SourceGateTests(unittest.TestCase):
         payload={"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":t,"p":5.21}}]}
         result=parse_massive_snapshot(payload,["JDZG"],AT)
         self.assertEqual(result["JDZG"]["status"],"DELAYED_OR_STALE_PROVIDER_PRINT")
+        self.assertIsNone(result["JDZG"]["price"])
+        self.assertTrue(result["JDZG"]["quote_price_censored"])
+        self.assertIsNotNone(result["JDZG"]["price_at"])
+
+    def test_future_massive_quote_is_censored_not_usable_price(self):
+        t=int(datetime(2026,10,28,19,28,10,tzinfo=timezone.utc).timestamp()*1e9)
+        payload={"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":t,"p":9.01}}]}
+        result=parse_massive_snapshot(payload,["JDZG"],AT)
+        self.assertEqual(result["JDZG"]["status"],"FUTURE_DATED_PROVIDER_PRINT")
+        self.assertIsNone(result["JDZG"]["price"])
+        self.assertTrue(result["JDZG"]["quote_price_censored"])
+        self.assertIsNotNone(result["JDZG"]["price_at"])
+
+    def test_fresh_massive_quote_remains_diagnostic_not_official_close(self):
+        t=int(datetime(2026,10,28,19,27,30,tzinfo=timezone.utc).timestamp()*1e9)
+        payload={"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":t,"p":4.12}}]}
+        result=parse_massive_snapshot(payload,["JDZG"],AT)
+        self.assertEqual(result["JDZG"]["price"],4.12)
+        self.assertFalse(result["JDZG"]["quote_price_censored"])
+        self.assertFalse(result["JDZG"]["independent_official_close_verified"])
+        self.assertFalse(result["JDZG"]["has_verified_realtime_entitlement"])
 
     def test_fresh_quote_does_not_claim_subscription_entitlement(self):
         t=int(datetime(2026,10,28,19,27,30,tzinfo=timezone.utc).timestamp()*1e9)

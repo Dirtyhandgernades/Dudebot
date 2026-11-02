@@ -281,8 +281,15 @@ def parse_massive_snapshot(payload, symbols, captured_at):
         status=("FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED" if 0<=age<=60
                 else "FUTURE_DATED_PROVIDER_PRINT" if age<0
                 else "DELAYED_OR_STALE_PROVIDER_PRINT")
-        output[sym]={"status":status,"price":p,"price_at":when.isoformat(),
-                     "age_seconds":round(age,3),"independent_provider":"MASSIVE",
+        # A stale or future-dated trade may be retained as a timestamped
+        # diagnostic, but its value must not escape as a usable quote. Status
+        # alone is insufficient: downstream consumers can accidentally use
+        # a non-null price without checking the source-freshness label.
+        fresh = status == "FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED"
+        output[sym]={"status":status,"price":p if fresh else None,
+                     "price_at":when.isoformat(),"age_seconds":round(age,3),
+                     "independent_provider":"MASSIVE",
+                     "quote_price_censored":not fresh,
                      "has_verified_realtime_entitlement":False,
                      "independent_official_close_verified":False}
     for ticker in symbols:
