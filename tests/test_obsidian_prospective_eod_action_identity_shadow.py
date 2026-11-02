@@ -249,6 +249,36 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
         self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
 
+
+    def test_source_id_case_and_whitespace_alias_cannot_count_twice(self):
+        duplicate = row("  A  ", "beta", "beta.example")
+        result = check([row(), duplicate])
+        self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["all_source_rows"][1]["source_id"], "  A  ")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_provider_case_and_whitespace_alias_not_independent(self):
+        alias = row("b", "  ALPHA  ", "beta.example")
+        result = check([row(), alias])
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["structurally_valid_report_count"], 2)
+        self.assertEqual(result["all_source_rows"][1]["provider_organization_claim"],
+                         "  ALPHA  ")
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
+
+    def test_collapsed_whitespace_provider_alias_not_independent(self):
+        first = row("a", "Acme  Data", "alpha.example")
+        alias = row("b", " acme data ", "beta.example")
+        result = check([first, alias])
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
     def test_invalid_session_chain_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "VALID_SESSION_CHAIN_REQUIRED"):
             audit_action_identity("ZZZZ", DAY, DAY, [], COLLECTED)

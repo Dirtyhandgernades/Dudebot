@@ -6,7 +6,7 @@ a prediction. Caller must independently retrieve and archive source receipts.
 """
 from datetime import date, datetime, time
 from backtest.obsidian_eod_source_preflight import _source_host
-from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
+from backtest.obsidian_eod_receipt_integrity_shadow import _canonical_label, _host_parent_hint
 from zoneinfo import ZoneInfo
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
@@ -62,13 +62,18 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             faults.add("MALFORMED_SOURCE_RECORD")
         source = r.get("source_id")
         group = r.get("provider_organization")
+        # Other P0-1 source audits compare case/whitespace-normalized
+        # labels. Distinct raw spellings are not independent receipts or
+        # provider organizations. Keep the raw claims in audit rows.
+        source_key = _canonical_label(source)
+        group_key = _canonical_label(group)
         source_host = _host(r.get("source_url"))
         action_host = _host(a.get("source_url"))
-        if not isinstance(source, str) or not source.strip() or source in seen:
+        if source_key is None or source_key in seen:
             faults.add("DUPLICATE_OR_MISSING_SOURCE_ID")
         else:
-            seen.add(source)
-        if not isinstance(group, str) or not group.strip() or not source_host:
+            seen.add(source_key)
+        if group_key is None or not source_host:
             faults.add("PROVIDER_OR_SOURCE_URL_NOT_EVIDENCED")
         if not isinstance(action, dict) or not action_host:
             faults.add("ACTION_SOURCE_PROVENANCE_MISSING")
@@ -109,7 +114,7 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         if faults:
             issues.update(faults)
         else:
-            valid.append((index, group, source_host, action_host))
+            valid.append((index, group_key, source_host, action_host))
         rows.append({
             "index": index,
             "source_id": source if isinstance(source, str) else None,
