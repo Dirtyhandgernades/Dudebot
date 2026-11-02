@@ -408,6 +408,7 @@ class BindingShadowTests(unittest.TestCase):
                 "coverage_end": "2026-11-27",
                 "checked_at": "2026-11-27T18:05:00Z",
             })
+            t[i]["requested_at"] = "2026-11-27T18:05:00Z"
             t[i]["retrieved_at"] = "2026-11-27T18:08:00Z"
             replace_body(t, i, json.dumps(
                 {k: v for k, v in r[i].items() if k != "source_url"},
