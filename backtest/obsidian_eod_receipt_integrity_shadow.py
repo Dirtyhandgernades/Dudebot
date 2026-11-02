@@ -105,8 +105,9 @@ def audit_receipts(session, reports, receipts, collected_at, session_close_at=No
 
     ``receipts`` are caller-supplied dictionaries with ``raw_body`` bytes,
     ``body_sha256`` claimed digest, source_id, provider_organization,
-    requested_url, response_url, http_status, http_method, content_type and
-    retrieved_at. Never infer transport authentication from these fields.
+    requested_url, response_url, http_status, http_method, content_type,
+    requested_at and retrieved_at. A postclose response to a preclose GET is
+    not evidence of a completed close. Neither timestamp authenticates a feed.
     This does not parse a vendor price or verify a source-owned receipt.
     """
     if not isinstance(session, date) or isinstance(session, datetime):
@@ -169,6 +170,14 @@ def audit_receipts(session, reports, receipts, collected_at, session_close_at=No
         received = _instant(t.get("retrieved_at"))
         if received is None or not end <= received <= collected:
             faults.add("RECEIPT_TIMESTAMP_OUTSIDE_POSTCLOSE_WINDOW")
+        # A GET begun at 15:59 ET can return at 16:01 ET with a partial
+        # preclose bar. Require a timezone-aware request-start claim after
+        # the session end, ordered before the response and collection time.
+        # These are still caller claims, NOT authenticated provider clocks.
+        requested = _instant(t.get("requested_at"))
+        if (requested is None or received is None
+                or not end <= requested <= received <= collected):
+            faults.add("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID")
         body = t.get("raw_body")
         digest = None
         if not isinstance(body, bytes) or not 0 < len(body) <= MAX_RECEIPT_BYTES:
@@ -188,6 +197,7 @@ def audit_receipts(session, reports, receipts, collected_at, session_close_at=No
             "source_host": source_host,
             "request_host": request_host,
             "response_host": response_host,
+            "requested_at_claim": t.get("requested_at") if isinstance(t.get("requested_at"), str) else None,
             "retrieved_at_claim": t.get("retrieved_at") if isinstance(t.get("retrieved_at"), str) else None,
             "body_sha256_computed": digest,
             "body_bytes": len(body) if isinstance(body, bytes) else None,

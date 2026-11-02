@@ -45,6 +45,7 @@ def packet():
             "response_url": report["source_url"],
             "http_status": 200, "http_method": "GET",
             "content_type": "application/json; charset=utf-8",
+            "requested_at": "2026-10-28T20:05:00Z",
             "retrieved_at": "2026-10-28T20:08:00Z",
             "raw_body": body, "body_sha256": hashlib.sha256(body).hexdigest(),
         })
@@ -69,6 +70,14 @@ class BindingShadowTests(unittest.TestCase):
         self.assertFalse(result["official_close_verified"])
         self.assertFalse(result["eligible_for_frozen_scoring"])
         self.assertIsNone(result["verified_20pct_prediction_success"])
+
+    def test_preclose_get_cannot_become_postclose_byte_bound_source(self):
+        r, t = packet()
+        t[1]["requested_at"] = "2026-10-28T19:59:59Z"
+        result = self.check(r, t)
+        self.assertIn("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
 
     def test_claim_not_present_in_body_rejected(self):
         r, t = packet()

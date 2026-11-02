@@ -22,6 +22,7 @@ def packet():
                          "requested_url": url, "response_url": url,
                          "http_status": 200, "http_method": "GET",
                          "content_type": "application/json; charset=utf-8",
+                         "requested_at": "2026-10-28T20:05:00Z",
                          "retrieved_at": "2026-10-28T20:08:00Z",
                          "raw_body": body, "body_sha256": hashlib.sha256(body).hexdigest()})
     return reports, receipts
@@ -119,6 +120,34 @@ class ReceiptIntegrityTests(unittest.TestCase):
         t[1]["response_url"] = "https://third.example/close"
         result = self.run_audit(r, t)
         self.assertIn("SOURCE_ORGANIZATION_URL_OR_REDIRECT_MISMATCH", result["issues"])
+
+    def test_preclose_request_with_postclose_response_is_censored(self):
+        r, t = packet()
+        t[1]["requested_at"] = "2026-10-28T19:59:59Z"
+        result = self.run_audit(r, t)
+        self.assertIn("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID", result["issues"])
+        self.assertEqual(result["byte_consistent_count"], 1)
+        self.assertEqual(result["all_source_rows"][1]["requested_at_claim"], "2026-10-28T19:59:59Z")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_missing_or_naive_request_start_is_censored(self):
+        for value in (None, "2026-10-28T20:05:00"):
+            with self.subTest(value=value):
+                r, t = packet()
+                if value is None:
+                    t[1].pop("requested_at")
+                else:
+                    t[1]["requested_at"] = value
+                result = self.run_audit(r, t)
+                self.assertIn("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID", result["issues"])
+                self.assertEqual(result["byte_consistent_count"], 1)
+
+    def test_request_start_after_retrieval_is_censored(self):
+        r, t = packet()
+        t[1]["requested_at"] = "2026-10-28T20:09:00Z"
+        result = self.run_audit(r, t)
+        self.assertIn("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID", result["issues"])
+        self.assertEqual(result["byte_consistent_count"], 1)
 
     def test_stale_and_future_receipts_censored(self):
         r, t = packet()
