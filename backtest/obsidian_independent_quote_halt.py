@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import re
+from decimal import Decimal, InvalidOperation
 import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
@@ -218,15 +219,33 @@ def _strict_massive_json(raw):
         raise ValueError("NONFINITE_INDEPENDENT_JSON_CONSTANT")
 
     def finite_float(value):
-        number = float(value)
+        # Python float conversion can silently turn an underflowed JSON
+        # decimal into 0, or round a precise vendor quote to another value.
+        # Such a receipt must not qualify as independently observed evidence,
+        # even when the ambiguous number is in an auxiliary nested field.
+        if len(value) > 128:
+            raise ValueError("OVERSIZE_INDEPENDENT_JSON_FLOAT")
+        try:
+            exact = Decimal(value)
+            number = float(value)
+        except (ValueError, OverflowError, InvalidOperation) as exc:
+            raise ValueError("INVALID_INDEPENDENT_JSON_FLOAT") from exc
         if not math.isfinite(number):
             raise ValueError("NONFINITE_INDEPENDENT_JSON_EXPONENT")
+        if Decimal(str(number)) != exact:
+            raise ValueError("LOSSY_INDEPENDENT_JSON_FLOAT")
         return number
+
+    def bounded_int(value):
+        if len(value.lstrip("-")) > 100:
+            raise ValueError("OVERSIZE_INDEPENDENT_JSON_INTEGER")
+        return int(value)
 
     try:
         return json.loads(raw.decode("utf-8", errors="strict"),
                           object_pairs_hook=unique_pairs,
-                          parse_constant=reject_constant, parse_float=finite_float)
+                          parse_constant=reject_constant, parse_float=finite_float,
+                          parse_int=bounded_int)
     except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
         raise ValueError("MALFORMED_OR_AMBIGUOUS_INDEPENDENT_JSON") from exc
 

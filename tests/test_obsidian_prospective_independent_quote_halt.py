@@ -372,6 +372,51 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(report["realtime_plan_entitlement_verified"])
         self.assertFalse(report["trade_authorized"])
 
+    def test_massive_nested_numeric_rounding_and_integer_overflow_are_censored(self):
+        # A valid-looking quote must not be admitted when any JSON numeric
+        # token silently loses its declared value, even in auxiliary fields.
+        oversized_integer=b"9"*101
+        invalid_bodies=(
+            b'{"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":'
+            b'{"t":1793215650000000000,"p":4.12},"aux":1e-400}]}',
+            b'{"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":'
+            b'{"t":1793215650000000000,"p":4.1200000000000001}}]}',
+            b'{"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":'
+            b'{"t":1793215650000000000,"p":4.12},"aux":'+oversized_integer+b'}]}',
+        )
+        for raw in invalid_bodies:
+            with self.subTest(raw=raw[-35:]):
+                session=Mock()
+                session.get.side_effect=[
+                    Mock(status_code=200,url=NASDAQ_RSS,content=XML),
+                    Mock(status_code=200,url=MASSIVE_SNAPSHOT,content=raw),
+                ]
+                report=fetch_once(["JDZG"],AT,massive_token="fixture",session=session)
+                self.assertEqual(report["quote_fetch_error"],
+                                 "INDEPENDENT_QUOTES_MALFORMED_OR_UNVERIFIABLE")
+                self.assertFalse(report["quote_source_connected"])
+                self.assertEqual(report["independent_quote_receipt_sha256"],
+                                 hashlib.sha256(raw).hexdigest())
+                self.assertEqual(report["rows"][0]["halt_attention"],
+                                 "HALT_REPORTED_CHECK_EXCHANGE_BEFORE_TRADING")
+                self.assertFalse(report["trade_authorized"])
+
+    def test_massive_ordinary_float_exponent_and_integer_auxiliary_remain_accepted(self):
+        t=int(datetime(2026,10,28,19,27,30,tzinfo=timezone.utc).timestamp()*1e9)
+        raw=(b'{"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":'
+             b'{"t":'+str(t).encode()+b',"p":4.12},"aux":1e-12,"count":12}]}')
+        session=Mock()
+        session.get.side_effect=[
+            Mock(status_code=200,url=NASDAQ_RSS,content=XML),
+            Mock(status_code=200,url=MASSIVE_SNAPSHOT,content=raw),
+        ]
+        report=fetch_once(["JDZG"],AT,massive_token="fixture",session=session)
+        self.assertIsNone(report["quote_fetch_error"])
+        self.assertTrue(report["quote_source_connected"])
+        self.assertEqual(report["rows"][0]["independent_quote"]["status"],
+                         "FRESH_PROVIDER_TRADE_ENTITLEMENT_UNVERIFIED")
+        self.assertFalse(report["realtime_plan_entitlement_verified"])
+
     def test_nonfinite_and_oversized_massive_json_fail_closed(self):
         for raw in (
             b'{"status":"OK","tickers":[{"ticker":"JDZG","lastTrade":{"t":1,"p":NaN}}]}',
