@@ -8,6 +8,7 @@ Never feed its results directly into frozen scoring.
 """
 import hashlib
 import json
+import unicodedata
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
@@ -87,7 +88,15 @@ def canonical_source_label(value):
     IDs cannot manufacture independent organizations or unique source rows.
     Original spellings remain in the indexed source records and SHA digests.
     """
-    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str) or not value.strip():
+        return None
+    # NFKC folds canonically equivalent and compatibility spellings. Invisible
+    # format controls (e.g. zero-width and bidi markers) must not manufacture
+    # an apparently independent provider or source receipt.
+    normalized = unicodedata.normalize("NFKC", value)
+    if any(unicodedata.category(char) == "Cf" for char in normalized):
+        return None
+    return " ".join(normalized.split()).casefold() or None
 
 
 def report_digest(report):

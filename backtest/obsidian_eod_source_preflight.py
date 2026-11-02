@@ -4,6 +4,7 @@ Does not produce an official-close verdict, change frozen scoring, query a
 provider, or authorize a trade. All collected reports must be supplied: do not
 select two agreeing reports while silently dropping a contradictory third.
 """
+import unicodedata
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, localcontext
 from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint, _safe_host
@@ -63,7 +64,15 @@ def _canonical_label(value):
     Mirrors the complete-source inventory's alias screen. This does not
     authenticate legal provider ownership or alter source receipts.
     """
-    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str) or not value.strip():
+        return None
+    # NFKC folds canonically equivalent and compatibility spellings. Invisible
+    # format controls (e.g. zero-width and bidi markers) must not manufacture
+    # an apparently independent provider or source receipt.
+    normalized = unicodedata.normalize("NFKC", value)
+    if any(unicodedata.category(char) == "Cf" for char in normalized):
+        return None
+    return " ".join(normalized.split()).casefold() or None
 
 
 def _source_host(value):
@@ -155,6 +164,7 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         prior = _positive(report.get("previous_regular_close"))
         if (not isinstance(source, str) or not source.strip()
                 or not isinstance(group, str) or not group.strip()
+                or source_key is None or _canonical_label(group) is None
                 or not host or close is None or prior is None):
             issues.add("INVALID_SOURCE_PROVENANCE_OR_PRICE")
             continue

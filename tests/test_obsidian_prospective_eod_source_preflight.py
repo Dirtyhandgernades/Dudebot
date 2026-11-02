@@ -293,5 +293,33 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
+    def test_unicode_equivalent_provider_names_do_not_create_independence(self):
+        first = row("Caf\u00e9 Data", "one.example")
+        second = row("Cafe\u0301 Data", "two.example")
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertEqual(result["distinct_provider_groups"], 1)
+        self.assertIn("INSUFFICIENT_DISTINCT_HOST_AND_PROVIDER_EVIDENCE", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_unicode_equivalent_source_ids_are_duplicate(self):
+        first = row("one", "one.example")
+        second = row("two", "two.example")
+        first["source_id"] = "Caf\u00e9 receipt"
+        second["source_id"] = "Cafe\u0301 receipt"
+        result = preflight("ZZZZ", DAY, PRIOR, [first, second], COLLECTED)
+        self.assertIn("DUPLICATE_SOURCE_ID", result["issues"])
+        self.assertEqual(result["supplied_reports"], 2)
+
+    def test_invisible_format_control_in_source_labels_is_censored(self):
+        for field in ("provider_group", "source_id"):
+            with self.subTest(field=field):
+                second = row("two", "two.example")
+                second[field] += "\u200b"
+                result = preflight("ZZZZ", DAY, PRIOR,
+                                   [row("one", "one.example"), second], COLLECTED)
+                self.assertEqual(result["accepted_reports"], 1)
+                self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+                self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

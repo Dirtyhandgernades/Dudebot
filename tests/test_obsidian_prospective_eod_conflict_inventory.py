@@ -582,5 +582,37 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
+    def test_unicode_equivalent_provider_claims_cannot_create_independence(self):
+        result = check([
+            row("a", "Caf\u00e9 Data", "one.example"),
+            row("b", "Cafe\u0301 Data", "two.example"),
+        ])
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_unicode_equivalent_source_receipts_are_duplicate(self):
+        result = check([
+            row("Caf\u00e9 receipt", "one", "one.example"),
+            row("Cafe\u0301 receipt", "two", "two.example"),
+        ])
+        self.assertIn("DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
+        self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertTrue(result["all_supplied_rows_indexed"])
+
+    def test_invisible_source_labels_are_retained_but_censored(self):
+        for field in ("provider_organization", "source_id"):
+            with self.subTest(field=field):
+                second = row("b", "two", "two.example")
+                second[field] += "\u200b"
+                result = check([row(), second])
+                self.assertEqual(result["retained_report_count"], 2)
+                self.assertEqual(result["structurally_valid_report_count"], 1)
+                self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+                self.assertIn("SOURCE_OWNERSHIP_OR_URL_MISSING" if field == "provider_organization"
+                              else "DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
+                self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()
