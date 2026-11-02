@@ -1339,4 +1339,47 @@ class ReconciliationTests(unittest.TestCase):
                 self.assertEqual(m.observation('MASSIVE', 'AAPL', '2026-10-27',
                                                raw)['validation_status'], 'BLOCKED')
 
+    def test_vendor_decimal_more_than_28_digits_still_flags_conflict(self):
+        # Decimal's default 28-digit arithmetic can itself round the final
+        # fractional difference to exactly $0.005. Preserve source digits
+        # during BOTH diagnostic comparison and full cohort reconciliation.
+        fraction = '100.00500000000000000000000000000000000000001'
+        class FakeResponse:
+            code = 200
+            headers = {'Content-Type': 'application/json'}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit):
+                return ('{"status":"OK","symbol":"AAPL","from":"2026-10-27",'
+                        '"close":' + fraction + '}').encode()
+        with patch.object(m, '_open_no_redirect', return_value=FakeResponse()):
+            raw = m.get('https://api.massive.com/v1/open-close', {}, 'fixture')
+        a = m.observation('MASSIVE', 'AAPL', '2026-10-27', raw)
+        b = m.observation('TWELVE_DATA', 'AAPL', '2026-10-27', twelve())
+        expected = '0.00500000000000000000000000000000000000001'
+        self.assertEqual(a['price'], fraction)
+        self.assertEqual(m.compare(a, b, self.identity()),
+                         ('VENDOR_BAR_CONFLICT_NOT_OFFICIAL', expected))
+        self.assertFalse(a['identity_verified'])
+
+        def fake(url, params, token):
+            if 'twelvedata' in url:
+                r = twelve([{'datetime': day, 'close': '100'} for day in m.SESSIONS])
+                r['payload']['meta']['symbol'] = params['symbol']
+                return r
+            r = massive(url.rsplit('/', 1)[-1], url.split('/')[-2],
+                        close=fraction if url.endswith('2026-10-27') else '100')
+            return r
+        with patch.object(m, 'get', side_effect=fake), patch.dict(
+                'os.environ', {'MASSIVE_API_KEY': 'fixture',
+                               'TWELVE_DATA_API_KEY': 'fixture'}):
+            result = m.reconcile()
+        self.assertEqual(result['vendor_bar_numeric_conflict_unverified_identity_count'], 2)
+        self.assertEqual(result['official_close_eligible_count'], 0)
+        for row in result['rows']:
+            if row['session'] == '2026-10-27':
+                self.assertEqual(row['vendor_bar_numeric_difference_usd_unverified_identity'],
+                                 expected)
+                self.assertTrue(row['vendor_bar_numeric_conflict_unverified_identity'])
+
 if __name__=='__main__':unittest.main()

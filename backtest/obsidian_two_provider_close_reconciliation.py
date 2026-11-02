@@ -6,7 +6,7 @@ import math
 import os
 import re
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from urllib import request, parse, error
 from zoneinfo import ZoneInfo
@@ -498,7 +498,12 @@ def compare(a, b, identity=None):
         return "IDENTITY_OR_SESSION_MISMATCH", None
     if not identity.get("security_id") or not identity.get("source_receipts"):
         return "IDENTITY_UNVERIFIED", None
-    difference = abs(Decimal(a["price"]) - Decimal(b["price"]))
+    # The bounded vendor parser permits up to 100 significant decimal digits.
+    # Default Decimal precision (28) could round away a threshold-crossing
+    # low-order digit. 256 digits also covers the allowed exponent range.
+    with localcontext() as precision:
+        precision.prec = 256
+        difference = abs(Decimal(a["price"]) - Decimal(b["price"]))
     # A caller-supplied identity mapping, even with review flags and receipt
     # strings, is not independently authenticated exchange-official evidence.
     # Never return bare AGREE/DISAGREE: those labels could be mistaken for
@@ -575,8 +580,12 @@ def reconcile(symbols=SYMBOLS, sessions=SESSIONS):
             # A withheld identity review must NOT hide numeric disagreement
             # between available vendor bars. Preserve this diagnostic conflict
             # separately from authenticated official-close source conflicts.
-            vendor_difference = (abs(Decimal(a["price"]) - Decimal(b["price"]))
-                                 if both else None)
+            if both:
+                with localcontext() as precision:
+                    precision.prec = 256
+                    vendor_difference = abs(Decimal(a["price"]) - Decimal(b["price"]))
+            else:
+                vendor_difference = None
             result["rows"].append({"symbol": symbol, "session": day, "providers": {"MASSIVE": a, "TWELVE_DATA": b},
                                    "both_bars_present": both, "comparison_status": status,
                                    "absolute_difference_usd": difference, "within_tolerance":
