@@ -540,5 +540,47 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
 
+
+    def test_high_precision_twenty_percent_threshold_conflict_not_rounded_away(self):
+        prior = "10.0000000000000000000000000000000000000000000000001"
+        below = "8.00000000000000000000000000000000000000000000000005"
+        above = "8.00000000000000000000000000000000000000000000000009"
+        result = check([row(close=below, prior=prior),
+                        row("b", "two", "two.example", close=above, prior=prior)])
+        self.assertEqual([x["claimed_20pct_drop"] for x in result["price_claim_groups"]],
+                         [True, False])
+        self.assertIn("SOURCE_CLAIM_20PCT_CLASSIFICATION_DISAGREEMENT", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertIn("TWENTY_PERCENT_THRESHOLD_STRADDLED", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_high_precision_half_cent_conflict_survives_all_source_views(self):
+        base = "7.00000000000000000000000000000000000000000000000000"
+        above = "7.00500000000000000000000000000000000000000000000001"
+        result = check([row(close=base), row("b", "two", "two.example", close=base),
+                        row("c", "three", "three.example", close=above)])
+        self.assertIn("ALL_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_high_precision_third_source_still_conflicts(self):
+        base = "7.00000000000000000000000000000000000000000000000000"
+        above = "7.00500000000000000000000000000000000000000000000001"
+        third = row("c", "three", "three.example", close=above)
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(close=base), row("b", "two", "two.example", close=base), third])
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertIn("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_REGULAR_CLOSE_CONFLICT", result["issues"])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_overprecision_source_claim_is_retained_but_censored(self):
+        third = row("c", "three", "three.example", close="1." + "0" * 100 + "1")
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertIn("INVALID_CLOSE_OR_PRIOR_PRICE", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

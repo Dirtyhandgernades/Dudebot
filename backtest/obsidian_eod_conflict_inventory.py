@@ -9,7 +9,7 @@ Never feed its results directly into frozen scoring.
 import hashlib
 import json
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_source_preflight import (
@@ -45,10 +45,35 @@ def positive(value):
     # arithmetic context when a 20% threshold is computed. Retain its original
     # source row as an unparseable/censored price claim rather than crashing
     # the complete third-source conflict inventory. This is not an SMG floor.
-    if not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100:
+    if (not number.is_finite() or number <= 0 or not -100 <= number.adjusted() <= 100
+            or len(number.as_tuple().digits) > 100):
         return None
     return number
 
+
+
+def _exact_drop(close, prior):
+    """Unrounded 20% source-claim comparison; never a verified outcome.
+
+    Inputs are limited to 100 significant digits and adjusted exponent
+    +/-100. Precision 512 covers their full arithmetic span.
+    """
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return close <= prior * Decimal("0.8")
+
+
+def _exact_spread(values):
+    """Retain sub-cent disagreements across all supplied source claims."""
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return max(values) - min(values)
+
+
+def _exact_threshold(prior):
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return prior * Decimal("0.8")
 
 def host(value):
     """Shared strict HTTPS URL syntax guard; not ownership authentication."""
@@ -311,7 +336,7 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     price_claim_groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
          "source_indices": indices,
-         "claimed_20pct_drop": close <= prior * Decimal("0.8")}
+         "claimed_20pct_drop": _exact_drop(close, prior)}
         for (close, prior), indices in sorted(price_groups.items())
     ]
     if len({g["claimed_20pct_drop"] for g in price_claim_groups}) > 1:
@@ -330,7 +355,7 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
          "source_indices": group["all"],
          "structurally_valid_source_indices": group["valid"],
          "rejected_source_indices": group["rejected"],
-         "claimed_20pct_drop": close <= prior * Decimal("0.8")}
+         "claimed_20pct_drop": _exact_drop(close, prior)}
         for (close, prior), group in sorted(all_groups.items())
     ]
     if any(not accepted and (close, prior) not in valid_pairs
@@ -346,9 +371,9 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     if all_parseable_claims:
         all_closes = [x[1] for x in all_parseable_claims]
         all_priors = [x[2] for x in all_parseable_claims]
-        if max(all_closes) - min(all_closes) > CENT:
+        if _exact_spread(all_closes) > CENT:
             issues.add("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT")
-        if max(all_priors) - min(all_priors) > CENT:
+        if _exact_spread(all_priors) > CENT:
             issues.add("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT")
         if min(all_priors) != max(all_priors):
             issues.add("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
@@ -373,26 +398,25 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     all_parseable_previous_close_claim_groups = partial_groups(
         all_previous_close_claims, "previous_regular_close")
     if all_close_claims and (
-            max(x[1] for x in all_close_claims)
-            - min(x[1] for x in all_close_claims) > CENT):
+            _exact_spread([x[1] for x in all_close_claims]) > CENT):
         issues.add("ALL_PARSEABLE_SOURCE_REGULAR_CLOSE_CONFLICT")
     if all_previous_close_claims:
         previous_values = [x[1] for x in all_previous_close_claims]
-        if max(previous_values) - min(previous_values) > CENT:
+        if _exact_spread(previous_values) > CENT:
             issues.add("ALL_PARSEABLE_SOURCE_PREVIOUS_CLOSE_CONFLICT")
         if min(previous_values) != max(previous_values):
             issues.add("ALL_PARSEABLE_SOURCE_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
     if valid:
         closes = [x[3] for x in valid]
         priors = [x[4] for x in valid]
-        if max(closes) - min(closes) > CENT:
+        if _exact_spread(closes) > CENT:
             issues.add("ALL_SOURCE_REGULAR_CLOSE_CONFLICT")
-        if max(priors) - min(priors) > CENT:
+        if _exact_spread(priors) > CENT:
             issues.add("ALL_SOURCE_PREVIOUS_CLOSE_CONFLICT")
         # Even within half a cent, a 20% boundary conflict is material.
         if min(priors) != max(priors):
             issues.add("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
-        elif min(closes) <= priors[0] * Decimal("0.8") < max(closes):
+        elif min(closes) <= _exact_threshold(priors[0]) < max(closes):
             issues.add("TWENTY_PERCENT_THRESHOLD_STRADDLED")
     return {
         "mode": MODE, "policy": POLICY, "symbol": symbol,
