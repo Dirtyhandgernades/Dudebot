@@ -4,7 +4,7 @@ No background streaming, no live trading, no SMG platform access and no implicit
 real-time subscription. Single checkpoint GETs; snapshots are collected as-of
 receipt, never rewritten into the previously frozen OBSIDIAN IEX capture.
 """
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 import hashlib
 import json
@@ -20,6 +20,19 @@ CENTRAL = ZoneInfo("America/Chicago")
 EASTERN = ZoneInfo("America/New_York")
 ALLOWED_PHASES = ("MORNING", "INTRADAY", "EARLY_BOARD", "AFTERHOURS")
 SAFE_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}$")
+
+# Published 2026 NYSE/Nasdaq U.S. equity schedule, not a live market-open
+# attestation. Fail closed outside this explicitly reviewed calendar year.
+# Sources: https://www.nyse.com/trade/hours-calendars
+#          https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+NYSE_NASDAQ_2026_CLOSED = frozenset(date.fromisoformat(d) for d in (
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03",
+    "2026-05-25", "2026-06-19", "2026-07-03", "2026-09-07",
+    "2026-11-26", "2026-12-25",
+))
+NYSE_NASDAQ_2026_EARLY_CLOSE = frozenset(date.fromisoformat(d) for d in (
+    "2026-11-27", "2026-12-24",
+))
 
 def _trusted_response_origin(actual, expected, exact_query=False):
     """Reject redirected or substituted 200s before labeling official sources.
@@ -70,9 +83,17 @@ def phase(now):
     if not isinstance(now, datetime) or now.utcoffset() is None:
         return None
     t = now.astimezone(CENTRAL)
-    if t.weekday() >= 5:
+    # A weekday is not sufficient: full-session holidays and shortened
+    # 13:00 ET sessions must never be treated as open intraday/board windows.
+    # Extraordinary closures still require a separately authenticated
+    # live session check; this finite module does not certify market open.
+    if (t.weekday() >= 5 or t.date().year != 2026
+            or t.date() in NYSE_NASDAQ_2026_CLOSED):
         return None
     hm=t.hour * 60 + t.minute
+    if (t.date() in NYSE_NASDAQ_2026_EARLY_CLOSE
+            and 12 * 60 <= hm < 15 * 60):
+        return None
     if 9 * 60 <= hm <= 9 * 60 + 40:
         return "MORNING"
     if 12 * 60 + 40 <= hm <= 13 * 60 + 15:
@@ -236,6 +257,8 @@ def inspect_sources(symbols, now, halt_xml=None, massive_payload=None):
             "quote_source_connected":massive_payload is not None,
             "realtime_plan_entitlement_verified":False,
             "source_research_only_not_full_market":True,
+            "calendar_basis":"PUBLISHED_2026_NYSE_NASDAQ_STATIC_NOT_LIVE_OPEN_PROOF",
+            "live_exchange_session_open_verified":False,
             "complete_halt_history_or_guaranteed_open":False,
             "actual_smg_platform_eligibility_verified":False,
             "trade_authorized":False,"rows":result}

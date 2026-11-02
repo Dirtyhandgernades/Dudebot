@@ -145,6 +145,40 @@ class SourceGateTests(unittest.TestCase):
                        massive_token="fixture-secret",session=session)
         session.get.assert_not_called()
 
+    def test_published_2026_full_holidays_reject_provider_gets(self):
+        # 12:47 CST would otherwise fall inside the original INTRADAY gate.
+        for day in (26,):
+            at=datetime(2026,11,day,18,47,tzinfo=timezone.utc)
+            session=Mock()
+            self.assertIsNone(phase(at))
+            with self.assertRaisesRegex(ValueError,"OUTSIDE_RESEARCH_CHECKPOINT"):
+                fetch_once(["JDZG"],at,massive_token="fixture",session=session)
+            session.get.assert_not_called()
+        at=datetime(2026,12,25,18,47,tzinfo=timezone.utc)
+        self.assertIsNone(phase(at))
+
+    def test_early_close_blocks_post_close_intraday_and_board_windows(self):
+        for at in (datetime(2026,11,27,18,47,tzinfo=timezone.utc),
+                   datetime(2026,12,24,20,20,tzinfo=timezone.utc)):
+            session=Mock()
+            self.assertIsNone(phase(at))
+            with self.assertRaisesRegex(ValueError,"OUTSIDE_RESEARCH_CHECKPOINT"):
+                fetch_once(["JDZG"],at,massive_token="fixture",session=session)
+            session.get.assert_not_called()
+
+    def test_early_close_morning_and_postclose_research_remain_distinct(self):
+        self.assertEqual(phase(datetime(2026,11,27,15,20,tzinfo=timezone.utc)),"MORNING")
+        self.assertEqual(phase(datetime(2026,11,27,21,10,tzinfo=timezone.utc)),"AFTERHOURS")
+        self.assertEqual(phase(datetime(2026,11,2,18,47,tzinfo=timezone.utc)),"INTRADAY")
+
+    def test_unreviewed_calendar_year_fails_closed_before_network(self):
+        at=datetime(2027,1,4,18,47,tzinfo=timezone.utc)
+        session=Mock()
+        self.assertIsNone(phase(at))
+        with self.assertRaisesRegex(ValueError,"OUTSIDE_RESEARCH_CHECKPOINT"):
+            fetch_once(["JDZG"],at,massive_token="fixture",session=session)
+        session.get.assert_not_called()
+
     def test_direct_collector_rejects_bad_symbols_before_any_get(self):
         session=Mock()
         with self.assertRaisesRegex(ValueError,"INVALID_REQUESTED_SYMBOLS"):
