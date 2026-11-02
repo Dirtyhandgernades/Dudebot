@@ -128,6 +128,12 @@ def parse_nasdaq_halts(raw, captured_at):
         fields={}
         for child in item:
             key=_local(child.tag).replace("_","")
+            # Nasdaq has published alternate names for the same resumption
+            # evidence. Reject coexisting aliases rather than silently taking
+            # the first value, even if one alias is empty or both agree.
+            key={"resumedate":"resumptiondate",
+                 "resumptiontradetime":"traderesumptiontime",
+                 "resumetradetime":"traderesumptiontime"}.get(key,key)
             if key in fields:
                 raise ValueError("HALT_RSS_DUPLICATE_FIELD")
             fields[key]=(child.text or "").strip()

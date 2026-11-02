@@ -44,6 +44,34 @@ class SourceGateTests(unittest.TestCase):
         self.assertFalse(report["trade_authorized"])
         self.assertFalse(report["complete_halt_history_or_guaranteed_open"])
 
+    def test_resumption_date_alias_collision_is_ambiguous_evidence(self):
+        duplicate=XML.replace(b"<n:ResumptionDate>10/28/2026</n:ResumptionDate>",
+            b"<n:ResumptionDate>10/28/2026</n:ResumptionDate>"
+            b"<n:ResumeDate>10/29/2026</n:ResumeDate>")
+        with self.assertRaisesRegex(ValueError,"HALT_RSS_DUPLICATE_FIELD"):
+            parse_nasdaq_halts(duplicate,AT)
+
+    def test_resumption_trade_time_alias_collision_blocks_source(self):
+        duplicate=XML.replace(b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime>",
+            b"<n:TradeResumptionTime>15:29:22</n:TradeResumptionTime>"
+            b"<n:ResumptionTradeTime>15:30:22</n:ResumptionTradeTime>")
+        session=Mock()
+        session.get.return_value=Mock(status_code=200,url=NASDAQ_RSS,content=duplicate)
+        report=fetch_once(["JDZG"],AT,session=session)
+        self.assertEqual(report["halt_fetch_error"],"HALT_RSS_MALFORMED_OR_UNVERIFIABLE")
+        self.assertEqual(report["rows"][0]["halt_attention"],"HALT_SOURCE_UNAVAILABLE_BLOCK_EXECUTION")
+        self.assertFalse(report["trade_authorized"])
+
+    def test_single_alternate_resume_aliases_still_parse(self):
+        for alias in (b"ResumptionTradeTime",b"ResumeTradeTime"):
+            with self.subTest(alias=alias):
+                xml=(XML.replace(b"ResumptionDate",b"ResumeDate")
+                        .replace(b"TradeResumptionTime",alias))
+                parsed=parse_nasdaq_halts(xml,AT)
+                self.assertEqual(parsed[0]["resume_et"],"2026-10-28T15:29:22-04:00")
+                self.assertEqual(parsed[0]["resumption_parse_status"],
+                                 "EXPLICIT_DATE_AND_TRADE_TIME")
+
     def test_identical_repeated_halt_event_is_one_source_event(self):
         item=XML.split(b"<item>")[1].split(b"</item>")[0]
         duplicate=XML.replace(b"</channel>",b"<item>"+item+b"</item></channel>")
