@@ -291,5 +291,39 @@ class ReceiptIntegrityTests(unittest.TestCase):
         self.assertFalse(result["official_close_verified"])
 
 
+
+    def test_nfkc_equivalent_provider_labels_are_not_independent_receipts(self):
+        reports, receipts = packet()
+        # Fullwidth hyphen is NFKC-equivalent to ASCII hyphen.
+        reports[1]["provider_organization"] = receipts[1]["provider_organization"] = "independent\uff0da"
+        result = self.run_audit(reports, receipts)
+        self.assertEqual(result["byte_consistent_count"], 2)
+        self.assertIn("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED",
+                      result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["provider_organization_claim"],
+                         "independent\uff0da")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_nfkc_equivalent_receipt_ids_are_duplicates(self):
+        reports, receipts = packet()
+        reports[1]["source_id"] = receipts[1]["source_id"] = "sourc\uff45-0"
+        result = self.run_audit(reports, receipts)
+        self.assertEqual(result["byte_consistent_count"], 1)
+        self.assertIn("MISSING_OR_DUPLICATE_SOURCE_ID",
+                      result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["indexed_count"], 2)
+
+    def test_invisible_format_control_provider_and_receipt_id_are_censored(self):
+        for field in ("provider_organization", "source_id"):
+            with self.subTest(field=field):
+                reports, receipts = packet()
+                reports[1][field] = receipts[1][field] = (
+                    reports[1][field] + "\u200b")
+                result = self.run_audit(reports, receipts)
+                self.assertEqual(result["byte_consistent_count"], 1)
+                self.assertEqual(result["status"], "BLOCKED_RECEIPT_INTEGRITY")
+                self.assertFalse(result["eligible_for_frozen_scoring"])
+                self.assertEqual(result["indexed_count"], 2)
+
 if __name__ == "__main__":
     unittest.main()

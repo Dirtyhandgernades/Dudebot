@@ -7,6 +7,7 @@ that any price/identity/action claim was parsed from the body. Always censor.
 Never echo URLs, query credentials, headers, or raw response bodies.
 """
 import hashlib
+import unicodedata
 from datetime import date, datetime, time
 from ipaddress import ip_address
 from urllib.parse import urlsplit
@@ -92,12 +93,19 @@ def _host_parent_hint(host):
 
 
 def _canonical_label(value):
-    """Conservative alias key shared with EOD preflight/conflict inventory.
+    """Conservative NFKC alias screen, not proof of provider ownership.
 
-    These are only caller-supplied labels, not authenticated provider identities.
-    Keep the original report and receipt strings intact in the audit rows.
+    Match the separate EOD preflight and all-source conflict inventory:
+    compatibility-equivalent labels cannot manufacture independent providers
+    or receipt IDs. Reject invisible Unicode format controls rather than
+    trusting their visual rendering. Original claims remain in indexed rows.
     """
-    return " ".join(value.split()).casefold() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized = unicodedata.normalize("NFKC", value)
+    if any(unicodedata.category(char) == "Cf" for char in normalized):
+        return None
+    return " ".join(normalized.split()).casefold() or None
 
 
 def audit_receipts(session, reports, receipts, collected_at, session_close_at=None):
