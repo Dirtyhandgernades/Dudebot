@@ -1,0 +1,3 @@
+# OBSIDIAN independent monitor original morning trigger — 2026-11-04
+
+Scheduled 09:12 America/Chicago research checkpoint; actual creation delayed into 09:00–09:40 CT window. Read-only official Nasdaq Trader RSS halt intake and optional licensed Massive quote intake via `.github/workflows/obsidian-independent-source-monitor.yml`. Absence/delay of provider must be recorded as UNKNOWN. No live subscription, entitlement, SMG borrow, or confirmed price observation presumed. Capture GitHub run ID, source timestamp, artifact SHA independently. Separate from original IEX discovery and 09:20 Rug Proof anchor. Never dispatch protected EOD.
