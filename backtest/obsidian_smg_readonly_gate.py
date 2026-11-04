@@ -74,8 +74,15 @@ def check(symbol, public, account=None, observed_at=None):
         "public_rules_compatible_assuming_inputs_valid":not any(
             x in issues for x in (
             "NOT_A_CONFIRMED_NASDAQ_OR_NYSE_SMG_LISTED_SECURITY",
+            "COMMON_STOCK_OR_STOCK_CLASS_NOT_VERIFIED",
+            "PRICES_NOT_INDEPENDENTLY_VERIFIED",
+            "PUBLIC_PRICE_PROVENANCE_NOT_VERIFIED",
             "SMG_3_DOLLAR_PREVIOUS_OR_CURRENT_PRICE_BLOCK",
-            "SMG_25M_MARKET_CAP_BLOCK","SMG_MINIMUM_TEN_SHARES_BLOCK")),
+            "MARKET_CAP_UNKNOWN",
+            "SHARE_COUNT_AND_CAPITALIZATION_UNVERIFIED",
+            "SMG_25M_MARKET_CAP_BLOCK",
+            "SMG_MINIMUM_TEN_SHARES_BLOCK",
+            "EXCHANGE_HALT_NOT_EXCLUDED")),
         "account_checks_documented_without_external_verification":not issues,
         "smg_actual_shortability_independently_confirmed_by_module":False,
         "eligible_to_call_executable":False,
