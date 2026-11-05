@@ -1,0 +1,3 @@
+# OBSIDIAN prospective intraday source checkpoint — 2026-11-05
+
+RESEARCH_ONLY_NOT_AN_ORDER. This new source marker is created within the authorized 12:10–12:30 America/Chicago research window on a regular U.S. equity trading session. It triggers one independently timestamped, read-only IEX intraday source capture. The GitHub runner must independently confirm the paper-provider market-open clock, preserve the complete selected universe and all stale, missing, floor-blocked and no-watch observations. This marker is not a prediction, order, official close, or change to any protected frozen prospective baseline.
