@@ -1,0 +1,11 @@
+# OBSIDIAN engineering SMG decision-clock fail-closed guard — November 11, 2026
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Isolated research-branch software fix; no market capture, source request, credentials, platform login, order, alert, production/main change, or historical cohort modification.
+
+## Reproduced failure contract and fix
+
+The read-only SMG gate previously compared an authenticated-looking account `checked_at` with `observed_at` without first ensuring the decision timestamp was an aware datetime. Missing, naive, or non-datetime values could raise `TypeError` rather than returning an explicit censored eligibility result. The isolated guard now records `DECISION_TIME_NOT_RECORDED` and `ACCOUNT_EVIDENCE_STALE_OR_FUTURE` for unusable decision clocks. Naive account timestamps are classified as `ACCOUNT_CHECK_TIMESTAMP_INVALID`. Regression tests exercise missing, naive, string and numeric decision clocks and naive account clocks. Passing offline tests establish only defensive software behavior, not SMG authorization.
+
+P0-1 remains externally blocked: no two independently authenticated provider-organization official regular-session closes with complete security identity, corporate actions, exchange calendar, timestamps and third-source conflict inventory. Nasdaq Trader RSS is halt-attention evidence, not an official closing-price source. Optional Massive connection/entitlement is not established. Frozen baseline and original denominators, the 136-name retained roster, JDZG stale/halt case, and matched forward 0/+1/+2/+3 actual-session outcome censoring remain untouched. No 20%+ prediction success, fills, borrow, shortability, or P&L is claimed.
+
+The separate November 11 14:47 CT protected IEX preclose run 43098152151 remained queued in the last verified listing; no retry or backfill. The distinct 15:22 CT After-Hours IEX and independent-source workflows 43102970600 and 43102970599 completed successfully with artifacts, but those runs belong to the After-Hours checkpoint, not this engineering checkpoint. ZIP metadata alone does not prove independently rehashed bytes or official-close validity. Inspect the new commit's hosted regression workflows before calling this fix CI-verified.

@@ -72,6 +72,26 @@ class SMGTests(unittest.TestCase):
                     self.assertFalse(result["eligible_to_call_executable"])
                     self.assertTrue(result["issues"])
 
+    def test_invalid_decision_timestamp_censors_account_recency_without_crashing(self):
+        # An otherwise plausible SMG account receipt cannot be compared to
+        # a missing, naive or non-datetime decision clock.
+        for bad in (None, "2026-10-28T19:30:00Z",
+                    datetime(2026, 10, 28, 19, 30), 123):
+            with self.subTest(bad=repr(bad)):
+                result = check("ABC", public(), account(), bad)
+                self.assertIn("DECISION_TIME_NOT_RECORDED", result["issues"])
+                self.assertIn("ACCOUNT_EVIDENCE_STALE_OR_FUTURE", result["issues"])
+                self.assertFalse(result["account_checks_documented_without_external_verification"])
+                self.assertFalse(result["eligible_to_call_executable"])
+                self.assertFalse(result["trade_authorized"])
+
+    def test_naive_account_timestamp_is_invalid_and_censored(self):
+        result = check("ABC", public(),
+                       account(checked_at="2026-10-28T19:29:00"), AT)
+        self.assertIn("ACCOUNT_CHECK_TIMESTAMP_INVALID", result["issues"])
+        self.assertFalse(result["account_checks_documented_without_external_verification"])
+        self.assertFalse(result["trade_authorized"])
+
     def test_batch_requires_unique_symbols(self):
         with self.assertRaisesRegex(ValueError,"UNIQUE"):
             batch(["JDZG","JDZG"],{},decision_at=AT)

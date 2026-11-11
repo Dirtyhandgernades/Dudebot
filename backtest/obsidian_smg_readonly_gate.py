@@ -65,7 +65,11 @@ def check(symbol, public, account=None, observed_at=None):
         issues.append("SMG_ACCOUNT_SHORT_PERMISSIONS_NOT_CONFIRMED")
     if acct.get("available_equity_verified") is not True:
         issues.append("ACCOUNT_AVAILABLE_EQUITY_NOT_CONFIRMED")
-    if observed_at is None or not isinstance(observed_at,datetime) or observed_at.utcoffset() is None:
+    # Invalid decision timestamps must censor account recency, not raise a
+    # TypeError when compared with an otherwise valid account timestamp.
+    decision_time_valid = (isinstance(observed_at, datetime)
+                           and observed_at.utcoffset() is not None)
+    if not decision_time_valid:
         issues.append("DECISION_TIME_NOT_RECORDED")
     account_at=acct.get("checked_at")
     if not isinstance(account_at,str):
@@ -73,9 +77,11 @@ def check(symbol, public, account=None, observed_at=None):
     else:
         try:
             checked=datetime.fromisoformat(account_at.replace("Z","+00:00"))
-            if checked.utcoffset() is None or observed_at is None or checked>observed_at or (observed_at-checked).total_seconds()>900:
+            if checked.utcoffset() is None:
+                issues.append("ACCOUNT_CHECK_TIMESTAMP_INVALID")
+            elif not decision_time_valid or checked > observed_at or (observed_at-checked).total_seconds()>900:
                 issues.append("ACCOUNT_EVIDENCE_STALE_OR_FUTURE")
-        except (ValueError,TypeError):
+        except (ValueError,TypeError,OverflowError):
             issues.append("ACCOUNT_CHECK_TIMESTAMP_INVALID")
     if acct.get("source_read_only_authenticated") is not True:
         issues.append("ACCOUNT_CHECK_NOT_INDEPENDENTLY_ATTESTED")
