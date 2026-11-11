@@ -1,0 +1,3 @@
+# OBSIDIAN prospective INTRADAY IEX source anchor — 2026-11-11
+
+RESEARCH_ONLY_NOT_AN_ORDER. Created during authorized 12:10–12:30 America/Chicago intraday window on a confirmed regular NYSE trading session for a new, independently timestamped full-universe IEX research capture. Runner must independently verify actual local clock and paper-provider is_open; fail closed otherwise. Preserve original universe, raw source, missing/stale/floor-blocked observations, source errors, and integrity evidence. No backfill, orders, or changes to protected legacy capture, baselines, main, credentials, or alerts.
