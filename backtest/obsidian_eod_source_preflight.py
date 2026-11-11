@@ -237,9 +237,14 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
         issues.add("ALL_SUPPLIED_REGULAR_CLOSE_CLAIM_CONFLICT")
     if len(all_prior_claims) > 1:
         issues.add("ALL_SUPPLIED_PREVIOUS_CLOSE_REFERENCE_DISAGREEMENT")
-    if len(all_prior_claims) == 1 and len(all_close_claims) > 1:
-        prior_claim = next(iter(all_prior_claims))
-        if min(all_close_claims) <= _exact_threshold(prior_claim) < max(all_close_claims):
+    # Multiple *untrusted* previous-close claims can move the 20% boundary
+    # across even one identical current-close claim. Inventory the entire
+    # claimed close/prior cross-product without promoting any claim to an
+    # authenticated outcome. A boundary-equal close counts as <=20% down.
+    if all_prior_claims and all_close_claims:
+        thresholds = [_exact_threshold(prior) for prior in all_prior_claims]
+        if (min(all_close_claims) <= max(thresholds)
+                and max(all_close_claims) > min(thresholds)):
             issues.add("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD")
     return {
         "mode": MODE,

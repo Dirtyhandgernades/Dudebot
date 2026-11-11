@@ -359,6 +359,40 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertEqual(len(result["all_parseable_previous_close_claim_groups"]), 2)
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
+    def test_multiple_previous_claims_straddle_threshold_with_one_close(self):
+        # A single current price can be a 20% hit relative to one previous
+        # close but a non-hit relative to another. Retain the ambiguity.
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close="8.005", prior="10.00"),
+            row("two", "two.example", close="8.005", prior="10.02"),
+        ], COLLECTED)
+        self.assertIn("ALL_SUPPLIED_PREVIOUS_CLOSE_REFERENCE_DISAGREEMENT", result["issues"])
+        self.assertIn("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_rejected_third_previous_claim_can_shift_threshold(self):
+        third = row("three", "three.example", close="8.005", prior="10.02")
+        third["symbol"] = "OTHER"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close="8.005", prior="10.00"),
+            row("two", "two.example", close="8.005", prior="10.00"),
+            third,
+        ], COLLECTED)
+        self.assertIn("WRONG_SECURITY_SESSION_OR_PRICE_KIND", result["issues"])
+        self.assertIn("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertTrue(result["untrusted_claim_inventory_not_official"])
+
+    def test_multiple_previous_claims_do_not_invent_threshold_straddle(self):
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example", close="8.50", prior="10.00"),
+            row("two", "two.example", close="8.50", prior="10.02"),
+        ], COLLECTED)
+        self.assertIn("ALL_SUPPLIED_PREVIOUS_CLOSE_REFERENCE_DISAGREEMENT", result["issues"])
+        self.assertNotIn("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_SOURCE_EVIDENCE")
+
     def test_unparseable_third_source_claim_not_invented_as_price(self):
         third = row("three", "three.example", close="not-a-price")
         third["symbol"] = "WRONG"
