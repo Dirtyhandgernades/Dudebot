@@ -6,6 +6,7 @@ receipt, never rewritten into the previously frozen OBSIDIAN IEX capture.
 """
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
+import base64
 import hashlib
 import json
 import math
@@ -445,6 +446,17 @@ def fetch_once(symbols, now, massive_token=None, session=None):
             prices=None
             massive_error="INDEPENDENT_QUOTES_MALFORMED_OR_UNVERIFIABLE"
     report=inspect_sources(symbols,now,halts,prices)
+    # Preserve the exact bounded, successfully parsed PUBLIC Nasdaq RSS bytes
+    # in the next ORIGINAL checkpoint artifact for later independent rehashing.
+    # A hash alone cannot be rehashed when the upstream body was not retained.
+    # This is not proof of exchange completeness, live halt clearance or
+    # independent upstream authentication. Never archive Massive raw bodies:
+    # optional vendor requests carry credential-bearing query parameters.
+    report["nasdaq_rss_raw_base64"] = (
+        base64.b64encode(halts).decode("ascii") if halts is not None else None)
+    report["nasdaq_rss_raw_bytes"] = len(halts) if halts is not None else None
+    report["nasdaq_rss_body_rehashable_from_artifact"] = halts is not None
+    report["nasdaq_rss_upstream_authenticity_independently_verified"] = False
     report["halt_fetch_error"]=halt_error
     report["quote_fetch_error"]=massive_error
     # Hash only a bounded body; never archive raw provider JSON or URLs
