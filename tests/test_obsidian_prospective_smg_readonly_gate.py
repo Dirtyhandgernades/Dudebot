@@ -1,5 +1,6 @@
 """Official public SMG constraints and account separation tests."""
 import unittest
+import math
 from datetime import datetime,timezone
 from backtest.obsidian_smg_readonly_gate import check,batch
 
@@ -52,6 +53,25 @@ class SMGTests(unittest.TestCase):
     def test_no_borrow_on_cash_account(self):
         x=check("ABC",public(),account(margin_account_short_enabled=False),AT)
         self.assertIn("SMG_ACCOUNT_SHORT_PERMISSIONS_NOT_CONFIRMED",x["issues"])
+    def test_missing_or_invalid_share_quantity_censors_public_compatibility(self):
+        for quantity in (None, 0, 9, 10.0, True, "10"):
+            with self.subTest(quantity=quantity):
+                result = check("ABC", public(proposed_shares=quantity), account(), AT)
+                self.assertIn("SMG_MINIMUM_TEN_SHARES_BLOCK", result["issues"])
+                self.assertFalse(result["public_rules_compatible_assuming_inputs_valid"])
+                self.assertFalse(result["eligible_to_call_executable"])
+        result = check("ABC", public(proposed_shares=10), account(), AT)
+        self.assertNotIn("SMG_MINIMUM_TEN_SHARES_BLOCK", result["issues"])
+
+    def test_nonfinite_and_unrepresentable_public_numbers_fail_closed(self):
+        for bad in (float("nan"), float("inf"), float("-inf"), 10 ** 500):
+            for field in ("previous_regular_close", "decision_day_price", "market_cap_usd"):
+                with self.subTest(field=field, bad=str(bad)[:16]):
+                    result = check("ABC", public(**{field: bad}), account(), AT)
+                    self.assertFalse(result["public_rules_compatible_assuming_inputs_valid"])
+                    self.assertFalse(result["eligible_to_call_executable"])
+                    self.assertTrue(result["issues"])
+
     def test_batch_requires_unique_symbols(self):
         with self.assertRaisesRegex(ValueError,"UNIQUE"):
             batch(["JDZG","JDZG"],{},decision_at=AT)

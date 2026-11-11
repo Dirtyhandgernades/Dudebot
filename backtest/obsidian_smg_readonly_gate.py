@@ -4,6 +4,7 @@ No login, orders, position lookup, credential use or inferred borrow. Passing
 public-rule checks alone NEVER equals a confirmed SMG shortable symbol.
 """
 from datetime import datetime,timezone
+import math
 from urllib.parse import urlparse
 
 PUBLIC_RULES="https://views.smgww.org/rotg.html"
@@ -17,7 +18,15 @@ def check(symbol, public, account=None, observed_at=None):
         raise ValueError("PUBLIC_RULE_INPUT_REQUIRED")
     issues=[]
     def positive(value):
-        return type(value) in (float,int) and value>0
+        # Untrusted public prices/capitalizations must be finite, positive,
+        # and representable; infinity, NaN and giant integers cannot satisfy
+        # even the public-rule compatibility screen.
+        if type(value) not in (float, int) or value <= 0:
+            return False
+        try:
+            return math.isfinite(value)
+        except (OverflowError, ValueError):
+            return False
     exchange=public.get("exchange")
     if exchange not in ("NASDAQ","NYSE"):
         issues.append("NOT_A_CONFIRMED_NASDAQ_OR_NYSE_SMG_LISTED_SECURITY")
@@ -39,7 +48,9 @@ def check(symbol, public, account=None, observed_at=None):
     if public.get("capitalization_independently_verified") is not True:
         issues.append("SHARE_COUNT_AND_CAPITALIZATION_UNVERIFIED")
     quantity=public.get("proposed_shares")
-    if quantity is not None and (type(quantity) is not int or quantity < 10):
+    if type(quantity) is not int or quantity < 10:
+        # An absent proposed quantity is UNKNOWN, not evidence that the
+        # platform's >=10-share minimum has been met.
         issues.append("SMG_MINIMUM_TEN_SHARES_BLOCK")
     if public.get("halt_source_checked") is not True or public.get("halt_unresolved") is not False:
         issues.append("EXCHANGE_HALT_NOT_EXCLUDED")
