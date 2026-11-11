@@ -141,11 +141,20 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
     if collection_time is None or collection_time < end:
         raise ValueError("POST_CLOSE_COLLECTION_TIMESTAMP_REQUIRED")
     issues, accepted = _published_2026_calendar_issues(session_date, previous_session_date), []
+    # Inventory every parseable *claim*, including rejected/late/wrong-symbol
+    # third sources. Such claims are not authenticated prices and cannot be
+    # used as outcomes; they must not silently disappear from conflict review.
+    all_close_claims, all_prior_claims = {}, {}
     seen_source_ids = set()
-    for report in reports:
+    for report_index, report in enumerate(reports):
         if not isinstance(report, dict):
             issues.add("MALFORMED_SOURCE_RECORD")
             continue
+        for field, bucket in (("regular_close", all_close_claims),
+                              ("previous_regular_close", all_prior_claims)):
+            claim = _positive(report.get(field))
+            if claim is not None:
+                bucket.setdefault(claim, []).append(report_index)
         source = report.get("source_id")
         # A repeated source receipt cannot be counted as two independent reports,
         # even if its self-attested provider name and URL have changed.
@@ -220,12 +229,31 @@ def preflight(symbol, session_date, previous_session_date, reports, collected_at
             issues.add("THRESHOLD_REFERENCE_PREVIOUS_CLOSE_DISAGREEMENT")
         elif min(closes) <= _exact_threshold(priors[0]) < max(closes):
             issues.add("TWENTY_PERCENT_THRESHOLD_STRADDLED")
+    # Accepted-source tolerances alone miss contradictory third-source claims
+    # rejected for wrong security, stale timing, or malformed provenance.
+    # Report these as untrusted CLAIM conflicts, never as official closes.
+    if (len(all_close_claims) > 1 and
+            _exact_spread(list(all_close_claims)) > MAX_PRICE_DIFFERENCE):
+        issues.add("ALL_SUPPLIED_REGULAR_CLOSE_CLAIM_CONFLICT")
+    if len(all_prior_claims) > 1:
+        issues.add("ALL_SUPPLIED_PREVIOUS_CLOSE_REFERENCE_DISAGREEMENT")
+    if len(all_prior_claims) == 1 and len(all_close_claims) > 1:
+        prior_claim = next(iter(all_prior_claims))
+        if min(all_close_claims) <= _exact_threshold(prior_claim) < max(all_close_claims):
+            issues.add("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD")
     return {
         "mode": MODE,
         "symbol": symbol,
         "session_date": session_date.isoformat(),
         "supplied_reports": len(reports),
         "accepted_reports": len(accepted),
+        "all_parseable_regular_close_claim_groups": [
+            {"claimed_regular_close": str(price), "source_indices": indices}
+            for price, indices in sorted(all_close_claims.items())],
+        "all_parseable_previous_close_claim_groups": [
+            {"claimed_previous_regular_close": str(price), "source_indices": indices}
+            for price, indices in sorted(all_prior_claims.items())],
+        "untrusted_claim_inventory_not_official": True,
         "distinct_provider_groups": len({x[1] for x in accepted}),
         "distinct_hosts": len({x[2] for x in accepted}),
         "status": "BLOCKED_SOURCE_EVIDENCE" if issues else "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE",

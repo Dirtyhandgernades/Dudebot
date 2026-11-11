@@ -321,5 +321,56 @@ class SourcePreflightTests(unittest.TestCase):
                 self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
                 self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
+    def test_rejected_third_source_price_conflict_remains_visible(self):
+        third = row("three", "three.example", close="8.20")
+        third["symbol"] = "WRONG"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), row("two", "two.example"), third], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertEqual(result["supplied_reports"], 3)
+        self.assertIn("WRONG_SECURITY_SESSION_OR_PRICE_KIND", result["issues"])
+        self.assertIn("ALL_SUPPLIED_REGULAR_CLOSE_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(
+            result["all_parseable_regular_close_claim_groups"],
+            [{"claimed_regular_close": "8.00", "source_indices": [0, 1]},
+             {"claimed_regular_close": "8.20", "source_indices": [2]}])
+        self.assertTrue(result["untrusted_claim_inventory_not_official"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_rejected_third_source_threshold_straddle_even_within_tolerance(self):
+        third = row("three", "three.example", close="8.001")
+        third["observed_at"] = "2026-10-27T19:59:59Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), row("two", "two.example"), third], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertIn("STALE_OR_UNTIMED_SOURCE", result["issues"])
+        self.assertIn("ALL_SUPPLIED_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertNotIn("ALL_SUPPLIED_REGULAR_CLOSE_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_rejected_third_source_previous_reference_disagreement_is_not_dropped(self):
+        third = row("three", "three.example", prior="10.001")
+        third["kind"] = "last_trade"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), row("two", "two.example"), third], COLLECTED)
+        self.assertIn("WRONG_SECURITY_SESSION_OR_PRICE_KIND", result["issues"])
+        self.assertIn("ALL_SUPPLIED_PREVIOUS_CLOSE_REFERENCE_DISAGREEMENT", result["issues"])
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertEqual(len(result["all_parseable_previous_close_claim_groups"]), 2)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_unparseable_third_source_claim_not_invented_as_price(self):
+        third = row("three", "three.example", close="not-a-price")
+        third["symbol"] = "WRONG"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), row("two", "two.example"), third], COLLECTED)
+        self.assertEqual(result["supplied_reports"], 3)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertEqual(len(result["all_parseable_regular_close_claim_groups"]), 1)
+        self.assertNotIn("ALL_SUPPLIED_REGULAR_CLOSE_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("INVALID_SOURCE_PROVENANCE_OR_PRICE", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+
 if __name__ == "__main__":
     unittest.main()
