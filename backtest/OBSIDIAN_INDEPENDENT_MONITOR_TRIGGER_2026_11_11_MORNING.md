@@ -1,0 +1,3 @@
+# OBSIDIAN independent source monitor — 2026-11-11 morning
+
+RESEARCH_ONLY_NOT_AN_ORDER. Distinct one-shot 09:12 America/Chicago morning marker, observed execution 09:14 CT. Official Nasdaq Trader RSS halt intake is GET-only; optional Massive quote intake may be absent, delayed, unlicensed or disconnected. Workflow .github/workflows/obsidian-independent-source-monitor.yml; preserve source-run IDs, original publication/trade as-of timestamps, hashes and missingness. Do not assert real-time entitlement, current halt clearance, actual financing sale, SMG eligibility or borrow. Keep separate from Rug Proof's 09:20 CT genuine source anchor; no duplicate issuer-day prediction credit. No protected EOD capture.
