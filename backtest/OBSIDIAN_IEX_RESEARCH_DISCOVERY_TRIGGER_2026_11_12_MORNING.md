@@ -1,0 +1,5 @@
+# OBSIDIAN original IEX research discovery — 2026-11-12 morning
+
+RESEARCH_ONLY_NOT_AN_ORDER. Sole authorized 09:12 America/Chicago weekday morning checkpoint, marker written during the 09:00–09:40 CT window after confirming the Thursday 2026-11-12 Nasdaq/NYSE regular cash session (09:30–16:00 ET). This is the ORIGINAL IEX discovery source lane, distinct from the Rug Catch Proof 09:20 CT genuine source anchor. Trigger once if absent; no retry or backfill.
+
+Collect bounded, read-only, source-dated evidence in the hosted workflow. Record actual provider publication/trade as-of timestamps, source-run ID, content hashes, stale/missing/future observations, security-class/split/price-floor gates, and unverified official-close/borrow status. Preserve retained 136 historical securities including JDZG, nine known original IEX omissions, and eight historical NYSE American/other scope gaps. No candidate or >=20% future collapse is asserted by this marker. No protected EOD capture, order, credential inspection, retrospective credit, or fabricated borrow.
