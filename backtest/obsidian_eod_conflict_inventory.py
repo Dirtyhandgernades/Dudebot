@@ -98,18 +98,47 @@ def canonical_source_label(value):
     return " ".join(normalized.split()).casefold() or None
 
 
-def report_digest(report):
-    """Fingerprint the complete supplied JSON row without echoing URL secrets.
+def _strict_json_tree(value):
+    """Require genuine JSON types before canonicalizing evidence.
 
-    Non-JSON Python objects are censored; a separate secure source archive is
-    still required for independently reproducible provenance.
+    Python's json.dumps silently turns integer/bool/null object keys into
+    strings and tuples into arrays. Those distinct caller packets can hash to
+    identical JSON, defeating the exact-evidence fingerprint contract.
     """
+    pending, seen = [value], set()
+    while pending:
+        item = pending.pop()
+        kind = type(item)
+        if kind in (dict, list):
+            identity = id(item)
+            if identity in seen:
+                continue  # json.dumps itself rejects cyclic structures.
+            seen.add(identity)
+            if kind is dict:
+                if any(type(key) is not str for key in item):
+                    return False
+                pending.extend(item.values())
+            else:
+                pending.extend(item)
+        elif kind not in (str, int, float, bool, type(None)):
+            return False
+    return True
+
+
+def report_digest(report):
+    """Fingerprint the complete supplied *strict JSON* claim packet.
+
+    Reject ambiguous Python-to-JSON coercions, nonfinite numbers, cycles and
+    invalid Unicode. These hashes are NOT authenticated source-body receipts.
+    """
+    if not _strict_json_tree(report):
+        return None
     try:
         canonical = json.dumps(report, sort_keys=True, separators=(",", ":"),
                                ensure_ascii=False, allow_nan=False)
-    except (TypeError, ValueError, OverflowError):
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    except (TypeError, ValueError, OverflowError, RecursionError, UnicodeError):
         return None
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def claim(value):
