@@ -5,7 +5,7 @@ NEVER authenticates a source, certifies a close, adjusts a price, or scores
 a prediction. Caller must independently retrieve and archive source receipts.
 """
 from datetime import date, datetime, time
-from backtest.obsidian_eod_source_preflight import _source_host
+from backtest.obsidian_eod_source_preflight import _source_host, _published_2026_calendar_issues
 from backtest.obsidian_eod_receipt_integrity_shadow import _canonical_label, _host_parent_hint, _instant as _strict_receipt_instant
 from zoneinfo import ZoneInfo
 
@@ -45,7 +45,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     if collected is None or collected < end:
         raise ValueError("POSTCLOSE_COLLECTION_TIME_REQUIRED")
 
-    rows, issues, valid, claims, seen = [], set(), [], [], set()
+    # Standalone action/identity audits must reject impossible published
+    # 2026 cash-equity session chains, just like the price-source preflight.
+    # Two self-consistent action receipts cannot establish an official close
+    # on a holiday, a skipped trading day, or a 13:00 ET early-close session.
+    # This static screen is not independent live calendar authentication.
+    rows, issues, valid, claims, seen = [], set(_published_2026_calendar_issues(session, previous)), [], [], set()
     if not reports:
         issues.add("NO_CORPORATE_ACTION_SOURCE_REPORTS")
     for index, report in enumerate(reports):

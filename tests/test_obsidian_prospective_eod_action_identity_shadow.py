@@ -313,5 +313,68 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
         self.assertFalse(result["official_close_verified"])
 
+
+    def test_published_holiday_and_weekend_action_claims_censored(self):
+        for session, previous in (
+            (date(2026, 11, 26), date(2026, 11, 25)),
+            (date(2026, 11, 29), date(2026, 11, 27)),
+        ):
+            with self.subTest(session=session):
+                a, b = row(), row("b", "beta", "beta.example")
+                for item in (a, b):
+                    item["session_date"] = session.isoformat()
+                    item["previous_session_date"] = previous.isoformat()
+                    item["corporate_action_evidence"]["coverage_start"] = previous.isoformat()
+                    item["corporate_action_evidence"]["coverage_end"] = session.isoformat()
+                    item["observed_at"] = session.isoformat() + "T21:25:00Z"
+                    item["corporate_action_evidence"]["checked_at"] = session.isoformat() + "T21:30:00Z"
+                result = audit_action_identity(
+                    "ZZZZ", session, previous, [a, b],
+                    session.isoformat() + "T22:00:00Z")
+                self.assertIn("CLOSED_OR_UNVERIFIED_PUBLISHED_2026_SESSION", result["issues"])
+                self.assertEqual(result["retained_report_count"], 2)
+                self.assertEqual(result["status"], "BLOCKED_CENSORED")
+                self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_skipped_prior_trading_day_action_claim_censored(self):
+        result = audit_action_identity(
+            "ZZZZ", DAY, date(2026, 10, 26), [], COLLECTED)
+        self.assertIn("PREVIOUS_SESSION_NOT_ADJACENT_ON_PUBLISHED_2026_CALENDAR",
+                      result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_early_close_and_previous_early_close_action_claims_censored(self):
+        for session, previous in (
+            (date(2026, 11, 27), date(2026, 11, 25)),
+            (date(2026, 11, 30), date(2026, 11, 27)),
+        ):
+            with self.subTest(session=session):
+                result = audit_action_identity(
+                    "ZZZZ", session, previous, [],
+                    session.isoformat() + "T22:00:00Z")
+                self.assertIn("EARLY_CLOSE_REQUIRES_SEPARATE_1300_ET_SOURCE_CONTRACT",
+                              result["issues"])
+                self.assertEqual(result["status"], "BLOCKED_CENSORED")
+                self.assertFalse(result["official_close_verified"])
+
+    def test_out_of_scope_year_action_claim_censored(self):
+        result = audit_action_identity(
+            "ZZZZ", date(2027, 1, 4), date(2026, 12, 31), [],
+            "2027-01-04T22:00:00Z")
+        self.assertIn("CLOSED_OR_UNVERIFIED_PUBLISHED_2026_SESSION",
+                      result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_holiday_gap_adjacent_trading_days_remain_unverified(self):
+        result = audit_action_identity(
+            "ZZZZ", date(2026, 9, 8), date(2026, 9, 4), [],
+            "2026-09-08T22:00:00Z")
+        self.assertNotIn("CLOSED_OR_UNVERIFIED_PUBLISHED_2026_SESSION",
+                         result["issues"])
+        self.assertNotIn("PREVIOUS_SESSION_NOT_ADJACENT_ON_PUBLISHED_2026_CALENDAR",
+                         result["issues"])
+        self.assertFalse(result["official_close_verified"])
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
 if __name__ == "__main__":
     unittest.main()
