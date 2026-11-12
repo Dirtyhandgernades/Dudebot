@@ -120,6 +120,30 @@ def _asof_claim_key(value):
     return stamp.astimezone(ZoneInfo("UTC")).isoformat() if stamp else "INVALID:" + value
 
 
+
+def _has_unpaired_surrogate(value):
+    """Reject unpaired UTF-16 escapes anywhere in a decoded provider packet.
+
+    Python's JSON decoder accepts an isolated \\ud800 escape as a string, but
+    it cannot be encoded as a valid UTF-8 Unicode scalar. Such a field could
+    crash the later source-index SHA256 grouping or hide malformed vendor
+    sideband evidence. Traverse iteratively and reject the entire source row;
+    never normalize or silently discard an untrusted claim.
+    """
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, str):
+            if any(0xD800 <= ord(char) <= 0xDFFF for char in item):
+                return True
+        elif isinstance(item, dict):
+            pending.extend(item.keys())
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+    return False
+
+
 def audit_body_bindings(session, previous, reports, receipts, collected_at,
                         session_close_at=None, previous_session_close_at=None):
     """Audit EVERY original index; never silently select matching providers."""
@@ -195,6 +219,12 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 )
                 if not isinstance(parsed, dict):
                     faults.add("JSON_ROOT_NOT_OBJECT")
+                    parsed = None
+                elif _has_unpaired_surrogate(parsed):
+                    # JSON can parse an escaped lone surrogate even though
+                    # the resulting string cannot be safely UTF-8 hashed.
+                    # Censor the entire malformed source, not the other rows.
+                    faults.add("INVALID_UNICODE_SCALAR_IN_JSON_BODY_CENSORED")
                     parsed = None
             except _UnboundedJsonNumber:
                 faults.add("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED")

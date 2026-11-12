@@ -63,6 +63,41 @@ class BindingShadowTests(unittest.TestCase):
         return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
                                    t if receipts is None else receipts, COLLECTED)
 
+    def test_unpaired_surrogate_identity_claim_censors_without_crashing(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["issuer_class"] = "ADR" + chr(0xD800)
+        replace_body(t, 1, json.dumps(body).encode("utf-8"))
+        result = self.check(r, t)
+        self.assertIn("INVALID_UNICODE_SCALAR_IN_JSON_BODY_CENSORED", result["issues"])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["issuer_class"], [1])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_unpaired_surrogate_in_nested_vendor_key_censors_full_source(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["vendor_metadata"] = {"rows": [{"key" + chr(0xDFFF): "value"}]}
+        replace_body(t, 1, json.dumps(body).encode("utf-8"))
+        result = self.check(r, t)
+        self.assertIn("INVALID_UNICODE_SCALAR_IN_JSON_BODY_CENSORED", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["corporate_action_status"], [1])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_valid_surrogate_pair_unicode_sideband_remains_parseable(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["vendor_metadata"] = {"note": chr(0x1F600)}
+        replace_body(t, 1, json.dumps(body).encode("utf-8"))
+        result = self.check(r, t)
+        self.assertNotIn("INVALID_UNICODE_SCALAR_IN_JSON_BODY_CENSORED", result["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
     def test_rejected_body_identity_conflict_retains_source_index_without_raw_value(self):
         r, t = packet()
         body = json.loads(t[1]["raw_body"])
