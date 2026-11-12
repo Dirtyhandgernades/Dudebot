@@ -343,6 +343,32 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     ):
         if len(identity_claims[field]) > 1:
             issues.add(issue)
+    # Preserve exact source-index provenance for every parseable body
+    # identity/action/as-of claim, including rejected third sources. The
+    # existing conflict flags alone do not show which source disagreed.
+    # Hash claim values rather than echoing arbitrary untrusted strings:
+    # a vendor field could contain a credential, URL or sensitive text.
+    # These digests are local grouping fingerprints, NOT source authenticity.
+    identity_claim_groups = {}
+    missing_identity_claim_indices = {}
+    for field, claims in identity_claims.items():
+        groups_for_field = []
+        covered_indices = set()
+        for value, indices in sorted(claims.items()):
+            covered_indices.update(indices)
+            groups_for_field.append({
+                "claim_sha256": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                "structurally_valid_source_indices": [
+                    i for i in indices if rows[i]["status"] == "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+                ],
+                "rejected_source_indices": [
+                    i for i in indices if rows[i]["status"] != "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+                ],
+            })
+        identity_claim_groups[field] = groups_for_field
+        missing_identity_claim_indices[field] = [
+            i for i in range(count) if i not in covered_indices
+        ]
     groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
          "source_indices": indices,
@@ -385,6 +411,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "all_parseable_body_price_claim_groups": groups,
         "all_parseable_body_current_close_claim_groups": current_groups,
         "all_parseable_body_previous_close_claim_groups": previous_groups,
+        "all_parseable_body_identity_claim_groups": identity_claim_groups,
+        "unparseable_body_identity_claim_source_indices": missing_identity_claim_indices,
         "issues": sorted(issues),
         "status": "BLOCKED_CENSORED" if issues else "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "source_ownership_and_transport_authenticated": False,

@@ -63,6 +63,47 @@ class BindingShadowTests(unittest.TestCase):
         return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
                                    t if receipts is None else receipts, COLLECTED)
 
+    def test_rejected_body_identity_conflict_retains_source_index_without_raw_value(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["issuer_class"] = "ADR"
+        body["previous_issuer_class"] = "ADR"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        groups = result["all_parseable_body_identity_claim_groups"]["issuer_class"]
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(
+            sorted((tuple(g["structurally_valid_source_indices"]),
+                    tuple(g["rejected_source_indices"])) for g in groups),
+            [((), (1,)), ((0,), ())])
+        self.assertIn("PARSED_BODY_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["issuer_class"], [])
+        self.assertNotIn('"ADR"', repr(result))
+        self.assertFalse(result["official_close_verified"])
+
+    def test_malformed_body_is_missing_for_every_indexed_identity_dimension(self):
+        r, t = packet()
+        replace_body(t, 1, b'{"not_closed":')
+        result = self.check(r, t)
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["security_id"], [1])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["corporate_action_status"], [1])
+        self.assertEqual(result["all_parseable_body_identity_claim_groups"]["security_id"][0]["structurally_valid_source_indices"], [0])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_untrusted_action_claim_is_fingerprinted_not_echoed(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["status"] = "SENSITIVE_TOKEN_DO_NOT_ECHO"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        groups = result["all_parseable_body_identity_claim_groups"]["corporate_action_status"]
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(sorted(i for g in groups for i in g["rejected_source_indices"]), [1])
+        self.assertNotIn("SENSITIVE_TOKEN_DO_NOT_ECHO", repr(result))
+        self.assertIn("PARSED_BODY_CORPORATE_ACTION_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
     def test_matching_bytes_and_claims_still_censored(self):
         result = self.check()
         self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
