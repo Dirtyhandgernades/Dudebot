@@ -1,0 +1,3 @@
+# OBSIDIAN prospective morning IEX source anchor — 2026-11-12
+
+RESEARCH_ONLY_NOT_AN_ORDER. Authorized Thursday 09:20 America/Chicago checkpoint; marker created during 09:10–09:30 CT window. NYSE regular session scheduled open per official 2026 calendar; the GitHub runner must independently verify the actual America/Chicago clock, paper broker `is_open`, source integrity, and complete attempted universe before any capture. Preserve original source timestamps, stale/missing/floor-blocked records, all denominators, and source digest. No retries, backfills, retrospective prediction claims, trading orders, alerts, or changes to protected 14:45–14:58 CT evidence.
