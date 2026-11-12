@@ -1,0 +1,14 @@
+# OBSIDIAN 2026-11-12 14:20 CT — prospective delayed-SIP source-quality receipt
+
+RESEARCH_ONLY_NOT_AN_ORDER. This is a new research-only evidence note, not a prediction, official close, order, retry, backfill, or change to the protected 14:45–14:58 CT path.
+
+- Exchange calendar: Thursday 2026-11-12 was a regular NYSE session (09:30–16:00 ET); independently checked against https://www.nyse.com/trade/hours-calendars. The delayed-SIP runner independently confirmed paper broker `is_open=true` at 2026-11-12T14:24:58.016015-06:00.
+- Frozen original intraday IEX anchor: GitHub Actions run `43279615414`, artifact `13972361321`, full original 8,492 unique securities, captured 12:25:15–12:25:19 CT. Independently downloaded and SHA-256 rehashed ZIP: `bc3cbd7c8b754fc03703bc9d06962460c97a2dc52502118e16d43b79b9de626e`; raw `universe.jsonl` SHA-256 `fb882967324c7c0ea9adaf0f6f1caa73a766813c122c60ba1b89e77aaa8e1d2d`, matches manifest. Original IEX statuses and denominator remain unchanged.
+- Exactly one new same-date SIP marker `backtest/OBSIDIAN_RUG_PROOF_SIP_2026_11_12.md`, containing only `ANCHOR_RUN_ID=43279615414`, committed at `c5814458a893af91b0cbf3592adeee2464e0e128`. No other SIP marker was created.
+- New prospective delayed historical SIP runner `43300057254`: completed successfully. Artifact `13980477945`, independently downloaded and ZIP SHA-256 rehashed `c32fa02adf0d6c356fc3c33489c37c9de2c70fb12122dc8ef8bfd76538ba8b60`; `rescue.jsonl` SHA-256 `11aab4bf74b958a8ddab54cb7870ce119dd5019974312fd479b587dca6084ba6`, matches manifest. 8,492 rows, 8,492 distinct original symbols, 85/85 GET batches completed, 0 GET errors, 0 symbols failed GET.
+- Actual receipt as-of `2026-11-12T20:24:59.159114Z`; latest eligible historical 1-minute SIP bar end `2026-11-12T20:07:59.159114Z`, at least 17 minutes delayed. **Not** real-time, not backdated to the original IEX capture, not an official regular close.
+- Historical delayed SIP bar quality: 5,658 fresh-at-delayed-asof (66.63%); 988 stale (11.63%); 1,846 no consolidated bar (21.74%); **2,834 stale/missing (33.37%)**. Preserve the entire denominator. A missing bar is not a zero decline.
+- Prospective research watch-only lanes: 3,327 no-price watch, 1,417 early-price watch, 27 intermediate-price watch, 11 already-exhausted, 871 floor-blocked, 2,839 censored for stale/missing/reference limitations. These are classifications only, not validated rug catches or executable signals.
+- No independent two-source completed 16:00 ET official closes, security/corporate-action/halts/borrow/SMG clearance, fills, or future +1/+2/+3 session outcomes verified. Predictive performance remains unscored. No retrospective winner tuning.
+
+Source runs: https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43279615414 and https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43300057254
