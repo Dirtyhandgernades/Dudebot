@@ -172,6 +172,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     # source supplies only one side of the close/prior-close pair. A complete
     # pair-only ledger could otherwise conceal an explicit contradiction.
     close_claims, prior_claims = {}, {}
+    # Publication/action-check times are not expected to match across vendors.
+    # Inventory each exact source claim without treating different legitimate
+    # retrieval/publication clocks as a price or identity conflict.
+    timing_claims = {field: {} for field in ("source_publication_at", "action_checked_at")}
     identity_claims = {field: {} for field in (
         "symbol", "session_date", "previous_session_date",
         "regular_close_asof", "previous_regular_close_asof",
@@ -279,6 +283,12 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 bucket.append(index)
             action = parsed.get("corporate_action")
             report_action = r.get("corporate_action")
+            for field, value in (
+                    ("source_publication_at", parsed.get("observed_at")),
+                    ("action_checked_at", action.get("checked_at") if isinstance(action, dict) else None)):
+                claim = _asof_claim_key(value)
+                if claim is not None:
+                    timing_claims[field].setdefault(claim, []).append(index)
             # Compare every parseable source-body identity/action claim,
             # including rejected rows; never cherry-pick two agreeing ones.
             for field, value in (
@@ -399,6 +409,34 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         missing_identity_claim_indices[field] = [
             i for i in range(count) if i not in covered_indices
         ]
+    # Preserve every source-body publication/action-check assertion, including
+    # rejected and unsupported-precision timestamps. UTC-equivalent offsets
+    # group together; distinct valid publication times are NOT conflicts.
+    # Only hashed claim keys are exposed, never untrusted timestamp text.
+    timing_claim_groups = {}
+    missing_timing_claim_indices = {}
+    invalid_timing_claim_indices = {}
+    for field, claims in timing_claims.items():
+        groups_for_field = []
+        covered_indices, invalid_indices = set(), set()
+        for value, indices in sorted(claims.items()):
+            covered_indices.update(indices)
+            if value.startswith("INVALID:"):
+                invalid_indices.update(indices)
+            groups_for_field.append({
+                "claim_sha256": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                "structurally_valid_source_indices": [
+                    i for i in indices if rows[i]["status"] == "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+                ],
+                "rejected_source_indices": [
+                    i for i in indices if rows[i]["status"] != "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+                ],
+            })
+        timing_claim_groups[field] = groups_for_field
+        missing_timing_claim_indices[field] = [
+            i for i in range(count) if i not in covered_indices
+        ]
+        invalid_timing_claim_indices[field] = sorted(invalid_indices)
     groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
          "source_indices": indices,
@@ -443,6 +481,9 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "all_parseable_body_previous_close_claim_groups": previous_groups,
         "all_parseable_body_identity_claim_groups": identity_claim_groups,
         "unparseable_body_identity_claim_source_indices": missing_identity_claim_indices,
+        "all_body_timing_claim_groups": timing_claim_groups,
+        "missing_body_timing_claim_source_indices": missing_timing_claim_indices,
+        "invalid_body_timing_claim_source_indices": invalid_timing_claim_indices,
         "issues": sorted(issues),
         "status": "BLOCKED_CENSORED" if issues else "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "source_ownership_and_transport_authenticated": False,

@@ -63,6 +63,62 @@ class BindingShadowTests(unittest.TestCase):
         return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
                                    t if receipts is None else receipts, COLLECTED)
 
+    def test_publication_and_action_check_timing_source_provenance(self):
+        result = self.check()
+        for field in ("source_publication_at", "action_checked_at"):
+            groups = result["all_body_timing_claim_groups"][field]
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0]["structurally_valid_source_indices"], [0, 1])
+            self.assertEqual(groups[0]["rejected_source_indices"], [])
+            self.assertEqual(result["missing_body_timing_claim_source_indices"][field], [])
+            self.assertEqual(result["invalid_body_timing_claim_source_indices"][field], [])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_distinct_valid_publication_clocks_are_not_false_conflicts(self):
+        r, t = packet()
+        r[1]["observed_at"] = "2026-10-28T16:07:00-04:00"
+        r[1]["corporate_action"]["checked_at"] = "2026-10-28T16:05:30-04:00"
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = r[1]["observed_at"]
+        body["corporate_action"]["checked_at"] = r[1]["corporate_action"]["checked_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        for field in ("source_publication_at", "action_checked_at"):
+            groups = result["all_body_timing_claim_groups"][field]
+            self.assertEqual(len(groups), 2)
+            self.assertEqual(sorted(i for g in groups
+                                    for i in g["structurally_valid_source_indices"]), [0, 1])
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_invalid_submicrosecond_timing_claims_remain_indexed_censored(self):
+        r, t = packet()
+        r[1]["observed_at"] = "2026-10-28T20:06:00.0000001Z"
+        r[1]["corporate_action"]["checked_at"] = "2026-10-28T20:05:00.0000001Z"
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = r[1]["observed_at"]
+        body["corporate_action"]["checked_at"] = r[1]["corporate_action"]["checked_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_PUBLICATION_RECEIPT_CHRONOLOGY_INVALID", result["issues"])
+        self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
+        for field in ("source_publication_at", "action_checked_at"):
+            self.assertEqual(result["invalid_body_timing_claim_source_indices"][field], [1])
+            self.assertEqual(result["missing_body_timing_claim_source_indices"][field], [])
+            self.assertEqual(len(result["all_body_timing_claim_groups"][field]), 2)
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_malformed_source_body_missing_in_timing_provenance(self):
+        r, t = packet()
+        replace_body(t, 1, b'{"truncated":')
+        result = self.check(r, t)
+        for field in ("source_publication_at", "action_checked_at"):
+            self.assertEqual(result["missing_body_timing_claim_source_indices"][field], [1])
+            self.assertEqual(result["invalid_body_timing_claim_source_indices"][field], [])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertFalse(result["official_close_verified"])
+
     def test_unpaired_surrogate_identity_claim_censors_without_crashing(self):
         r, t = packet()
         body = json.loads(t[1]["raw_body"])
