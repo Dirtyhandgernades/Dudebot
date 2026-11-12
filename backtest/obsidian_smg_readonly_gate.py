@@ -110,7 +110,13 @@ def check(symbol, public, account=None, observed_at=None):
 
 
 def batch(symbols, public_records, account_records=None, decision_at=None):
-    if not isinstance(symbols,list) or len(symbols)!=len(set(symbols)):
+    # One original issuer/symbol may not be counted twice through case or
+    # surrounding-whitespace aliases. Never silently deduplicate rows:
+    # reject the entire caller-supplied cohort before inspecting evidence.
+    if not isinstance(symbols, list):
+        raise ValueError("UNIQUE_SYMBOLS_REQUIRED")
+    normalized = [s.strip().upper() if isinstance(s, str) else None for s in symbols]
+    if any(not s for s in normalized) or len(normalized) != len(set(normalized)):
         raise ValueError("UNIQUE_SYMBOLS_REQUIRED")
     pa=public_records if isinstance(public_records,dict) else {}
     ac=account_records if isinstance(account_records,dict) else {}

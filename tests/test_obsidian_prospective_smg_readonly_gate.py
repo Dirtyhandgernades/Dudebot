@@ -96,5 +96,23 @@ class SMGTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"UNIQUE"):
             batch(["JDZG","JDZG"],{},decision_at=AT)
 
+    def test_batch_rejects_case_and_whitespace_aliases_before_scoring(self):
+        # A duplicated original ticker/day cannot become two apparent
+        # SMG public-compatibility observations via presentation aliases.
+        for symbols in (["JDZG", "jdzg"], ["JDZG", " JDZG "],
+                        [" jdzg ", "JDZG"], ["JDZG", None],
+                        ["JDZG", "   "]):
+            with self.subTest(symbols=symbols):
+                with self.assertRaisesRegex(ValueError, "UNIQUE_SYMBOLS_REQUIRED"):
+                    batch(symbols, {"JDZG": public()}, {"JDZG": account()}, AT)
+
+    def test_batch_distinct_symbols_still_preserves_denominator_and_nonexecution(self):
+        result = batch(["JDZG", "WCT"], {"JDZG": public(), "WCT": public()},
+                       {"JDZG": account(), "WCT": account()}, AT)
+        self.assertEqual(result["requested"], 2)
+        self.assertEqual([r["ticker"] for r in result["rows"]], ["JDZG", "WCT"])
+        self.assertTrue(all(not r["trade_authorized"] for r in result["rows"]))
+        self.assertIsNone(result["verified_executable_shorts"])
+
 if __name__=="__main__":
     unittest.main()
