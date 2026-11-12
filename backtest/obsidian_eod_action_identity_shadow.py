@@ -122,7 +122,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             "source_host": source_host,
             "action_evidence_host": action_host,
             "security_id_claim": security if isinstance(security, str) else None,
+            "previous_security_id_claim": prior_security if isinstance(prior_security, str) else None,
             "issuer_class_claim": issuer_class if isinstance(issuer_class, str) else None,
+            "action_security_id_claim":
+                a.get("security_id") if isinstance(a.get("security_id"), str) else None,
+            "action_issuer_class_claim":
+                a.get("issuer_class") if isinstance(a.get("issuer_class"), str) else None,
             "previous_issuer_class_claim": prior_class if isinstance(prior_class, str) else None,
             "action_previous_security_id_claim":
                 a.get("previous_security_id") if isinstance(a.get("previous_security_id"), str) else None,
@@ -166,9 +171,15 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     # Index those claims separately, including missing/unparseable claims,
     # without treating rejected evidence as authenticated source truth.
     previous_class_groups = {}
+    previous_security_groups = {}
+    action_security_groups = {}
+    action_class_groups = {}
     action_previous_security_groups = {}
     action_previous_class_groups = {}
     missing_previous_class = []
+    missing_previous_security = []
+    missing_action_security = []
+    missing_action_class = []
     missing_action_previous_security = []
     missing_action_previous_class = []
     for item in rows:
@@ -178,6 +189,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         for value, groups, missing in (
             (item["previous_issuer_class_claim"], previous_class_groups,
              missing_previous_class),
+            (item["previous_security_id_claim"], previous_security_groups,
+             missing_previous_security),
+            (item["action_security_id_claim"], action_security_groups,
+             missing_action_security),
+            (item["action_issuer_class_claim"], action_class_groups,
+             missing_action_class),
             (item["action_previous_security_id_claim"],
              action_previous_security_groups, missing_action_previous_security),
             (item["action_previous_issuer_class_claim"],
@@ -189,6 +206,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
     if len(previous_class_groups) > 1:
         issues.add("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
+    if len(previous_security_groups) > 1:
+        issues.add("CROSS_SOURCE_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
+    if len(action_security_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_SECURITY_ID_CLAIM_CONFLICT")
+    if len(action_class_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_ISSUER_CLASS_CLAIM_CONFLICT")
     if len(action_previous_security_groups) > 1:
         issues.add("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
     if len(action_previous_class_groups) > 1:
@@ -198,6 +221,24 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
          "structurally_valid_source_indices": groups["valid"],
          "rejected_source_indices": groups["rejected"]}
         for value, groups in sorted(previous_class_groups.items())
+    ]
+    previous_security_id_claim_groups = [
+        {"previous_security_id": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(previous_security_groups.items())
+    ]
+    action_security_id_claim_groups = [
+        {"action_security_id": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(action_security_groups.items())
+    ]
+    action_issuer_class_claim_groups = [
+        {"action_issuer_class": value,
+         "structurally_valid_source_indices": groups["valid"],
+         "rejected_source_indices": groups["rejected"]}
+        for value, groups in sorted(action_class_groups.items())
     ]
     action_previous_security_id_claim_groups = [
         {"action_previous_security_id": value,
@@ -219,9 +260,15 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "structurally_valid_report_count": len(valid),
         "all_source_rows": rows, "issues": sorted(issues),
         "previous_issuer_class_claim_groups": previous_class_claim_groups,
+        "previous_security_id_claim_groups": previous_security_id_claim_groups,
+        "action_security_id_claim_groups": action_security_id_claim_groups,
+        "action_issuer_class_claim_groups": action_issuer_class_claim_groups,
         "action_previous_security_id_claim_groups": action_previous_security_id_claim_groups,
         "action_previous_issuer_class_claim_groups": action_previous_issuer_class_claim_groups,
         "unparseable_previous_issuer_class_claim_source_indices": missing_previous_class,
+        "unparseable_previous_security_id_claim_source_indices": missing_previous_security,
+        "unparseable_action_security_id_claim_source_indices": missing_action_security,
+        "unparseable_action_issuer_class_claim_source_indices": missing_action_class,
         "unparseable_action_previous_security_id_claim_source_indices":
             missing_action_previous_security,
         "unparseable_action_previous_issuer_class_claim_source_indices":
