@@ -204,6 +204,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     security_identity_claims = []
     previous_security_identity_claims = []
     unparseable_previous_identity_indices = []
+    # Supplemental issuer-class claims remain untrusted; separate action
+    # identity checks still own complete class/action authentication.
+    issuer_class_claims, previous_issuer_class_claims = [], []
+    unparseable_issuer_class_indices, unparseable_previous_class_indices = [], []
     rows = []
     for index, report in enumerate(reports):
         faults = set()
@@ -268,6 +272,17 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             previous_security_identity_claims.append((index, previous_id, not faults))
         else:
             unparseable_previous_identity_indices.append(index)
+        # Retain current and prior share-class claims from rejected sources.
+        # A matching security ID or price does not resolve ADR/common conflicts.
+        for field, bucket, missing in (
+                ("issuer_class", issuer_class_claims, unparseable_issuer_class_indices),
+                ("previous_issuer_class", previous_issuer_class_claims,
+                 unparseable_previous_class_indices)):
+            value = r.get(field)
+            if isinstance(value, str) and value.strip():
+                bucket.append((index, value, not faults))
+            else:
+                missing.append(index)
         if faults:
             issues.update(faults)
         else:
@@ -286,6 +301,8 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
                 "previous_session_date": claim(r.get("previous_session_date")),
                 "security_id": claim(r.get("security_id")),
                 "previous_security_id": claim(r.get("previous_security_id")),
+                "issuer_class": claim(r.get("issuer_class")),
+                "previous_issuer_class": claim(r.get("previous_issuer_class")),
                 "kind": claim(r.get("kind")),
                 "session_complete": r.get("session_complete") if type(r.get("session_complete")) is bool else None,
                 "regular_close": claim(r.get("regular_close")),
@@ -323,6 +340,25 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
          "rejected_source_indices": group["rejected"]}
         for security_id, group in sorted(previous_identity_groups.items())
     ]
+    # Supplemental complete-source conflict view; no claim is authenticated.
+    def class_claim_groups(claims, field):
+        grouped = {}
+        for index, value, accepted in claims:
+            entry = grouped.setdefault(value, {"valid": [], "rejected": []})
+            entry["valid" if accepted else "rejected"].append(index)
+        return [
+            {field: value, "structurally_valid_source_indices": entry["valid"],
+             "rejected_source_indices": entry["rejected"]}
+            for value, entry in sorted(grouped.items())
+        ]
+
+    issuer_class_claim_groups = class_claim_groups(issuer_class_claims, "issuer_class")
+    previous_issuer_class_claim_groups = class_claim_groups(
+        previous_issuer_class_claims, "previous_issuer_class")
+    if len(issuer_class_claim_groups) > 1:
+        issues.add("ALL_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT")
+    if len(previous_issuer_class_claim_groups) > 1:
+        issues.add("ALL_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
     # Hostnames and claimed provider names alone cannot authenticate legal
@@ -437,6 +473,10 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "source_rows": rows, "security_identity_claim_groups": security_identity_claim_groups,
         "previous_security_identity_claim_groups": previous_security_identity_claim_groups,
         "unparseable_previous_security_id_claim_source_indices": unparseable_previous_identity_indices,
+        "issuer_class_claim_groups": issuer_class_claim_groups,
+        "previous_issuer_class_claim_groups": previous_issuer_class_claim_groups,
+        "unparseable_issuer_class_claim_source_indices": unparseable_issuer_class_indices,
+        "unparseable_previous_issuer_class_claim_source_indices": unparseable_previous_class_indices,
         "price_claim_groups": price_claim_groups,
         "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
         "all_parseable_regular_close_claim_groups": all_parseable_close_claim_groups,

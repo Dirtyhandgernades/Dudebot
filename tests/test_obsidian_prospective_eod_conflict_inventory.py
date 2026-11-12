@@ -651,5 +651,55 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertEqual(result["structural_status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
         self.assertFalse(result["official_regular_close_verified"])
 
+    def test_rejected_third_current_issuer_class_conflict_survives_matching_prices(self):
+        first, second, third = row(), row("b", "two", "two.example"), row("c", "three", "three.example")
+        for source in (first, second):
+            source["issuer_class"] = "COMMON"
+            source["previous_issuer_class"] = "COMMON"
+        third["issuer_class"] = "ADR"
+        third["previous_issuer_class"] = "COMMON"
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([first, second, third])
+        self.assertIn("ALL_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["issuer_class_claim_groups"], [
+            {"issuer_class": "ADR", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+            {"issuer_class": "COMMON", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+        ])
+        self.assertEqual(result["source_rows"][2]["source_claims"]["issuer_class"], "ADR")
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_rejected_third_previous_class_conflict_survives_matching_security_id(self):
+        first, second, third = row(), row("b", "two", "two.example"), row("c", "three", "three.example")
+        for source in (first, second, third):
+            source["issuer_class"] = "COMMON"
+            source["previous_issuer_class"] = "COMMON"
+        third["previous_issuer_class"] = "PREFERRED"
+        third["observed_at"] = "2026-10-28T19:59:35Z"
+        result = check([first, second, third])
+        self.assertIn("ALL_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["previous_issuer_class_claim_groups"][-1],
+                         {"previous_issuer_class": "PREFERRED",
+                          "structurally_valid_source_indices": [],
+                          "rejected_source_indices": [2]})
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_missing_class_claims_indexed_without_false_authentication(self):
+        first, second, third = row(), row("b", "two", "two.example"), row("c", "three", "three.example")
+        first["issuer_class"] = first["previous_issuer_class"] = "COMMON"
+        second["issuer_class"] = second["previous_issuer_class"] = "COMMON"
+        third["issuer_class"] = "COMMON"
+        result = check([first, second, third])
+        self.assertEqual(result["unparseable_previous_issuer_class_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_issuer_class_claim_source_indices"], [])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
+        self.assertFalse(result["official_regular_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()
