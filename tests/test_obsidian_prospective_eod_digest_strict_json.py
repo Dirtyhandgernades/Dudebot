@@ -23,7 +23,7 @@ class StrictJsonEvidenceDigestTests(unittest.TestCase):
         packet = {"source": "test"}
         packet["cycle"] = packet
         self.assertIsNone(report_digest(packet))
-        self.assertIsNone(report_digest({"source": "\\ud800"}))
+        self.assertIsNone(report_digest({"source": chr(0xD800)}))
 
     def test_valid_json_claim_is_stable_across_dict_key_order(self):
         a = {"outer": {"a": [1, True, None], "b": 2.5}, "source": "x"}
