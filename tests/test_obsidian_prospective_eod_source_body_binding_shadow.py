@@ -658,5 +658,50 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["all_parseable_body_previous_close_claim_groups"][0]["source_indices"], [0])
         self.assertFalse(result["official_close_verified"])
 
+
+    def test_high_precision_boundary_is_not_rounded_into_false_negative(self):
+        r, t = packet()
+        for i in range(2):
+            r[i]["previous_regular_close"] = "10.000000000000000000000000000001"
+            r[i]["regular_close"] = "8.0000000000000000000000000000008"
+            body = json.loads(t[i]["raw_body"])
+            body["previous_regular_close"] = r[i]["previous_regular_close"]
+            body["regular_close"] = r[i]["regular_close"]
+            replace_body(t, i, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+        self.assertIs(result["all_parseable_body_price_claim_groups"][0]["claimed_20pct_drop"], True)
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_oversized_significant_digits_are_censored_without_losing_other_source(self):
+        r, t = packet()
+        huge = "1." + "0" * 101 + "1"
+        r[1]["regular_close"] = huge
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = huge
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertEqual(len(result["all_parseable_body_current_close_claim_groups"]), 1)
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_previous_only_claim_can_change_threshold_classification(self):
+        r, t = packet()
+        r[1]["regular_close"] = None
+        r[1]["previous_regular_close"] = "9.00"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = None
+        body["previous_regular_close"] = "9.00"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("PARSED_BODY_ALL_CLAIMS_STRADDLE_20PCT_THRESHOLD", result["issues"])
+        self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
+        self.assertEqual(len(result["all_parseable_body_previous_close_claim_groups"]), 2)
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

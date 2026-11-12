@@ -9,7 +9,7 @@ Never return URLs, response bodies, headers or credential-bearing fields.
 import hashlib
 import json
 from datetime import date, datetime, time
-from decimal import Decimal, DecimalException, InvalidOperation
+from decimal import Decimal, DecimalException, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts, MAX_RECEIPT_BYTES
@@ -51,9 +51,16 @@ def _positive(value):
     # Provider bytes are untrusted. Extreme JSON exponents can overflow the
     # Decimal 20%-threshold multiplication and abort the entire indexed audit.
     # This broad arithmetic safety envelope is NOT an SMG price eligibility rule.
-    if not -100 <= number.adjusted() <= 100:
+    if not -100 <= number.adjusted() <= 100 or len(number.as_tuple().digits) > 100:
         return None
     return number
+
+
+def _exact_20pct_threshold(prior):
+    """Compare original source claims without 28-digit Decimal rounding."""
+    with localcontext() as ctx:
+        ctx.prec = 512
+        return prior * Decimal("0.8")
 
 
 def _instant(value):
@@ -274,7 +281,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
          "source_indices": indices,
-         "claimed_20pct_drop": close <= prior * Decimal("0.8")}
+         "claimed_20pct_drop": close <= _exact_20pct_threshold(prior)}
         for (close, prior), indices in sorted(prices.items())
     ]
     current_groups = [
@@ -293,6 +300,13 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         issues.add("PARSED_BODY_PRICE_CLAIM_CONFLICT")
     if len({g["claimed_20pct_drop"] for g in groups}) > 1:
         issues.add("PARSED_BODY_CLAIMS_STRADDLE_20PCT_THRESHOLD")
+    # A rejected third body can contain only a current or only a prior close.
+    # Cross-check all independently parseable claims, not just complete pairs.
+    # This is an UNTRUSTED claim-conflict inventory, never an official outcome.
+    if current_groups and previous_groups:
+        thresholds = [_exact_20pct_threshold(prior) for prior in prior_claims]
+        if min(close_claims) <= max(thresholds) and max(close_claims) > min(thresholds):
+            issues.add("PARSED_BODY_ALL_CLAIMS_STRADDLE_20PCT_THRESHOLD")
     return {
         "mode": MODE, "policy": POLICY,
         "session_date": session.isoformat(),
