@@ -1,0 +1,3 @@
+# OBSIDIAN prospective intraday IEX source marker — 2026-11-12
+
+RESEARCH_ONLY_NOT_AN_ORDER. Created only during the authorized 12:10–12:30 America/Chicago checkpoint on the regular November 12, 2026 exchange session. Trigger one independently timestamped, read-only, full-universe IEX source capture. The runner must independently verify the actual local clock and paper broker market-open status; fail closed otherwise. Preserve every source row, missing/stale/future observation, original denominator, venue gaps and artifact digest. This is new prospective research evidence only, not the protected 14:45–14:58 path, a backfill, an official close, an order, or an executable trading signal.
