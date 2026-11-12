@@ -187,6 +187,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     # Inventory each exact source claim without treating different legitimate
     # retrieval/publication clocks as a price or identity conflict.
     timing_claims = {field: {} for field in ("source_publication_at", "action_checked_at")}
+    # A present malformed timing value is different from a field omitted in
+    # an otherwise parseable body. Neither can authenticate a closing price.
+    present_invalid_timing_indices = {field: set() for field in timing_claims}
+    explicitly_absent_timing_indices = {field: set() for field in timing_claims}
     identity_claims = {field: {} for field in (
         "symbol", "session_date", "previous_session_date",
         "regular_close_asof", "previous_regular_close_asof",
@@ -303,6 +307,20 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 claim = _asof_claim_key(value)
                 if claim is not None:
                     timing_claims[field].setdefault(claim, []).append(index)
+            for field, owner, key in (
+                    ("source_publication_at", parsed, "observed_at"),
+                    ("action_checked_at", action, "checked_at")):
+                if isinstance(owner, dict):
+                    if key not in owner:
+                        explicitly_absent_timing_indices[field].add(index)
+                    elif _instant(owner[key]) is None:
+                        present_invalid_timing_indices[field].add(index)
+                elif field == "action_checked_at" and "corporate_action" in parsed:
+                    # An explicit null/list/string action container is not
+                    # evidence that the checked_at claim was simply omitted.
+                    present_invalid_timing_indices[field].add(index)
+                else:
+                    explicitly_absent_timing_indices[field].add(index)
             # Compare every parseable source-body identity/action claim,
             # including rejected rows; never cherry-pick two agreeing ones.
             for field, value in (
@@ -485,7 +503,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         missing_timing_claim_indices[field] = [
             i for i in range(count) if i not in covered_indices
         ]
-        invalid_timing_claim_indices[field] = sorted(invalid_indices)
+        invalid_timing_claim_indices[field] = sorted(
+            invalid_indices | present_invalid_timing_indices[field])
     # Every parseable price claim retains its original source index even if
     # the source fails receipt, identity, action or chronology validation.
     # Distinguish structurally matching rows from rejected third-source claims;
@@ -563,6 +582,9 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "all_body_timing_claim_groups": timing_claim_groups,
         "missing_body_timing_claim_source_indices": missing_timing_claim_indices,
         "invalid_body_timing_claim_source_indices": invalid_timing_claim_indices,
+        "explicitly_absent_body_timing_claim_source_indices": {
+            field: sorted(indices) for field, indices in explicitly_absent_timing_indices.items()
+        },
         "issues": sorted(issues),
         "status": "BLOCKED_CENSORED" if issues else "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING",
         "source_ownership_and_transport_authenticated": False,

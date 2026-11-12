@@ -164,6 +164,59 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
         self.assertFalse(result["official_close_verified"])
 
+
+    def test_explicit_null_publication_is_invalid_not_omitted(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = None
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_timing_claim_source_indices"]["source_publication_at"], [1])
+        self.assertEqual(result["missing_body_timing_claim_source_indices"]["source_publication_at"], [1])
+        self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"]["source_publication_at"], [])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_empty_action_check_is_invalid_not_omitted(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["checked_at"] = ""
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_timing_claim_source_indices"]["action_checked_at"], [1])
+        self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"]["action_checked_at"], [])
+        self.assertIn("ACTION_CHECK_TIME_INVALID", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_malformed_action_container_is_invalid_timing_source(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"] = ["NOT_A_VERIFIED_ACTION"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_timing_claim_source_indices"]["action_checked_at"], [1])
+        self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"]["action_checked_at"], [])
+        self.assertIn("BODY_OR_REPORT_ACTION_EVIDENCE_MISSING", result["issues"])
+        self.assertNotIn("NOT_A_VERIFIED_ACTION", repr(result))
+
+    def test_omitted_timing_fields_are_distinct_from_invalid_and_unparseable(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        del body["observed_at"]
+        del body["corporate_action"]["checked_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        for field in ("source_publication_at", "action_checked_at"):
+            self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"][field], [1])
+            self.assertEqual(result["invalid_body_timing_claim_source_indices"][field], [])
+        replace_body(t, 1, b'{"unparseable":')
+        result = self.check(r, t)
+        for field in ("source_publication_at", "action_checked_at"):
+            self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"][field], [])
+            self.assertEqual(result["invalid_body_timing_claim_source_indices"][field], [])
+            self.assertEqual(result["missing_body_timing_claim_source_indices"][field], [1])
+        self.assertFalse(result["official_close_verified"])
+
     def test_malformed_source_body_missing_in_timing_provenance(self):
         r, t = packet()
         replace_body(t, 1, b'{"truncated":')
