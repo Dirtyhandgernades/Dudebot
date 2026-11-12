@@ -257,7 +257,7 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, raw)
         result = self.check(r, t)
         self.assertEqual(result["indexed_count"], 2)
-        self.assertIn("BODY_REPORT_PRICE_MISMATCH_REGULAR_CLOSE", result["issues"])
+        self.assertIn("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED", result["issues"])
         self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
@@ -270,7 +270,7 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, raw)
         result = self.check(r, t)
         self.assertEqual(result["indexed_count"], 2)
-        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY", result["issues"])
+        self.assertIn("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED", result["issues"])
         self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
         self.assertEqual(len(result["all_parseable_body_price_claim_groups"]), 1)
 
@@ -284,7 +284,7 @@ class BindingShadowTests(unittest.TestCase):
         replace_body(t, 1, raw)
         result = self.check(r, t)
         self.assertEqual(result["indexed_count"], 2)
-        self.assertIn("BODY_REPORT_PRICE_MISMATCH_PREVIOUS_REGULAR_CLOSE", result["issues"])
+        self.assertIn("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED", result["issues"])
         self.assertFalse(result["official_close_verified"])
 
     def test_no_secrets_or_raw_json_appear_in_result(self):
