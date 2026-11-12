@@ -1,0 +1,23 @@
+# OBSIDIAN Research Engineering — P0-1 source-body clock provenance (2026-11-12 13:50 CT)
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Branch `research/obsidian-early-rug-20261025` only. This is an engineering checkpoint, not the 12:47 IEX/independent-monitor window, 14:20 Rug Proof delayed SIP, 14:47 protected preclose, Morning Movers, After-Hours, or Early Decision Board. No new source capture or trigger was created.
+
+## Verified change
+
+- Starting branch head `55da3f31543c258cd810622d61f56ac4f4cc7d06`; code/test commit [`18c52dd4`](https://github.com/Dirtyhandgernades/Dudebot/commit/18c52dd4d42928cb0699047443d5420a3c1c11ec) applied with expected-head lease. GitHub compare confirmed exactly two modified research-only files, 1 commit ahead and 0 behind; no frozen labels, historical capture, original denominator, trading policy, watchlist, JDZG audit, main, production or credential changes.
+- `backtest/obsidian_eod_source_body_binding_shadow.py` now inventories source-body publication timestamps and embedded corporate-action checked-at timestamps **for every source index**, including rejected third-party reports. Each claim is grouped by exact UTC instant, with hashed value, valid/rejected source indices, and explicit missing and unsupported-precision/invalid indices. Equivalent UTC offsets group together; different legitimate publication/check times do not become false close/identity conflicts. Untrusted claim text is not echoed.
+- Four synthetic regression tests cover two-source provenance, legitimate distinct timestamps, submicrosecond invalid timestamps, and malformed third-party source-body missingness. [Hosted research CI 43294258656](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43294258656) completed **successfully** on the exact code commit: **755 prospective tests and 4 board tests passed** (hosted job log). Offline tests prove source-auditor behavior, not external source ownership, vendor entitlement or price accuracy.
+
+## Original workflow/source coordination
+
+- November 12 12:47 CT original INTRADAY IEX [run 43283723949](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43283723949) and distinct independent halt/optional quote [run 43283723895](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43283723895) had already completed successfully and produced separate artifacts **13973922319** and **13973557592**. Their original one-time branch markers already existed; not recreated or backfilled. IEX had 8,492 original observations, including 5,015 stale/future prints; indicative early/intermediate labels are not verified forward successes.
+- Separate Rug Proof November 12 09:20 and 12:20 anchor markers and artifacts were already present. No duplicate issuer/day prediction is counted. November 11 delayed SIP [run 43095851523](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43095851523) and protected preclose [run 43098152151](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43098152151) remained **QUEUED without verified artifacts** on recheck; no retries/backfills outside their original gates.
+- At this 13:50 CT engineering checkpoint, neither the 12:47 one-time trigger nor the protected 14:45–14:58 CT preclose capture gate was eligible for a new attempt.
+
+## Fail-closed validation gates
+
+**P0-1 remains BLOCKED/CENSORED:** no authenticated completed regular-session close and previous-close pair from two genuinely independent provider organizations with complete third-source conflicts, exchange-session calendar, original source timestamps, corporate-action/security-identity proof and issuer-class parity. Nasdaq Trader RSS is finite halt-event attention, not complete live clearance; optional Massive quotes and real-time entitlement remain unverified. Actual SMG blocked symbol/security table, account permissions and short availability remain unknown; Alpaca borrow cannot establish SMG approval.
+
+The user-retained 136-name watchlist and JDZG stale/halt failure analysis remain unchanged. Preserve frozen historical denominator and original labels; any forward evaluation remains **0/+1/+2/+3 actual trading sessions** on matching untouched future cohorts with false positives, late/exhausted cases, squeezes, costs and missingness. No verified >=20% prediction success, precision/recall, fill, share count, profitability or order is claimed. GitHub artifact ZIP digest does not independently authenticate official closes; durable off-platform backup remains **BACKUP_UNVERIFIED**.
+
+**Next independent proof gate:** authenticated two-organization official regular-close/previous-close source receipts and corporate-action/security-identity parity; otherwise continue to censor outcomes rather than infer success.
