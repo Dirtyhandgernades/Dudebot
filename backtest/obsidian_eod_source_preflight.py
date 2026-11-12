@@ -4,6 +4,7 @@ Does not produce an official-close verdict, change frozen scoring, query a
 provider, or authorize a trade. All collected reports must be supplied: do not
 select two agreeing reports while silently dropping a contradictory third.
 """
+import re
 import unicodedata
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, localcontext
@@ -17,7 +18,16 @@ MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
 
 
 def _aware(value):
-    if not isinstance(value, str):
+    """Fail closed on timestamp precision unsupported by datetime.
+
+    fromisoformat silently truncates seventh-plus fractional digits, which
+    could turn 16:00:00.0000001 into a false exact 16:00 ET close. This
+    caller-supplied preflight uses the same strict ISO instant contract as
+    the byte-binding shadow; neither authenticates an official source.
+    """
+    if not isinstance(value, str) or re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})",
+            value) is None:
         return None
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))

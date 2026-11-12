@@ -406,5 +406,47 @@ class SourcePreflightTests(unittest.TestCase):
         self.assertFalse(result["eligible_for_frozen_forward_scoring"])
 
 
+    def test_submicrosecond_current_close_asof_is_censored(self):
+        second = row("two", "two.example")
+        second["regular_close_asof"] = "2026-10-27T20:00:00.0000001Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), second], COLLECTED)
+        self.assertIn("NON_1600_ET_REGULAR_CLOSE_SOURCE", result["issues"])
+        self.assertEqual(result["accepted_reports"], 1)
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+    def test_submicrosecond_previous_close_asof_is_censored(self):
+        second = row("two", "two.example")
+        second["previous_regular_close_asof"] = "2026-10-26T20:00:00.0000001Z"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), second], COLLECTED)
+        self.assertIn("PREVIOUS_CLOSE_NOT_EXACT_1600_ET_SOURCE", result["issues"])
+        self.assertEqual(result["accepted_reports"], 1)
+
+    def test_submicrosecond_publication_time_is_censored(self):
+        second = row("two", "two.example",
+                     observed="2026-10-27T20:10:00.0000001Z")
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), second], COLLECTED)
+        self.assertIn("STALE_OR_UNTIMED_SOURCE", result["issues"])
+        self.assertEqual(result["accepted_reports"], 1)
+
+    def test_submicrosecond_collection_time_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "POST_CLOSE_COLLECTION_TIMESTAMP_REQUIRED"):
+            preflight("ZZZZ", DAY, PRIOR, [
+                row("one", "one.example"), row("two", "two.example")],
+                "2026-10-27T23:49:00.0000001Z")
+
+    def test_six_digit_offset_close_timestamp_remains_valid(self):
+        second = row("two", "two.example")
+        second["regular_close_asof"] = "2026-10-27T16:00:00.000000-04:00"
+        second["previous_regular_close_asof"] = "2026-10-26T16:00:00.000000-04:00"
+        result = preflight("ZZZZ", DAY, PRIOR, [
+            row("one", "one.example"), second], COLLECTED)
+        self.assertEqual(result["accepted_reports"], 2)
+        self.assertEqual(result["status"], "CONSISTENT_SOURCES_ONLY_NOT_OFFICIAL_CLOSE")
+        self.assertFalse(result["eligible_for_frozen_forward_scoring"])
+
+
 if __name__ == "__main__":
     unittest.main()
