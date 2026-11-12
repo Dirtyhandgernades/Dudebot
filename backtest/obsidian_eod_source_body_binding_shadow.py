@@ -185,6 +185,9 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "action_previous_security_id", "action_issuer_class",
         "action_previous_issuer_class", "corporate_action_status",
         "previous_close_basis")}
+    # Explicit malformed values must not be silently indistinguishable from
+    # omitted fields. Keep the existing unparseable-index contract unchanged.
+    invalid_identity_claim_indices = {field: set() for field in identity_claims}
     close_end = (_instant(session_close_at).astimezone(ET) if session_close_at is not None
                  else datetime.combine(session, time(16), tzinfo=ET))
     # This shadow follows the frozen normal 16:00 ET source contract.
@@ -312,6 +315,31 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             ):
                 if isinstance(value, str) and value:
                     identity_claims[field].setdefault(value, []).append(index)
+            # A present null, array, object, number or empty string is not an
+            # absent claim. Preserve its original index without echoing data.
+            # Malformed entire JSON bodies remain unparseable, not "invalid".
+            for field, owner, key in (
+                    ("symbol", parsed, "symbol"),
+                    ("session_date", parsed, "session_date"),
+                    ("previous_session_date", parsed, "previous_session_date"),
+                    ("regular_close_asof", parsed, "regular_close_asof"),
+                    ("previous_regular_close_asof", parsed, "previous_regular_close_asof"),
+                    ("security_id", parsed, "security_id"),
+                    ("previous_security_id", parsed, "previous_security_id"),
+                    ("issuer_class", parsed, "issuer_class"),
+                    ("previous_issuer_class", parsed, "previous_issuer_class"),
+                    ("action_coverage_start", action, "coverage_start"),
+                    ("action_coverage_end", action, "coverage_end"),
+                    ("action_security_id", action, "security_id"),
+                    ("action_previous_security_id", action, "previous_security_id"),
+                    ("action_issuer_class", action, "issuer_class"),
+                    ("action_previous_issuer_class", action, "previous_issuer_class"),
+                    ("corporate_action_status", action, "status"),
+                    ("previous_close_basis", action, "previous_close_basis")):
+                if isinstance(owner, dict) and key in owner:
+                    raw = owner[key]
+                    if not isinstance(raw, str) or not raw:
+                        invalid_identity_claim_indices[field].add(index)
             if not isinstance(action, dict) or not isinstance(report_action, dict):
                 faults.add("BODY_OR_REPORT_ACTION_EVIDENCE_MISSING")
             else:
@@ -508,6 +536,9 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         ],
         "all_parseable_body_identity_claim_groups": identity_claim_groups,
         "unparseable_body_identity_claim_source_indices": missing_identity_claim_indices,
+        "invalid_body_identity_claim_source_indices": {
+            field: sorted(indices) for field, indices in invalid_identity_claim_indices.items()
+        },
         "all_body_timing_claim_groups": timing_claim_groups,
         "missing_body_timing_claim_source_indices": missing_timing_claim_indices,
         "invalid_body_timing_claim_source_indices": invalid_timing_claim_indices,

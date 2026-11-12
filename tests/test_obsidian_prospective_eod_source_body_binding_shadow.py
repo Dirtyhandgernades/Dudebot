@@ -227,6 +227,45 @@ class BindingShadowTests(unittest.TestCase):
         self.assertNotIn('"ADR"', repr(result))
         self.assertFalse(result["official_close_verified"])
 
+    def test_present_nonstring_issuer_class_is_invalid_not_just_missing(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["issuer_class"] = ["ADR", "SENSITIVE_DO_NOT_ECHO"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"]["issuer_class"], [1])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["issuer_class"], [1])
+        self.assertEqual(len(result["all_parseable_body_identity_claim_groups"]["issuer_class"]), 1)
+        self.assertNotIn("SENSITIVE_DO_NOT_ECHO", repr(result))
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_explicit_null_action_status_is_invalid_claim(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["status"] = None
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"]["corporate_action_status"], [1])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["corporate_action_status"], [1])
+        self.assertEqual(result["all_parseable_body_identity_claim_groups"]["corporate_action_status"][0]["structurally_valid_source_indices"], [0])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_omitted_or_unparseable_identity_claim_is_not_misreported_invalid(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        del body["issuer_class"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"]["issuer_class"], [])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["issuer_class"], [1])
+        replace_body(t, 1, b'{"malformed":')
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"]["issuer_class"], [])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"]["issuer_class"], [1])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertFalse(result["official_close_verified"])
+
     def test_malformed_body_is_missing_for_every_indexed_identity_dimension(self):
         r, t = packet()
         replace_body(t, 1, b'{"not_closed":')
