@@ -208,6 +208,11 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
     # identity checks still own complete class/action authentication.
     issuer_class_claims, previous_issuer_class_claims = [], []
     unparseable_issuer_class_indices, unparseable_previous_class_indices = [], []
+    # Inventory both exact session-close clock claims from EVERY source,
+    # including rejected/partial third-party rows. Normalize offsets by
+    # instant; an unparseable timestamp is indexed, never rounded or trusted.
+    asof_claims, previous_asof_claims = [], []
+    unparseable_asof_indices, unparseable_previous_asof_indices = [], []
     rows = []
     for index, report in enumerate(reports):
         faults = set()
@@ -247,6 +252,14 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
             faults.add("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END")
         if stamp is None or end is None or not end <= stamp <= observed:
             faults.add("SOURCE_OBSERVATION_NOT_POSTCLOSE_OR_FUTURE")
+        for stamp_value, bucket, missing in (
+                (asof, asof_claims, unparseable_asof_indices),
+                (prev_asof, previous_asof_claims, unparseable_previous_asof_indices)):
+            if stamp_value is None:
+                missing.append(index)
+            else:
+                bucket.append((index, stamp_value.astimezone(ZoneInfo("UTC")).isoformat(),
+                               not bool(faults)))
         if close is not None:
             all_close_claims.append((index, close, not bool(faults)))
         else:
@@ -359,6 +372,16 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         issues.add("ALL_SOURCE_ISSUER_CLASS_CLAIM_CONFLICT")
     if len(previous_issuer_class_claim_groups) > 1:
         issues.add("ALL_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
+    # Separate current and prior exact as-of claims. A rejected third source
+    # with a different close clock cannot be hidden by two matching prices.
+    # Offset-equivalent timestamps represent one instant, not a conflict.
+    asof_claim_groups = class_claim_groups(asof_claims, "regular_close_asof_utc")
+    previous_asof_claim_groups = class_claim_groups(
+        previous_asof_claims, "previous_regular_close_asof_utc")
+    if len(asof_claim_groups) > 1:
+        issues.add("ALL_SOURCE_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT")
+    if len(previous_asof_claim_groups) > 1:
+        issues.add("ALL_SOURCE_PREVIOUS_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT")
     if len(groups) < 2 or len(hosts) < 2:
         issues.add("TWO_DISTINCT_PROVIDER_ORGANIZATIONS_AND_HOSTS_NOT_ESTABLISHED")
     # Hostnames and claimed provider names alone cannot authenticate legal
@@ -477,6 +500,11 @@ def inventory(symbol, session, previous, calendar, reports, collected_at):
         "previous_issuer_class_claim_groups": previous_issuer_class_claim_groups,
         "unparseable_issuer_class_claim_source_indices": unparseable_issuer_class_indices,
         "unparseable_previous_issuer_class_claim_source_indices": unparseable_previous_class_indices,
+        "regular_close_asof_claim_groups": asof_claim_groups,
+        "previous_regular_close_asof_claim_groups": previous_asof_claim_groups,
+        "unparseable_regular_close_asof_claim_source_indices": unparseable_asof_indices,
+        "unparseable_previous_regular_close_asof_claim_source_indices":
+            unparseable_previous_asof_indices,
         "price_claim_groups": price_claim_groups,
         "all_parseable_price_claim_groups": all_parseable_price_claim_groups,
         "all_parseable_regular_close_claim_groups": all_parseable_close_claim_groups,

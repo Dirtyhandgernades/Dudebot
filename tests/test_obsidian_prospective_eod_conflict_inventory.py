@@ -701,5 +701,64 @@ class AllSourceLedgerTests(unittest.TestCase):
         self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
         self.assertFalse(result["official_regular_close_verified"])
 
+
+    def test_rejected_third_current_close_asof_conflict_retained_with_matching_prices(self):
+        third = row("c", "three", "three.example")
+        third["regular_close_asof"] = "2026-10-28T19:59:35Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertIn("ALL_SOURCE_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT",
+                         result["issues"])
+        self.assertEqual(result["regular_close_asof_claim_groups"], [
+            {"regular_close_asof_utc": "2026-10-28T19:59:35+00:00",
+             "structurally_valid_source_indices": [], "rejected_source_indices": [2]},
+            {"regular_close_asof_utc": "2026-10-28T20:00:00+00:00",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []},
+        ])
+        self.assertEqual(result["all_parseable_price_claim_groups"][0]["source_indices"],
+                         [0, 1, 2])
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_rejected_third_previous_close_asof_conflict_retained(self):
+        third = row("c", "three", "three.example")
+        third["previous_regular_close_asof"] = "2026-10-27T19:59:45Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertIn("ALL_SOURCE_PREVIOUS_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT",
+                      result["issues"])
+        self.assertNotIn("ALL_SOURCE_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["previous_regular_close_asof_claim_groups"][0]
+                         ["rejected_source_indices"], [2])
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_equivalent_offset_close_asof_is_one_claim_not_false_conflict(self):
+        second = row("b", "two", "two.example")
+        second["regular_close_asof"] = "2026-10-28T16:00:00.000000-04:00"
+        second["previous_regular_close_asof"] = "2026-10-27T16:00:00-04:00"
+        result = check([row(), second])
+        self.assertEqual(len(result["regular_close_asof_claim_groups"]), 1)
+        self.assertEqual(len(result["previous_regular_close_asof_claim_groups"]), 1)
+        self.assertNotIn("ALL_SOURCE_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("ALL_SOURCE_PREVIOUS_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT",
+                         result["issues"])
+        self.assertEqual(result["structural_status"],
+                         "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_invalid_precision_asof_retained_as_unparseable_not_rounded_claim(self):
+        third = row("c", "three", "three.example")
+        third["regular_close_asof"] = "2026-10-28T20:00:00.0000001Z"
+        third["previous_regular_close_asof"] = "2026-10-27T20:00:00.0000009Z"
+        result = check([row(), row("b", "two", "two.example"), third])
+        self.assertEqual(result["unparseable_regular_close_asof_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_previous_regular_close_asof_claim_source_indices"],
+                         [2])
+        self.assertEqual(len(result["regular_close_asof_claim_groups"]), 1)
+        self.assertEqual(len(result["previous_regular_close_asof_claim_groups"]), 1)
+        self.assertNotIn("ALL_SOURCE_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertIn("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END", result["issues"])
+        self.assertEqual(result["source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertIsNone(result["verified_20pct_prediction_success"])
+
 if __name__ == "__main__":
     unittest.main()
