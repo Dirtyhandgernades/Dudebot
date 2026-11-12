@@ -7,6 +7,7 @@ that any price/identity/action claim was parsed from the body. Always censor.
 Never echo URLs, query credentials, headers, or raw response bodies.
 """
 import hashlib
+import re
 import unicodedata
 from datetime import date, datetime, time
 from ipaddress import ip_address
@@ -22,13 +23,21 @@ ALLOWED_MEDIA = {"application/json", "text/csv", "application/csv",
 
 
 def _instant(value):
-    if not isinstance(value, str):
+    """Reject unsupported fractional precision instead of silently truncating.
+
+    This is a caller-supplied receipt timestamp, not an authenticated clock.
+    datetime.fromisoformat silently truncates seventh-plus fractional digits,
+    which could misclassify a preclose request as an exact postclose request.
+    """
+    if not isinstance(value, str) or re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})",
+            value) is None:
         return None
     try:
-        value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
-    return value if value.utcoffset() is not None else None
+    return parsed if parsed.utcoffset() is not None else None
 
 
 def _safe_host(value):

@@ -325,5 +325,45 @@ class ReceiptIntegrityTests(unittest.TestCase):
                 self.assertFalse(result["eligible_for_frozen_scoring"])
                 self.assertEqual(result["indexed_count"], 2)
 
+
+    def test_submicrosecond_request_start_is_censored(self):
+        reports, receipts = packet()
+        receipts[1]["requested_at"] = "2026-10-28T20:00:00.0000001Z"
+        result = self.run_audit(reports, receipts)
+        self.assertIn("REQUEST_START_NOT_POSTCLOSE_OR_TIMESTAMP_ORDER_INVALID",
+                      result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["byte_consistent_count"], 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_submicrosecond_retrieval_is_censored(self):
+        reports, receipts = packet()
+        receipts[1]["retrieved_at"] = "2026-10-28T20:08:00.0000001Z"
+        result = self.run_audit(reports, receipts)
+        self.assertIn("RECEIPT_TIMESTAMP_OUTSIDE_POSTCLOSE_WINDOW",
+                      result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["byte_consistent_count"], 1)
+
+    def test_submicrosecond_collection_timestamp_is_rejected(self):
+        reports, receipts = packet()
+        with self.assertRaisesRegex(ValueError, "POSTCLOSE_COLLECTION_TIMESTAMP_REQUIRED"):
+            audit_receipts(DAY, reports, receipts, "2026-10-28T20:10:00.0000001Z")
+
+    def test_submicrosecond_claimed_session_end_is_rejected(self):
+        reports, receipts = packet()
+        with self.assertRaisesRegex(ValueError, "EXTERNAL_SESSION_CLOSE_TIMESTAMP_INVALID"):
+            audit_receipts(DAY, reports, receipts, COLLECTED,
+                           session_close_at="2026-10-28T16:00:00.0000001-04:00")
+
+    def test_six_digit_offset_equivalent_receipt_timestamps_still_pass(self):
+        reports, receipts = packet()
+        receipts[1]["requested_at"] = "2026-10-28T16:05:00.000000-04:00"
+        receipts[1]["retrieved_at"] = "2026-10-28T20:08:00.000000Z"
+        result = audit_receipts(
+            DAY, reports, receipts, "2026-10-28T20:10:00.000000Z",
+            session_close_at="2026-10-28T16:00:00.000000-04:00")
+        self.assertEqual(result["byte_consistent_count"], 2)
+        self.assertEqual(result["status"], "BYTE_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()
