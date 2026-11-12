@@ -562,5 +562,68 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
         self.assertTrue(result["outcome_censored_pending_external_evidence"])
 
+
+    def test_action_packet_and_rows_have_stable_ordered_claim_digests(self):
+        from backtest.obsidian_eod_conflict_inventory import report_digest
+        a, b = row(), row("b", "beta", "beta.example")
+        result = check([a, b])
+        repeat = check([a, b])
+        self.assertEqual(result["supplied_action_packet_sha256"],
+                         repeat["supplied_action_packet_sha256"])
+        self.assertEqual(len(result["supplied_action_packet_sha256"]), 64)
+        self.assertEqual([x["supplied_report_sha256"] for x in result["all_source_rows"]],
+                         [report_digest(a), report_digest(b)])
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["source_packet_authenticity_verified"])
+
+    def test_action_claim_mutation_changes_packet_and_row_fingerprint(self):
+        a, b = row(), row("b", "beta", "beta.example")
+        before = check([a, b])
+        b["corporate_action_evidence"]["status"] = "SPLIT"
+        after = check([a, b])
+        self.assertNotEqual(before["supplied_action_packet_sha256"],
+                            after["supplied_action_packet_sha256"])
+        self.assertEqual(before["all_source_rows"][0]["supplied_report_sha256"],
+                         after["all_source_rows"][0]["supplied_report_sha256"])
+        self.assertNotEqual(before["all_source_rows"][1]["supplied_report_sha256"],
+                            after["all_source_rows"][1]["supplied_report_sha256"])
+        self.assertEqual(after["status"], "BLOCKED_CENSORED")
+
+    def test_action_packet_order_is_part_of_digest(self):
+        a, b = row(), row("b", "beta", "beta.example")
+        forward, reversed_rows = check([a, b]), check([b, a])
+        self.assertNotEqual(forward["supplied_action_packet_sha256"],
+                            reversed_rows["supplied_action_packet_sha256"])
+        self.assertEqual([x["supplied_report_sha256"] for x in forward["all_source_rows"]],
+                         list(reversed([x["supplied_report_sha256"]
+                                        for x in reversed_rows["all_source_rows"]])))
+        self.assertEqual(forward["retained_report_count"], 2)
+        self.assertEqual(reversed_rows["retained_report_count"], 2)
+
+    def test_non_json_third_action_row_is_retained_and_censored(self):
+        third = row("c", "gamma", "gamma.example")
+        third["unexpected_non_json"] = b"unarchivable"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("NON_JSON_ACTION_PACKET_NOT_REPRODUCIBLY_HASHABLE",
+                      result["issues"])
+        self.assertIn("NON_JSON_ACTION_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE",
+                      result["issues"])
+        self.assertIsNone(result["supplied_action_packet_sha256"])
+        self.assertIsNone(result["all_source_rows"][2]["supplied_report_sha256"])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertEqual(result["retained_report_count"], 3)
+        self.assertFalse(result["official_close_verified"])
+
+    def test_nonfinite_extra_action_claim_fails_closed_not_ignored(self):
+        bad = row("b", "beta", "beta.example")
+        bad["vendor_extra"] = float("nan")
+        result = check([row(), bad])
+        self.assertEqual(result["structurally_valid_report_count"], 1)
+        self.assertIsNone(result["supplied_action_packet_sha256"])
+        self.assertIsNone(result["all_source_rows"][1]["supplied_report_sha256"])
+        self.assertIn("NON_JSON_ACTION_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE",
+                      result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
 if __name__ == "__main__":
     unittest.main()

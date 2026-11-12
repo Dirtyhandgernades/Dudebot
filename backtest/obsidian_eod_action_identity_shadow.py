@@ -6,6 +6,7 @@ a prediction. Caller must independently retrieve and archive source receipts.
 """
 from datetime import date, datetime, time
 from backtest.obsidian_eod_source_preflight import _source_host, _published_2026_calendar_issues
+from backtest.obsidian_eod_conflict_inventory import report_digest
 from backtest.obsidian_eod_receipt_integrity_shadow import _canonical_label, _host_parent_hint, _instant as _strict_receipt_instant
 from zoneinfo import ZoneInfo
 
@@ -51,6 +52,15 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     # on a holiday, a skipped trading day, or a 13:00 ET early-close session.
     # This static screen is not independent live calendar authentication.
     rows, issues, valid, claims, seen = [], set(_published_2026_calendar_issues(session, previous)), [], [], set()
+    # Fingerprint the complete caller-supplied, ordered evidence packet.
+    # These are local claim digests, NOT hashes of authenticated HTTP bytes.
+    packet_sha256 = report_digest({
+        "symbol": symbol, "session_date": session.isoformat(),
+        "previous_session_date": previous.isoformat(),
+        "reports": reports, "collected_at": collected_at,
+    })
+    if packet_sha256 is None:
+        issues.add("NON_JSON_ACTION_PACKET_NOT_REPRODUCIBLY_HASHABLE")
     if not reports:
         issues.add("NO_CORPORATE_ACTION_SOURCE_REPORTS")
     for index, report in enumerate(reports):
@@ -58,6 +68,9 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         action = r.get("corporate_action_evidence")
         a = action if isinstance(action, dict) else {}
         faults = set()
+        row_sha256 = report_digest(report)
+        if row_sha256 is None:
+            faults.add("NON_JSON_ACTION_SOURCE_RECORD_NOT_REPRODUCIBLY_HASHABLE")
         if not isinstance(report, dict):
             faults.add("MALFORMED_SOURCE_RECORD")
         source = r.get("source_id")
@@ -117,6 +130,7 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             valid.append((index, group_key, source_host, action_host))
         rows.append({
             "index": index,
+            "supplied_report_sha256": row_sha256,
             "source_id": source if isinstance(source, str) else None,
             "provider_organization_claim": group if isinstance(group, str) else None,
             "source_host": source_host,
@@ -319,6 +333,7 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "symbol": symbol, "session_date": session.isoformat(),
         "previous_session_date": previous.isoformat(),
         "supplied_report_count": len(reports), "retained_report_count": len(rows),
+        "supplied_action_packet_sha256": packet_sha256,
         "structurally_valid_report_count": len(valid),
         "all_source_rows": rows, "issues": sorted(issues),
         "action_status_claim_groups": grouped_claims(action_status_groups, "action_status"),
