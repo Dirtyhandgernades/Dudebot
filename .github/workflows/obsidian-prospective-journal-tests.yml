@@ -44,6 +44,7 @@ on:
       - 'tests/test_obsidian_prospective_eod_receipt_integrity_shadow.py'
       - 'tests/test_obsidian_prospective_eod_action_identity_shadow.py'
       - 'tests/test_obsidian_prospective_eod_conflict_inventory.py'
+      - 'tests/test_obsidian_prospective_eod_digest_strict_json.py'
       - 'backtest/obsidian_eod_source_preflight.py'
       - 'backtest/obsidian_forward_source_contract_shadow.py'
       - 'backtest/obsidian_forward_eod_intake.py'
