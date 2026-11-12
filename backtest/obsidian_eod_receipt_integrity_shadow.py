@@ -27,7 +27,7 @@ def _instant(value):
 
     This is a caller-supplied receipt timestamp, not an authenticated clock.
     datetime.fromisoformat silently truncates seventh-plus fractional digits,
-    which could misclassify a preclose request as an exact postclose request.
+    which could misclassify a non-exact timestamp as an exact session boundary.
     """
     if not isinstance(value, str) or re.fullmatch(
             r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})",
