@@ -614,5 +614,42 @@ class AllSourceLedgerTests(unittest.TestCase):
                               else "DUPLICATE_OR_MISSING_SOURCE_ID", result["issues"])
                 self.assertFalse(result["eligible_for_frozen_scoring"])
 
+
+    def test_submicrosecond_calendar_close_does_not_become_exact_session_end(self):
+        calendar = cal()
+        calendar["regular_close_at"] = "2026-10-28T20:00:00.0000001Z"
+        result = check([row(), row("b", "two", "two.example")], calendar)
+        self.assertIn("UNVERIFIED_OR_INVALID_EXCHANGE_SESSION_CHAIN", result["issues"])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["structural_status"], "BLOCKED_CENSORED")
+        self.assertFalse(result["official_regular_close_verified"])
+
+    def test_submicrosecond_source_asof_is_indexed_and_censored(self):
+        bad = row("b", "two", "two.example")
+        bad["regular_close_asof"] = "2026-10-28T20:00:00.0000001Z"
+        result = check([row(), bad])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertIn("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END", result["issues"])
+        self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_submicrosecond_previous_asof_and_publication_are_censored(self):
+        bad = row("b", "two", "two.example")
+        bad["previous_regular_close_asof"] = "2026-10-27T20:00:00.0000009Z"
+        bad["observed_at"] = "2026-10-28T20:30:00.0000001Z"
+        result = check([row(), bad])
+        self.assertIn("CLOSE_ASOF_NOT_EXACT_EXCHANGE_SESSION_END", result["issues"])
+        self.assertIn("SOURCE_OBSERVATION_NOT_POSTCLOSE_OR_FUTURE", result["issues"])
+        self.assertEqual(result["source_rows"][1]["status"], "REJECTED_CENSORED")
+
+    def test_six_digit_equivalent_offset_remains_structural_only(self):
+        calendar = cal()
+        calendar["regular_close_at"] = "2026-10-28T16:00:00.000000-04:00"
+        second = row("b", "two", "two.example")
+        second["regular_close_asof"] = "2026-10-28T16:00:00.000000-04:00"
+        result = check([row(), second], calendar)
+        self.assertEqual(result["structural_status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_regular_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()

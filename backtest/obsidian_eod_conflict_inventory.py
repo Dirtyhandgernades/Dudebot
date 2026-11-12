@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 from backtest.obsidian_eod_source_preflight import (
     _source_host, _published_2026_calendar_issues, _PUBLISHED_EARLY_CLOSES_2026,
 )
-from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint
+from backtest.obsidian_eod_receipt_integrity_shadow import _host_parent_hint, _instant as _strict_receipt_instant
 from backtest.obsidian_forward_calendar_shadow import trusted_exchange_calendar_host
 
 POLICY = "OBSIDIAN_EOD_ALL_SOURCE_CONFLICT_LEDGER_V1_2026_10_29"
@@ -26,13 +26,12 @@ CENT = Decimal("0.005")
 
 
 def instant(value):
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return parsed if parsed.utcoffset() is not None else None
+    """Use the shared exact, aware receipt clock parser for source and calendar claims.
+
+    fromisoformat silently truncates fractional digits beyond microseconds;
+    a 16:00:00.0000001 close must never become an exact 16:00:00 close.
+    """
+    return _strict_receipt_instant(value)
 
 
 def positive(value):

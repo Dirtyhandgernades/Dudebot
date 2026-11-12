@@ -6,7 +6,7 @@ a prediction. Caller must independently retrieve and archive source receipts.
 """
 from datetime import date, datetime, time
 from backtest.obsidian_eod_source_preflight import _source_host
-from backtest.obsidian_eod_receipt_integrity_shadow import _canonical_label, _host_parent_hint
+from backtest.obsidian_eod_receipt_integrity_shadow import _canonical_label, _host_parent_hint, _instant as _strict_receipt_instant
 from zoneinfo import ZoneInfo
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
@@ -17,13 +17,8 @@ BASES = {"UNADJUSTED", "ADJUSTED", "UNKNOWN"}
 
 
 def _instant(value):
-    if not isinstance(value, str):
-        return None
-    try:
-        stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return stamp if stamp.utcoffset() is not None else None
+    """Censor unsupported submicrosecond source/action clock claims."""
+    return _strict_receipt_instant(value)
 
 
 def _host(value):

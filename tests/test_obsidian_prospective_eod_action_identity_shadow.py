@@ -284,5 +284,34 @@ class ActionIdentityShadowTests(unittest.TestCase):
             audit_action_identity("ZZZZ", DAY, DAY, [], COLLECTED)
 
 
+
+    def test_submicrosecond_action_checked_at_is_censored(self):
+        bad = row("b", "beta", "beta.example")
+        bad["corporate_action_evidence"]["checked_at"] = "2026-10-28T20:30:00.0000001Z"
+        result = check([row(), bad])
+        self.assertIn("ACTION_OR_SOURCE_TIMESTAMP_NOT_POSTCLOSE", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_submicrosecond_source_observed_at_is_censored(self):
+        bad = row("b", "beta", "beta.example")
+        bad["observed_at"] = "2026-10-28T20:25:00.0000009Z"
+        result = check([row(), bad])
+        self.assertIn("ACTION_OR_SOURCE_TIMESTAMP_NOT_POSTCLOSE", result["issues"])
+        self.assertEqual(result["retained_report_count"], 2)
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+
+    def test_submicrosecond_collection_time_is_not_silently_truncated(self):
+        with self.assertRaisesRegex(ValueError, "POSTCLOSE_COLLECTION_TIME_REQUIRED"):
+            audit_action_identity("ZZZZ", DAY, PREV, [row()], "2026-10-28T21:00:00.0000001Z")
+
+    def test_six_digit_action_timestamps_still_structurally_consistent(self):
+        good = row("b", "beta", "beta.example")
+        good["observed_at"] = "2026-10-28T16:25:00.000000-04:00"
+        good["corporate_action_evidence"]["checked_at"] = "2026-10-28T16:30:00.000000-04:00"
+        result = check([row(), good])
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
 if __name__ == "__main__":
     unittest.main()
