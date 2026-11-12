@@ -1,0 +1,17 @@
+# OBSIDIAN P0-1 EOD receipt timestamp precision — 2026-11-11 23:44 CT
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Research branch `research/obsidian-early-rug-20261025` only. No official close, market forecast or executable SMG short established.
+
+## Verified code and hosted regression
+- Starting research head `212577367ba09f0b3ac921467266974892dfd377`. Code/test commit [`46c7451dc83418ad10df5c023329e69be1e0f21b`](https://github.com/Dirtyhandgernades/Dudebot/commit/46c7451dc83418ad10df5c023329e69be1e0f21b), advanced by expected-head lease.
+- `backtest/obsidian_eod_receipt_integrity_shadow.py` previously used `datetime.fromisoformat` on supplied receipt request, retrieval, collection and optional session-close timestamps. Python silently truncates fractional seconds beyond six digits, allowing a purported `16:00:00.0000001` to be misread as exact `16:00:00`. The receipt shadow now requires aware ISO-8601 timestamps with seconds and at most six fractional digits, rejecting unsupported precision before parsing.
+- Five new synthetic regression tests check request-start, retrieval, collection, optional session-end and legitimate six-digit offset-equivalent timestamps. Invalid receipts remain indexed and censored, not silently omitted; this does not authenticate provider ownership, prices or exchange clocks.
+- [GitHub Actions prospective journal CI 43163413821](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43163413821) completed successfully on the exact code/test SHA. Its hosted job logs confirm **695 prospective tests and 4 separate board tests passed**, including all five new cases. This is offline software-validation evidence, not market-source authentication.
+
+## Cross-task source and capture status
+- Read original [Nov 11 18:20 Rug Proof postclose audit](https://github.com/Dirtyhandgernades/Dudebot/blob/research/obsidian-early-rug-20261025/backtest/OBSIDIAN_RUG_PROOF_POSTCLOSE_AUDIT_2026_11_11_1820_CT.md) and respected its separate anchor and delayed-SIP ownership. Outside 12:47 and 14:45–14:58 CT authorized market capture windows; no new IEX, SIP, independent-monitor or protected preclose marker, retry or backfill.
+- As rechecked here, protected preclose [43098152151](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43098152151), delayed SIP [43095851523](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43095851523), and independent monitor [43095840045](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43095840045) each had **zero jobs and zero artifacts**. No successful capture is inferred.
+- P0-1 still lacks two independently authenticated official regular-session closing-price providers, third-source conflicts bound to independently sourced bytes, security identity/corporate-action proof, actual exchange/halt session evidence, and confirmed Massive entitlement. Actual SMG blocked-symbol/security table/account permissions and shortability are also unverified; Alpaca borrowing is not SMG approval.
+- Keep original 136-name watchlist, JDZG stale/halt diagnostic, frozen baseline/denominator, and 0/+1/+2/+3 **actual trading-session** untouched matched cohorts. Missing future outcomes are **CENSORED**, not hits, misses or zero percent. Include false positives, late/exhausted cases, squeezes, costs and missingness. No >=20% prediction success, fill, share count, profit or trading edge claim.
+
+No main/production changes, credentials, unauthorized account access, market orders, trading notifications or silent policy changes.
