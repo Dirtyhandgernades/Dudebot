@@ -432,5 +432,79 @@ class ActionIdentityShadowTests(unittest.TestCase):
         self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
         self.assertTrue(result["outcome_censored_pending_external_evidence"])
 
+
+    def test_rejected_third_action_status_group_is_retained(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["status"] = "SPLIT"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CROSS_SOURCE_CORPORATE_ACTION_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["action_status_claim_groups"], [
+            {"action_status": "NONE", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+            {"action_status": "SPLIT", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+        ])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_third_adjusted_basis_group_is_retained(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["previous_close_basis"] = "ADJUSTED"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CROSS_SOURCE_PREVIOUS_CLOSE_BASIS_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["previous_close_basis_claim_groups"], [
+            {"previous_close_basis": "ADJUSTED", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+            {"previous_close_basis": "UNADJUSTED", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+        ])
+
+    def test_rejected_third_coverage_start_conflict_is_indexed(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["coverage_start"] = "2026-10-26"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CORPORATE_ACTION_WINDOW_NOT_COMPLETE", result["issues"])
+        self.assertIn("CROSS_SOURCE_ACTION_COVERAGE_START_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["action_coverage_start_claim_groups"], [
+            {"coverage_start": "2026-10-26", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+            {"coverage_start": "2026-10-27", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+        ])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_rejected_third_coverage_end_conflict_is_indexed(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["coverage_end"] = "2026-10-27"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertIn("CROSS_SOURCE_ACTION_COVERAGE_END_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["action_coverage_end_claim_groups"], [
+            {"coverage_end": "2026-10-27", "structurally_valid_source_indices": [],
+             "rejected_source_indices": [2]},
+            {"coverage_end": "2026-10-28", "structurally_valid_source_indices": [0, 1],
+             "rejected_source_indices": []},
+        ])
+
+    def test_missing_or_noncanonical_action_claims_are_censored_without_echo(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["status"] = ["SPLIT"]
+        third["corporate_action_evidence"]["previous_close_basis"] = {"bad": "basis"}
+        third["corporate_action_evidence"]["coverage_start"] = "2026-10-27T00:00:00Z"
+        third["corporate_action_evidence"].pop("coverage_end")
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        for field in ("unparseable_action_status_claim_source_indices",
+                      "unparseable_previous_close_basis_claim_source_indices",
+                      "unparseable_action_coverage_start_claim_source_indices",
+                      "unparseable_action_coverage_end_claim_source_indices"):
+            self.assertEqual(result[field], [2])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_agreeing_action_window_groups_remain_unauthenticated(self):
+        result = check([row(), row("b", "beta", "beta.example")])
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertEqual(result["action_coverage_start_claim_groups"][0][
+            "structurally_valid_source_indices"], [0, 1])
+        self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
+
 if __name__ == "__main__":
     unittest.main()

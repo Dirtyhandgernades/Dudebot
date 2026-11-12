@@ -170,6 +170,17 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     # a different previous-session share class or action-record prior identity.
     # Index those claims separately, including missing/unparseable claims,
     # without treating rejected evidence as authenticated source truth.
+    # Index all independently supplied action classification and coverage
+    # claims, including rejected third sources. Dates must be canonical ISO
+    # dates; arbitrary untrusted strings are not echoed in new group outputs.
+    action_status_groups = {}
+    basis_groups = {}
+    coverage_start_groups = {}
+    coverage_end_groups = {}
+    missing_action_status = []
+    missing_basis = []
+    missing_coverage_start = []
+    missing_coverage_end = []
     previous_class_groups = {}
     previous_security_groups = {}
     action_security_groups = {}
@@ -186,6 +197,29 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         index = item["index"]
         destination = ("valid" if item["status"] ==
                        "STRUCTURALLY_VALID_UNAUTHENTICATED" else "rejected")
+        for field, groups, missing, allowed in (
+            ("action_status_claim", action_status_groups, missing_action_status, ACTIONS),
+            ("previous_close_basis_claim", basis_groups, missing_basis, BASES),
+        ):
+            value = item[field]
+            if not isinstance(value, str) or value not in allowed:
+                missing.append(index)
+            else:
+                groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
+        for field, groups, missing in (
+            ("coverage_start_claim", coverage_start_groups, missing_coverage_start),
+            ("coverage_end_claim", coverage_end_groups, missing_coverage_end),
+        ):
+            value = item[field]
+            try:
+                canonical = (isinstance(value, str) and len(value) == 10
+                             and date.fromisoformat(value).isoformat() == value)
+            except ValueError:
+                canonical = False
+            if not canonical:
+                missing.append(index)
+            else:
+                groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
         for value, groups, missing in (
             (item["previous_issuer_class_claim"], previous_class_groups,
              missing_previous_class),
@@ -204,6 +238,10 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
                 missing.append(index)
                 continue
             groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
+    if len(coverage_start_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_COVERAGE_START_CLAIM_CONFLICT")
+    if len(coverage_end_groups) > 1:
+        issues.add("CROSS_SOURCE_ACTION_COVERAGE_END_CLAIM_CONFLICT")
     if len(previous_class_groups) > 1:
         issues.add("CROSS_SOURCE_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
     if len(previous_security_groups) > 1:
@@ -216,6 +254,12 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         issues.add("CROSS_SOURCE_ACTION_PREVIOUS_SECURITY_ID_CLAIM_CONFLICT")
     if len(action_previous_class_groups) > 1:
         issues.add("CROSS_SOURCE_ACTION_PREVIOUS_ISSUER_CLASS_CLAIM_CONFLICT")
+    def grouped_claims(groups, field):
+        return [{field: value,
+                 "structurally_valid_source_indices": bucket["valid"],
+                 "rejected_source_indices": bucket["rejected"]}
+                for value, bucket in sorted(groups.items())]
+
     previous_class_claim_groups = [
         {"previous_issuer_class": value,
          "structurally_valid_source_indices": groups["valid"],
@@ -259,6 +303,14 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "supplied_report_count": len(reports), "retained_report_count": len(rows),
         "structurally_valid_report_count": len(valid),
         "all_source_rows": rows, "issues": sorted(issues),
+        "action_status_claim_groups": grouped_claims(action_status_groups, "action_status"),
+        "previous_close_basis_claim_groups": grouped_claims(basis_groups, "previous_close_basis"),
+        "action_coverage_start_claim_groups": grouped_claims(coverage_start_groups, "coverage_start"),
+        "action_coverage_end_claim_groups": grouped_claims(coverage_end_groups, "coverage_end"),
+        "unparseable_action_status_claim_source_indices": missing_action_status,
+        "unparseable_previous_close_basis_claim_source_indices": missing_basis,
+        "unparseable_action_coverage_start_claim_source_indices": missing_coverage_start,
+        "unparseable_action_coverage_end_claim_source_indices": missing_coverage_end,
         "previous_issuer_class_claim_groups": previous_class_claim_groups,
         "previous_security_id_claim_groups": previous_security_id_claim_groups,
         "action_security_id_claim_groups": action_security_id_claim_groups,
