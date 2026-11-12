@@ -784,6 +784,50 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
         self.assertFalse(result["official_close_verified"])
 
+    def test_submicrosecond_current_close_claim_is_not_rounded_to_exact_close(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T20:00:00.0000001Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+        self.assertIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_submicrosecond_previous_close_claim_is_censored(self):
+        r, t = packet()
+        r[1]["previous_regular_close_asof"] = "2026-10-27T20:00:00.0000009Z"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_submicrosecond_publication_timestamp_is_not_silently_truncated(self):
+        r, t = packet()
+        r[1]["observed_at"] = "2026-10-28T20:06:00.0000001Z"
+        body = json.loads(t[1]["raw_body"])
+        body["observed_at"] = r[1]["observed_at"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_PUBLICATION_RECEIPT_CHRONOLOGY_INVALID", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+
+    def test_supported_six_digit_fractional_close_remains_exact(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T16:00:00.000000-04:00"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertNotIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", result["issues"])
+        self.assertNotIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+
     def test_invalid_asof_claim_remains_visible_as_disagreement(self):
         r, t = packet()
         r[1]["regular_close_asof"] = "not-a-timestamp"

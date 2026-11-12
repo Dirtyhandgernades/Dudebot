@@ -8,6 +8,7 @@ Never return URLs, response bodies, headers or credential-bearing fields.
 """
 import hashlib
 import json
+import re
 from datetime import date, datetime, time
 from decimal import Decimal, DecimalException, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
@@ -88,7 +89,16 @@ def _exact_20pct_threshold(prior):
 
 
 def _instant(value):
-    if not isinstance(value, str):
+    """Parse exact source timestamps without silently truncating nanoseconds.
+
+    datetime.fromisoformat accepts 7+ fractional digits but discards digits
+    beyond microseconds. That could turn 16:00:00.0000001 into a false exact
+    16:00:00 official-close claim. Fail closed on unsupported precision or
+    noncanonical offset syntax rather than rounding an untrusted timestamp.
+    """
+    if not isinstance(value, str) or re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})",
+            value) is None:
         return None
     try:
         result = datetime.fromisoformat(value.replace("Z", "+00:00"))
