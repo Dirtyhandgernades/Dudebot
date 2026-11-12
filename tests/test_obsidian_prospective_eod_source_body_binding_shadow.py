@@ -735,12 +735,12 @@ class BindingShadowTests(unittest.TestCase):
 
     def test_extreme_numeric_price_token_is_censored_without_threshold_claim(self):
         r, t = packet()
-        replace_body(t, 1, t[1]["raw_body"][:-1]
-                     + b', "regular_close":1e309}')
+        original = t[1]["raw_body"]
+        self.assertIn(b'"regular_close": "8.00"', original)
+        replace_body(t, 1, original.replace(
+            b'"regular_close": "8.00"', b'"regular_close": 1e309'))
         result = self.check(r, t)
-        # Duplicate key is independently invalid, and cannot be rescued by
-        # a price that is outside the bounded JSON numeric evidence envelope.
-        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY",
+        self.assertIn("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED",
                       result["all_source_rows"][1]["issues"])
         self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
         self.assertFalse(result["eligible_for_frozen_scoring"])
