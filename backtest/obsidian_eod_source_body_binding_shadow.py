@@ -97,6 +97,18 @@ def _instant(value):
     return result if result.utcoffset() is not None else None
 
 
+def _asof_claim_key(value):
+    """Compare untrusted as-of claims by instant, not textual UTC offset.
+
+    Invalid nonempty timestamps remain distinct inventory claims; they never
+    become admissible exchange-close evidence or appear in the public output.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    stamp = _instant(value)
+    return stamp.astimezone(ZoneInfo("UTC")).isoformat() if stamp else "INVALID:" + value
+
+
 def audit_body_bindings(session, previous, reports, receipts, collected_at,
                         session_close_at=None, previous_session_close_at=None):
     """Audit EVERY original index; never silently select matching providers."""
@@ -123,6 +135,7 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     close_claims, prior_claims = {}, {}
     identity_claims = {field: {} for field in (
         "symbol", "session_date", "previous_session_date",
+        "regular_close_asof", "previous_regular_close_asof",
         "security_id", "previous_security_id", "issuer_class",
         "previous_issuer_class", "action_coverage_start", "action_coverage_end",
         "action_security_id",
@@ -221,6 +234,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 ("symbol", parsed.get("symbol")),
                 ("session_date", parsed.get("session_date")),
                 ("previous_session_date", parsed.get("previous_session_date")),
+                ("regular_close_asof", _asof_claim_key(parsed.get("regular_close_asof"))),
+                ("previous_regular_close_asof", _asof_claim_key(parsed.get("previous_regular_close_asof"))),
                 ("action_coverage_start", action.get("coverage_start") if isinstance(action, dict) else None),
                 ("action_coverage_end", action.get("coverage_end") if isinstance(action, dict) else None),
                 ("security_id", parsed.get("security_id")),
@@ -290,6 +305,8 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         ("symbol", "PARSED_BODY_SYMBOL_CLAIM_CONFLICT"),
         ("session_date", "PARSED_BODY_SESSION_DATE_CLAIM_CONFLICT"),
         ("previous_session_date", "PARSED_BODY_PREVIOUS_SESSION_DATE_CLAIM_CONFLICT"),
+        ("regular_close_asof", "PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT"),
+        ("previous_regular_close_asof", "PARSED_BODY_PREVIOUS_CLOSE_ASOF_CLAIM_CONFLICT"),
         ("action_coverage_start", "PARSED_BODY_ACTION_COVERAGE_START_CLAIM_CONFLICT"),
         ("action_coverage_end", "PARSED_BODY_ACTION_COVERAGE_END_CLAIM_CONFLICT"),
         ("security_id", "PARSED_BODY_SECURITY_ID_CLAIM_CONFLICT"),

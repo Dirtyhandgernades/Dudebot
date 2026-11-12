@@ -745,5 +745,55 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
+
+    def test_rejected_current_close_asof_conflict_remains_in_full_inventory(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T19:59:59Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", result["issues"])
+        self.assertIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_previous_close_asof_conflict_remains_in_full_inventory(self):
+        r, t = packet()
+        r[1]["previous_regular_close_asof"] = "2026-10-27T19:59:59Z"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_NOT_EXACT_1600_ET", result["issues"])
+        self.assertIn("PARSED_BODY_PREVIOUS_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_equivalent_utc_offset_close_asof_is_not_a_false_conflict(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T16:00:00-04:00"
+        r[1]["previous_regular_close_asof"] = "2026-10-27T16:00:00-04:00"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertNotIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertNotIn("PARSED_BODY_PREVIOUS_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_invalid_asof_claim_remains_visible_as_disagreement(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "not-a-timestamp"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+        self.assertIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()
