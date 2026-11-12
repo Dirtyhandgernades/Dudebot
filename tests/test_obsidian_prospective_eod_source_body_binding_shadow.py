@@ -1141,5 +1141,72 @@ class BindingShadowTests(unittest.TestCase):
         self.assertIn("PARSED_BODY_REGULAR_CLOSE_ASOF_CLAIM_CONFLICT", result["issues"])
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
+    def test_invalid_close_asof_precision_has_separate_invalid_index(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T20:00:00.0000001Z"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        field = "regular_close_asof"
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"][field], [1])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"][field], [])
+        self.assertEqual(len(result["all_parseable_body_identity_claim_groups"][field]), 2)
+        self.assertIn("BODY_CLOSE_ASOF_SESSION_DATE_MISMATCH", result["issues"])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_invalid_previous_close_asof_string_indexed_without_echo(self):
+        r, t = packet()
+        r[1]["previous_regular_close_asof"] = "SECRET_INVALID_ASOF_DO_NOT_ECHO"
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close_asof"] = r[1]["previous_regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        field = "previous_regular_close_asof"
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"][field], [1])
+        self.assertEqual(result["unparseable_body_identity_claim_source_indices"][field], [])
+        self.assertNotIn("SECRET_INVALID_ASOF_DO_NOT_ECHO", repr(result))
+        self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+
+    def test_noncanonical_session_and_action_coverage_dates_flagged(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["session_date"] = "20261028"
+        body["corporate_action"]["coverage_start"] = "2026-10-27T00:00:00Z"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        for field in ("session_date", "action_coverage_start"):
+            self.assertEqual(result["invalid_body_identity_claim_source_indices"][field], [1])
+            self.assertEqual(result["unparseable_body_identity_claim_source_indices"][field], [])
+            self.assertEqual(len(result["all_parseable_body_identity_claim_groups"][field]), 2)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_unknown_action_status_and_basis_flagged_but_claims_retained(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["corporate_action"]["status"] = "INVALID_ACTION_SECRET_DO_NOT_ECHO"
+        body["corporate_action"]["previous_close_basis"] = "INVALID_BASIS_SECRET_DO_NOT_ECHO"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        for field in ("corporate_action_status", "previous_close_basis"):
+            self.assertEqual(result["invalid_body_identity_claim_source_indices"][field], [1])
+            self.assertEqual(result["unparseable_body_identity_claim_source_indices"][field], [])
+            self.assertEqual(len(result["all_parseable_body_identity_claim_groups"][field]), 2)
+        self.assertNotIn("INVALID_ACTION_SECRET_DO_NOT_ECHO", repr(result))
+        self.assertNotIn("INVALID_BASIS_SECRET_DO_NOT_ECHO", repr(result))
+        self.assertFalse(result["official_close_verified"])
+
+    def test_equivalent_utc_offset_asof_is_valid_not_invalid(self):
+        r, t = packet()
+        r[1]["regular_close_asof"] = "2026-10-28T16:00:00-04:00"
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close_asof"] = r[1]["regular_close_asof"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_identity_claim_source_indices"]["regular_close_asof"], [])
+        self.assertEqual(len(result["all_parseable_body_identity_claim_groups"]["regular_close_asof"]), 1)
+        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

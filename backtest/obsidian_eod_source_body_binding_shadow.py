@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts, MAX_RECEIPT_BYTES
 from backtest.obsidian_eod_source_preflight import _published_2026_calendar_issues
+from backtest.obsidian_eod_action_identity_shadow import ACTIONS, BASES
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
 POLICY = "OBSIDIAN_EOD_BODY_CLAIM_BINDING_SHADOW_V1_2026_10_29"
@@ -119,6 +120,16 @@ def _asof_claim_key(value):
     stamp = _instant(value)
     return stamp.astimezone(ZoneInfo("UTC")).isoformat() if stamp else "INVALID:" + value
 
+
+
+def _canonical_iso_date(value):
+    """Date claims must be exact YYYY-MM-DD, not Python's lenient variants."""
+    if not isinstance(value, str) or re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) is None:
+        return False
+    try:
+        return date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
 
 
 def _has_unpaired_surrogate(value):
@@ -338,7 +349,17 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                     ("previous_close_basis", action, "previous_close_basis")):
                 if isinstance(owner, dict) and key in owner:
                     raw = owner[key]
-                    if not isinstance(raw, str) or not raw:
+                    if (not isinstance(raw, str) or not raw
+                            or (field in ("regular_close_asof", "previous_regular_close_asof")
+                                and _instant(raw) is None)
+                            or (field in ("session_date", "previous_session_date",
+                                          "action_coverage_start", "action_coverage_end")
+                                and not _canonical_iso_date(raw))
+                            or (field == "corporate_action_status" and raw not in ACTIONS)
+                            or (field == "previous_close_basis" and raw not in BASES)):
+                        # Retain hashed contradictory string claims, but flag
+                        # syntactically invalid timestamps, dates and action
+                        # enums separately from genuinely omitted fields.
                         invalid_identity_claim_indices[field].add(index)
             if not isinstance(action, dict) or not isinstance(report_action, dict):
                 faults.add("BODY_OR_REPORT_ACTION_EVIDENCE_MISSING")
