@@ -703,5 +703,47 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
+
+    def test_auxiliary_extreme_numeric_tokens_are_censored_without_losing_other_source(self):
+        # Even fields unrelated to price must not smuggle unbounded Decimal
+        # tokens into an otherwise consistent source-body receipt.
+        for token in ("1e9999999", "1e-400", "9" * 101,
+                      "0." + "1" * 101):
+            with self.subTest(token=token[:24]):
+                r, t = packet()
+                replace_body(t, 1, t[1]["raw_body"][:-1]
+                             + b', "vendor_aux":' + token.encode() + b'}')
+                result = self.check(r, t)
+                self.assertEqual(result["indexed_count"], 2)
+                self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+                self.assertIn("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED",
+                              result["all_source_rows"][1]["issues"])
+                self.assertEqual(result["all_source_rows"][1]["status"],
+                                 "REJECTED_CENSORED")
+                self.assertFalse(result["official_close_verified"])
+                self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_bounded_auxiliary_numeric_tokens_preserve_structural_shadow(self):
+        r, t = packet()
+        replace_body(t, 1, t[1]["raw_body"][:-1]
+                     + b', "vendor_aux":[42,-2.5,1e-4]}')
+        result = self.check(r, t)
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertEqual(result["status"],
+                         "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_extreme_numeric_price_token_is_censored_without_threshold_claim(self):
+        r, t = packet()
+        replace_body(t, 1, t[1]["raw_body"][:-1]
+                     + b', "regular_close":1e309}')
+        result = self.check(r, t)
+        # Duplicate key is independently invalid, and cannot be rescued by
+        # a price that is outside the bounded JSON numeric evidence envelope.
+        self.assertIn("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY",
+                      result["all_source_rows"][1]["issues"])
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 1)
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

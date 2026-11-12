@@ -39,6 +39,30 @@ def _nonfinite(value):
     raise ValueError("NONFINITE_JSON_NUMBER")
 
 
+class _UnboundedJsonNumber(ValueError):
+    """A vendor JSON numeric token exceeds the evidence precision envelope."""
+
+
+def _bounded_json_number(token):
+    """Reject extreme JSON numbers anywhere in the source body, not just prices.
+
+    An unrelated vendor sideband with 5 MB of digits or an enormous exponent
+    must not be silently accepted as part of a byte-bound close receipt.
+    This is a parser resource/integrity guard, not a market-price eligibility
+    rule; source rows remain indexed and censored on rejection.
+    """
+    if len(token) > 128:
+        raise _UnboundedJsonNumber("OVERSIZE_JSON_NUMERIC_TOKEN")
+    try:
+        number = Decimal(token)
+    except (InvalidOperation, ValueError, OverflowError) as exc:
+        raise _UnboundedJsonNumber("UNREPRESENTABLE_JSON_NUMERIC_TOKEN") from exc
+    if (not number.is_finite() or not -100 <= number.adjusted() <= 100
+            or len(number.as_tuple().digits) > 100):
+        raise _UnboundedJsonNumber("UNBOUNDED_JSON_NUMERIC_TOKEN")
+    return number
+
+
 def _positive(value):
     if isinstance(value, bool) or not isinstance(value, (str, int, Decimal)):
         return None
@@ -131,12 +155,15 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                 parsed = json.loads(
                     body.decode("utf-8", errors="strict"),
                     object_pairs_hook=_unique_pairs,
-                    parse_float=Decimal, parse_int=Decimal,
+                    parse_float=_bounded_json_number,
+                    parse_int=_bounded_json_number,
                     parse_constant=_nonfinite,
                 )
                 if not isinstance(parsed, dict):
                     faults.add("JSON_ROOT_NOT_OBJECT")
                     parsed = None
+            except _UnboundedJsonNumber:
+                faults.add("UNBOUNDED_JSON_NUMERIC_TOKEN_CENSORED")
             except (UnicodeError, ValueError, TypeError, RecursionError, DecimalException):
                 faults.add("INVALID_DUPLICATE_OR_NONFINITE_JSON_BODY")
         if parsed is not None:
