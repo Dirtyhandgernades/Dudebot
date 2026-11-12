@@ -63,6 +63,61 @@ class BindingShadowTests(unittest.TestCase):
         return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
                                    t if receipts is None else receipts, COLLECTED)
 
+    def test_price_claim_groups_distinguish_structurally_valid_and_rejected(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["regular_close"] = "7.90"  # Rejected body/report mismatch.
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        groups = {g["regular_close"]: g
+                  for g in result["all_parseable_body_current_close_claim_groups"]}
+        self.assertEqual(groups["8.00"]["structurally_valid_source_indices"], [0])
+        self.assertEqual(groups["8.00"]["rejected_source_indices"], [])
+        self.assertEqual(groups["7.90"]["structurally_valid_source_indices"], [])
+        self.assertEqual(groups["7.90"]["rejected_source_indices"], [1])
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [])
+        self.assertEqual(result["incomplete_body_price_pair_source_indices"], [])
+        self.assertIn("PARSED_BODY_PRICE_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_rejected_prior_only_source_retains_missing_current_and_pair(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        del body["regular_close"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [1])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [])
+        self.assertEqual(result["incomplete_body_price_pair_source_indices"], [1])
+        prior = result["all_parseable_body_previous_close_claim_groups"][0]
+        self.assertEqual(prior["source_indices"], [0, 1])
+        self.assertEqual(prior["structurally_valid_source_indices"], [0])
+        self.assertEqual(prior["rejected_source_indices"], [1])
+        self.assertEqual(result["all_parseable_body_price_claim_groups"][0]["source_indices"], [0])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_unparseable_source_missing_both_prices_and_no_pair(self):
+        r, t = packet()
+        replace_body(t, 1, b'{"incomplete":')
+        result = self.check(r, t)
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [1])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [1])
+        self.assertEqual(result["incomplete_body_price_pair_source_indices"], [1])
+        self.assertEqual(result["all_parseable_body_current_close_claim_groups"][0]["structurally_valid_source_indices"], [0])
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertFalse(result["official_close_verified"])
+
+    def test_matching_price_sources_still_unverified(self):
+        result = self.check()
+        pair = result["all_parseable_body_price_claim_groups"][0]
+        self.assertEqual(pair["source_indices"], [0, 1])
+        self.assertEqual(pair["structurally_valid_source_indices"], [0, 1])
+        self.assertEqual(pair["rejected_source_indices"], [])
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [])
+        self.assertEqual(result["incomplete_body_price_pair_source_indices"], [])
+        self.assertFalse(result["official_close_verified"])
+
     def test_publication_and_action_check_timing_source_provenance(self):
         result = self.check()
         for field in ("source_publication_at", "action_checked_at"):

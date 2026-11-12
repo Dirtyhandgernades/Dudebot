@@ -437,20 +437,38 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             i for i in range(count) if i not in covered_indices
         ]
         invalid_timing_claim_indices[field] = sorted(invalid_indices)
+    # Every parseable price claim retains its original source index even if
+    # the source fails receipt, identity, action or chronology validation.
+    # Distinguish structurally matching rows from rejected third-source claims;
+    # otherwise a diagnostic 20% threshold could look like corroboration.
+    def indexed_price_group(indices):
+        return {
+            "source_indices": indices,
+            "structurally_valid_source_indices": [
+                i for i in indices if rows[i]["status"] == "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+            ],
+            "rejected_source_indices": [
+                i for i in indices if rows[i]["status"] != "BODY_FIELDS_MATCH_UNAUTHENTICATED"
+            ],
+        }
+
     groups = [
         {"regular_close": str(close), "previous_regular_close": str(prior),
-         "source_indices": indices,
+         **indexed_price_group(indices),
          "claimed_20pct_drop": close <= _exact_20pct_threshold(prior)}
         for (close, prior), indices in sorted(prices.items())
     ]
     current_groups = [
-        {"regular_close": str(value), "source_indices": indices}
+        {"regular_close": str(value), **indexed_price_group(indices)}
         for value, indices in sorted(close_claims.items())
     ]
     previous_groups = [
-        {"previous_regular_close": str(value), "source_indices": indices}
+        {"previous_regular_close": str(value), **indexed_price_group(indices)}
         for value, indices in sorted(prior_claims.items())
     ]
+    current_covered = {i for indices in close_claims.values() for i in indices}
+    previous_covered = {i for indices in prior_claims.values() for i in indices}
+    paired_covered = {i for indices in prices.values() for i in indices}
     if len(current_groups) > 1:
         issues.add("PARSED_BODY_REGULAR_CLOSE_CLAIM_CONFLICT")
     if len(previous_groups) > 1:
@@ -479,6 +497,15 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "all_parseable_body_price_claim_groups": groups,
         "all_parseable_body_current_close_claim_groups": current_groups,
         "all_parseable_body_previous_close_claim_groups": previous_groups,
+        "missing_body_current_close_claim_source_indices": [
+            i for i in range(count) if i not in current_covered
+        ],
+        "missing_body_previous_close_claim_source_indices": [
+            i for i in range(count) if i not in previous_covered
+        ],
+        "incomplete_body_price_pair_source_indices": [
+            i for i in range(count) if i not in paired_covered
+        ],
         "all_parseable_body_identity_claim_groups": identity_claim_groups,
         "unparseable_body_identity_claim_source_indices": missing_identity_claim_indices,
         "all_body_timing_claim_groups": timing_claim_groups,
