@@ -421,7 +421,11 @@ class BindingShadowTests(unittest.TestCase):
         }
         result = audit_body_bindings(*args, **kwargs)
         self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
-        self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+        self.assertIn("EARLY_CLOSE_REQUIRES_SEPARATE_1300_ET_SOURCE_CONTRACT",
+                      result["issues"])
+        self.assertIn("NONSTANDARD_CURRENT_CLOSE_REQUIRES_SEPARATE_SESSION_CONTRACT",
+                      result["issues"])
         self.assertFalse(result["official_close_verified"])
         self.assertFalse(result["exchange_calendar_and_corporate_actions_authenticated"])
 
@@ -439,6 +443,78 @@ class BindingShadowTests(unittest.TestCase):
         # fails closed on a 13:10 ET receipt.
         with self.assertRaisesRegex(ValueError, "POSTCLOSE_COLLECTION_TIMESTAMP_REQUIRED"):
             audit_body_bindings(*args)
+
+    def test_matching_holiday_source_bytes_cannot_override_published_calendar(self):
+        r, t = packet()
+        session, previous = date(2026, 11, 26), date(2026, 11, 25)
+        for i in range(2):
+            r[i].update({
+                "session_date": session.isoformat(),
+                "previous_session_date": previous.isoformat(),
+                "regular_close_asof": "2026-11-26T21:00:00Z",
+                "previous_regular_close_asof": "2026-11-25T21:00:00Z",
+                "observed_at": "2026-11-26T21:06:00Z",
+            })
+            r[i]["corporate_action"].update({
+                "coverage_start": previous.isoformat(),
+                "coverage_end": session.isoformat(),
+                "checked_at": "2026-11-26T21:05:00Z",
+            })
+            t[i]["requested_at"] = "2026-11-26T21:05:00Z"
+            t[i]["retrieved_at"] = "2026-11-26T21:08:00Z"
+            replace_body(t, i, json.dumps(
+                {k: v for k, v in r[i].items() if k != "source_url"},
+                sort_keys=True).encode())
+        result = audit_body_bindings(session, previous, r, t,
+                                     "2026-11-26T21:10:00Z")
+        self.assertEqual(result["indexed_count"], 2)
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertIn("CLOSED_OR_UNVERIFIED_PUBLISHED_2026_SESSION",
+                      result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_matching_skipped_previous_session_bytes_are_censored(self):
+        r, t = packet()
+        session, previous = date(2026, 11, 11), date(2026, 11, 9)
+        for i in range(2):
+            r[i].update({
+                "session_date": session.isoformat(),
+                "previous_session_date": previous.isoformat(),
+                "regular_close_asof": "2026-11-11T21:00:00Z",
+                "previous_regular_close_asof": "2026-11-09T21:00:00Z",
+                "observed_at": "2026-11-11T21:06:00Z",
+            })
+            r[i]["corporate_action"].update({
+                "coverage_start": previous.isoformat(),
+                "coverage_end": session.isoformat(),
+                "checked_at": "2026-11-11T21:05:00Z",
+            })
+            t[i]["requested_at"] = "2026-11-11T21:05:00Z"
+            t[i]["retrieved_at"] = "2026-11-11T21:08:00Z"
+            replace_body(t, i, json.dumps(
+                {k: v for k, v in r[i].items() if k != "source_url"},
+                sort_keys=True).encode())
+        result = audit_body_bindings(session, previous, r, t,
+                                     "2026-11-11T21:10:00Z")
+        self.assertEqual(result["byte_bound_unauthenticated_count"], 2)
+        self.assertIn("PREVIOUS_SESSION_NOT_ADJACENT_ON_PUBLISHED_2026_CALENDAR",
+                      result["issues"])
+        self.assertEqual(result["status"], "BLOCKED_CENSORED")
+
+    def test_regular_day_cannot_claim_1300_et_current_or_previous_close(self):
+        r, t = packet()
+        current = audit_body_bindings(
+            DAY, PRIOR, r, t, COLLECTED,
+            session_close_at="2026-10-28T17:00:00Z")
+        self.assertIn("NONSTANDARD_CURRENT_CLOSE_REQUIRES_SEPARATE_SESSION_CONTRACT",
+                      current["issues"])
+        self.assertEqual(current["status"], "BLOCKED_CENSORED")
+        prior = audit_body_bindings(
+            DAY, PRIOR, r, t, COLLECTED,
+            previous_session_close_at="2026-10-27T17:00:00Z")
+        self.assertIn("NONSTANDARD_PREVIOUS_CLOSE_REQUIRES_SEPARATE_SESSION_CONTRACT",
+                      prior["issues"])
+        self.assertEqual(prior["status"], "BLOCKED_CENSORED")
 
     def test_invalid_supplied_session_close_times_fail_closed(self):
         r, t = packet()

@@ -14,6 +14,7 @@ from decimal import Decimal, DecimalException, InvalidOperation, localcontext
 from zoneinfo import ZoneInfo
 
 from backtest.obsidian_eod_receipt_integrity_shadow import audit_receipts, MAX_RECEIPT_BYTES
+from backtest.obsidian_eod_source_preflight import _published_2026_calendar_issues
 
 MODE = "RESEARCH_ONLY_NOT_AN_ORDER"
 POLICY = "OBSIDIAN_EOD_BODY_CLAIM_BINDING_SHADOW_V1_2026_10_29"
@@ -139,6 +140,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
             raise ValueError("EXTERNAL_PREVIOUS_SESSION_CLOSE_TIMESTAMP_INVALID")
         previous_end = supplied_prior.astimezone(ET)
     rows, issues, prices = [], set(receipt_audit["issues"]), {}
+    # Matching source bytes cannot override the published session calendar
+    # or invent an adjacent previous trading day. Static screen only; the
+    # raw provider packet and every source row remain unauthenticated.
+    issues.update(_published_2026_calendar_issues(session, previous))
     # Index each parseable price independently, even when a rejected third
     # source supplies only one side of the close/prior-close pair. A complete
     # pair-only ledger could otherwise conceal an explicit contradiction.
@@ -154,6 +159,12 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "previous_close_basis")}
     close_end = (_instant(session_close_at).astimezone(ET) if session_close_at is not None
                  else datetime.combine(session, time(16), tzinfo=ET))
+    # This shadow follows the frozen normal 16:00 ET source contract.
+    # An explicit 13:00 ET close needs separate registered evaluation.
+    if close_end.timetz().replace(tzinfo=None) != time(16):
+        issues.add("NONSTANDARD_CURRENT_CLOSE_REQUIRES_SEPARATE_SESSION_CONTRACT")
+    if previous_end.timetz().replace(tzinfo=None) != time(16):
+        issues.add("NONSTANDARD_PREVIOUS_CLOSE_REQUIRES_SEPARATE_SESSION_CONTRACT")
     collected = _instant(collected_at)
     count = max(len(reports), len(receipts))
     for index in range(count):
