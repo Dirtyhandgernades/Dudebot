@@ -138,6 +138,7 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
             "coverage_start_claim": a.get("coverage_start") if isinstance(a.get("coverage_start"), str) else None,
             "coverage_end_claim": a.get("coverage_end") if isinstance(a.get("coverage_end"), str) else None,
             "checked_at_claim": a.get("checked_at") if isinstance(a.get("checked_at"), str) else None,
+            "observed_at_claim": r.get("observed_at") if isinstance(r.get("observed_at"), str) else None,
             "status": "STRUCTURALLY_VALID_UNAUTHENTICATED" if not faults else "REJECTED_CENSORED",
             "issues": sorted(faults),
         })
@@ -181,6 +182,10 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
     missing_basis = []
     missing_coverage_start = []
     missing_coverage_end = []
+    action_checked_at_groups = {}
+    source_observed_at_groups = {}
+    unparseable_action_checked_at = []
+    unparseable_source_observed_at = []
     previous_class_groups = {}
     previous_security_groups = {}
     action_security_groups = {}
@@ -220,6 +225,19 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
                 missing.append(index)
             else:
                 groups.setdefault(value, {"valid": [], "rejected": []})[destination].append(index)
+        # Observation and action-check times may legitimately differ by provider.
+        # Inventory exact instants with source indices, not a false cross-provider
+        # equality requirement. Strict parser censors unsupported precision.
+        for field, groups, missing in (
+            ("checked_at_claim", action_checked_at_groups, unparseable_action_checked_at),
+            ("observed_at_claim", source_observed_at_groups, unparseable_source_observed_at),
+        ):
+            instant = _instant(item[field])
+            if instant is None:
+                missing.append(index)
+            else:
+                utc = instant.astimezone(ZoneInfo("UTC")).isoformat()
+                groups.setdefault(utc, {"valid": [], "rejected": []})[destination].append(index)
         for value, groups, missing in (
             (item["previous_issuer_class_claim"], previous_class_groups,
              missing_previous_class),
@@ -307,6 +325,10 @@ def audit_action_identity(symbol, session, previous, reports, collected_at):
         "previous_close_basis_claim_groups": grouped_claims(basis_groups, "previous_close_basis"),
         "action_coverage_start_claim_groups": grouped_claims(coverage_start_groups, "coverage_start"),
         "action_coverage_end_claim_groups": grouped_claims(coverage_end_groups, "coverage_end"),
+        "action_checked_at_utc_claim_groups": grouped_claims(action_checked_at_groups, "checked_at_utc"),
+        "source_observed_at_utc_claim_groups": grouped_claims(source_observed_at_groups, "observed_at_utc"),
+        "unparseable_action_checked_at_claim_source_indices": unparseable_action_checked_at,
+        "unparseable_source_observed_at_claim_source_indices": unparseable_source_observed_at,
         "unparseable_action_status_claim_source_indices": missing_action_status,
         "unparseable_previous_close_basis_claim_source_indices": missing_basis,
         "unparseable_action_coverage_start_claim_source_indices": missing_coverage_start,

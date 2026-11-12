@@ -506,5 +506,61 @@ class ActionIdentityShadowTests(unittest.TestCase):
             "structurally_valid_source_indices"], [0, 1])
         self.assertFalse(result["security_identity_and_corporate_actions_authenticated"])
 
+
+    def test_action_and_source_clock_claims_indexed_without_false_conflict(self):
+        second = row("b", "beta", "beta.example")
+        second["observed_at"] = "2026-10-28T16:25:00-04:00"
+        second["corporate_action_evidence"]["checked_at"] = "2026-10-28T16:30:00-04:00"
+        result = check([row(), second])
+        self.assertEqual(result["action_checked_at_utc_claim_groups"], [
+            {"checked_at_utc": "2026-10-28T20:30:00+00:00",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []}])
+        self.assertEqual(result["source_observed_at_utc_claim_groups"], [
+            {"observed_at_utc": "2026-10-28T20:25:00+00:00",
+             "structurally_valid_source_indices": [0, 1], "rejected_source_indices": []}])
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_rejected_third_distinct_action_clock_is_preserved_not_promoted(self):
+        third = row("c", "gamma", "gamma.example")
+        third["corporate_action_evidence"]["checked_at"] = "2026-10-28T20:31:00Z"
+        third["corporate_action_evidence"]["status"] = "SPLIT"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertEqual(result["action_checked_at_utc_claim_groups"][-1], {
+            "checked_at_utc": "2026-10-28T20:31:00+00:00",
+            "structurally_valid_source_indices": [], "rejected_source_indices": [2]})
+        self.assertIn("CROSS_SOURCE_CORPORATE_ACTION_CLAIM_CONFLICT", result["issues"])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_valid_different_observation_times_do_not_imply_conflict(self):
+        second = row("b", "beta", "beta.example")
+        second["observed_at"] = "2026-10-28T20:26:00Z"
+        result = check([row(), second])
+        self.assertEqual(len(result["source_observed_at_utc_claim_groups"]), 2)
+        self.assertEqual(result["status"], "STRUCTURALLY_CONSISTENT_EXTERNAL_AUTH_PENDING")
+        self.assertFalse(result["source_packet_authenticity_verified"])
+
+    def test_unparseable_submicrosecond_third_clock_is_censored_in_inventory(self):
+        third = row("c", "gamma", "gamma.example")
+        third["observed_at"] = "2026-10-28T20:25:00.0000001Z"
+        third["corporate_action_evidence"]["checked_at"] = "2026-10-28T20:30:00.0000001Z"
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertEqual(result["unparseable_action_checked_at_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_source_observed_at_claim_source_indices"], [2])
+        self.assertEqual(len(result["action_checked_at_utc_claim_groups"]), 1)
+        self.assertEqual(len(result["source_observed_at_utc_claim_groups"]), 1)
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertFalse(result["official_close_verified"])
+
+    def test_missing_or_malformed_clock_claims_are_retained_as_missing_indices(self):
+        third = row("c", "gamma", "gamma.example")
+        third.pop("observed_at")
+        third["corporate_action_evidence"]["checked_at"] = {"invalid": "timestamp"}
+        result = check([row(), row("b", "beta", "beta.example"), third])
+        self.assertEqual(result["unparseable_action_checked_at_claim_source_indices"], [2])
+        self.assertEqual(result["unparseable_source_observed_at_claim_source_indices"], [2])
+        self.assertEqual(result["all_source_rows"][2]["status"], "REJECTED_CENSORED")
+        self.assertTrue(result["outcome_censored_pending_external_evidence"])
+
 if __name__ == "__main__":
     unittest.main()
