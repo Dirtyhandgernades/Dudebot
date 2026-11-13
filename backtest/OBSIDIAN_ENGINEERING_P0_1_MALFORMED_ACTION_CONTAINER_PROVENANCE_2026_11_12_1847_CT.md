@@ -1,0 +1,20 @@
+# OBSIDIAN Research Engineering — P0-1 malformed action-container provenance (2026-11-12 18:47 CT)
+
+**RESEARCH_ONLY_NOT_AN_ORDER.** Research-only branch `research/obsidian-early-rug-20261025`; no live provider request, trade, account access, main/production change or retrospective signal modification.
+
+## Verified research change
+- Starting research branch head: `201b631634ff83fb7b311a836d6a44862c023d3b`, including separate Rug Proof Nov 12 postclose audit.
+- `backtest/obsidian_eod_source_body_binding_shadow.py` now indexes a **present malformed corporate_action container** (null, array, number, string) as invalid for every nested action, identity, and basis claim. Previously such a source could be indistinguishable from omission in the invalid-claim inventory.
+- An **omitted corporate_action container** remains missing, not invalid. Valid action dictionaries with omitted optional security/class fields are **not** falsely marked invalid. The original unparseable/missing-source indices remain unchanged for compatibility.
+- Two synthetic regression methods test malformed containers across four types, optional-field missingness, omitted containers, source-index preservation, and continued outcome censoring.
+- Initial CI runs [43339764566](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43339764566) and [43339835526](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43339835526) failed on an overly broad optional-field test assertion and an overly broad code guard, respectively; both defects were corrected without altering any frozen cohort or capture.
+- Final hosted [CI run 43339922727](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/43339922727) **succeeded** on code commit `ddd56aba09e0fa9fc10ee5064798127aa3a2a3dd`, reporting **773 prospective tests and 4 board tests passed**. Earlier successful baseline was 771 prospective tests. Passing offline tests do not authenticate an exchange close or predict a collapse.
+
+## Cross-task and evidence boundaries
+- Re-read original Rug Proof [November 12 18:20 CT postclose audit](https://github.com/Dirtyhandgernades/Dudebot/blob/research/obsidian-early-rug-20261025/backtest/OBSIDIAN_RUG_PROOF_POSTCLOSE_AUDIT_2026_11_12_1820_CT.md). Its morning/intraday anchor, delayed SIP, 14:20 decision board and postclose analysis remain separately owned; no duplicate same-issuer/day evidence was created.
+- GitHub artifact metadata independently re-read: November 12 after-hours IEX run 43310308440 artifact 13985601925, SHA256 `b38dcf4e51de540149f387f93c1b719b02182b8cfd216abaac2f68cf127fe437`; independent monitor run 43310308370 artifact 13986355792, SHA256 `e8d19ef1d871af281a1ae3707037f7d9e15080d151ac937c3445d8d15d06008a`; delayed SIP run 43300057254 artifact 13980477945, SHA256 `c32fa02adf0d6c356fc3c33489c37c9de2c70fb12122dc8ef8bfd76538ba8b60`. All reported unexpired, expiry 2027-02-10. **GitHub-reported digest only**; independent ZIP-byte rehash and durable storage remain **BACKUP_UNVERIFIED**.
+- This checkpoint is outside the original 12:47 CT intraday and protected 14:45–14:58 CT preclose gates. No late preclose marker, retry, backfill, Morning Movers, After-Hours or Early Decision Board capture was created.
+
+## External evidence gaps and protected study
+- **P0-1 BLOCKED_CENSORED:** two genuinely independent organizations' authenticated official regular-session current/prior closes, complete third-source conflict reconciliation, issuer/security/share-class continuity, corporate-action verification, exact exchange calendar and timestamps are missing. The Nasdaq Trader RSS is limited halt context; optional Massive quotes and real-time entitlement remain unverified. SMG blocked-symbol/security/account short permissions remain unknown, regardless of Alpaca borrow.
+- Preserve original 136-name watchlist, JDZG stale/halt failure analysis, all frozen historical labels/denominators, and matched untouched future cohorts at 0/+1/+2/+3 **actual trading sessions**, with false positives, late/exhausted cases, squeezes, costs and missingness. Unsupported outcomes stay censored; no >=20% prediction-success or profitability claim.
