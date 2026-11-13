@@ -379,8 +379,10 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                         # syntactically invalid timestamps, dates and action
                         # enums separately from genuinely omitted fields.
                         invalid_identity_claim_indices[field].add(index)
-                elif (field.startswith("action_") or field in
-                      ("corporate_action_status", "previous_close_basis")) and "corporate_action" in parsed:
+                elif (not isinstance(owner, dict)
+                      and (field.startswith("action_") or field in
+                           ("corporate_action_status", "previous_close_basis"))
+                      and "corporate_action" in parsed):
                     # An explicitly present but malformed action container
                     # (null, list, number, string) invalidates EVERY nested
                     # action/identity claim. Do not misclassify it as merely
