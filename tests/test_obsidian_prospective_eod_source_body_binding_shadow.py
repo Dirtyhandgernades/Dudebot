@@ -1301,5 +1301,57 @@ class BindingShadowTests(unittest.TestCase):
         self.assertEqual(result["status"], "BODY_CONSISTENT_EXTERNAL_AUTH_PENDING")
         self.assertFalse(result["eligible_for_frozen_scoring"])
 
+
+    def test_present_invalid_current_close_is_not_missing_field(self):
+        for value in (None, [], {}, "SECRET_BAD_PRICE_DO_NOT_ECHO", -5, False):
+            with self.subTest(value=value):
+                r, t = packet()
+                body = json.loads(t[1]["raw_body"])
+                body["regular_close"] = value
+                replace_body(t, 1, json.dumps(body).encode())
+                result = self.check(r, t)
+                self.assertEqual(result["invalid_body_price_claim_source_indices"]["regular_close"], [1])
+                self.assertEqual(result["explicitly_absent_body_price_claim_source_indices"]["regular_close"], [])
+                self.assertEqual(result["missing_body_current_close_claim_source_indices"], [1])
+                self.assertEqual(result["incomplete_body_price_pair_source_indices"], [1])
+                self.assertNotIn("SECRET_BAD_PRICE_DO_NOT_ECHO", repr(result))
+                self.assertFalse(result["official_close_verified"])
+
+    def test_omitted_prior_close_is_distinct_from_invalid(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        del body["previous_regular_close"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["explicitly_absent_body_price_claim_source_indices"]["previous_regular_close"], [1])
+        self.assertEqual(result["invalid_body_price_claim_source_indices"]["previous_regular_close"], [])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [1])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
+    def test_unparseable_body_not_falsely_marked_omitted_or_invalid(self):
+        r, t = packet()
+        replace_body(t, 1, b'{"truncated":')
+        result = self.check(r, t)
+        for field in ("regular_close", "previous_regular_close"):
+            self.assertEqual(result["invalid_body_price_claim_source_indices"][field], [])
+            self.assertEqual(result["explicitly_absent_body_price_claim_source_indices"][field], [])
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [1])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [1])
+        self.assertFalse(result["official_close_verified"])
+
+    def test_invalid_prior_close_keeps_current_claim_index(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        body["previous_regular_close"] = "not-a-price"
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        self.assertEqual(result["invalid_body_price_claim_source_indices"]["previous_regular_close"], [1])
+        self.assertEqual(result["invalid_body_price_claim_source_indices"]["regular_close"], [])
+        self.assertEqual(result["missing_body_current_close_claim_source_indices"], [])
+        self.assertEqual(result["missing_body_previous_close_claim_source_indices"], [1])
+        self.assertEqual(result["all_parseable_body_current_close_claim_groups"][0]["source_indices"], [0, 1])
+        self.assertEqual(result["incomplete_body_price_pair_source_indices"], [1])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
 if __name__ == "__main__":
     unittest.main()

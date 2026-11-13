@@ -183,6 +183,14 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
     # source supplies only one side of the close/prior-close pair. A complete
     # pair-only ledger could otherwise conceal an explicit contradiction.
     close_claims, prior_claims = {}, {}
+    # Preserve present-invalid versus omitted price claims separately.
+    # Unparseable source bodies are neither; all remain censored.
+    invalid_price_claim_indices = {
+        field: set() for field in ("regular_close", "previous_regular_close")
+    }
+    explicitly_absent_price_claim_indices = {
+        field: set() for field in invalid_price_claim_indices
+    }
     # Publication/action-check times are not expected to match across vendors.
     # Inventory each exact source claim without treating different legitimate
     # retrieval/publication clocks as a price or identity conflict.
@@ -292,6 +300,11 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
                     faults.add("BODY_REPORT_PRICE_MISMATCH_" + field.upper())
             close = _positive(parsed.get("regular_close"))
             prior = _positive(parsed.get("previous_regular_close"))
+            for field in invalid_price_claim_indices:
+                if field not in parsed:
+                    explicitly_absent_price_claim_indices[field].add(index)
+                elif _positive(parsed[field]) is None:
+                    invalid_price_claim_indices[field].add(index)
             if close is not None:
                 close_claims.setdefault(close, []).append(index)
             if prior is not None:
@@ -584,6 +597,13 @@ def audit_body_bindings(session, previous, reports, receipts, collected_at,
         "incomplete_body_price_pair_source_indices": [
             i for i in range(count) if i not in paired_covered
         ],
+        "invalid_body_price_claim_source_indices": {
+            field: sorted(indices) for field, indices in invalid_price_claim_indices.items()
+        },
+        "explicitly_absent_body_price_claim_source_indices": {
+            field: sorted(indices)
+            for field, indices in explicitly_absent_price_claim_indices.items()
+        },
         "all_parseable_body_identity_claim_groups": identity_claim_groups,
         "unparseable_body_identity_claim_source_indices": missing_identity_claim_indices,
         "invalid_body_identity_claim_source_indices": {
