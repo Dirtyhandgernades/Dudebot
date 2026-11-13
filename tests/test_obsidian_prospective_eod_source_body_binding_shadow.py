@@ -79,9 +79,12 @@ class BindingShadowTests(unittest.TestCase):
                     self.assertEqual(
                         result["invalid_body_identity_claim_source_indices"][field], [1],
                         field)
+                    expected_missing = ([0, 1] if field in
+                        ("action_security_id", "action_previous_security_id",
+                         "action_issuer_class", "action_previous_issuer_class") else [1])
                     self.assertEqual(
-                        result["unparseable_body_identity_claim_source_indices"][field], [1],
-                        field)
+                        result["unparseable_body_identity_claim_source_indices"][field],
+                        expected_missing, field)
                 self.assertEqual(result["invalid_body_timing_claim_source_indices"]["action_checked_at"], [1])
                 self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
                 self.assertFalse(result["official_close_verified"])
