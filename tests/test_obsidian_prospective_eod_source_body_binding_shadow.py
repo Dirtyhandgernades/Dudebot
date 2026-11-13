@@ -63,6 +63,43 @@ class BindingShadowTests(unittest.TestCase):
         return audit_body_bindings(DAY, PRIOR, r if reports is None else reports,
                                    t if receipts is None else receipts, COLLECTED)
 
+    def test_malformed_action_container_preserves_invalid_nested_identity_indices(self):
+        for malformed in (None, [], 42, "NOT_AN_ACTION"):
+            with self.subTest(malformed=malformed):
+                r, t = packet()
+                body = json.loads(t[1]["raw_body"])
+                body["corporate_action"] = malformed
+                replace_body(t, 1, json.dumps(body).encode())
+                result = self.check(r, t)
+                fields = ("action_coverage_start", "action_coverage_end",
+                          "action_security_id", "action_previous_security_id",
+                          "action_issuer_class", "action_previous_issuer_class",
+                          "corporate_action_status", "previous_close_basis")
+                for field in fields:
+                    self.assertEqual(
+                        result["invalid_body_identity_claim_source_indices"][field], [1],
+                        field)
+                    self.assertEqual(
+                        result["unparseable_body_identity_claim_source_indices"][field], [1],
+                        field)
+                self.assertEqual(result["invalid_body_timing_claim_source_indices"]["action_checked_at"], [1])
+                self.assertEqual(result["all_source_rows"][1]["status"], "REJECTED_CENSORED")
+                self.assertFalse(result["official_close_verified"])
+
+    def test_omitted_action_container_is_missing_not_explicitly_invalid(self):
+        r, t = packet()
+        body = json.loads(t[1]["raw_body"])
+        del body["corporate_action"]
+        replace_body(t, 1, json.dumps(body).encode())
+        result = self.check(r, t)
+        for field in ("action_coverage_start", "action_coverage_end",
+                      "corporate_action_status", "previous_close_basis"):
+            self.assertEqual(result["invalid_body_identity_claim_source_indices"][field], [])
+            self.assertEqual(result["unparseable_body_identity_claim_source_indices"][field], [1])
+        self.assertEqual(result["invalid_body_timing_claim_source_indices"]["action_checked_at"], [])
+        self.assertEqual(result["explicitly_absent_body_timing_claim_source_indices"]["action_checked_at"], [1])
+        self.assertFalse(result["eligible_for_frozen_scoring"])
+
     def test_price_claim_groups_distinguish_structurally_valid_and_rejected(self):
         r, t = packet()
         body = json.loads(t[1]["raw_body"])
