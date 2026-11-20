@@ -47,3 +47,18 @@ All prices below are **observed, timestamped intraday reference quotes**, not ac
 Verify actual SMG available buying power and pending order status before issuing any additional buy/short share quantity for execution. Friday End-of-Day order submitted after close executes NEXT trading session close; cannot capture weekend gap at Friday pre-news price.
 
 No trades executed, no messages to trading platform sent, no frozen workflows changed.
+
+
+## Next-week short watch additions — user request, Nov 20 2026
+**User update (verbatim names):** "JKL and QFIN are new, earlier WYHG and ZJYL were in their place." Keep original earlier names in historical watch status; this is an update to the user's candidate list, **not** an asserted issuer rename, security exchange, or corporate action. The user did not explicitly map JKL→WYHG or QFIN→ZJYL, so do not imply one-to-one replacement without verification.
+
+| Symbol | User-specified state | Research status as of Friday Nov 20 | Next action |
+|---|---|---|---|
+| **JKL** | NEW next-week short-watch suggestion | **Identity collision / likely legacy ETF ticker:** public 2021 fund records show former iShares Morningstar Small-Cap Value ETF JKL renamed to ISCV. A third-party quote still returned JKL/NYSE Arca; **not** verified current ordinary common stock or SMG short. | Verify live Nasdaq/NYSE security master and CUSIP before promoting; do not short legacy ETF ticker by mistake. |
+| **QFIN** | NEW next-week short-watch suggestion | Current Nasdaq Qfin Holdings ADR; issuer announces Q3 2026 unaudited results for **Nov 24, 2026**. The observed ~$4.51 Nov20 16:21 ET Stocktwits quote was **after close**, not a verified official regular close. Market cap and actual SMG ADR eligibility require point-in-time confirmation. | Research pre-earnings fragility, exact results release time, analyst expectations, credit volume, provisions, non-performing loans, liquidity, source-issued ADR parity, and independent price/SMG gate. |
+| **WYHG** | EARLIER watch candidate, retain history, not today's new nominated stock | Nasdaq lists Wing Yip Food Holdings Group **ADS**; observed ~$2.61 after hours Nov20, below $3 indicative, **not authenticated official close**. | Keep archived; do not promote until prior and current authenticated regular prices both >=$3, >=$25m cap, ADS rules/short permission verified. |
+| **ZJYL** | EARLIER watch candidate, retain history, not today's new nominated stock | Jin Medical International Ltd; issuer reported a 2026 share consolidation; third-party Nov20 afterhours quote ~$3.50. | Keep archived; normalize reverse split, validate prior/current regular close >=$3, cap, venue and actual game short permission. |
+
+**Important:** The source says "earlier ... in their place" about **the user's research shortlist**, not a legally authenticated ticker rename or substitution. Do not replace symbols in original frozen 136-name watchlist or backdate discovery. Source references: https://ir.qifu.tech/ ; https://www.schwab.wallst.com/Prospect/Research/etfs/summary.asp?symbol=JKL ; https://www.sec.gov/Archives/edgar/data/1837821/000121390026029123/ea028185701ex99-1.htm ; https://www.nasdaqtrader.com/Trader.aspx?id=nasdaq-security-status-updates .
+Full accompanying new watch note: backtest/OBSIDIAN_NEXT_WEEK_SHORT_WATCH_2026_11_23.md.
+No new trade, alert, production workflow or model promotion occurred.
