@@ -77,3 +77,9 @@ Find the highest-quality, **eligible**, **catchable before an end-of-day fill** 
 - backtest/FAST_DUMP_RANK_RESULTS.md
 
 **Implementation status: DOCUMENTATION ONLY.** No live scanner, automated orders, new alert schedule or modified model trained/deployed by this file.
+
+
+## Critical Nov 20 2026 incident update — CAPR FDA long FAILURE
+See backtest/OBSIDIAN_CAPR_FDA_LONG_FAILURE_2026_11_20.md. **Assistant proposed a 500-share long before the Nov22 PDUFA target despite a negative 9–3 advisory vote and outstanding data-integrity concerns.** FDA rejected the therapy Nov20 afterhours; Reuters observed ~77% afterhours fall and a later indicative Stocktwits print ~$1.475, not an EOD game exit. Estimated adverse change for 500 at ~$7.95 versus $1.475 is -$3,237.50, **not confirmed actual SMG loss**.
+
+**Rule correction for v2 research-only playbook:** A binary predecision FDA **long** with unresolved negative agency evidence must be classified HIGH GAP-RISK / NOT AN EVIDENCE-BACKED LONG, no matter how bullish social sentiment or attractive the best-case gain. Reject it from the standard 2–3 concentrated trade shortlist unless a separate independently validated binary-event strategy and explicit, sustainable loss budget are established. A weekend "event optionality" label never converts an unsupported gamble into a quantified edge. Run worst-case *alongside* best-case scenarios even when the user requests best-case only. The delayed EOD game cannot use an intraday stop to limit an afterhours 80% drop. Maintain a complete and immutable record of CAPR as a failure, not a favorable hypothetical after-the-fact short. Documentation-only; no production/alert/trade changes.
