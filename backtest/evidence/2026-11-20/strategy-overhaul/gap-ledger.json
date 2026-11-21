@@ -4,14 +4,15 @@
       "acceptance_criteria": "Original 54 portfolios regenerate; aggressive normal/stress PnL, trades and drawdown match all three published seasons.",
       "dependencies": [],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G01",
       "implementation": [
         "backtest/target_rank_research.py",
         "backtest/obsidian_strategy_lab.py"
       ],
-      "next_action": "Host the same run and verify actual artifact; never substitute the Nov20 daily-heuristic replay.",
+      "next_action": "Baseline regenerated in run44864565861; all three published seasons match. Preserve original packet.",
       "stage": "Original strategy reconstruction",
-      "status": "VERIFIED_LOCAL"
+      "status": "VERIFIED_HOSTED"
     },
     {
       "acceptance_criteria": "655 correlated closed-trade rows across all 54 original variants have signal match, entry/exit, loss, sizing and daily adverse-move audit; unknown catalysts/SMG execution remain explicit.",
@@ -19,6 +20,7 @@
         "G01"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G02",
       "implementation": [
         "backtest/obsidian_strategy_lab.py"
@@ -33,6 +35,7 @@
         "G01"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G03",
       "implementation": [
         "backtest/obsidian_strategy_lab.py"
@@ -42,31 +45,33 @@
       "status": "PARTIAL_CACHE_ONLY"
     },
     {
-      "acceptance_criteria": "Source ends Dec5; VERB ends Aug29 2025, BREA Oct2; SLMT/TONX/SPY absent. Existing BREA->SLMT configuration is a lead, not missing prices.",
+      "acceptance_criteria": "Separate valuation-only rename mapping requires dated primary source, matching raw OHLC overlap and immutable original dataset; full universe/action/execution completeness remains separate.",
       "dependencies": [
         "G01"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G04",
       "implementation": [
         "backtest/obsidian_identity_probe.py",
         "config/historical_symbol_changes.csv"
       ],
-      "next_action": "Inspect bounded SEC and daily-bar probes; only join historical same-security prices after dated corporate-action proof.",
+      "next_action": "Dated rename documents plus exact raw overlaps restored68 VERB and45 BREA valuation sessions in separate dataset. Full corporate actions, full Aug-Dec universe and execution remain unverified.",
       "stage": "Security continuity and Aug-Dec historical completeness",
-      "status": "BLOCKED_DATA"
+      "status": "PARTIAL_VALUATION_REPAIR_VERIFIED"
     },
     {
       "acceptance_criteria": "139-name free feed exists; regular-session SIP clamp, raw redacted bodies/parameters/hash archive added; real-time independent entitlement not established.",
       "dependencies": [],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G05",
       "implementation": [
         "backtest/obsidian_free_quant_feed.py"
       ],
-      "next_action": "Run existing manual collector and inspect archive/timestamps; do not change schedule or call delayed data realtime.",
+      "next_action": "Actual139-name packet and15 raw receipt hashes inspected;128 SIP fresh at historical close cutoff. Realtime entitlement and independent confirmation remain unknown.",
       "stage": "Source feeds, timing and raw evidence",
-      "status": "REPAIRED_TESTS_HOST_PENDING"
+      "status": "VERIFIED_DELAYED_RESEARCH_FEED"
     },
     {
       "acceptance_criteria": "SEC metadata and two documents per packet are bounded; keywords remain candidate evidence, not authenticated adverse mechanism or completed sale.",
@@ -74,6 +79,7 @@
         "G05"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G06",
       "implementation": [
         "backtest/obsidian_candidate_pipeline.py"
@@ -89,14 +95,15 @@
         "G06"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G07",
       "implementation": [
         "backtest/obsidian_candidate_pipeline.py",
         "backtest/obsidian_abc_board.py"
       ],
-      "next_action": "Verify actual packet and board artifact; no forced three picks or backdated 14:20 board.",
+      "next_action": "Actual139-row board preserves every name.135 conditional shadow scores; population match unverified so scores excluded from ordering. All139 blocked; no timely delivery established.",
       "stage": "Connected classifier, ranking and complete board",
-      "status": "IMPLEMENTED_FIXTURES_ACTUAL_PENDING"
+      "status": "VERIFIED_ACTUAL_RESEARCH_BOARD_BLOCKED"
     },
     {
       "acceptance_criteria": "Three registered diagnostics executed. Known years, <100 nominal baseline trades, concentration and stress drawdown fail requirements; no qualified replacement.",
@@ -106,6 +113,7 @@
         "G04"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G08",
       "implementation": [
         "backtest/obsidian_rank_control.py",
@@ -121,6 +129,7 @@
         "G08"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G09",
       "implementation": [
         "backtest/obsidian_portfolio_guard.py"
@@ -135,6 +144,7 @@
         "G07"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G10",
       "implementation": [
         "backtest/OBSIDIAN_SMG_EXECUTION_WORKFLOW_2026_11_20.md"
@@ -150,6 +160,7 @@
         "G07"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G11",
       "implementation": [
         "backtest/obsidian_forward_eod_intake.py"
@@ -164,14 +175,15 @@
         "G01"
       ],
       "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "hosted_verification": "hosted-verification.json",
       "id": "G12",
       "implementation": [
         "backtest/obsidian_research_runner.py",
         ".github/workflows/obsidian-strategy-lab.yml"
       ],
-      "next_action": "Verify hosted replay and resume artifact; retain compact summaries and full raw ledgers as Actions artifacts.",
+      "next_action": "All sealed output hashes verified; hosted second invocation preserved checkpoint. Compact manifest committed; large raw artifacts expire February19 2027.",
       "stage": "Vault persistence and bounded research resume",
-      "status": "IMPLEMENTED_LOCAL_VERIFIED"
+      "status": "VERIFIED_HOSTED_RESUME"
     }
   ],
   "scope": "RESEARCH_ONLY_NOT_AN_ORDER",

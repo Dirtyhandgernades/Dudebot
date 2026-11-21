@@ -1,3 +1,11 @@
+# Verified research overhaul — November 20, 2026
+
+Original54-portfolio strategy reproduced on authenticated source;140 hosted output hashes and resume verified. Full suite1289 tests plus321 subtests passed. Connected139-name free feed→V2 research board and fixed ordinal model diagnostics; all139 remain blocked, with no timely delivery or actionable recommendation. Separate source-backed valuation repair restores68 VERB and45 BREA sessions without changing frozen source/predictions. No strategy promoted; concentration, stress risk and missing independent prospective evidence remain material.
+
+Durable results, exact artifact provenance and12-stage gap ledger: `backtest/evidence/2026-11-20/strategy-overhaul/README.md`. Operational commands: `backtest/OBSIDIAN_RESEARCH_OPERATING_GUIDE.md`. Hosted runs44864565861 (lab) and44864611244 (feed). Official-close authentication, actual SMG account/permissions and timely delivery remain external blockers. GitHub evidence is shared; separate trading-desk chats are not automatically synchronized.
+
+---
+
 # Free-feed scope and SEC rotation verified — Oct29 2026
 
 Current feed now covers 139 names: original retained 136 plus separate CBRS/RAPP/SPTX overlay. Frozen historical cohorts/predictions unchanged. Run 40932613239 checked all 139 and SEC batch CBRS,RAPP,SPTX,AMTD,APUS,APXC,ARTL,AVBP; run 40932728198 restored its artifact state and advanced to AVTX,AVX,BBCI,BDRX,BENF,BMEA,BMGL,BNC. Both runs successful; actual artifacts downloaded and complete scopes/disjoint batches/state linkage verified. Including original seed eight, 24 unique successful SEC metadata lookups, 115 names awaiting first lookup. This is metadata coverage, not verified adverse mechanisms.

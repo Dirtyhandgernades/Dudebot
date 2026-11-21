@@ -1,0 +1,179 @@
+{
+  "board": {
+    "artifact_id": 14691123325,
+    "classification_counts": {
+      "BLOCKED": 139
+    },
+    "coverage": {
+      "denominator": 139,
+      "iex_missing_symbols": 0,
+      "iex_quote_states": {
+        "INVALID": 41,
+        "STALE_SINGLE_VENUE": 98
+      },
+      "iex_returned_symbols": 139,
+      "iex_states": {
+        "STALE_SINGLE_VENUE": 139
+      },
+      "known_security_eligibility_exclusions": 0,
+      "sec_states": {
+        "NOT_REQUESTED_SEC_BUDGET": 131,
+        "RECENT_FILING_METADATA_COLLECTED_REVIEW_REQUIRED": 7,
+        "SEC_MAPPING_MISSING_OR_AMBIGUOUS": 1
+      },
+      "shadow_rank_states": {
+        "CONDITIONAL_ORDINAL_SHADOW_RANK": 135,
+        "INCOMPLETE_DUPLICATE_OR_FUTURE_DAILY_FEATURES": 3,
+        "INVALID_DAILY_FEATURES": 1
+      },
+      "sip_states": {
+        "HISTORICAL_DELAYED_SIP_BAR_FRESH_AT_ASOF": 128,
+        "HISTORICAL_DELAYED_SIP_BAR_STALE_AT_ASOF": 6,
+        "NO_CONSOLIDATED_BAR": 5
+      },
+      "unknown_security_eligibility": 139
+    },
+    "delivery_verified": false,
+    "expires_at": "2027-02-19T04:08:34Z",
+    "packet_sha256": "75aa868f9496ac808a4e904e4f63fbb592154dc36450e3ec5745fe5e29c803f5",
+    "publication_role": "LATE_OR_OFF_CHECKPOINT_RESEARCH_REVIEW_NOT_PROSPECTIVE_BOARD",
+    "raw_receipts_verified": 15,
+    "recommendations": [],
+    "run_id": 44864611244,
+    "zip_sha256": "eb91a26b2bd3baa63d7f12e92e34b92d2a98f51ac1019f696f8a38455d64daa5"
+  },
+  "code_commit": "95d4d059092c51d9e8ee5b0df1589ff22b12785d",
+  "continuity_repair": {
+    "SMG_execution_verified": false,
+    "derived_input_sha256": "a069e8d6d95f201f3b379139c844f3cb1ea94f26cb2900de930259334ebaa9d8",
+    "official_closes_verified": false,
+    "original_input_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb",
+    "original_modified": false,
+    "performance_recomputed": false,
+    "repairs": [
+      {
+        "action": "rename_only",
+        "adjusted_scale": 1.0,
+        "derived_raw_sessions": 883,
+        "document_name": "VERB-0001493152-25-012461.html",
+        "effective_date": "2025-09-02",
+        "first_original_missing_session_recovered": "2025-09-02",
+        "full_corporate_action_history_verified": false,
+        "mapped_sessions": 68,
+        "new_symbol": "TONX",
+        "old_symbol": "VERB",
+        "original_dataset_last_session": "2025-12-05",
+        "original_raw_sessions": 815,
+        "overlap_sessions_exact": 21,
+        "primary_source_sha256": "002c9d4b466c6bcb4581bbe513e28809983b3c627f6c6352c3a9cc970fc9d091",
+        "published_at": "2025-08-29T13:20:25Z",
+        "required_phrases": [
+          "September 2, 2025",
+          "do not affect the rights",
+          "92337U302",
+          "VERB",
+          "TONX"
+        ],
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1566610/000149315225012461/form8-k.htm",
+        "status": "STITCHED_RENAME",
+        "volume_alignment_applied": true
+      },
+      {
+        "action": "rename_only",
+        "adjusted_scale": 0.09999999999999999,
+        "derived_raw_sessions": 718,
+        "document_name": "BREA-issuer-announcement.html",
+        "effective_date": "2025-10-03",
+        "first_original_missing_session_recovered": "2025-10-03",
+        "full_corporate_action_history_verified": false,
+        "mapped_sessions": 45,
+        "new_symbol": "SLMT",
+        "old_symbol": "BREA",
+        "original_dataset_last_session": "2025-12-05",
+        "original_raw_sessions": 673,
+        "overlap_sessions_exact": 44,
+        "primary_source_sha256": "6fd955c2b6a6fe50edf051a4c30ce471ebb7972f3234dc42704fb0da2fb85026",
+        "published_at": "2025-10-02T13:00:00Z",
+        "required_phrases": [
+          "October 3, 2025",
+          "No action is required",
+          "BREA",
+          "SLMT"
+        ],
+        "source_url": "https://www.nasdaq.com/press-release/brera-holdings-plc-nasdaq-brea-announces-new-ticker-symbol-slmt-reflecting-its",
+        "status": "STITCHED_RENAME",
+        "volume_alignment_applied": true
+      }
+    ],
+    "sessions_unchanged": true,
+    "status": "DERIVED_VENDOR_VALUATION_CONTINUITY_REPAIRED_NOT_STRATEGY_VALIDATED",
+    "universe_unchanged": true
+  },
+  "lab": {
+    "artifact_id": 14691551088,
+    "baseline_reproduced": [
+      {
+        "matched": true,
+        "reported": [
+          18658.11,
+          16487.95,
+          3,
+          3.059
+        ],
+        "reproduced": [
+          18658.11,
+          16487.95,
+          3,
+          3.059
+        ],
+        "year": 2023
+      },
+      {
+        "matched": true,
+        "reported": [
+          39124.52,
+          25305.11,
+          16,
+          25.691
+        ],
+        "reproduced": [
+          39124.52,
+          25305.11,
+          16,
+          25.691
+        ],
+        "year": 2024
+      },
+      {
+        "matched": true,
+        "reported": [
+          103258.54,
+          64020.56,
+          36,
+          19.966
+        ],
+        "reproduced": [
+          103258.54,
+          64020.56,
+          36,
+          19.966
+        ],
+        "year": 2025
+      }
+    ],
+    "expires_at": "2027-02-19T04:08:00Z",
+    "resume_verified": true,
+    "run_id": 44864565861,
+    "verified_checkpoint_output_hashes": 140,
+    "zip_sha256": "95f916cdc1d988f752a49f14c38852c1f9876c5ddfd535bb915c19f840ea1ba1"
+  },
+  "mode": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "session_date": "2026-11-20",
+  "tests": {
+    "passed": 1289,
+    "subtests_passed": 321,
+    "warning_reason": "Intentional duplicate ZIP fixture",
+    "warnings": 1
+  },
+  "workflow_complete": false
+}
