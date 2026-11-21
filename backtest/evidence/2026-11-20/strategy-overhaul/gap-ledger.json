@@ -1,0 +1,179 @@
+{
+  "gaps": [
+    {
+      "acceptance_criteria": "Original 54 portfolios regenerate; aggressive normal/stress PnL, trades and drawdown match all three published seasons.",
+      "dependencies": [],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G01",
+      "implementation": [
+        "backtest/target_rank_research.py",
+        "backtest/obsidian_strategy_lab.py"
+      ],
+      "next_action": "Host the same run and verify actual artifact; never substitute the Nov20 daily-heuristic replay.",
+      "stage": "Original strategy reconstruction",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "acceptance_criteria": "655 correlated closed-trade rows across all 54 original variants have signal match, entry/exit, loss, sizing and daily adverse-move audit; unknown catalysts/SMG execution remain explicit.",
+      "dependencies": [
+        "G01"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G02",
+      "implementation": [
+        "backtest/obsidian_strategy_lab.py"
+      ],
+      "next_action": "Review primary source and execution evidence for high-impact trades; do not claim causal thesis correctness.",
+      "stage": "Every archived closed-trade forensic row",
+      "status": "CONDITIONAL_ACTUAL"
+    },
+    {
+      "acceptance_criteria": "78435 cached issuer/dates partition into 45658 observed non-target, 26195 missing, 2847 descriptive 20% cache events and 3735 outside-horizon; no full-market recall.",
+      "dependencies": [
+        "G01"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G03",
+      "implementation": [
+        "backtest/obsidian_strategy_lab.py"
+      ],
+      "next_action": "Acquire delisted/point-in-time full universe and same-session source receipts before evaluating market-wide discovery.",
+      "stage": "Independent missed-opportunity coverage",
+      "status": "PARTIAL_CACHE_ONLY"
+    },
+    {
+      "acceptance_criteria": "Source ends Dec5; VERB ends Aug29 2025, BREA Oct2; SLMT/TONX/SPY absent. Existing BREA->SLMT configuration is a lead, not missing prices.",
+      "dependencies": [
+        "G01"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G04",
+      "implementation": [
+        "backtest/obsidian_identity_probe.py",
+        "config/historical_symbol_changes.csv"
+      ],
+      "next_action": "Inspect bounded SEC and daily-bar probes; only join historical same-security prices after dated corporate-action proof.",
+      "stage": "Security continuity and Aug-Dec historical completeness",
+      "status": "BLOCKED_DATA"
+    },
+    {
+      "acceptance_criteria": "139-name free feed exists; regular-session SIP clamp, raw redacted bodies/parameters/hash archive added; real-time independent entitlement not established.",
+      "dependencies": [],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G05",
+      "implementation": [
+        "backtest/obsidian_free_quant_feed.py"
+      ],
+      "next_action": "Run existing manual collector and inspect archive/timestamps; do not change schedule or call delayed data realtime.",
+      "stage": "Source feeds, timing and raw evidence",
+      "status": "REPAIRED_TESTS_HOST_PENDING"
+    },
+    {
+      "acceptance_criteria": "SEC metadata and two documents per packet are bounded; keywords remain candidate evidence, not authenticated adverse mechanism or completed sale.",
+      "dependencies": [
+        "G05"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G06",
+      "implementation": [
+        "backtest/obsidian_candidate_pipeline.py"
+      ],
+      "next_action": "Supply source-bound human/independent reviews and issuer disclosures; preserve all unenriched candidates.",
+      "stage": "Dated mechanism and counterevidence",
+      "status": "PARTIAL_BLOCKED_REVIEW"
+    },
+    {
+      "acceptance_criteria": "V2 5515938 present; shared assessor reused, underlying blocked theses preserved, full packet routes to research board; triage is explicitly separate from trained seven-feature rank.",
+      "dependencies": [
+        "G05",
+        "G06"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G07",
+      "implementation": [
+        "backtest/obsidian_candidate_pipeline.py",
+        "backtest/obsidian_abc_board.py"
+      ],
+      "next_action": "Verify actual packet and board artifact; no forced three picks or backdated 14:20 board.",
+      "stage": "Connected classifier, ranking and complete board",
+      "status": "IMPLEMENTED_FIXTURES_ACTUAL_PENDING"
+    },
+    {
+      "acceptance_criteria": "Three registered diagnostics executed. Known years, <100 nominal baseline trades, concentration and stress drawdown fail requirements; no qualified replacement.",
+      "dependencies": [
+        "G01",
+        "G02",
+        "G04"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G08",
+      "implementation": [
+        "backtest/obsidian_rank_control.py",
+        "backtest/obsidian_strategy_lab.py"
+      ],
+      "next_action": "Resolve data then collect untouched independent periods; keep baseline, rejected experiments and all negatives.",
+      "stage": "Robustness, calibration and model promotion",
+      "status": "FAILED_PROMOTION"
+    },
+    {
+      "acceptance_criteria": "Paper guard and state machine cover stale account/quote, wrong ticker, buying power, duplicates and ambiguous confirmation. No actual SMG read tool/session binding is available here.",
+      "dependencies": [
+        "G08"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G09",
+      "implementation": [
+        "backtest/obsidian_portfolio_guard.py"
+      ],
+      "next_action": "Connect the already authorized SMG-scoped read-only tool; never send credentials or implement order submission.",
+      "stage": "Portfolio review, quantities and reconciliation",
+      "status": "FIXTURE_TESTED_EXTERNAL_BLOCKER"
+    },
+    {
+      "acceptance_criteria": "Existing checkpoint owners/docs retained; no tool for live ChatGPT schedule state/destination, no new genuine timely board delivered in this run.",
+      "dependencies": [
+        "G07"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G10",
+      "implementation": [
+        "backtest/OBSIDIAN_SMG_EXECUTION_WORKFLOW_2026_11_20.md"
+      ],
+      "next_action": "Existing owner must invoke connected collector before its real deadline and provide delivery receipt; late reviews stay late.",
+      "stage": "Timely board ownership and actual delivery",
+      "status": "BLOCKED_UNVERIFIED_DELIVERY"
+    },
+    {
+      "acceptance_criteria": "Original official-close contract, underlying independence, corporate actions and actual SMG permissions remain unfulfilled; old inspected data not a holdout.",
+      "dependencies": [
+        "G04",
+        "G07"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G11",
+      "implementation": [
+        "backtest/obsidian_forward_eod_intake.py"
+      ],
+      "next_action": "Collect authentic original-cohort outcomes; do not run official scorer with synthetic verified fields.",
+      "stage": "Outcomes and untouched evaluation",
+      "status": "BLOCKED_AUTHENTICATION"
+    },
+    {
+      "acceptance_criteria": "Source/code hashes seal completed stages; resume verifies outputs and skips completed experiments. No new recurring jobs or production changes.",
+      "dependencies": [
+        "G01"
+      ],
+      "evidence_checkpoint": "backtest/evidence/2026-11-20/strategy-overhaul/",
+      "id": "G12",
+      "implementation": [
+        "backtest/obsidian_research_runner.py",
+        ".github/workflows/obsidian-strategy-lab.yml"
+      ],
+      "next_action": "Verify hosted replay and resume artifact; retain compact summaries and full raw ledgers as Actions artifacts.",
+      "stage": "Vault persistence and bounded research resume",
+      "status": "IMPLEMENTED_LOCAL_VERIFIED"
+    }
+  ],
+  "scope": "RESEARCH_ONLY_NOT_AN_ORDER",
+  "workflow_complete": false
+}

@@ -20,7 +20,7 @@ UTC = timezone.utc
 ET = ZoneInfo('America/New_York')
 CT = ZoneInfo('America/Chicago')
 MODE = 'RESEARCH_ONLY_NOT_AN_ORDER'
-POLICY = 'OBSIDIAN_FREE_QUANT_FEED_V2'
+POLICY = 'OBSIDIAN_FREE_QUANT_FEED_V3'
 MAX_SYMBOLS = 200
 SIP_LAG = timedelta(minutes=17)
 SAFE = re.compile(r'^[A-Z][A-Z0-9.]{0,12}$')
@@ -86,15 +86,17 @@ def passages(text, terms):
 
 class Reader:
     """GET-only. Fixed total budget, no retries, stop each host after auth/429 errors."""
-    def __init__(self, session=None, maximum=24):
+    def __init__(self, session=None, maximum=24, raw_dir=None):
         if session is None:
             import requests
             session=requests.Session()
         self.session=session;self.maximum=maximum;self.used=0;self.stopped=set();self.receipts=[]
+        self.raw_dir=Path(raw_dir) if raw_dir else None
+        if self.raw_dir:self.raw_dir.mkdir(parents=True,exist_ok=False)
     def get(self,url,params=None,headers=None):
         from urllib.parse import urlsplit
         host=urlsplit(url).hostname
-        receipt=dict(source_url=url,retrieved_at=datetime.now(UTC).isoformat(),http_status=None,sha256=None,error=None)
+        receipt=dict(request_parameters={k:v for k,v in (params or {}).items() if k!='page_token'},page_token_present=bool((params or {}).get('page_token')),source_url=url,retrieved_at=datetime.now(UTC).isoformat(),http_status=None,sha256=None,error=None)
         if self.used>=self.maximum or host in self.stopped:
             receipt['error']='BUDGET_OR_PROVIDER_STOP';self.receipts.append(receipt);return None,receipt
         self.used+=1
@@ -102,6 +104,16 @@ class Reader:
             r=self.session.get(url,params=params,headers=headers,timeout=20)
             raw=r.content
             receipt.update(http_status=r.status_code,sha256=hashlib.sha256(raw).hexdigest(),bytes=len(raw))
+            if self.raw_dir:
+                safe=raw.decode('utf-8',errors='replace')
+                for key in ('ALPACA_API_KEY','ALPACA_SECRET_KEY','SEC_USER_AGENT'):
+                    secret=os.environ.get(key,'')
+                    if secret:safe=safe.replace(secret,'[REDACTED]')
+                safe=re.sub(r'("next_page_token"\s*:\s*)"[^"]*"',r'\1"[REDACTED_CURSOR]"',safe)
+                saved=safe.encode()[:8_000_000];path=self.raw_dir/f'{self.used:02d}-response.txt'
+                with path.open('xb') as f:f.write(saved)
+                receipt.update(archived_response_file=path.name,archived_sha256=hashlib.sha256(saved).hexdigest(),
+                               archived_redacted_bytes_may_differ_from_source=True,archived_truncated=len(safe.encode())>8_000_000)
             if r.status_code in (401,403,429):self.stopped.add(host)
             if r.status_code!=200:receipt['error']='HTTP_'+str(r.status_code);raw=None
             if raw is not None and len(raw)>8_000_000:receipt['error']='BODY_TOO_LARGE';raw=None
@@ -168,9 +180,12 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
                                        'APCA-API-SECRET-KEY':os.environ.get('ALPACA_SECRET_KEY','')}
     snapshots={};snap_error='ALPACA_CREDENTIALS_ABSENT';snap_at=now
     bars={s:[] for s in symbols};sip_error='ALPACA_CREDENTIALS_ABSENT';pages=0
-    cutoff=now-SIP_LAG
-    opening=now.astimezone(ET).replace(hour=9,minute=30,second=0,microsecond=0).astimezone(UTC)
+    from smg.market import session_bounds
+    bounds=session_bounds(now.astimezone(ET).date())
+    cutoff=min(now-SIP_LAG,bounds[1]) if bounds else now-SIP_LAG
+    opening=bounds[0] if bounds else cutoff
     start=max(opening,cutoff-timedelta(minutes=60))
+    session_state=('REGULAR_SESSION' if bounds and bounds[0]<=now<bounds[1] else 'OUTSIDE_REGULAR_SESSION')
     if all(headers.values()):
         raw,receipt=reader.get('https://data.alpaca.markets/v2/stocks/snapshots',{'symbols':','.join(symbols),'feed':'iex'},headers)
         snap_at=asof(receipt['retrieved_at']);value=decoded(raw)
@@ -257,7 +272,7 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
                          research_classification='BLOCKED_PENDING_MECHANISM_AND_ELIGIBILITY',trade_authorized=False,
                          smg_eligibility_verified=False))
     return dict(mode=MODE,policy=POLICY,started_at=now.isoformat(),finished_at=datetime.now(UTC).isoformat(),
-                source_scope='SUPPLIED_WATCHLIST_NOT_FULL_MARKET',requested_symbols=symbols,rows=rows,
+                source_scope='SUPPLIED_WATCHLIST_NOT_FULL_MARKET',market_session_state=session_state,requested_symbols=symbols,rows=rows,
                 coverage=dict(denominator=len(rows),iex_states=dict(Counter(r['iex']['status'] for r in rows)),
                               sip_states=dict(Counter(r['sip']['status'] for r in rows)),
                               sec_states=dict(Counter(r['catalysts']['status'] for r in rows))),
@@ -275,6 +290,7 @@ def main():
     parser.add_argument('--rotation-state',default='backtest/evidence/free-quant-sec-rotation.json',type=Path)
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--sec-limit',type=int,default=8)
+    parser.add_argument('--raw-output',type=Path)
     args=parser.parse_args()
     if args.output.exists():raise FileExistsError(args.output)
     records=json.loads(Path(args.watchlist).read_text())['records']+json.loads(Path(args.supplemental).read_text())['records']
@@ -283,7 +299,7 @@ def main():
     symbols=sorted({r['ticker'] for r in records}|set(extra))
     if not args.rotation_state.exists():raise FileNotFoundError('SEC_ROTATION_STATE_REQUIRED_NO_SILENT_RESET')
     state=validate_rotation(json.loads(args.rotation_state.read_text()))
-    packet=collect(symbols,sec_limit=args.sec_limit,rotation_state=state,priority=extra)
+    packet=collect(symbols,reader=Reader(raw_dir=args.raw_output),sec_limit=args.sec_limit,rotation_state=state,priority=extra)
     packet['source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open('x') as f:json.dump(packet,f,indent=2,sort_keys=True,allow_nan=False)

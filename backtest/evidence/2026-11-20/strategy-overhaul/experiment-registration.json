@@ -1,0 +1,69 @@
+{
+  "archive_id": 11378995592,
+  "archive_run": 37386241124,
+  "archive_sha256": "a53ffdb85d7d373912a3483d6894c4e841ce0c54a42c77987f3f121aa7f20e6e",
+  "baseline": {
+    "buying_power_proxy": 150000,
+    "equity_cap": 0.3,
+    "hold_sessions": 3,
+    "implementation": "backtest.target_rank_research",
+    "initial": 100000,
+    "policy": "top_half_30pct",
+    "position_target": 50000
+  },
+  "costs": {
+    "base": {
+      "annual_borrow": 0.1,
+      "bps_each_way": 30,
+      "fee_per_order": 5
+    },
+    "stress": {
+      "annual_borrow": 1.0,
+      "bps_each_way": 100,
+      "fee_per_order": 5
+    }
+  },
+  "decision_rule": "Report matched inputs, normal/stress profit, drawdown, largest loss, profit concentration and unresolved marks. Do not select or promote a winner on these inspected years.",
+  "experiments": [
+    {
+      "change": {
+        "decision_price_buffer": 1.0,
+        "equity_cap": 0.2
+      },
+      "hypothesis": "A 20% predecision equity cap reduces squeeze losses and concentration relative to 30%, without changing selected signal scores.",
+      "id": "E01"
+    },
+    {
+      "change": {
+        "decision_price_buffer": 1.1,
+        "equity_cap": 0.3
+      },
+      "hypothesis": "A 10% predecision sizing-price buffer reduces conditional fill overruns and exposure without using future prices.",
+      "id": "E02"
+    }
+  ],
+  "known_blockers": [
+    "Archived seasons already inspected",
+    "Historical cap/borrow/halts/SMG permissions unverified",
+    "Upstream split-window gaps",
+    "Archive season ends Dec5, not complete August-December"
+  ],
+  "packet_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb",
+  "periods": [
+    "2023-09-08/2023-12-05",
+    "2024-09-08/2024-12-05",
+    "2025-09-08/2025-12-05"
+  ],
+  "promotion_requirements": {
+    "closed_trades_target": 100,
+    "fresh_independent_periods": 3,
+    "insolvencies": 0,
+    "maximum_drawdown_pct": 20,
+    "maximum_issuer_net_profit_share": 0.25,
+    "profit_factor_min": 1.3,
+    "source_identity_eligibility_and_frozen_prospective_gates": true
+  },
+  "registered_at_utc": "2026-11-21T03:24:31.909851+00:00",
+  "registration_id": "OBSIDIAN_OVERHAUL_DIAGNOSTICS_V1_20261120",
+  "scope": "RETROSPECTIVE_CONDITIONAL_DIAGNOSTICS_NOT_PROMOTION_OR_UNTOUCHED_HOLDOUT"
+}

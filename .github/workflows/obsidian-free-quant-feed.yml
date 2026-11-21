@@ -72,12 +72,21 @@ jobs:
         run: >-
           python -m backtest.obsidian_free_quant_feed
           --output outputs/backtest/free-quant-${{ github.run_id }}.json
+          --raw-output outputs/backtest/free-quant-raw-${{ github.run_id }}
+      - name: Build complete classifier and research board from actual packet
+        if: github.event_name == 'workflow_dispatch'
+        run: >-
+          python -m backtest.obsidian_candidate_pipeline
+          --packet outputs/backtest/free-quant-${{ github.run_id }}.json
+          --out outputs/backtest/free-quant-board-${{ github.run_id }}.json
       - uses: actions/upload-artifact@v4
         if: always() && github.event_name == 'workflow_dispatch'
         with:
           name: obsidian-free-quant-${{ github.run_id }}
           path: |
             outputs/backtest/free-quant-${{ github.run_id }}.json
+            outputs/backtest/free-quant-board-${{ github.run_id }}.json
             backtest/evidence/free-quant-sec-rotation.json
+            outputs/backtest/free-quant-raw-${{ github.run_id }}/
           if-no-files-found: error
           retention-days: 90

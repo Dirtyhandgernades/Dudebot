@@ -1,0 +1,1155 @@
+{
+  "audited_closed_trade_rows": 655,
+  "baseline_reproduction": [
+    {
+      "matched": true,
+      "reported": [
+        18658.11,
+        16487.95,
+        3,
+        3.059
+      ],
+      "reproduced": [
+        18658.11,
+        16487.95,
+        3,
+        3.059
+      ],
+      "year": 2023
+    },
+    {
+      "matched": true,
+      "reported": [
+        39124.52,
+        25305.11,
+        16,
+        25.691
+      ],
+      "reproduced": [
+        39124.52,
+        25305.11,
+        16,
+        25.691
+      ],
+      "year": 2024
+    },
+    {
+      "matched": true,
+      "reported": [
+        103258.54,
+        64020.56,
+        36,
+        19.966
+      ],
+      "reproduced": [
+        103258.54,
+        64020.56,
+        36,
+        19.966
+      ],
+      "year": 2025
+    }
+  ],
+  "cache_opportunity_counts": {
+    "HORIZON_OUTSIDE_REPLAY_WINDOW": 3735,
+    "MISSING_ADJUSTED_OUTCOME_OR_REFERENCE": 26195,
+    "OBSERVED_NON_TARGET": 45658,
+    "RETROSPECTIVE_20PCT_CACHE_EVENT": 2847,
+    "cached_symbol_dates": 78435
+  },
+  "cash_control": [
+    {
+      "interest_assumption": true,
+      "net_profit": 180.98,
+      "year": 2023
+    },
+    {
+      "interest_assumption": true,
+      "net_profit": 178.92,
+      "year": 2024
+    },
+    {
+      "interest_assumption": true,
+      "net_profit": 180.98,
+      "year": 2025
+    }
+  ],
+  "experiments": [
+    {
+      "cost_case": "base",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -3754.1598243835588,
+        "average_win": 11115.031221027399,
+        "closed_trades": 3,
+        "ending_balance": 118658.11,
+        "expectancy_per_trade": 6158.634205890412,
+        "largest_individual_loss": -3754.1598243835588,
+        "largest_issuer_fraction_of_net_profit": 0.9871135968175666,
+        "max_observed_drawdown_pct": 3.059,
+        "mean_daily_marked_gross_to_equity": 0.03018085853842694,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 22.267230947453132
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -3.057457521467344
+          }
+        },
+        "net_profit": 18658.11,
+        "profit_factor": 5.921448068797929,
+        "realized_trade_return_on_summed_entry_notional": 0.1796661379635426,
+        "remove_top_winners_fixed_ledger": {
+          "1": 240.43592808219182,
+          "3": -3571.952442054797,
+          "5": -3571.952442054797
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -4327.089034246573,
+        "average_win": 10316.634445890411,
+        "closed_trades": 3,
+        "ending_balance": 116487.95,
+        "expectancy_per_trade": 5435.393285844751,
+        "largest_individual_loss": -4327.089034246573,
+        "largest_issuer_fraction_of_net_profit": 1.076970497798579,
+        "max_observed_drawdown_pct": 4.069,
+        "mean_daily_marked_gross_to_equity": 0.030244365977877715,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 20.671898711935622
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -3.572276210114944
+          }
+        },
+        "net_profit": 16487.95,
+        "profit_factor": 4.7683948096467725,
+        "realized_trade_return_on_summed_entry_notional": 0.15961830499616866,
+        "remove_top_winners_fixed_ledger": {
+          "1": -1269.0857191780815,
+          "3": -4145.318891780822,
+          "5": -4145.318891780822
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2352.2883604109575,
+        "average_win": 7340.916614041095,
+        "closed_trades": 3,
+        "ending_balance": 112511.49,
+        "expectancy_per_trade": 4109.848289223744,
+        "largest_individual_loss": -2352.2883604109575,
+        "largest_issuer_fraction_of_net_profit": 0.9811589394699625,
+        "max_observed_drawdown_pct": 2.04,
+        "mean_daily_marked_gross_to_equity": 0.020269902475612233,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 14.727440650801915
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -2.0382345011435543
+          }
+        },
+        "net_profit": 12511.49,
+        "profit_factor": 6.241510809294314,
+        "realized_trade_return_on_summed_entry_notional": 0.1873764245263249,
+        "remove_top_winners_fixed_ledger": {
+          "1": 235.7297404109595,
+          "3": -2170.3432280821908,
+          "5": -2170.3432280821908
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2721.5117589041083,
+        "average_win": 6826.431204794521,
+        "closed_trades": 3,
+        "ending_balance": 111113.0,
+        "expectancy_per_trade": 3643.783550228312,
+        "largest_individual_loss": -2721.5117589041083,
+        "largest_issuer_fraction_of_net_profit": 1.0649969941411332,
+        "max_observed_drawdown_pct": 2.72,
+        "mean_daily_marked_gross_to_equity": 0.020299134882999625,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 13.699402117555648
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -2.3811386456955907
+          }
+        },
+        "net_profit": 11113.0,
+        "profit_factor": 5.0166464888201485,
+        "realized_trade_return_on_summed_entry_notional": 0.16687403484053417,
+        "remove_top_winners_fixed_ledger": {
+          "1": -722.3115958904127,
+          "3": -2539.8624095890427,
+          "5": -2539.8624095890427
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -3356.4835304109565,
+        "average_win": 10078.95506082192,
+        "closed_trades": 3,
+        "ending_balance": 116983.58,
+        "expectancy_per_trade": 5600.475530410961,
+        "largest_individual_loss": -3356.4835304109565,
+        "largest_issuer_fraction_of_net_profit": 0.9857803588113562,
+        "max_observed_drawdown_pct": 2.782,
+        "mean_daily_marked_gross_to_equity": 0.027492344191162286,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 20.19740716137932
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -2.7797250714631128
+          }
+        },
+        "net_profit": 16983.58,
+        "profit_factor": 6.005663349456618,
+        "realized_trade_return_on_summed_entry_notional": 0.18171511297105247,
+        "remove_top_winners_fixed_ledger": {
+          "1": 241.5004136986281,
+          "3": -3174.3301216438376,
+          "5": -3174.3301216438376
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -3872.7355013698607,
+        "average_win": 9359.579193150686,
+        "closed_trades": 3,
+        "ending_balance": 115028.18,
+        "expectancy_per_trade": 4948.807628310504,
+        "largest_individual_loss": -3872.7355013698607,
+        "largest_issuer_fraction_of_net_profit": 1.074082947037745,
+        "max_observed_drawdown_pct": 3.702,
+        "mean_daily_marked_gross_to_equity": 0.027543696033043973,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 0.043159172525153444
+          },
+          "2023-10": {
+            "missing_marks": 0,
+            "observed_sessions": 22,
+            "partial_month": false,
+            "return_pct": 0.06577373726779356
+          },
+          "2023-11": {
+            "missing_marks": 0,
+            "observed_sessions": 21,
+            "partial_month": false,
+            "return_pct": 18.759969121275265
+          },
+          "2023-12": {
+            "missing_marks": 0,
+            "observed_sessions": 3,
+            "partial_month": true,
+            "return_pct": -3.2477204401030413
+          }
+        },
+        "net_profit": 15028.18,
+        "profit_factor": 4.833575228589726,
+        "realized_trade_return_on_summed_entry_notional": 0.16154970662067805,
+        "remove_top_winners_fixed_ledger": {
+          "1": -1113.3318630137,
+          "3": -3690.9783863013727,
+          "5": -3690.9783863013727
+        },
+        "unique_issuers": 3,
+        "unresolved_positions": 0,
+        "win_rate": 0.6666666666666666
+      },
+      "year": 2023
+    },
+    {
+      "cost_case": "base",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -11003.665518869859,
+        "average_win": 6911.427479731735,
+        "closed_trades": 16,
+        "ending_balance": 139124.52,
+        "expectancy_per_trade": 2432.654230081336,
+        "largest_individual_loss": -30147.453054794514,
+        "largest_issuer_fraction_of_net_profit": 0.6958394174110679,
+        "max_observed_drawdown_pct": 25.691,
+        "mean_daily_marked_gross_to_equity": 0.21085640719303922,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 34.715251344315654
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 14.285560807586762
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -15.78675746602537
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 7.303815870779529
+          }
+        },
+        "net_profit": 39124.52,
+        "profit_factor": 1.8843068615306964,
+        "realized_trade_return_on_summed_entry_notional": 0.058590308967892864,
+        "remove_top_winners_fixed_ledger": {
+          "1": 11900.136796712326,
+          "3": -13319.995671232886,
+          "5": -29324.345597945205
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.75
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -6829.947742074363,
+        "average_win": 8102.586266666665,
+        "closed_trades": 16,
+        "ending_balance": 125305.11,
+        "expectancy_per_trade": 1569.6026378424658,
+        "largest_individual_loss": -29234.226575342465,
+        "largest_issuer_fraction_of_net_profit": 1.0577828413377528,
+        "max_observed_drawdown_pct": 29.486,
+        "mean_daily_marked_gross_to_equity": 0.2120302824419485,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 32.72846118028794
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 8.926925067361147
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -18.78335810959633
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 6.714746022137774
+          }
+        },
+        "net_profit": 25305.11,
+        "profit_factor": 1.5252841321333037,
+        "realized_trade_return_on_summed_entry_notional": 0.03944824109448367,
+        "remove_top_winners_fixed_ledger": {
+          "1": -1462.2011561643812,
+          "3": -24647.693106849314,
+          "5": -38357.46888904109
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.5625
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -6322.6926167123265,
+        "average_win": 4356.305795976027,
+        "closed_trades": 16,
+        "ending_balance": 127182.17,
+        "expectancy_per_trade": 1686.5561928039388,
+        "largest_individual_loss": -17306.012849315066,
+        "largest_issuer_fraction_of_net_profit": 0.6673556602809555,
+        "max_observed_drawdown_pct": 17.347,
+        "mean_daily_marked_gross_to_equity": 0.14112008943825205,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 22.980355751560964
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 9.776380976358778
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -10.076312527376274
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 4.762885911658832
+          }
+        },
+        "net_profit": 27182.17,
+        "profit_factor": 2.066986042209918,
+        "realized_trade_return_on_summed_entry_notional": 0.06720406900022852,
+        "remove_top_winners_fixed_ledger": {
+          "1": 9041.994991780819,
+          "3": -6178.2439549315095,
+          "5": -16299.478274794521
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.75
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -4008.7673516634045,
+        "average_win": 5164.45939261796,
+        "closed_trades": 16,
+        "ending_balance": 118609.04,
+        "expectancy_per_trade": 1151.1726919948628,
+        "largest_individual_loss": -17152.702739726024,
+        "largest_issuer_fraction_of_net_profit": 0.9600451534852787,
+        "max_observed_drawdown_pct": 20.087,
+        "mean_daily_marked_gross_to_equity": 0.141634724788568,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 21.710172686848317
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 6.270905296923446
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -12.14244317120421
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 4.3752231158615595
+          }
+        },
+        "net_profit": 18609.04,
+        "profit_factor": 1.6563743007747789,
+        "realized_trade_return_on_summed_entry_notional": 0.04720954360137789,
+        "remove_top_winners_fixed_ledger": {
+          "1": 743.5213369863086,
+          "3": -13322.717578082185,
+          "5": -22143.4688328767
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.5625
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -9619.856118458902,
+        "average_win": 6190.2210339611875,
+        "closed_trades": 16,
+        "ending_balance": 136004.28,
+        "expectancy_per_trade": 2237.7017458561645,
+        "largest_individual_loss": -26336.853917808217,
+        "largest_issuer_fraction_of_net_profit": 0.6872392743992035,
+        "max_observed_drawdown_pct": 23.448,
+        "mean_daily_marked_gross_to_equity": 0.19190330434914712,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 31.495067790174925
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 13.06731456160868
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -14.187614174373131
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 6.599714875173901
+          }
+        },
+        "net_profit": 36004.28,
+        "profit_factor": 1.9304512326592445,
+        "realized_trade_return_on_summed_entry_notional": 0.06083796250707263,
+        "remove_top_winners_fixed_ledger": {
+          "1": 11260.724737534245,
+          "3": -11069.644440821925,
+          "5": -25424.30192876712
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.75
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -6002.117404109587,
+        "average_win": 7278.63793021309,
+        "closed_trades": 16,
+        "ending_balance": 123684.38,
+        "expectancy_per_trade": 1468.3074714469185,
+        "largest_individual_loss": -25692.45465753424,
+        "largest_issuer_fraction_of_net_profit": 1.0276625171156384,
+        "max_observed_drawdown_pct": 26.964,
+        "mean_daily_marked_gross_to_equity": 0.1928258216865071,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "missing_marks": 0,
+            "observed_sessions": 16,
+            "partial_month": true,
+            "return_pct": 29.71075356098254
+          },
+          "2024-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 8.234022173083154
+          },
+          "2024-11": {
+            "missing_marks": 0,
+            "observed_sessions": 20,
+            "partial_month": false,
+            "return_pct": -16.93857485340542
+          },
+          "2024-12": {
+            "missing_marks": 0,
+            "observed_sessions": 4,
+            "partial_month": true,
+            "return_pct": 6.065878402373004
+          }
+        },
+        "net_profit": 23684.38,
+        "profit_factor": 1.5591579000119749,
+        "realized_trade_return_on_summed_entry_notional": 0.04150776944366756,
+        "remove_top_winners_fixed_ledger": {
+          "1": -655.1695671232847,
+          "3": -21210.177308219183,
+          "5": -33565.272030136985
+        },
+        "unique_issuers": 13,
+        "unresolved_positions": 0,
+        "win_rate": 0.5625
+      },
+      "year": 2024
+    },
+    {
+      "cost_case": "base",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2925.7238991531754,
+        "average_win": 5411.816583254795,
+        "closed_trades": 36,
+        "ending_balance": 203258.54,
+        "expectancy_per_trade": 2864.234769185693,
+        "largest_individual_loss": -7645.607835616435,
+        "largest_issuer_fraction_of_net_profit": 0.32894630166129807,
+        "max_observed_drawdown_pct": 19.966,
+        "mean_daily_marked_gross_to_equity": 0.4072415301294059,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -6.577390158110797
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 54.73731523340191
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 34.926852504514905
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 4.208549046961418
+          }
+        },
+        "net_profit": 103258.54,
+        "profit_factor": 4.203945268834459,
+        "realized_trade_return_on_summed_entry_notional": 0.0858908815829097,
+        "remove_top_winners_fixed_ledger": {
+          "1": 69292.02515205479,
+          "3": 35725.2526349315,
+          "5": 19562.910453150675
+        },
+        "unique_issuers": 27,
+        "unresolved_positions": 0,
+        "win_rate": 0.6944444444444444
+      },
+      "year": 2025
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "BASE",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2586.033932020548,
+        "average_win": 5013.33491409002,
+        "closed_trades": 37,
+        "ending_balance": 164020.56,
+        "expectancy_per_trade": 1727.12135901518,
+        "largest_individual_loss": -8031.36424657534,
+        "largest_issuer_fraction_of_net_profit": 0.43754797591907163,
+        "max_observed_drawdown_pct": 25.171,
+        "mean_daily_marked_gross_to_equity": 0.42104819123748183,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -16.165205230356893
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 45.54532955378716
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 31.480867923725842
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 2.2381881784246715
+          }
+        },
+        "net_profit": 64020.56,
+        "profit_factor": 2.5444376399199036,
+        "realized_trade_return_on_summed_entry_notional": 0.05716074429489481,
+        "remove_top_winners_fixed_ledger": {
+          "1": 36008.49355479452,
+          "3": 6746.983687671222,
+          "5": -6215.396627397262
+        },
+        "unique_issuers": 27,
+        "unresolved_positions": 0,
+        "win_rate": 0.5675675675675675
+      },
+      "year": 2025
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2235.965023664383,
+        "average_win": 3517.5620363830353,
+        "closed_trades": 38,
+        "ending_balance": 164787.13,
+        "expectancy_per_trade": 1700.6587542627979,
+        "largest_individual_loss": -5418.295410958903,
+        "largest_issuer_fraction_of_net_profit": 0.3200788837967436,
+        "max_observed_drawdown_pct": 11.939,
+        "mean_daily_marked_gross_to_equity": 0.3155793560227652,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -2.0422785102905183
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 35.16833087938125
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 21.425241971780927
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 2.4945315067513407
+          }
+        },
+        "net_profit": 64787.13,
+        "profit_factor": 3.408543663027892,
+        "realized_trade_return_on_summed_entry_notional": 0.07321926715236385,
+        "remove_top_winners_fixed_ledger": {
+          "1": 44050.13774520547,
+          "3": 21375.77152958903,
+          "5": 10803.200807397254
+        },
+        "unique_issuers": 28,
+        "unresolved_positions": 0,
+        "win_rate": 0.6842105263157895
+      },
+      "year": 2025
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E01",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2047.0365088184928,
+        "average_win": 3256.3160623287677,
+        "closed_trades": 38,
+        "ending_balance": 139028.27,
+        "expectancy_per_trade": 1023.3255060562369,
+        "largest_individual_loss": -5724.69816438356,
+        "largest_issuer_fraction_of_net_profit": 0.45623120253074306,
+        "max_observed_drawdown_pct": 16.65,
+        "mean_daily_marked_gross_to_equity": 0.3182441324756979,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -10.213273585075688
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 29.606881992800993
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 18.793760197586607
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 0.5701948546247282
+          }
+        },
+        "net_profit": 39028.27,
+        "profit_factor": 2.187276370701536,
+        "realized_trade_return_on_summed_entry_notional": 0.04795122811076015,
+        "remove_top_winners_fixed_ledger": {
+          "1": 21222.355445205474,
+          "3": 1501.1001547945125,
+          "5": -6974.247135616446
+        },
+        "unique_issuers": 28,
+        "unresolved_positions": 0,
+        "win_rate": 0.5789473684210527
+      },
+      "year": 2025
+    },
+    {
+      "cost_case": "base",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2518.8765916324196,
+        "average_win": 4905.069304005479,
+        "closed_trades": 37,
+        "ending_balance": 192548.47,
+        "expectancy_per_trade": 2497.303067582377,
+        "largest_individual_loss": -6993.178547945203,
+        "largest_issuer_fraction_of_net_profit": 0.32502189215679567,
+        "max_observed_drawdown_pct": 18.104,
+        "mean_daily_marked_gross_to_equity": 0.3835589874685754,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -5.660842701471125
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 49.273185280473356
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 31.60146982007237
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 3.8976032149831363
+          }
+        },
+        "net_profit": 92548.47,
+        "profit_factor": 4.056925383836349,
+        "realized_trade_return_on_summed_entry_notional": 0.0830104499319028,
+        "remove_top_winners_fixed_ledger": {
+          "1": 62468.19116438356,
+          "3": 31760.367247123286,
+          "5": 16997.031664109585
+        },
+        "unique_issuers": 27,
+        "unresolved_positions": 0,
+        "win_rate": 0.6756756756756757
+      },
+      "year": 2025
+    },
+    {
+      "cost_case": "stress",
+      "experiment": "E02",
+      "metrics": {
+        "account_insolvent": false,
+        "average_loss": -2464.40581369863,
+        "average_win": 4523.249459230267,
+        "closed_trades": 37,
+        "ending_balance": 155679.1,
+        "expectancy_per_trade": 1501.560692558312,
+        "largest_individual_loss": -7355.792712328765,
+        "largest_issuer_fraction_of_net_profit": 0.45038086251738585,
+        "max_observed_drawdown_pct": 23.124,
+        "mean_daily_marked_gross_to_equity": 0.39516512421020006,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "missing_marks": 0,
+            "observed_sessions": 17,
+            "partial_month": true,
+            "return_pct": -14.843079972448814
+          },
+          "2025-10": {
+            "missing_marks": 0,
+            "observed_sessions": 23,
+            "partial_month": false,
+            "return_pct": 41.11590590332719
+          },
+          "2025-11": {
+            "missing_marks": 0,
+            "observed_sessions": 19,
+            "partial_month": false,
+            "return_pct": 27.53123891124012
+          },
+          "2025-12": {
+            "missing_marks": 0,
+            "observed_sessions": 5,
+            "partial_month": true,
+            "return_pct": 1.5822495517912483
+          }
+        },
+        "net_profit": 55679.1,
+        "profit_factor": 2.4090045893576715,
+        "realized_trade_return_on_summed_entry_notional": 0.05370195845404767,
+        "remove_top_winners_fixed_ledger": {
+          "1": 30602.29891780822,
+          "3": 4055.889234246577,
+          "5": -7626.79435890411
+        },
+        "unique_issuers": 27,
+        "unresolved_positions": 0,
+        "win_rate": 0.5675675675675675
+      },
+      "year": 2025
+    }
+  ],
+  "independent_trades_not_655": true,
+  "live_trading_changed": false,
+  "original_variants": 54,
+  "promotion_review": [
+    {
+      "eligible": false,
+      "experiment": "BASE",
+      "gates": {
+        "100_independent_closed_trades": "FAIL",
+        "drawdown_at_most_20_percent": "FAIL",
+        "historical_execution_identity_and_prospective_contract": "UNKNOWN_BLOCKED",
+        "issuer_share_at_most_25_percent": "FAIL_OR_UNDEFINED",
+        "no_insolvencies": "PASS",
+        "positive_all_normal_and_stress": "PASS",
+        "profit_factor_at_least_1_3": "PASS",
+        "three_fresh_independent_periods": "FAIL_ALREADY_INSPECTED"
+      },
+      "independent_observation_count": null,
+      "nominal_normal_closed_trades": 55
+    },
+    {
+      "eligible": false,
+      "experiment": "E01",
+      "gates": {
+        "100_independent_closed_trades": "FAIL",
+        "drawdown_at_most_20_percent": "FAIL",
+        "historical_execution_identity_and_prospective_contract": "UNKNOWN_BLOCKED",
+        "issuer_share_at_most_25_percent": "FAIL_OR_UNDEFINED",
+        "no_insolvencies": "PASS",
+        "positive_all_normal_and_stress": "PASS",
+        "profit_factor_at_least_1_3": "PASS",
+        "three_fresh_independent_periods": "FAIL_ALREADY_INSPECTED"
+      },
+      "independent_observation_count": null,
+      "nominal_normal_closed_trades": 57
+    },
+    {
+      "eligible": false,
+      "experiment": "E02",
+      "gates": {
+        "100_independent_closed_trades": "FAIL",
+        "drawdown_at_most_20_percent": "FAIL",
+        "historical_execution_identity_and_prospective_contract": "UNKNOWN_BLOCKED",
+        "issuer_share_at_most_25_percent": "FAIL_OR_UNDEFINED",
+        "no_insolvencies": "PASS",
+        "positive_all_normal_and_stress": "PASS",
+        "profit_factor_at_least_1_3": "PASS",
+        "three_fresh_independent_periods": "FAIL_ALREADY_INSPECTED"
+      },
+      "independent_observation_count": null,
+      "nominal_normal_closed_trades": 56
+    }
+  ],
+  "source_dataset_issuer_series": 415,
+  "status": "LOCAL_ACTUAL_COMPUTATION_HOSTED_VERIFICATION_PENDING",
+  "unranked_control": [
+    {
+      "cost_case": "base",
+      "ranked_minus_control": 2713.6400000000012,
+      "ranked_net_profit": 18658.11,
+      "unranked_net_profit": 15944.47,
+      "year": 2023
+    },
+    {
+      "cost_case": "stress",
+      "ranked_minus_control": 5446.470000000001,
+      "ranked_net_profit": 16487.95,
+      "unranked_net_profit": 11041.48,
+      "year": 2023
+    },
+    {
+      "cost_case": "base",
+      "ranked_minus_control": 54121.549999999996,
+      "ranked_net_profit": 39124.52,
+      "unranked_net_profit": -14997.03,
+      "year": 2024
+    },
+    {
+      "cost_case": "stress",
+      "ranked_minus_control": 59985.14,
+      "ranked_net_profit": 25305.11,
+      "unranked_net_profit": -34680.03,
+      "year": 2024
+    },
+    {
+      "cost_case": "base",
+      "ranked_minus_control": 9033.869999999995,
+      "ranked_net_profit": 103258.54,
+      "unranked_net_profit": 94224.67,
+      "year": 2025
+    },
+    {
+      "cost_case": "stress",
+      "ranked_minus_control": 17910.46,
+      "ranked_net_profit": 64020.56,
+      "unranked_net_profit": 46110.1,
+      "year": 2025
+    }
+  ],
+  "warnings": [
+    "2023: upstream coverage gaps reported",
+    "2024: upstream coverage gaps reported",
+    "2025: upstream coverage gaps reported"
+  ]
+}

@@ -127,3 +127,25 @@ class RotationTests(unittest.TestCase):
     def test_malformed_rotation_is_rejected(self):
         for state in ({}, {'version':1,'symbols':{'AAPL':{'last_attempted_at':'bad'}}}):
             with self.assertRaises(ValueError):m.sec_batch(['AAPL'],8,state)
+
+class SessionArchiveTests(unittest.TestCase):
+    def test_afterhours_sip_is_bounded_at_regular_close(self):
+        f=FakeReader()
+        with patch.dict('os.environ',{'ALPACA_API_KEY':'fixture','ALPACA_SECRET_KEY':'fixture'},clear=True):
+            r=m.collect(['AAPL'],reader=f,clock=NOW.replace(hour=22))
+        params=next(p for url,p in f.calls if '/bars' in url)
+        self.assertEqual(datetime.fromisoformat(params['end']),NOW.replace(hour=20,minute=0)-timedelta(minutes=1))
+        self.assertEqual(r['market_session_state'],'OUTSIDE_REGULAR_SESSION')
+    def test_archived_body_redacts_keys_and_pagination_cursor(self):
+        import tempfile
+        from pathlib import Path
+        class Response:status_code=200;content=b'{"echo":"private-key", "next_page_token":"opaque-cursor"}'
+        class Session:
+            def get(self,*a,**kw):return Response()
+        with tempfile.TemporaryDirectory() as folder,patch.dict('os.environ',{'ALPACA_API_KEY':'private-key'}):
+            reader=m.Reader(Session(),raw_dir=Path(folder)/'raw')
+            raw,receipt=reader.get('https://data.alpaca.markets/test',params={'feed':'sip','page_token':'opaque-cursor'})
+            saved=next((Path(folder)/'raw').glob('*')).read_text()
+            self.assertNotIn('private-key',saved);self.assertNotIn('opaque-cursor',saved)
+            self.assertNotIn('page_token',receipt['request_parameters'])
+            self.assertNotEqual(receipt['sha256'],receipt['archived_sha256'])

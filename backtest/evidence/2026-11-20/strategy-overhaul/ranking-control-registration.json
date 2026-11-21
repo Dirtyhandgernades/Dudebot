@@ -1,0 +1,10 @@
+{
+  "already_inspected_periods": true,
+  "comparison": "Same all-scoreable event timestamps, universe, 30% equity cap, 50k target, 3-session holding, normal/stress costs; no rank threshold in control",
+  "hypothesis": "The seven-feature rank gate must outperform the same scoreable hybrid-event pool without a rank threshold, under identical portfolio assumptions. Otherwise directional ranking value is unestablished.",
+  "id": "E03_UNRANKED_CONTROL",
+  "promotion_eligible": false,
+  "registered_at_utc": "2026-11-21T03:28:48.350184+00:00",
+  "selection_uses_outcomes": false,
+  "source_packet_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb"
+}
