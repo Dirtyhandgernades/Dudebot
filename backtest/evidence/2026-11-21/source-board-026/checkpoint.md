@@ -1,0 +1,9 @@
+# Source to board trace, actual receipt
+
+Downloaded artifact 14691123325 from run 44864611244. ZIP SHA256 independently matched eb91a26b2bd3baa63d7f12e92e34b92d2a98f51ac1019f696f8a38455d64daa5. Packet SHA256 75aa868f9496ac808a4e904e4f63fbb592154dc36450e3ec5745fe5e29c803f5; source finish 2026-11-21T04:08:59.139904Z. Original classifier-board SHA256 a760c97e5f6158141f196a737732e273a298192faa1ddfb7e501b6b31ad33aab (distinct from continuation replay board). Actual receipt/rebuild 2026-11-21T20:14:26.840394Z. python trace.py feed.zip with repository PYTHONPATH.
+
+Rebuilt using original board clock and actual receipt clock. Both retained all 139 unique symbols and blocked all 139, with off-checkpoint classification, zero recommendations, false delivery flag and null performance. EMAT row had a diagnostic trained rank, BLOCKED assessment and false executable flag. No authenticated current account joined, no position review or scored outcome claimed. This establishes local research receipt and classifier execution, not a Monday decision-process receipt.
+
+Calendar repair hosted job 136970771450 under run 44945167786 completed all installation and offline gates successfully; collection, board build and upload were skipped on this push event. The new holiday regression test was not included in that workflow's explicit test module list at this run. Local 18-test verification covers it. No live weekend run dispatched. Latest live collection remains the Saturday rejection; provider health not demonstrated by that rejection.
+
+Next operational repair: include the calendar regression module in hosted checks, then verify its actual completion. Resume full portfolio comparisons and source-clock research independently while Monday live collection remains future. Unattended collection, board decision receipt, account joining, interruption recovery, and order confirmation gates remain open.
