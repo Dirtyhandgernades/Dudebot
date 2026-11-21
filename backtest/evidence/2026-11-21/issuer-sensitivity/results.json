@@ -1,0 +1,77 @@
+{
+  "2023": {
+    "evaluable": 6,
+    "censored": 1,
+    "issuers": 4,
+    "full": {
+      "hits": 1,
+      "alerts": 2,
+      "events": 2,
+      "event_issuers": 1,
+      "precision": 0.5,
+      "recall": 0.5
+    },
+    "omission_ranges": {
+      "precision": {
+        "low": 0.0,
+        "high": 1.0,
+        "undefined": 0
+      },
+      "recall": {
+        "low": 0.5,
+        "high": 0.5,
+        "undefined": 1
+      }
+    }
+  },
+  "2024": {
+    "evaluable": 46,
+    "censored": 2,
+    "issuers": 22,
+    "full": {
+      "hits": 7,
+      "alerts": 28,
+      "events": 7,
+      "event_issuers": 5,
+      "precision": 0.25,
+      "recall": 1.0
+    },
+    "omission_ranges": {
+      "precision": {
+        "low": 0.19230769230769232,
+        "high": 0.3181818181818182,
+        "undefined": 0
+      },
+      "recall": {
+        "low": 1.0,
+        "high": 1.0,
+        "undefined": 0
+      }
+    }
+  },
+  "2025": {
+    "evaluable": 87,
+    "censored": 3,
+    "issuers": 36,
+    "full": {
+      "hits": 9,
+      "alerts": 51,
+      "events": 12,
+      "event_issuers": 10,
+      "precision": 0.17647058823529413,
+      "recall": 0.75
+    },
+    "omission_ranges": {
+      "precision": {
+        "low": 0.125,
+        "high": 0.1956521739130435,
+        "undefined": 0
+      },
+      "recall": {
+        "low": 0.6666666666666666,
+        "high": 0.8181818181818182,
+        "undefined": 0
+      }
+    }
+  }
+}
