@@ -1,3 +1,9 @@
+# Start the OBSIDIAN desk in Codex
+
+Use this research branch to resume the desk in a new Codex session. Start with the [session checklist](backtest/evidence/2026-11-21/monday-position-review/desk-checklist.md) for holdings, candidates, board delivery and reconciliation. Use the [research guide](backtest/OBSIDIAN_RESEARCH_OPERATING_GUIDE.md) for data collection, replay and checkpoint commands. Review the newest dated evidence before using an older packet. Keep private account snapshots out of Git.
+
+During an active session, conduct research and prepare the decision board here. Mark holdings and buying power unknown until the SMG-only connection returns fresh account evidence. The cloud CLI reported TinyFish enabled with authentication status `not_logged_in` on November 21. This project has no callable external task-management or chat-history import tool. Transfer scheduled ownership only after a hosted replacement completes a timed read-only run, the desk receives its board, and the existing schedule can be retired without duplication.
+
 TinyFish connection check, November 21: the cloud CLI registered the hosted MCP endpoint and detected OAuth. The running agent had zero callable TinyFish tools. OAuth completion and SMG profile access were unverified. Authentication, account summary, holdings, buying power, pending orders, reconciliation and non-submitting preview await an authenticated SMG-scoped tool. The existing Monday account-read and delivery gates remain open. Scheduled runner access and unattended competition authorization also remain unverified.
 
 Monday November 23 desk intake: [position and candidate review checklist](backtest/evidence/2026-11-21/monday-position-review/desk-checklist.md). Two historical cover diagnostics failed to support automatic changes. Use the existing confirmation and reconciliation workflow.
