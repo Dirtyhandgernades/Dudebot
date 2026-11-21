@@ -1,0 +1,103 @@
+{
+  "source_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb",
+  "paired_fixed_positions": [
+    {
+      "year": 2023,
+      "cost": "base",
+      "original_profit": 18658.11,
+      "ledger_sha256": "fa986dfd5cbdcb1785a7b846a3eb5d6421a4f25f9e19f0db1609a26417380f2f",
+      "decisions": {
+        "CONTINUATION_REVIEW": 1,
+        "MIXED_EVIDENCE": 1,
+        "PRESERVE_EXISTING_EXIT": 1
+      },
+      "evaluated": 1,
+      "unknown": 0,
+      "improved": 0,
+      "incremental_net_on_known": -199.5,
+      "worst_increment": -199.5
+    },
+    {
+      "year": 2023,
+      "cost": "stress",
+      "original_profit": 16487.95,
+      "ledger_sha256": "95dd8f3bec718e68e19c27afd05dfc51144a12df1335f5c1ae1d5e1fc387b7cb",
+      "decisions": {
+        "CONTINUATION_REVIEW": 1,
+        "MIXED_EVIDENCE": 1,
+        "PRESERVE_EXISTING_EXIT": 1
+      },
+      "evaluated": 1,
+      "unknown": 0,
+      "improved": 0,
+      "incremental_net_on_known": -274.9,
+      "worst_increment": -274.9
+    },
+    {
+      "year": 2024,
+      "cost": "base",
+      "original_profit": 39124.52,
+      "ledger_sha256": "29ad9fa230c5328c2354ab47db4dbdef9a84f012f4ec6c711fcbe60da89a79f0",
+      "decisions": {
+        "MIXED_EVIDENCE": 9,
+        "PRESERVE_EXISTING_EXIT": 4,
+        "CONTINUATION_REVIEW": 3
+      },
+      "evaluated": 3,
+      "unknown": 0,
+      "improved": 3,
+      "incremental_net_on_known": 10400.99,
+      "worst_increment": 1625.79
+    },
+    {
+      "year": 2024,
+      "cost": "stress",
+      "original_profit": 25305.11,
+      "ledger_sha256": "a6fb94d0df156f6003291afba1ca3b1bc14eb8410c16e55be5e4fcc3da113297",
+      "decisions": {
+        "MIXED_EVIDENCE": 9,
+        "PRESERVE_EXISTING_EXIT": 4,
+        "CONTINUATION_REVIEW": 3
+      },
+      "evaluated": 3,
+      "unknown": 0,
+      "improved": 3,
+      "incremental_net_on_known": 9793.41,
+      "worst_increment": 1294.29
+    },
+    {
+      "year": 2025,
+      "cost": "base",
+      "original_profit": 103258.54,
+      "ledger_sha256": "b4ceec32d8d90cb0e912398a9393b546abe3744f179c6345c557e3ec5ef31c84",
+      "decisions": {
+        "PRESERVE_EXISTING_EXIT": 6,
+        "MIXED_EVIDENCE": 24,
+        "CONTINUATION_REVIEW": 5,
+        "REVERSAL_REVIEW": 1
+      },
+      "evaluated": 5,
+      "unknown": 0,
+      "improved": 3,
+      "incremental_net_on_known": -3270.9,
+      "worst_increment": -5349.12
+    },
+    {
+      "year": 2025,
+      "cost": "stress",
+      "original_profit": 64020.56,
+      "ledger_sha256": "4ce307fbb2fc3f67a2830d519fd4e914c9e8cf8df748fd28f4600b779a2c1d79",
+      "decisions": {
+        "PRESERVE_EXISTING_EXIT": 6,
+        "MIXED_EVIDENCE": 25,
+        "CONTINUATION_REVIEW": 5,
+        "REVERSAL_REVIEW": 1
+      },
+      "evaluated": 5,
+      "unknown": 0,
+      "improved": 3,
+      "incremental_net_on_known": -3251.59,
+      "worst_increment": -4691.05
+    }
+  ]
+}

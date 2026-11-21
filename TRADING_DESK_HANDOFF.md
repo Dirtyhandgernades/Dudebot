@@ -1,3 +1,5 @@
+Monday November 23 desk intake: [position and candidate review checklist](backtest/evidence/2026-11-21/monday-position-review/desk-checklist.md). Two historical cover diagnostics failed to support automatic changes. Use the existing confirmation and reconciliation workflow.
+
 # Portfolio desk research intake | November 21, 2026
 Read the research branch at each portfolio review. The latest reviewed desk record is [continuation 019](backtest/evidence/2026-11-21/continuation-019/desk-packet.json). It includes the source time, packet hash, complete roster, per-name blockers and delivery status. Subsequent manual free-feed artifacts carry the continuation decision in each board row. Check the publication time and source run before using a board. Record the source commit, packet hash and receipt time when the desk actually consumes it. A research alert calls for thesis review. Portfolio decisions continue through the desk's existing account, halt, eligibility and authorization checks.
 
