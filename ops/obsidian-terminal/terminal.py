@@ -20,12 +20,16 @@ def main():
     args = parser.parse_args()
     os.umask(0o077)
     args.state.mkdir(parents=True, exist_ok=True)
-    day = datetime.now(ZoneInfo('America/Chicago')).date()
+    now = datetime.now(ZoneInfo('America/Chicago'))
+    day = now.date()
     receipt = args.state / (day.isoformat() + '.json')
     with (args.state/'lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.command == 'status':
             print(receipt.read_text() if receipt.exists() else 'No dispatch recorded today')
+            return
+        if now.weekday() >= 5 or now.hour < 16:
+            print('Skipped outside weekday after-close research window')
             return
         if receipt.exists():
             print(receipt.read_text())
