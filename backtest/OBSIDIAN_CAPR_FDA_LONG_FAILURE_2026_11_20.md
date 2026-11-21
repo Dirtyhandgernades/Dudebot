@@ -47,3 +47,14 @@ The assistant also explicitly favored a positive outcome despite the company’s
 
 ## State
 This is a user-initiated retrospective failure investigation. Neither actual account position nor game P&L was accessible here. No trade/cancellation submitted. Frozen baseline, main production, alert policies and original capture files untouched.
+
+
+## November 20 user-provided SMG screenshot — crucial position-size correction
+User uploaded a screenshot of the SMG Equity Positions table after the adverse CAPR news. **This supersedes the previous assumption of a 500-share CAPR long in the hypothetical performance illustration, NOT the original fact that 500 shares were recommended.**
+- Screenshot: CAPR | dated **2026-11-20** | **Long 1,000 shares** | **cost basis ---** | **previous close $7.53** | **displayed current price $1.48** | **price change -80.345%** | **market value $1,480** | **gain/loss ---**. The row is yellow, which the screenshot legend labels **Intraday transactions**; do NOT infer final order fill, confirmed settlement price, or realized loss from this alone.
+- Conditional *mark-to-market only* using screenshot previous close as a HYPOTHETICAL entry: 1,000 x ($1.48 - $7.53) = **-$6,050**; if hypothetical purchase $7.95, 1,000 x ($1.48 - $7.95) = **-$6,470**. Neither is confirmed final game P&L. Recorded cost basis is BLANK.
+- Additional yellow intraday screenshot rows: ADUR short -3,500, BGIN short -4,000, CDNL short -3,500, CD short -3,000, AIIO short -750, FTH short -1,500. The screenshot separately shows a dated Nov18 ADUR old -2,000 short with $1,058 gain. **These values represent visual snapshot positions, not independently confirmed settled orders**. Do not invent price of fills from prior-close column.
+- The earlier assumption of only **500 CAPR shares** understated potential loss by about half. Confirmed in screenshot: **1,000 share displayed long**; remaining account cash, NAV, buying power and EOD execution report not shown. User is distressed about serious portfolio damage. Prioritize clear ownership of recommendation error and account loss clarity; refrain from revenge trading or promising quick recovery.
+- Proper next step: verify CAPR actual game execution/settlement and pending orders from SMG transaction history; Friday market is closed; for a filled long, consider a valid sell for the next available EOD settlement without suggesting intraday afterhours fill or certain recoveries.
+
+This entry is an append-only correction drawn from the user's own screenshot. No account orders or production model changes.
