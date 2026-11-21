@@ -1,3 +1,5 @@
+TinyFish connection check, November 21: the cloud CLI registered the hosted MCP endpoint and detected OAuth. The running agent had zero callable TinyFish tools. OAuth completion and SMG profile access were unverified. Authentication, account summary, holdings, buying power, pending orders, reconciliation and non-submitting preview await an authenticated SMG-scoped tool. The existing Monday account-read and delivery gates remain open. Scheduled runner access and unattended competition authorization also remain unverified.
+
 Monday November 23 desk intake: [position and candidate review checklist](backtest/evidence/2026-11-21/monday-position-review/desk-checklist.md). Two historical cover diagnostics failed to support automatic changes. Use the existing confirmation and reconciliation workflow.
 
 # Portfolio desk research intake | November 21, 2026
