@@ -1,0 +1,20 @@
+# Iteration 012 — direct original-report reconciliation and ranker source audit (2026-11-21)
+
+RESEARCH ONLY; append-only after iteration 011. Branch research/obsidian-early-rug-20261025. No orders, private account access, workflows, live desk changes, baseline edits, or promotion.
+
+## Read-first sources and immutable code
+Directly read on this branch: backtest/OBSIDIAN_CONTINUOUS_WALK_FORWARD_PROTOCOL_2026_11_20.md; backtest/FAST_DUMP_RANK_RESULTS.md; backtest/FIRM_TIMING_VALIDATION.md; backtest/OBSIDIAN_TRADE_DISCOVERY_PLAYBOOK_V2_PROPOSAL_2026_11_20.md; backtest/OBSIDIAN_PROSPECTIVE_TRADE_EDGE_PROOF_GATE_2026_10_30.md; backtest/OBSIDIAN_DIAGNOSTIC_REPLAY_CYCLES_1_2_2026_11_20.md (negative control only); iteration 011; and backtest/target_rank_research.py, Git blob SHA e574c908eeb5fafbf918200296b01eeaf8dafbdd. The prior report's assertion that FAST_DUMP and FIRM_TIMING were unavailable at root was a path error: both exist under backtest/. Corrected without changing those files.
+
+## Direct comparison (archived output from iteration 011 versus independently read FAST_DUMP report)
+Historical 2023/2024/2025 top-half $50k/30% base net: 18,658.11 / 39,124.52 / 103,258.54; stress net: 16,487.95 / 25,305.11 / 64,020.56; base closed trades: 3 / 16 / 36; base drawdowns: 3.059% / 25.691% / 19.966%. All 12 scalar checks agree with the original report at displayed precision.
+Top-half $30k/25% base net: 15,587.70 / 37,403.93 / 73,815.54; stress net: 13,809.62 / 26,795.01 / 48,528.08. All six checks agree. Total: 18/18 directly checked report scalar fields match at displayed precision, based on recovered iteration-011 artifact values; this is **not** independent reexecution or a comparison of all 54 positions.
+Caution: the lower-exposure 2025 archived output has 38 closed trades while the aggressive case has 36. These are different sizing/cap policies, not an inconsistency. The FAST_DUMP narrative's 2025 6/35 target-hit denominator is not closed-trade count: it censors an incomplete three-session horizon.
+
+## Exact source behavior and unresolved provenance
+The unmodified ranker loads firm-timing-inputs.json.gz, discovery-decisions.json and three year-specific hybrid-signals JSON files from outputs/backtest/hybrid-37386241124. It fits matured-before-year training samples, sets score quantile gates, calls smg.swing_backtest.simulate with 3-session hold and fixed cost/borrow scenarios, and writes 54 policy-year-cost result JSON files plus trade CSVs and summary. This confirms the correct executable target and why a simplified diagnostic cannot substitute.
+Source blob SHA is Git's blob identifier, **not** SHA256 of source bytes. Original input ZIP expected SHA256 a53ffdb85d7d373912a3483d6894c4e841ce0c54a42c77987f3f121aa7f20e6e (workflow run 37386241124, artifact 11378995592); this run did not download or verify bytes. Archived output ZIP SHA256 95f916cdc1d988f752a49f14c38852c1f9876c5ddfd535bb915c19f840ea1ba1 was verified in iteration 011, not rerun now.
+
+## Exact blocker and next single step
+No original input artifact bytes were mounted in an isolated executable workspace in this iteration; GitHub connector download returns a connector-local file reference, not directly executable extracted files. Therefore no unmodified python -m backtest.target_rank_research execution, no new position-row comparison, and no fresh 2025 Aug–Dec replay. Next: materialize artifact 11378995592 into isolated filesystem, verify SHA256, safely extract four input files, install matching source dependencies, execute unmodified ranker once and compare 54 configurations and all positions against the preserved artifact. Avoid repeat report-only checks once this is done.
+
+Synthetic starting capital $100,000 per year. New net/ending equity: NOT COMPUTED. Baseline/challenger paired new performance: NOT COMPUTED. August and late-December historical coverage, point-in-time SMG eligibility/borrow, intraday cache and genuinely fresh prospective windows remain unverified. Promotion: UNPROVEN.
