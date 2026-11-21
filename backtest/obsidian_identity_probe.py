@@ -24,7 +24,7 @@ def choose_documents(payload,last_day,now):
 
 
 def run(out):
-    out=Path(out);out.mkdir(parents=True,exist_ok=False);ua=os.environ.get('SEC_USER_AGENT','');reader=Reader(maximum=8,raw_dir=out/'raw-responses')
+    out=Path(out);out.mkdir(parents=True,exist_ok=False);ua=os.environ.get('SEC_USER_AGENT','');reader=Reader(maximum=9,raw_dir=out/'raw-responses')
     result=dict(mode='RESEARCH_ONLY_NOT_AN_ORDER',cases=[],no_prices_stitched=True,credentials_present=bool(ua))
     for symbol,(cik,last_day) in CASES.items():
         row=dict(old_symbol=symbol,original_archive_cik=cik,last_original_raw_bar=last_day,
@@ -49,6 +49,12 @@ def run(out):
                          review_passages=passages(text,('trading symbol','ticker','reverse split','change its name','Nasdaq')))
             row['documents'].append(d)
         result['cases'].append(row)
+    announcement='https://www.nasdaq.com/press-release/brera-holdings-plc-nasdaq-brea-announces-new-ticker-symbol-slmt-reflecting-its'
+    raw,receipt=reader.get(announcement,headers={'User-Agent':'OBSIDIAN-research/1.0'})
+    result['brea_issuer_announcement_receipt']=receipt
+    if raw:
+        safe=raw.replace(ua.encode(),b'[REDACTED_USER_AGENT]') if ua else raw
+        (out/'BREA-issuer-announcement.html').write_bytes(safe)
     candidates={'SLMT','BREA','VERB','SPY'}
     for case in result['cases']:
         for symbol in case.get('current_reported_tickers') or []:

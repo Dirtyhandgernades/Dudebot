@@ -1,0 +1,22 @@
+{
+  "calibrated_probability": false,
+  "features": [
+    "return_21",
+    "return_5",
+    "return_1",
+    "drawdown_21",
+    "volume_ratio_20",
+    "failed_prev_low",
+    "range_pct"
+  ],
+  "known_validation": "Already inspected 2023-2025, concentration and stress drawdown gates failed; no new promotion",
+  "model_sha256": "2e9b9a37b3d66336058649bc7046b1846f6fc8b27494580dd59862ff7be28062",
+  "original_model_code_changed": false,
+  "original_training_archive_run_id": 37386241124,
+  "qualified_for_live_use": false,
+  "role": "FIXED_CONDITIONAL_SHADOW_RANK_ONLY",
+  "source_artifact_id": 14689999537,
+  "source_file": "2025-model.json",
+  "source_workflow_run_id": 44863066132,
+  "training_last_label_date": "2024-12-05"
+}

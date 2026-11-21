@@ -115,3 +115,13 @@ class ExecutionFailureRegressionTests(unittest.TestCase):
         self.assertIn('ticker_syntax',propose(account,candidate,self.now)['blockers'])
         account,candidate=self.inputs();candidate['target_notional']=-1
         self.assertIn('sizing_target_known',propose(account,candidate,self.now)['blockers'])
+
+class ContinuityRepairTests(unittest.TestCase):
+    def test_overlap_mismatch_never_smooths_real_disagreement(self):
+        from backtest.obsidian_continuity_repair import overlap_check,daily_rows
+        old={f'2025-08-{i:02d}':dict(o=10,h=11,l=9,c=10) for i in range(1,7)}
+        new={d:dict(b) for d,b in old.items()}
+        self.assertEqual(len(overlap_check(old,new,'2025-09-02')),6)
+        new['2025-08-01']['c']=11
+        with self.assertRaises(ValueError):overlap_check(old,new,'2025-09-02')
+        with self.assertRaises(ValueError):daily_rows({'bars':{'X':[dict(t='2025-08-01',o=0,h=1,l=1,c=1)]}},'X')

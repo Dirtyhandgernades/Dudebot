@@ -164,7 +164,7 @@ def update_rotation(state, packet):
     return updated
 
 
-def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, priority=()):
+def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, priority=(), rank_model=None):
     symbols=list(symbols)
     if not symbols or len(symbols)>MAX_SYMBOLS or len(set(symbols))!=len(symbols) or any(not SAFE.fullmatch(s) for s in symbols):
         raise ValueError('INVALID_BOUNDED_SYMBOL_UNIVERSE')
@@ -211,6 +211,10 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
                 seen.add(token)
             else:
                 if token:sip_error='SIP_PAGINATION_BUDGET_EXHAUSTED'
+    ranks={s:dict(status='ALPACA_CREDENTIALS_ABSENT' if rank_model is not None and not all(headers.values()) else 'SHADOW_MODEL_NOT_REQUESTED',score=None) for s in symbols};rank_manifest=None
+    if rank_model is not None and all(headers.values()):
+        from backtest.obsidian_shadow_rank import fetch_ranks
+        ranks,rank_manifest=fetch_ranks(reader,symbols,now,headers,rank_model)
     raw,halt_receipt=reader.get(NASDAQ_RSS,headers={'User-Agent':'OBSIDIAN-research-only/1.0'})
     events=[];halt_error=halt_receipt['error']
     if raw:
@@ -259,7 +263,7 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
         iex=market_record(snapshots.get(symbol),snap_at)
         status,latest=classify_bars(bars[symbol],start,cutoff) if not sip_error else ('SIP_UNAVAILABLE_OR_INCOMPLETE',None)
         hs=[e for e in events if e['ticker']==symbol]
-        rows.append(dict(ticker=symbol,iex=dict(provider='Alpaca',feed='iex',observed_at=snap_at.isoformat(),error=snap_error,**iex),
+        rows.append(dict(ticker=symbol,shadow_rank=ranks[symbol],iex=dict(provider='Alpaca',feed='iex',observed_at=snap_at.isoformat(),error=snap_error,**iex),
                          sip=dict(provider='Alpaca',feed='sip',status=status,error=sip_error,latest_completed_bar=latest,
                                   safe_asof=cutoff.isoformat(),minimum_delay_minutes=17,price_type='DELAYED_RAW_MINUTE_BAR_NOT_LIVE_QUOTE',
                                   window_volume=sum(b.get('v',0) for b in bars[symbol] if isinstance(b,dict) and type(b.get('v')) in (int,float)) if latest else None,
@@ -273,13 +277,17 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
                          smg_eligibility_verified=False))
     return dict(mode=MODE,policy=POLICY,started_at=now.isoformat(),finished_at=datetime.now(UTC).isoformat(),
                 source_scope='SUPPLIED_WATCHLIST_NOT_FULL_MARKET',market_session_state=session_state,requested_symbols=symbols,rows=rows,
-                coverage=dict(denominator=len(rows),iex_states=dict(Counter(r['iex']['status'] for r in rows)),
+                coverage=dict(denominator=len(rows),iex_returned_symbols=sum(isinstance(snapshots.get(s),dict) for s in symbols),
+                              iex_missing_symbols=sum(not isinstance(snapshots.get(s),dict) for s in symbols),
+                              known_security_eligibility_exclusions=0,unknown_security_eligibility=len(rows),
+                              shadow_rank_states=dict(Counter(r['shadow_rank']['status'] for r in rows)),
+                              iex_quote_states=dict(Counter((r['iex'].get('quote') or {}).get('status','MISSING') for r in rows)),iex_states=dict(Counter(r['iex']['status'] for r in rows)),
                               sip_states=dict(Counter(r['sip']['status'] for r in rows)),
                               sec_states=dict(Counter(r['catalysts']['status'] for r in rows))),
                 request_budget=dict(maximum=reader.maximum,used=reader.used,sip_pages=pages,sec_maximum=sec_limit),
                 sec_rotation=dict(selected_symbols=selected,state_input_sha256=hashlib.sha256(json.dumps(rotation_state,sort_keys=True).encode()).hexdigest(),
                                   priority_symbols=list(priority),selection_policy='OLDEST_ATTEMPT_FIRST; priority breaks never-attempted ties'),
-                receipts=reader.receipts,official_closes_verified=False,verified_predictions=0,trade_authorized=False)
+                shadow_rank_manifest=rank_manifest,receipts=reader.receipts,official_closes_verified=False,verified_predictions=0,trade_authorized=False)
 
 
 def main():
@@ -291,6 +299,7 @@ def main():
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--sec-limit',type=int,default=8)
     parser.add_argument('--raw-output',type=Path)
+    parser.add_argument('--rank-model',default='backtest/frozen_research/target-rank-2025-model.json')
     args=parser.parse_args()
     if args.output.exists():raise FileExistsError(args.output)
     records=json.loads(Path(args.watchlist).read_text())['records']+json.loads(Path(args.supplemental).read_text())['records']
@@ -299,7 +308,7 @@ def main():
     symbols=sorted({r['ticker'] for r in records}|set(extra))
     if not args.rotation_state.exists():raise FileNotFoundError('SEC_ROTATION_STATE_REQUIRED_NO_SILENT_RESET')
     state=validate_rotation(json.loads(args.rotation_state.read_text()))
-    packet=collect(symbols,reader=Reader(raw_dir=args.raw_output),sec_limit=args.sec_limit,rotation_state=state,priority=extra)
+    packet=collect(symbols,reader=Reader(raw_dir=args.raw_output),sec_limit=args.sec_limit,rotation_state=state,priority=extra,rank_model=args.rank_model)
     packet['source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open('x') as f:json.dump(packet,f,indent=2,sort_keys=True,allow_nan=False)

@@ -9,7 +9,9 @@ on:
       - 'backtest/obsidian_research_runner.py'
       - 'backtest/obsidian_portfolio_guard.py'
       - 'backtest/obsidian_identity_probe.py'
+      - 'backtest/obsidian_continuity_repair.py'
       - 'tests/test_obsidian_strategy_lab.py'
+      - 'backtest/evidence/2026-11-20/strategy-overhaul/continuity-repair-registration.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -61,6 +63,11 @@ jobs:
         run: >-
           python -m backtest.obsidian_identity_probe
           --out outputs/backtest/obsidian-identity-${{ github.run_id }}
+      - name: Stage separately registered valuation continuity without changing baseline
+        run: >-
+          python -m backtest.obsidian_continuity_repair
+          --probe outputs/backtest/obsidian-identity-${{ github.run_id }}
+          --out outputs/backtest/obsidian-continuity-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -70,5 +77,6 @@ jobs:
             outputs/backtest/target-rank-2026-10-05/
             outputs/research-source/
             outputs/backtest/obsidian-identity-${{ github.run_id }}/
+            outputs/backtest/obsidian-continuity-${{ github.run_id }}/
           if-no-files-found: error
           retention-days: 90

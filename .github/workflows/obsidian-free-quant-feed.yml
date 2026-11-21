@@ -7,6 +7,10 @@ on:
       - 'backtest/obsidian_free_quant_feed.py'
       - 'tests/test_obsidian_free_quant_feed.py'
       - 'backtest/obsidian_free_quant_watchlist.json'
+      - 'backtest/obsidian_shadow_rank.py'
+      - 'backtest/obsidian_candidate_pipeline.py'
+      - 'tests/test_obsidian_candidate_pipeline.py'
+      - 'tests/test_obsidian_shadow_rank.py'
   workflow_dispatch:
 concurrency:
   group: obsidian-free-quant-${{ github.ref }}
@@ -30,7 +34,7 @@ jobs:
       - name: Install pinned collector and exchange-calendar dependencies
         run: python -m pip install -e '.[test]' -c requirements-tested.txt
       - name: Offline source and clock gates before live requests
-        run: python -m unittest tests.test_obsidian_free_quant_feed tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_candidate_pipeline -v
+        run: python -m unittest tests.test_obsidian_free_quant_feed tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_candidate_pipeline tests.test_obsidian_shadow_rank -v
       - name: Restore last successful SEC rotation artifact without repository writes
         if: github.event_name == 'workflow_dispatch'
         env:

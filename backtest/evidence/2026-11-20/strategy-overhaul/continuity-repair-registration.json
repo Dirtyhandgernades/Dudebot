@@ -1,0 +1,39 @@
+{
+  "id": "SOURCE_CONTINUITY_REPAIR_V1_20261120",
+  "registered_at_utc": "2026-11-21T03:55:05.578729+00:00",
+  "input_packet_sha256": "e4863623bf73ca18b51ee7cf85be891bc2f7a787bedc598722037d3413cc29bb",
+  "scope": "VALUATION_CONTINUITY_ONLY_NO_NEW_ENTRY_BACKTEST",
+  "cases": [
+    {
+      "old_symbol": "VERB",
+      "new_symbol": "TONX",
+      "effective_date": "2025-09-02",
+      "published_at": "2025-08-29T13:20:25Z",
+      "action": "rename_only",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1566610/000149315225012461/form8-k.htm",
+      "document_name": "VERB-0001493152-25-012461.html",
+      "required_phrases": [
+        "September 2, 2025",
+        "do not affect the rights",
+        "92337U302",
+        "VERB",
+        "TONX"
+      ]
+    },
+    {
+      "old_symbol": "BREA",
+      "new_symbol": "SLMT",
+      "effective_date": "2025-10-03",
+      "published_at": "2025-10-02T13:00:00Z",
+      "action": "rename_only",
+      "source_url": "https://www.nasdaq.com/press-release/brera-holdings-plc-nasdaq-brea-announces-new-ticker-symbol-slmt-reflecting-its",
+      "document_name": "BREA-issuer-announcement.html",
+      "required_phrases": [
+        "October 3, 2025",
+        "No action is required",
+        "BREA",
+        "SLMT"
+      ]
+    }
+  ]
+}
