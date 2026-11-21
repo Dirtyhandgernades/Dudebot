@@ -1,0 +1,7 @@
+[Unit]
+Description=OBSIDIAN weekday after-close research collection
+[Timer]
+OnCalendar=Mon..Fri *-*-* 16:10:00 America/Chicago
+Persistent=false
+[Install]
+WantedBy=timers.target

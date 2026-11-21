@@ -1,0 +1,8 @@
+[Unit]
+Description=OBSIDIAN hosted research packet dispatch
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.local/share/obsidian-terminal/terminal.py run --state %h/.local/state/obsidian-terminal
+TimeoutStartSec=100
+NoNewPrivileges=yes
+UMask=0077

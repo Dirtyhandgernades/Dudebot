@@ -1,0 +1,9 @@
+# Unattended research terminal
+
+A small Linux service dispatches the existing free research collector on the research branch. GitHub Actions runs the collector, builds the board and retains its outputs under the existing artifact policy. The timer is for after-close research at 4:10 p.m. Central on weekdays, including holidays. Missed timers are skipped. Boards from this job are retrospective. The existing Portfolio Desk owns market-hour decisions and account access.
+
+Install once on an always-on Linux host with Python 3.9+, timezone data, systemd, and gh on the service PATH. Configure private GitHub CLI authentication for the service account with repository Actions write access for dispatch and metadata read. Use the host credential store. Existing provider secrets stay in GitHub Actions. Enable user lingering for the service account (loginctl enable-linger USER) or provide a persistent user manager. From the checkout run ops/obsidian-terminal/install.sh. Check systemctl --user status obsidian-research.timer. Installing on a temporary CI runner will not persist the timer.
+
+For a one-off run use python3 ops/obsidian-terminal/terminal.py run --state ~/.local/state/obsidian-terminal. Use status with the same path to see the dispatch receipt. The lock and date receipt prevent duplicate requests from this installation. A successful dispatch receipt confirms acceptance only. Inspect Actions for actual completion and provider coverage. For an ambiguous dispatch inspect the workflow history before correcting a receipt. Review systemd failures with journalctl --user -u obsidian-research.service. Expired authorization, host downtime or provider changes can require maintenance.
+
+Current deployment: one manual hosted dispatch tested from Codex. Recurring installation requires a persistent host. The chat runner has no persistent systemd manager and the research branch is not the repository default branch for scheduled GitHub Actions.
