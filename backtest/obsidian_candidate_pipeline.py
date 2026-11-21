@@ -9,6 +9,7 @@ from datetime import datetime,timezone,time
 import hashlib,json,math
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from backtest.obsidian_continuation import assess as assess_continuation
 from backtest.obsidian_abc_board import assess_row
 from backtest.obsidian_prospective_capture import asof
 
@@ -42,6 +43,8 @@ def build(packet,now,source_hash,reviews=None):
             not set(r['evidence_receipt_hashes'])<=known):
             raise ValueError('UNBOUND_FUTURE_OR_UNRECEIPTED_REVIEW')
         reviewed[r['ticker']]=r
+    local=now.astimezone(CT)
+    window=local.weekday()<5 and time(14,20)<=local.time().replace(tzinfo=None)<=time(14,35)
     result=[]
     for raw in rows:
         iex=raw.get('iex',{});trade=iex.get('trade') or {};daily=iex.get('daily_bar') or {}
@@ -104,13 +107,13 @@ def build(packet,now,source_hash,reviews=None):
                            triage_sort_key=[int(not blockers and category in {'A','C'}),quality,(raw.get('shadow_rank') or {}).get('score') if (raw.get('shadow_rank') or {}).get('population_match_verified') is True and (raw.get('shadow_rank') or {}).get('score') is not None else -1,adverse],rank_is_probability=False,trained_rank_available=(raw.get('shadow_rank') or {}).get('score') is not None,shadow_rank=raw.get('shadow_rank'),
                            trained_rank_blocker='Historical model remains unqualified for live use; source/risk/counterevidence gates remain independent',
                            invalidation='Thesis contradicted, stale/invalid tape, identity/action mismatch, or rebound evidence; reassess with receipts',
+                           continuation=assess_continuation(raw,review,category,blockers,window and packet.get('market_session_state')=='REGULAR_SESSION'),
                            original_source=raw,execution_gates={k:{'status':'UNKNOWN','source_receipt':None} for k in
                            ('smg_permission','smg_borrow','market_cap','prior_price','corporate_actions','current_account_exposure','buying_power')},
                            executable=False,trade_authorized=False))
     result.sort(key=lambda r:(*[-x for x in r['triage_sort_key']],r['ticker']))
     for i,r in enumerate(result):
         r['triage_priority']=i+1;r['ordering_explanation']='Source-bound qualified research first, then data completeness, fixed historical ordinal rank only for verified matching population (otherwise diagnostic, excluded), passage count and ticker; not expected return'
-    local=now.astimezone(CT);window=local.weekday()<5 and time(14,20)<=local.time().replace(tzinfo=None)<=time(14,35)
     return dict(mode='RESEARCH_ONLY_NOT_AN_ORDER',policy=POLICY,created_at=now.isoformat(),source_packet_at=packet['finished_at'],
                 source_packet_sha256=source_hash,publication_role='CHECKPOINT_WINDOW_RESEARCH_REQUIRES_DELIVERY_PROOF' if window else 'LATE_OR_OFF_CHECKPOINT_RESEARCH_REVIEW_NOT_PROSPECTIVE_BOARD',
                 original_predictions_modified=False,denominator=len(symbols),requested_symbols=symbols,

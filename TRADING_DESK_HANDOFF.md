@@ -1,3 +1,8 @@
+# Portfolio desk research intake | November 21, 2026
+Read the research branch at each portfolio review. The latest reviewed desk record is [continuation 019](backtest/evidence/2026-11-21/continuation-019/desk-packet.json). It includes the source time, packet hash, complete roster, per-name blockers and delivery status. Subsequent manual free-feed artifacts carry the continuation decision in each board row. Check the publication time and source run before using a board. Record the source commit, packet hash and receipt time when the desk actually consumes it. A research alert calls for thesis review. Portfolio decisions continue through the desk's existing account, halt, eligibility and authorization checks.
+
+This after-hours replay produced zero continuation alerts. Baseline calls and authenticated outcomes remain unknown. The two previous model challengers failed the promotion criteria. See [iterations 016–018](backtest/evidence/2026-11-21/iterations-016-018/checkpoint.md). External automation consumption has no receipt in this checkpoint.
+
 # Verified research overhaul — November 20, 2026
 
 Original54-portfolio strategy reproduced on authenticated source;140 hosted output hashes and resume verified. Full suite1289 tests plus321 subtests passed. Connected139-name free feed→V2 research board and fixed ordinal model diagnostics; all139 remain blocked, with no timely delivery or actionable recommendation. Separate source-backed valuation repair restores68 VERB and45 BREA sessions without changing frozen source/predictions. No strategy promoted; concentration, stress risk and missing independent prospective evidence remain material.
