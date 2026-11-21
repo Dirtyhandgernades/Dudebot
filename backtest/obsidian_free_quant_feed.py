@@ -174,14 +174,14 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
     now=clock or datetime.now(UTC)
     if now.utcoffset() is None:raise ValueError('AWARE_CLOCK_REQUIRED')
     local=now.astimezone(CT)
-    if local.weekday()>4 or time(14,45)<=local.time().replace(tzinfo=None)<=time(14,58):
+    from smg.market import session_bounds
+    bounds=session_bounds(now.astimezone(ET).date())
+    if bounds is None or bounds[1]-timedelta(minutes=15)<=now<=bounds[1]-timedelta(minutes=2):
         raise ValueError('OUTSIDE_RESEARCH_OR_PROTECTED_PRECLOSE_WINDOW')
     reader=reader or Reader();headers={'APCA-API-KEY-ID':os.environ.get('ALPACA_API_KEY',''),
                                        'APCA-API-SECRET-KEY':os.environ.get('ALPACA_SECRET_KEY','')}
     snapshots={};snap_error='ALPACA_CREDENTIALS_ABSENT';snap_at=now
     bars={s:[] for s in symbols};sip_error='ALPACA_CREDENTIALS_ABSENT';pages=0
-    from smg.market import session_bounds
-    bounds=session_bounds(now.astimezone(ET).date())
     cutoff=min(now-SIP_LAG,bounds[1]) if bounds else now-SIP_LAG
     opening=bounds[0] if bounds else cutoff
     start=max(opening,cutoff-timedelta(minutes=60))
