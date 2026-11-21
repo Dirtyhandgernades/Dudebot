@@ -8,7 +8,10 @@ for /f %%D in ('powershell.exe -NoProfile -Command "$t=[TimeZoneInfo]::ConvertTi
 if not defined day exit /b 0
 if not exist state mkdir state
 if exist "state\%day%\accepted" exit /b 0
-if exist "state\%day%" exit /b 2
+if exist "state\%day%" (
+  powershell.exe -NoProfile -File "%~dp0Reconcile.ps1" -Day "%day%"
+  exit /b 2
+)
 gh api repos/Dirtyhandgernades/Dudebot/actions/workflows/obsidian-free-quant-feed.yml --silent || exit /b 1
 mkdir "state\%day%" 2>nul || exit /b 2
 gh workflow run obsidian-free-quant-feed.yml --repo Dirtyhandgernades/Dudebot --ref research/obsidian-early-rug-20261025 || exit /b 2
