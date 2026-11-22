@@ -6,6 +6,7 @@ on:
       - '.github/workflows/obsidian-independent-halt-parser-tests.yml'
       - 'backtest/obsidian_independent_quote_halt.py'
       - 'tests/test_obsidian_prospective_independent_quote_halt.py'
+      - 'tests/test_halt_unit_symbol.py'
       - 'backtest/obsidian_smg_readonly_gate.py'
       - 'tests/test_obsidian_prospective_smg_readonly_gate.py'
   workflow_dispatch:
@@ -20,6 +21,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
+      - name: Install pinned offline dependencies
+        run: python -m pip install -e '.[test]' -c requirements-tested.txt
       - name: Test official halt RSS fail-closed semantics and SMG read-only gates
-        run: python -m unittest tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_prospective_smg_readonly_gate -v
+        run: |
+          python -m unittest tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_prospective_smg_readonly_gate -v
+          python -m pytest tests/test_halt_unit_symbol.py -q
