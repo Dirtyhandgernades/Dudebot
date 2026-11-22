@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from backtest.obsidian_prospective_capture import asof, finite_price
 from backtest.obsidian_prospective_verify import verify_capture, jsonl
+from smg.market import calendar, session_bounds
 
 ET = ZoneInfo("America/New_York")
 THRESHOLD = -0.20
@@ -30,6 +31,9 @@ def evaluate(capture_dir, outcome_file):
     _, candidates = jsonl(root / "candidates.jsonl")
     _, outcomes = jsonl(Path(outcome_file))
     session = asof(manifest["capture_started_at"]).astimezone(ET).date()
+    bounds = session_bounds(session)
+    expected_previous = (calendar(session.year).previous_session(session.isoformat()).date()
+                         if bounds else None)
     finished = asof(manifest["capture_finished_at"])
     symbols = {row["ticker"] for row in universe}
     watched = {row["ticker"] for row in candidates}
@@ -54,9 +58,6 @@ def evaluate(capture_dir, outcome_file):
             collected = asof(outcome.get("collected_at"))
             previous_day = outcome.get("previous_session_date")
             source = outcome.get("source_url")
-            expected_previous = session - timedelta(days=1)
-            while expected_previous.weekday() >= 5:
-                expected_previous -= timedelta(days=1)
             # Fail closed for unsupported holidays, splits, conflicting providers,
             # unverified prior close or any future/after-hours quote substituted
             # for the regular-session close.
@@ -66,11 +67,11 @@ def evaluate(capture_dir, outcome_file):
                      and outcome.get("provider_conflict") is False
                      and isinstance(source, str) and source.startswith("https://")
                      and finite_price(prior) and finite_price(close)
+                     and bounds is not None
                      and previous_day == expected_previous.isoformat()
                      and close_at is not None and collected is not None
                      and close_at.astimezone(ET).date() == session
-                     and close_at.astimezone(ET).hour == 16
-                     and close_at.astimezone(ET).minute == 0
+                     and close_at == bounds[1]
                      and finished < close_at <= collected)
             if valid:
                 change = close / prior - 1

@@ -282,7 +282,7 @@ def persist(universe, watches, report, destination):
 
         def write_lines(name, rows):
             data = "".join(json.dumps(row, sort_keys=True, allow_nan=False) + "\n" for row in rows)
-            with (staged / name).open("x", encoding="utf-8") as f:
+            with (staged / name).open("x", encoding="utf-8", newline="\n") as f:
                 f.write(data)
             return hashlib.sha256(data.encode()).hexdigest()
 
