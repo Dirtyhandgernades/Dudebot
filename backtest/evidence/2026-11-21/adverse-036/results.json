@@ -1,0 +1,1810 @@
+[
+  {
+    "year": 2023,
+    "policy": "top_half_30pct",
+    "cost": "base",
+    "closed": 3,
+    "unknown": 0,
+    "severe": 0,
+    "stops": 0,
+    "worse_cover": 0,
+    "median_cover_change": null,
+    "rows": [
+      {
+        "ticker": "MYNZ",
+        "signal": "2023-11-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 18417.67407191781,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "RVYL",
+        "signal": "2023-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3812.388370136987,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "GCT",
+        "signal": "2023-12-04",
+        "unknown": false,
+        "adverse": 0.09527687296416931,
+        "pnl": -3754.1598243835588,
+        "exit_reason": "GAME_END"
+      }
+    ]
+  },
+  {
+    "year": 2023,
+    "policy": "top_half_30pct",
+    "cost": "stress",
+    "closed": 3,
+    "unknown": 0,
+    "severe": 0,
+    "stops": 0,
+    "worse_cover": 0,
+    "median_cover_change": null,
+    "rows": [
+      {
+        "ticker": "MYNZ",
+        "signal": "2023-11-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 17757.035719178082,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "RVYL",
+        "signal": "2023-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2876.2331726027405,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "GCT",
+        "signal": "2023-12-04",
+        "unknown": false,
+        "adverse": 0.09527687296416931,
+        "pnl": -4327.089034246573,
+        "exit_reason": "GAME_END"
+      }
+    ]
+  },
+  {
+    "year": 2023,
+    "policy": "top_quartile",
+    "cost": "base",
+    "closed": 1,
+    "unknown": 0,
+    "severe": 0,
+    "stops": 0,
+    "worse_cover": 0,
+    "median_cover_change": null,
+    "rows": [
+      {
+        "ticker": "RVYL",
+        "signal": "2023-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2680.4860383561645,
+        "exit_reason": "TIME_LIMIT"
+      }
+    ]
+  },
+  {
+    "year": 2023,
+    "policy": "top_quartile",
+    "cost": "stress",
+    "closed": 1,
+    "unknown": 0,
+    "severe": 0,
+    "stops": 0,
+    "worse_cover": 0,
+    "median_cover_change": null,
+    "rows": [
+      {
+        "ticker": "RVYL",
+        "signal": "2023-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2032.7963835616438,
+        "exit_reason": "TIME_LIMIT"
+      }
+    ]
+  },
+  {
+    "year": 2024,
+    "policy": "top_half_30pct",
+    "cost": "base",
+    "closed": 16,
+    "unknown": 0,
+    "severe": 3,
+    "stops": 4,
+    "worse_cover": 1,
+    "median_cover_change": -0.10644037780401416,
+    "rows": [
+      {
+        "ticker": "TELO",
+        "signal": "2024-09-09",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 88.86026082191462,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "RYDE",
+        "signal": "2024-09-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 27224.38320328767,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "PGHL",
+        "signal": "2024-09-12",
+        "unknown": false,
+        "adverse": 0.22096128170894525,
+        "pnl": 7353.463950684933,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.22096128170894525,
+        "cover_adverse": -0.22229639519359146,
+        "cover_change": -0.36303991252050294
+      },
+      {
+        "ticker": "YRD",
+        "signal": "2024-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2351.4260756164363,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NISN",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 15870.765320000004,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LXEH",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 9349.367147945206,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LOBO",
+        "signal": "2024-10-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 4885.479117808222,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-17",
+        "unknown": false,
+        "adverse": 0.19801980198019797,
+        "pnl": -9237.063114657532,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.19801980198019797,
+        "cover_adverse": 0.17574257425742568,
+        "cover_change": -0.018595041322314043
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-22",
+        "unknown": false,
+        "adverse": 0.1010526315789475,
+        "pnl": -1592.0331569862974,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-10-25",
+        "unknown": false,
+        "adverse": 0.11718992850481813,
+        "pnl": -3038.112749041093,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ATLX",
+        "signal": "2024-10-29",
+        "unknown": false,
+        "adverse": 0.03573176700930003,
+        "pnl": 2124.429437328766,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-11-01",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 479.5857084931492,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ELWS",
+        "signal": "2024-11-05",
+        "unknown": false,
+        "adverse": 0.588235294117647,
+        "pnl": -30147.453054794514,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.43294117647058816,
+        "cover_adverse": 0.588235294117647,
+        "cover_change": 0.10837438423645329
+      },
+      {
+        "ticker": "SLNH",
+        "signal": "2024-11-11",
+        "unknown": false,
+        "adverse": 0.03846153846153855,
+        "pnl": 4016.474643013697,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-11-18",
+        "unknown": false,
+        "adverse": 0.02292993630573248,
+        "pnl": 8650.885976027392,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SDOT",
+        "signal": "2024-11-27",
+        "unknown": false,
+        "adverse": 0.21527777777777768,
+        "pnl": 542.0089157534261,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.21527777777777768,
+        "cover_adverse": -0.02083333333333337,
+        "cover_change": -0.19428571428571428
+      }
+    ]
+  },
+  {
+    "year": 2024,
+    "policy": "top_half_30pct",
+    "cost": "stress",
+    "closed": 16,
+    "unknown": 0,
+    "severe": 3,
+    "stops": 4,
+    "worse_cover": 1,
+    "median_cover_change": -0.10644037780401416,
+    "rows": [
+      {
+        "ticker": "TELO",
+        "signal": "2024-09-09",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -568.3605917808252,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "RYDE",
+        "signal": "2024-09-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 26767.311156164382,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "PGHL",
+        "signal": "2024-09-12",
+        "unknown": false,
+        "adverse": 0.22096128170894525,
+        "pnl": 6481.641056164383,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.22096128170894525,
+        "cover_adverse": -0.22229639519359146,
+        "cover_change": -0.36303991252050294
+      },
+      {
+        "ticker": "YRD",
+        "signal": "2024-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1262.2357999999977,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NISN",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 14808.416616438359,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LXEH",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 8377.075334246574,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LOBO",
+        "signal": "2024-10-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3923.989887671237,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-17",
+        "unknown": false,
+        "adverse": 0.19801980198019797,
+        "pnl": -10270.240650684927,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.19801980198019797,
+        "cover_adverse": 0.17574257425742568,
+        "cover_change": -0.018595041322314043
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-22",
+        "unknown": false,
+        "adverse": 0.1010526315789475,
+        "pnl": -2488.816517808215,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-10-25",
+        "unknown": false,
+        "adverse": 0.11718992850481813,
+        "pnl": -4088.284115068491,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ATLX",
+        "signal": "2024-10-29",
+        "unknown": false,
+        "adverse": 0.03573176700930003,
+        "pnl": 1120.0080479452045,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-11-01",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -680.8411890410972,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ELWS",
+        "signal": "2024-11-05",
+        "unknown": false,
+        "adverse": 0.588235294117647,
+        "pnl": -29234.226575342465,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.43294117647058816,
+        "cover_adverse": 0.588235294117647,
+        "cover_change": 0.10837438423645329
+      },
+      {
+        "ticker": "SLNH",
+        "signal": "2024-11-11",
+        "unknown": false,
+        "adverse": 0.03846153846153855,
+        "pnl": 2954.463775342464,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-11-18",
+        "unknown": false,
+        "adverse": 0.02292993630573248,
+        "pnl": 7228.134726027393,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SDOT",
+        "signal": "2024-11-27",
+        "unknown": false,
+        "adverse": 0.21527777777777768,
+        "pnl": -478.8645547945192,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.21527777777777768,
+        "cover_adverse": -0.02083333333333337,
+        "cover_change": -0.19428571428571428
+      }
+    ]
+  },
+  {
+    "year": 2024,
+    "policy": "top_quartile",
+    "cost": "base",
+    "closed": 14,
+    "unknown": 0,
+    "severe": 3,
+    "stops": 5,
+    "worse_cover": 1,
+    "median_cover_change": -0.05370061213133004,
+    "rows": [
+      {
+        "ticker": "RYDE",
+        "signal": "2024-09-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 22700.520487671234,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "PGHL",
+        "signal": "2024-09-12",
+        "unknown": false,
+        "adverse": 0.22096128170894525,
+        "pnl": 6016.413917534246,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.22096128170894525,
+        "cover_adverse": -0.22229639519359146,
+        "cover_change": -0.36303991252050294
+      },
+      {
+        "ticker": "YRD",
+        "signal": "2024-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1743.0539821917791,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NISN",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 11504.331802465756,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LXEH",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 6778.709246575343,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LOBO",
+        "signal": "2024-10-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3568.0627963013726,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-18",
+        "unknown": false,
+        "adverse": 0.1308411214953269,
+        "pnl": -3539.021630273969,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1308411214953269,
+        "cover_adverse": 0.1098130841121494,
+        "cover_change": -0.018595041322314043
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-22",
+        "unknown": false,
+        "adverse": 0.1010526315789475,
+        "pnl": -1016.8815678082165,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-10-28",
+        "unknown": false,
+        "adverse": 0.14750957854406122,
+        "pnl": -2872.5075208219187,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.14750957854406122,
+        "cover_adverse": 0.08588761174968074,
+        "cover_change": -0.05370061213133004
+      },
+      {
+        "ticker": "ATLX",
+        "signal": "2024-10-29",
+        "unknown": false,
+        "adverse": 0.03573176700930003,
+        "pnl": 1344.7758828767116,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-11-01",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 308.00658684931415,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ELWS",
+        "signal": "2024-11-05",
+        "unknown": false,
+        "adverse": 0.588235294117647,
+        "pnl": -18515.36467123287,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.43294117647058816,
+        "cover_adverse": 0.588235294117647,
+        "cover_change": 0.10837438423645329
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-11-18",
+        "unknown": false,
+        "adverse": 0.02292993630573248,
+        "pnl": 6656.748253424654,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SDOT",
+        "signal": "2024-11-27",
+        "unknown": false,
+        "adverse": 0.21527777777777768,
+        "pnl": 388.390683561645,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.21527777777777768,
+        "cover_adverse": -0.02083333333333337,
+        "cover_change": -0.19428571428571428
+      }
+    ]
+  },
+  {
+    "year": 2024,
+    "policy": "top_quartile",
+    "cost": "stress",
+    "closed": 14,
+    "unknown": 0,
+    "severe": 3,
+    "stops": 5,
+    "worse_cover": 1,
+    "median_cover_change": -0.05370061213133004,
+    "rows": [
+      {
+        "ticker": "RYDE",
+        "signal": "2024-09-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 22379.35687671233,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "PGHL",
+        "signal": "2024-09-12",
+        "unknown": false,
+        "adverse": 0.22096128170894525,
+        "pnl": 5315.3752917808215,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.22096128170894525,
+        "cover_adverse": -0.22229639519359146,
+        "cover_change": -0.36303991252050294
+      },
+      {
+        "ticker": "YRD",
+        "signal": "2024-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 948.5338219178064,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NISN",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 10915.817624657537,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LXEH",
+        "signal": "2024-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 6177.592465753424,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "LOBO",
+        "signal": "2024-10-08",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2944.3085630137016,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-18",
+        "unknown": false,
+        "adverse": 0.1308411214953269,
+        "pnl": -4280.466502739723,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1308411214953269,
+        "cover_adverse": 0.1098130841121494,
+        "cover_change": -0.018595041322314043
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-10-22",
+        "unknown": false,
+        "adverse": 0.1010526315789475,
+        "pnl": -1651.134678082189,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-10-28",
+        "unknown": false,
+        "adverse": 0.14750957854406122,
+        "pnl": -3475.707608219179,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.14750957854406122,
+        "cover_adverse": 0.08588761174968074,
+        "cover_change": -0.05370061213133004
+      },
+      {
+        "ticker": "ATLX",
+        "signal": "2024-10-29",
+        "unknown": false,
+        "adverse": 0.03573176700930003,
+        "pnl": 747.5138287671228,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ASPI",
+        "signal": "2024-11-01",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -473.98133150685027,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ELWS",
+        "signal": "2024-11-05",
+        "unknown": false,
+        "adverse": 0.588235294117647,
+        "pnl": -19230.366712328763,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.43294117647058816,
+        "cover_adverse": 0.588235294117647,
+        "cover_change": 0.10837438423645329
+      },
+      {
+        "ticker": "FTEL",
+        "signal": "2024-11-18",
+        "unknown": false,
+        "adverse": 0.02292993630573248,
+        "pnl": 6095.912534246571,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SDOT",
+        "signal": "2024-11-27",
+        "unknown": false,
+        "adverse": 0.21527777777777768,
+        "pnl": -382.79516438356063,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.21527777777777768,
+        "cover_adverse": -0.02083333333333337,
+        "cover_change": -0.19428571428571428
+      }
+    ]
+  },
+  {
+    "year": 2025,
+    "policy": "top_half_30pct",
+    "cost": "base",
+    "closed": 36,
+    "unknown": 0,
+    "severe": 2,
+    "stops": 5,
+    "worse_cover": 1,
+    "median_cover_change": -0.032945736434108475,
+    "rows": [
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-08",
+        "unknown": false,
+        "adverse": 0.20217917675544794,
+        "pnl": -5789.823999178078,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.20217917675544794,
+        "cover_adverse": 0.18159806295399505,
+        "cover_change": -0.017119838872104776
+      },
+      {
+        "ticker": "NVFY",
+        "signal": "2025-09-09",
+        "unknown": false,
+        "adverse": 0.04771784232365128,
+        "pnl": -1622.0041736986254,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.07692307692307687,
+        "pnl": -2443.3327775342455,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ONEG",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.005447470817120603,
+        "pnl": 314.3296157534261,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-09-11",
+        "unknown": false,
+        "adverse": 0.02251184834123232,
+        "pnl": 110.88646945205339,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AMST",
+        "signal": "2025-09-12",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3571.576980684929,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.2743682310469313,
+        "pnl": -7645.607835616435,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16967509025270755,
+        "cover_adverse": 0.2743682310469313,
+        "cover_change": 0.08950617283950613
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.06632653061224492,
+        "pnl": -571.8178273972604,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-16",
+        "unknown": false,
+        "adverse": 0.17733990147783274,
+        "pnl": -3716.967185753423,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.17733990147783274,
+        "cover_adverse": 0.13300492610837433,
+        "cover_change": -0.03765690376569053
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-17",
+        "unknown": false,
+        "adverse": 0.07365439093484416,
+        "pnl": 4763.8984945205475,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.1217391304347828,
+        "pnl": -2379.1040260273985,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1217391304347828,
+        "cover_adverse": 0.08478260869565224,
+        "cover_change": -0.032945736434108475
+      },
+      {
+        "ticker": "MLGO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1160.0893490410956,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FATN",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3413.060002465753,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WIMI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2456.083627123289,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.03684210526315779,
+        "pnl": 19.819875068493293,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.014236111111111116,
+        "pnl": -569.0851342465755,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.010101010101009944,
+        "pnl": 3746.267538630138,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MSGY",
+        "signal": "2025-09-29",
+        "unknown": false,
+        "adverse": 0.04587155963302747,
+        "pnl": 24176.511799999997,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WTF",
+        "signal": "2025-09-30",
+        "unknown": false,
+        "adverse": 0.008103727714748654,
+        "pnl": 249.43647506849206,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PC",
+        "signal": "2025-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 7791.907343835618,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "QUBT",
+        "signal": "2025-10-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1135.5608213698624,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PHOE",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3513.5376372602755,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "BZAI",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.03495145631067964,
+        "pnl": 2836.3889308219223,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SWIN",
+        "signal": "2025-10-09",
+        "unknown": false,
+        "adverse": 0.04268292682926833,
+        "pnl": -2104.9416219178097,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "JFU",
+        "signal": "2025-10-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3898.639421369866,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ACON",
+        "signal": "2025-10-13",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3418.475915205481,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-10-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1661.9542100000024,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AEI",
+        "signal": "2025-10-28",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3113.616374794516,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "DTCK",
+        "signal": "2025-11-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 33966.51484794521,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "SWAG",
+        "signal": "2025-11-11",
+        "unknown": false,
+        "adverse": 0.0029940119760478723,
+        "pnl": 8370.434837945202,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -289.6968356164421,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-11-21",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 4389.224271232881,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ZJK",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 6546.556554520549,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-11-28",
+        "unknown": false,
+        "adverse": 0.16091954022988508,
+        "pnl": -5050.581473698636,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16091954022988508,
+        "cover_adverse": 0.09195402298850586,
+        "cover_change": -0.05940594059405946
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-12-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 9390.26071712329,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "AEI",
+        "signal": "2025-12-04",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1280.3824701369817,
+        "exit_reason": "GAME_END"
+      }
+    ]
+  },
+  {
+    "year": 2025,
+    "policy": "top_half_30pct",
+    "cost": "stress",
+    "closed": 37,
+    "unknown": 0,
+    "severe": 2,
+    "stops": 5,
+    "worse_cover": 1,
+    "median_cover_change": -0.032945736434108475,
+    "rows": [
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-08",
+        "unknown": false,
+        "adverse": 0.20217917675544794,
+        "pnl": -6483.178791780819,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.20217917675544794,
+        "cover_adverse": 0.18159806295399505,
+        "cover_change": -0.017119838872104776
+      },
+      {
+        "ticker": "NVFY",
+        "signal": "2025-09-09",
+        "unknown": false,
+        "adverse": 0.04771784232365128,
+        "pnl": -2257.8352232876664,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.07692307692307687,
+        "pnl": -3203.021232876711,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ONEG",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.005447470817120603,
+        "pnl": -486.72756849314925,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-09-11",
+        "unknown": false,
+        "adverse": 0.02251184834123232,
+        "pnl": -216.58724520548074,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AMST",
+        "signal": "2025-09-12",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2818.9541739726005,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.2743682310469313,
+        "pnl": -8031.36424657534,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16967509025270755,
+        "cover_adverse": 0.2743682310469313,
+        "cover_change": 0.08950617283950613
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.06632653061224492,
+        "pnl": -639.2475342465755,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-16",
+        "unknown": false,
+        "adverse": 0.17733990147783274,
+        "pnl": -4084.756493150683,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.17733990147783274,
+        "cover_adverse": 0.13300492610837433,
+        "cover_change": -0.03765690376569053
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-17",
+        "unknown": false,
+        "adverse": 0.07365439093484416,
+        "pnl": 3934.364405479452,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.1217391304347828,
+        "pnl": -2841.1855520547956,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1217391304347828,
+        "cover_adverse": 0.08478260869565224,
+        "cover_change": -0.032945736434108475
+      },
+      {
+        "ticker": "MLGO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 488.66499726027376,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "FATN",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2745.6412753424656,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WIMI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1805.600080821919,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.03684210526315779,
+        "pnl": -15.075112328767077,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.014236111111111116,
+        "pnl": -1051.5636671232878,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.010101010101009944,
+        "pnl": 2966.3017945205493,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MSGY",
+        "signal": "2025-09-29",
+        "unknown": false,
+        "adverse": 0.04587155963302747,
+        "pnl": 21391.897079452057,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WTF",
+        "signal": "2025-09-30",
+        "unknown": false,
+        "adverse": 0.008103727714748654,
+        "pnl": -303.0342136986311,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PC",
+        "signal": "2025-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 6354.878308219179,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "QUBT",
+        "signal": "2025-10-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 319.68713424657483,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PHOE",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2417.0817342465766,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "BZAI",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.03495145631067964,
+        "pnl": 1838.5489767123327,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SWIN",
+        "signal": "2025-10-09",
+        "unknown": false,
+        "adverse": 0.04268292682926833,
+        "pnl": -2842.7178630137005,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "JFU",
+        "signal": "2025-10-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2458.5787616438383,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ACON",
+        "signal": "2025-10-13",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2326.2830246575363,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-10-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 666.0429465753446,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AEI",
+        "signal": "2025-10-28",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1900.0705315068453,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "DTCK",
+        "signal": "2025-11-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 28012.06644520548,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "SWAG",
+        "signal": "2025-11-11",
+        "unknown": false,
+        "adverse": 0.0029940119760478723,
+        "pnl": 6607.502006849312,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -1580.1531849315104,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-11-21",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2927.9448630137035,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ZJK",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 4943.688767123289,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.10995850622406622,
+        "pnl": -1194.4141726027385,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-11-28",
+        "unknown": false,
+        "adverse": 0.16091954022988508,
+        "pnl": -6145.680810958909,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16091954022988508,
+        "cover_adverse": 0.09195402298850586,
+        "cover_change": -0.05940594059405946
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-12-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 7869.612787671235,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "AEI",
+        "signal": "2025-12-04",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 486.62310136985843,
+        "exit_reason": "GAME_END"
+      }
+    ]
+  },
+  {
+    "year": 2025,
+    "policy": "top_quartile",
+    "cost": "base",
+    "closed": 26,
+    "unknown": 0,
+    "severe": 1,
+    "stops": 4,
+    "worse_cover": 1,
+    "median_cover_change": -0.0353013200998995,
+    "rows": [
+      {
+        "ticker": "NVFY",
+        "signal": "2025-09-09",
+        "unknown": false,
+        "adverse": 0.04771784232365128,
+        "pnl": -1354.7425268493112,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.07692307692307687,
+        "pnl": -2056.596236712328,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ONEG",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.005447470817120603,
+        "pnl": 262.7904441095902,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-09-11",
+        "unknown": false,
+        "adverse": 0.02251184834123232,
+        "pnl": 200.56381479451807,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AMST",
+        "signal": "2025-09-12",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3156.584344931505,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.2743682310469313,
+        "pnl": -6791.830753424655,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16967509025270755,
+        "cover_adverse": 0.2743682310469313,
+        "cover_change": 0.08950617283950613
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-16",
+        "unknown": false,
+        "adverse": 0.17733990147783274,
+        "pnl": -3314.110083561642,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.17733990147783274,
+        "cover_adverse": 0.13300492610837433,
+        "cover_change": -0.03765690376569053
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-17",
+        "unknown": false,
+        "adverse": 0.07365439093484416,
+        "pnl": 4263.898841643836,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.1217391304347828,
+        "pnl": -2174.8270778082206,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1217391304347828,
+        "cover_adverse": 0.08478260869565224,
+        "cover_change": -0.032945736434108475
+      },
+      {
+        "ticker": "FATN",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3021.8851691780815,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.03684210526315779,
+        "pnl": 312.47832109589194,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.010101010101009944,
+        "pnl": 3287.8120178082204,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MSGY",
+        "signal": "2025-09-29",
+        "unknown": false,
+        "adverse": 0.04587155963302747,
+        "pnl": 21012.38594123288,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PC",
+        "signal": "2025-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 6807.299823150686,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "QUBT",
+        "signal": "2025-10-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 921.9348142465749,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "BZAI",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.03495145631067964,
+        "pnl": 2259.9803164383598,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "JFU",
+        "signal": "2025-10-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2973.0312504109606,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-10-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1186.3535028767142,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "DTCK",
+        "signal": "2025-11-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 23491.017775342465,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "SWAG",
+        "signal": "2025-11-11",
+        "unknown": false,
+        "adverse": 0.0029940119760478723,
+        "pnl": 5018.151117808217,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -177.81810136986525,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2084.7562482191793,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ZJK",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3975.441603561644,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.10995850622406622,
+        "pnl": -3592.2665789041052,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-11-28",
+        "unknown": false,
+        "adverse": 0.16091954022988508,
+        "pnl": -3034.469863013702,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16091954022988508,
+        "cover_adverse": 0.09195402298850586,
+        "cover_change": -0.05940594059405946
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-12-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 5630.41853150685,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      }
+    ]
+  },
+  {
+    "year": 2025,
+    "policy": "top_quartile",
+    "cost": "stress",
+    "closed": 26,
+    "unknown": 0,
+    "severe": 1,
+    "stops": 4,
+    "worse_cover": 1,
+    "median_cover_change": -0.0353013200998995,
+    "rows": [
+      {
+        "ticker": "NVFY",
+        "signal": "2025-09-09",
+        "unknown": false,
+        "adverse": 0.04771784232365128,
+        "pnl": -1889.1504684931467,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.07692307692307687,
+        "pnl": -2702.679873972602,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ONEG",
+        "signal": "2025-09-10",
+        "unknown": false,
+        "adverse": 0.005447470817120603,
+        "pnl": -412.0569767123275,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-09-11",
+        "unknown": false,
+        "adverse": 0.02251184834123232,
+        "pnl": -392.92651369863256,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AMST",
+        "signal": "2025-09-12",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2511.580646575341,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-15",
+        "unknown": false,
+        "adverse": 0.2743682310469313,
+        "pnl": -7203.244301369861,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16967509025270755,
+        "cover_adverse": 0.2743682310469313,
+        "cover_change": 0.08950617283950613
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-16",
+        "unknown": false,
+        "adverse": 0.17733990147783274,
+        "pnl": -3692.2043150684913,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.17733990147783274,
+        "cover_adverse": 0.13300492610837433,
+        "cover_change": -0.03765690376569053
+      },
+      {
+        "ticker": "SONN",
+        "signal": "2025-09-17",
+        "unknown": false,
+        "adverse": 0.07365439093484416,
+        "pnl": 3566.253473972603,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ENTO",
+        "signal": "2025-09-18",
+        "unknown": false,
+        "adverse": 0.1217391304347828,
+        "pnl": -2634.7058328767134,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.1217391304347828,
+        "cover_adverse": 0.08478260869565224,
+        "cover_change": -0.032945736434108475
+      },
+      {
+        "ticker": "FATN",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2476.7276986301363,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "VERI",
+        "signal": "2025-09-22",
+        "unknown": false,
+        "adverse": 0.03684210526315779,
+        "pnl": -159.67616438356023,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "NTHI",
+        "signal": "2025-09-23",
+        "unknown": false,
+        "adverse": 0.010101010101009944,
+        "pnl": 2656.2398876712336,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MSGY",
+        "signal": "2025-09-29",
+        "unknown": false,
+        "adverse": 0.04587155963302747,
+        "pnl": 19228.93939589042,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "PC",
+        "signal": "2025-10-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 5757.106282191782,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "QUBT",
+        "signal": "2025-10-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 276.18984657534213,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "BZAI",
+        "signal": "2025-10-07",
+        "unknown": false,
+        "adverse": 0.03495145631067964,
+        "pnl": 1590.9006301369898,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "JFU",
+        "signal": "2025-10-10",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 2087.5203068493165,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "AGH",
+        "signal": "2025-10-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 556.0672287671252,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "DTCK",
+        "signal": "2025-11-06",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 22953.84175342466,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      },
+      {
+        "ticker": "SWAG",
+        "signal": "2025-11-11",
+        "unknown": false,
+        "adverse": 0.0029940119760478723,
+        "pnl": 4400.06317808219,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-20",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": -1012.0890136986324,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "SCLX",
+        "signal": "2025-11-24",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 1362.2528821917817,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "ZJK",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 3143.473235616438,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "MAGH",
+        "signal": "2025-11-25",
+        "unknown": false,
+        "adverse": 0.10995850622406622,
+        "pnl": -4490.298989041092,
+        "exit_reason": "TIME_LIMIT"
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-11-28",
+        "unknown": false,
+        "adverse": 0.16091954022988508,
+        "pnl": -3780.6986301369893,
+        "exit_reason": "STOP_SIGNAL_PREVIOUS_CLOSE",
+        "trigger_adverse": 0.16091954022988508,
+        "cover_adverse": 0.09195402298850586,
+        "cover_change": -0.05940594059405946
+      },
+      {
+        "ticker": "WOK",
+        "signal": "2025-12-02",
+        "unknown": false,
+        "adverse": 0.0,
+        "pnl": 5129.241315068494,
+        "exit_reason": "TAKE_PROFIT_SIGNAL_PREVIOUS_CLOSE"
+      }
+    ]
+  }
+]
