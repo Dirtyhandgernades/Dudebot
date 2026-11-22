@@ -15,7 +15,7 @@ if ($runs.Count -ne 1) {
         ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $folder 'monitor-history.jsonl')
     exit 2
 }
-$env:PYTHONPATH = Join-Path $PSScriptRoot 'library'
+$env:PYTHONPATH = if ($config.PSObject.Properties['library']) { $config.library } else { Join-Path $PSScriptRoot 'library' }
 & $config.python -m backtest.obsidian_board_retrieval --run-id $runs[0].id --intent $intent --directory (Join-Path $folder 'intake') 1> (Join-Path $folder 'monitor-output.json') 2> (Join-Path $folder 'monitor-error.txt')
 $result = $LASTEXITCODE
 @{at=[DateTimeOffset]::UtcNow.ToString('o'); run_id=$runs[0].id; exit_code=$result;

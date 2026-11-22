@@ -16,6 +16,8 @@ if errorlevel 1 (
 gh api repos/Dirtyhandgernades/Dudebot/actions/workflows/obsidian-free-quant-feed.yml --silent || goto failed
 set "dest=%LOCALAPPDATA%\OBSIDIAN\ResearchRunner"
 if not exist "%dest%" mkdir "%dest%" || goto failed
+if not defined OBSIDIAN_PYTHON set "OBSIDIAN_PYTHON=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Provision.ps1" -Destination "%dest%" -PythonPath "%OBSIDIAN_PYTHON%" || goto failed
 copy /y sessions.json "%dest%\sessions.json" >nul || goto failed
 copy /y RunScheduled.vbs "%dest%\RunScheduled.vbs" >nul || goto failed
 copy /y Reconcile.ps1 "%dest%\Reconcile.ps1" >nul || goto failed
