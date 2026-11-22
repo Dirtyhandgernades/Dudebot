@@ -1,0 +1,7 @@
+# Dispatch recovery verification
+
+Windows PowerShell command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File ops/obsidian-terminal/windows/Test-Reconcile.ps1. Four fresh mocked response cases passed: unique matching UUID writes accepted; unrelated title, duplicate matching title and empty result leave ownership unverified. All receipts leave retry_authorized false. Ambiguous cases return 2 and a unique match returns 0. Test saves receipts in an isolated temporary directory; no workflow submission. Test source 9c6d73f4da2daf805e800dad11c8e81e03dbbaa3.
+
+Hosted workflow syntax/offline run 44979090372 on b300a92eaf6591ab8c172fb513b012ebb6b38efa completed successfully after dispatch input and run-name changes. Push run does not test actual dispatch identity, session freshness, packet delivery or account review. Existing installed dispatcher includes request UUID creation before submission and updated recovery helper. No simulated competition actions executed.
+
+Next required integration: perform an authorized real session request and interrupt observation after submission; verify the same UUID in the hosted run and receipt without a second submission. This remains pending for an allowed exchange session. Continue independently with original training-threshold reproduction, multi-season chronological entry timing portfolios, source-dated catalyst histories and account execution gates. The full goal is incomplete and profitability remains unproven.
