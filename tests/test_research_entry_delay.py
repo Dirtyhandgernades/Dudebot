@@ -3,7 +3,7 @@ from copy import deepcopy
 import pytest
 
 from smg.intraday_replay import STRATEGY, decision_window
-from smg.swing_backtest import simulate
+from backtest.obsidian_delayed_swing import simulate
 from tests.test_intraday_replay import packet
 
 

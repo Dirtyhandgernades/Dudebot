@@ -216,26 +216,7 @@ def marked_equity(cash,positions,adjusted,day,side):
         total+=p['notional']*(1+side*(mark['c']/p['adjusted_entry']-1))
     return total
 
-def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None,research_hold_by_entry=None,research_entry_delay=0):
-    if type(research_entry_delay) is not int or research_entry_delay not in (0,1):
-        raise ValueError('Research entry delay must be zero or one session')
-    delayed_expirations=[]
-    if research_entry_delay:
-        if intraday_signals is None:
-            raise ValueError('Delayed research entry requires original intraday signals')
-        shifted=defaultdict(list)
-        for signal_day, events in intraday_signals.items():
-            signal_index=sessions.index(signal_day)
-            if signal_index+research_entry_delay<len(sessions):
-                entry_day=sessions[signal_index+research_entry_delay]
-                shifted[entry_day].extend({**event,'research_original_signal_day':signal_day} for event in events)
-                if entry_day>=end:
-                    delayed_expirations.extend({**event,'research_original_signal_day':signal_day,
-                                                'reason':'NO_ENTRY_BEFORE_EVALUATION_END'} for event in events)
-            else:
-                delayed_expirations.extend({**event,'research_original_signal_day':signal_day,
-                                            'reason':'NO_FUTURE_SESSION'} for event in events)
-        intraday_signals=dict(shifted)
+def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None,research_hold_by_entry=None):
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
     Fixed 10% initial-capital allocation, whole shares, min 10. Both sides pay
@@ -313,13 +294,12 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
                 if intraday_signals is not None:
                     if event is None:continue
                     decision=datetime.fromisoformat(event['decision_at']);cutoff=datetime.fromisoformat(event['data_cutoff'])
-                    original_day=event.get('research_original_signal_day',day) if research_entry_delay else day
-                    if decision.tzinfo is None or cutoff.tzinfo is None or decision-cutoff<timedelta(minutes=16) or decision.date().isoformat()!=original_day:
+                    if decision.tzinfo is None or cutoff.tzinfo is None or decision-cutoff<timedelta(minutes=16) or decision.date().isoformat()!=day:
                         raise ValueError('Intraday signal timestamps must precede the entry close')
-                    bounds=session_bounds(date.fromisoformat(original_day))
+                    bounds=session_bounds(date.fromisoformat(day))
                     if not bounds or not bounds[0]<=decision<bounds[1]:raise ValueError('Intraday decision outside session')
                     if day<firm_dates.get(ticker,'9999-99-99'):continue
-                    trigger=event['timing_trigger'];signal_day=original_day;sizing_price=event['decision_price']
+                    trigger=event['timing_trigger'];signal_day=day;sizing_price=event['decision_price']
                     structure_score=event['dump_structure_score']
                     if sizing_price<=3:continue
                     signals+=1;signal_events.append({**event,'signal_date':signal_day,'planned_entry_date':day})
@@ -425,8 +405,7 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
         gross_20pct_winners=sum(t['gross_return_pct']>=20-1e-10 for t in trades),gross_30pct_winners=sum(t['gross_return_pct']>=30-1e-10 for t in trades),
         signals=signals,borrow_execution=borrow_metrics(signal_events,borrow_observations),gaps=dict(gaps),
-        signal_events=signal_events,unresolved_positions=positions,trades=trades,daily_equity=curve,
-        research_entry_delay=research_entry_delay,delayed_expirations=delayed_expirations)
+        signal_events=signal_events,unresolved_positions=positions,trades=trades,daily_equity=curve)
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--replay',default='backtest/runtime/corrected-replay/decisions.json')
