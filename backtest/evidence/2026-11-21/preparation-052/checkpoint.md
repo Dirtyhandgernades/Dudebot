@@ -1,0 +1,5 @@
+# Prior-session price and calendar integration
+
+Preparation uses actual previous exchange session, expected exact scheduled close, finite prior price>=3, source reference and asserted verified receipt. Current-session regular decision window required; after short-session close blocked. Thanksgiving test acceptsNov25 prior close forNov27 and rejectsNov26 holiday reference. Fully synthetic complete evidence/account fixture passes preparation with submission_authorized false.17 focused preparation/journal tests passed. No authenticated real-data preparation, preview or submit performed.
+
+Source assertions remain adapter inputs; authenticity, identity linkage across facts, freshness of each distinct source and actual platform acceptance require integration. Existing execution_evidence stricter current price>3 policy preserved. End-of-day future fill can differ from current quote; passing assessment does not guarantee eligibility/fill or authorize order. Next inspect deployment and Monday source-to-board delivery ownership, with read-only current status and no duplicate automation; connect only supported validated stages. Full goal remains incomplete.
