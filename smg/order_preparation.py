@@ -2,6 +2,8 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from .decision_evidence import execution_evidence, latest_known, stamp
+from .market import calendar, session_bounds
+from zoneinfo import ZoneInfo
 
 
 def assess_short(action, account, rule, now, max_age_seconds):
@@ -73,6 +75,24 @@ def assess_preparation(action, account, rule, now, max_age_seconds, observations
     ticker = ticker.strip().upper()
     indication = execution_evidence(ticker, now.isoformat(), action.get('reference_price'), observations)
     result['blockers'].extend(indication['rejected'] + indication['missing'])
+    session = now.astimezone(ZoneInfo('America/New_York')).date()
+    bounds = session_bounds(session)
+    if bounds is None or not bounds[0] <= now < bounds[1]:
+        result['blockers'].append('OUTSIDE_REGULAR_DECISION_SESSION')
+    if bounds:
+        previous = calendar(session.year).previous_session(session.isoformat()).date()
+        prior = latest_known(observations, 'prior_close', ticker, now)
+        value = (prior or {}).get('value', {})
+        try:
+            price = Decimal(str(value.get('price')))
+            valid_price = price.is_finite() and price >= 3 and not isinstance(value.get('price'), bool)
+        except InvalidOperation:
+            valid_price = False
+        expected_close = session_bounds(previous)[1]
+        if (not prior or not prior.get('source') or value.get('status') != 'VERIFIED'
+                or value.get('session_date') != previous.isoformat()
+                or stamp(value.get('close_at')) != expected_close or not valid_price):
+            result['blockers'].append('PRIOR_SESSION_PRICE_UNVERIFIED_OR_INELIGIBLE')
     for kind in ('quote', 'smg_short_permission', 'corporate_actions'):
         row = latest_known(observations, kind, ticker, now, max_age_seconds)
         value = (row or {}).get('value', {})
