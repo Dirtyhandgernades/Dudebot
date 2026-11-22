@@ -1,4 +1,5 @@
 name: OBSIDIAN free quant evidence packet (research only)
+run-name: ${{ inputs.dispatch_id || github.event_name }}
 on:
   push:
     branches: [research/obsidian-early-rug-20261025]
@@ -12,6 +13,11 @@ on:
       - 'tests/test_obsidian_candidate_pipeline.py'
       - 'tests/test_obsidian_shadow_rank.py'
   workflow_dispatch:
+    inputs:
+      dispatch_id:
+        description: Unique caller request identifier
+        required: false
+        type: string
 concurrency:
   group: obsidian-free-quant-${{ github.ref }}
   cancel-in-progress: false
