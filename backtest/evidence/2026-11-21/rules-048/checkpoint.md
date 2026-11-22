@@ -1,0 +1,9 @@
+# Published SMG semantics and remaining authorization
+
+Read original official documents via TinyFish search/fetch. Rules https://www.stockmarketgame.org/document/SMG_Rules_Handout.pdf (copyright2019; returned final host167.212.44.66); guide https://www.stockmarketgame.org/assets/documents/enteringatrade.pdf (last modified2016). Legacy publication dates require account/local rules verification before unattended orders.
+
+Rules12 says 'Trades can only be processed in whole.' Thus partial-fill handling developed in intents045–047 is generic fault handling, not an expected SMG feature. Added reconcile_smg entry point rejecting partial receipts while retaining uncertain state/position claim. Eleven focused journal tests pass, including rejected partial followed by full-fill reconciliation. Caller must use SMG-specific path. Generic journal remains available for synthetic failure tests.
+
+Rules7/8 require at least3 dollars prior/day of execution,25million cap and10-share opening minimum; covers may be smaller/below3. Rule9 distinguishes real-time versus EOD. Rule18 delegates additional rules locally. The guide describes preview then confirmation, followed by transaction notes with matching confirmation reference and executed/rejected description. A preview/button click alone cannot prove execution. These documents do not establish permission for automated or external-agent competition submissions. Current local authorization, supported confirmation mechanism and sole-owner cutover remain unverified.
+
+Next supported action: read authenticated local Rules/Coordinator information and inspect blank trade interface without completing fields or confirming orders. Record required inputs/confirmation capability privately and sanitized permission evidence here. Research and account reads authorized; unattended competition execution remains gated. No orders submitted.
