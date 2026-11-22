@@ -44,7 +44,7 @@ class IntentJournal:
                 return False
             ticker = current['action']['ticker'].strip().upper()
             legacy = self.connection.execute(
-                "SELECT payload FROM intents WHERE state IN ('SUBMITTING','UNKNOWN','PENDING') "
+                "SELECT payload FROM intents WHERE state IN ('SUBMITTING','UNKNOWN','PENDING','PARTIAL') "
                 "AND intent_id NOT IN (SELECT intent_id FROM position_claims)").fetchall()
             if any(json.loads(row[0])['ticker'].strip().upper() == ticker for row in legacy):
                 self.connection.rollback()
@@ -67,14 +67,30 @@ class IntentJournal:
         self._transition(intent_id, 'SUBMITTING', 'UNKNOWN', evidence)
 
     def reconcile(self, intent_id, status, evidence):
-        if status not in ('PENDING', 'CONFIRMED', 'REJECTED'):
+        if status not in ('PENDING', 'PARTIAL', 'CONFIRMED', 'REJECTED'):
             raise ValueError('Explicit platform outcome required')
         if not isinstance(evidence, dict) or not evidence.get('platform_record'):
             raise ValueError('Platform record required')
         current = self.get(intent_id)
-        if current['state'] not in ('SUBMITTING', 'UNKNOWN', 'PENDING'):
+        if current['state'] not in ('SUBMITTING', 'UNKNOWN', 'PENDING', 'PARTIAL'):
             raise ValueError('Intent requires reconciliation')
-        self._transition(intent_id, current['state'], status, evidence)
+        filled = evidence.get('filled_shares')
+        remaining = evidence.get('remaining_shares')
+        total = current['action']['shares']
+        if type(filled) is not int or type(remaining) is not int or min(filled, remaining) < 0:
+            raise ValueError('Explicit whole-share fill quantities required')
+        previous_filled = (current['evidence'] or {}).get('filled_shares', 0)
+        if filled < previous_filled or filled + remaining > total:
+            raise ValueError('Conflicting cumulative fill quantities')
+        if status == 'CONFIRMED' and (filled != total or remaining != 0):
+            raise ValueError('Confirmation requires complete intended fill')
+        if status == 'REJECTED' and (filled != 0 or remaining != 0):
+            raise ValueError('Rejection requires no fills or pending shares')
+        if status == 'PARTIAL' and not (0 < filled < total and remaining == total - filled):
+            raise ValueError('Partial fill requires unresolved remaining quantity')
+        if status == 'PENDING' and (filled != 0 or remaining != total):
+            raise ValueError('Pending requires full unfilled quantity')
+        self._transition(intent_id, current['state'], status, evidence, current['evidence'])
 
     def get(self, intent_id):
         row = self.connection.execute(
@@ -84,13 +100,15 @@ class IntentJournal:
         return dict(action=json.loads(row[0]), state=row[1],
                     evidence=json.loads(row[2]) if row[2] else None)
 
-    def _transition(self, intent_id, previous, state, evidence):
+    def _transition(self, intent_id, previous, state, evidence, previous_evidence=None):
         receipt = json.dumps(evidence, sort_keys=True, allow_nan=False)
+        prior_receipt = (json.dumps(previous_evidence, sort_keys=True, allow_nan=False)
+                         if previous_evidence is not None else None)
         self.connection.execute('BEGIN IMMEDIATE')
         try:
             cursor = self.connection.execute(
-                'UPDATE intents SET state=?, evidence=?, updated_at=? WHERE intent_id=? AND state=?',
-                (state, receipt, self._now(), intent_id, previous))
+                'UPDATE intents SET state=?, evidence=?, updated_at=? WHERE intent_id=? AND state=? AND evidence IS ?',
+                (state, receipt, self._now(), intent_id, previous, prior_receipt))
             if cursor.rowcount != 1:
                 raise ValueError('Concurrent or invalid intent transition')
             if state in ('CONFIRMED', 'REJECTED'):
