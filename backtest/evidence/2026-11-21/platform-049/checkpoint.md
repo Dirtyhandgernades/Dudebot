@@ -1,0 +1,9 @@
+# Authenticated platform read-only walkthrough
+
+Existing scoped profile and domain-matched vault credential successfully used by TinyFish. National transaction/portfolio/participation rules, local rules and blank trade form all reported PASS. No account identifiers, positions, balances or credentials retained in this checkpoint.
+
+Inspected national path /rotg_cash.html, local path /cgi-bin/haipage/page.html?tpl=Administration/game/local_rules, region/coordinator information pages and /enterstock_cash.htm. Local DECA rules describe EOD pricing, margin up to50% total equity and maximum20% of buying power in one security. These are platform-read findings; exact complete local rule passages and effective date not independently archived yet. Rules silent on automation in inspected pages: explicit authorization unresolved, no prohibition inferred. Need verified method permission before unattended competition cutover per user requirement.
+
+Blank form shows direction group Buy/Sell/Short Sell/Short Cover, symbol/name, market/limit order type, shares, limit price, Clear Values and Preview Trade. Fields untouched; ticker validation, preview and confirmation not exercised. No confirmation control visible on blank screen; do not infer supported next step or order capability from that alone. End-to-end non-submitting preparation/rejection/confirmation remains unverified.
+
+Next integrate documented local20%-buying-power limit into a research-only preparation assessor using fresh reconciled existing exposure and pending quantities. Preserve original frozen historical models. Historical30%-equity cap can equal20% of assumed1.5x equity buying power but that equivalence does not hold automatically for the actual available-account figure, changing margin, holdings or pending exposure. Resolve source definitions before claiming live compliance. Keep permission/confirmation evidence incomplete and execution disabled until verified. No order actions taken.
