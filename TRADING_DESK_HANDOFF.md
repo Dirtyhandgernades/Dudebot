@@ -1,3 +1,7 @@
+# Current checkpoint — November 21 research continuation
+
+Latest verified continuation: [parity-042](backtest/evidence/2026-11-21/parity-042/checkpoint.md). All96 portfolio replays exactly match saved outputs after isolating delayed research from the frozen simulator. Full offline suite1301 tests/326 subtests passed. Hosted outcome checks run44979955962 passed. Blanket entry delay rejected; reduced sizing fails promotion. Read-only vault-backed SMG authentication passed in the private Codex session; credentials and account details remain outside this repository. Live unattended dispatch, decision receipt, account reconciliation, confirmation and sole execution ownership remain separate open gates. Previous authentication-blocker entries below are historical observations. Existing Portfolio Desk remains owner pending verified authorized cutover. No strategy promoted or order submitted by this continuation.
+
 # OBSIDIAN research handoff to the ChatGPT Portfolio Desk
 
 Codex maintains offline research, experiments and reviewed evidence. Current holdings, account decisions and scheduling remain with the existing ChatGPT Portfolio Desk. The latest [issuer sensitivity diagnostic](backtest/evidence/2026-11-21/issuer-sensitivity/results.json) measures historical alert precision and recall within the hybrid sample. The [Monday portfolio checklist](backtest/evidence/2026-11-21/monday-position-review/desk-checklist.md) remains available to the desk.
