@@ -1,0 +1,482 @@
+[
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 4414.02,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.061,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": 2769.52,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.575,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 8572.22,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.061,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 6759.44,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.575,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 18658.11,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.059,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 16487.95,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 4.069,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 18457.15,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 3.776,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 16117.03,
+    "closed_trades": 3,
+    "max_observed_drawdown_pct": 4.954,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 2220.18,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.077,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": 1692.9,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.254,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 2735.9,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.077,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 2149.74,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.254,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 2859.18,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.077,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 2211.4,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.434,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 2713.33,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 0.621,
+    "account_insolvent": false
+  },
+  {
+    "year": 2023,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 1939.56,
+    "closed_trades": 1,
+    "max_observed_drawdown_pct": 1.2,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 11975.69,
+    "closed_trades": 28,
+    "max_observed_drawdown_pct": 25.085,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": -2908.2,
+    "closed_trades": 28,
+    "max_observed_drawdown_pct": 31.507,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 28697.16,
+    "closed_trades": 20,
+    "max_observed_drawdown_pct": 25.303,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 14608.67,
+    "closed_trades": 20,
+    "max_observed_drawdown_pct": 30.293,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 39124.52,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 25.691,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 25305.11,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 29.486,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 38047.28,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 29.46,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 22155.96,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 34.031,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 11283.88,
+    "closed_trades": 20,
+    "max_observed_drawdown_pct": 20.293,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": 1846.26,
+    "closed_trades": 20,
+    "max_observed_drawdown_pct": 24.56,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 26166.13,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 19.933,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 16547.62,
+    "closed_trades": 16,
+    "max_observed_drawdown_pct": 23.625,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 35277.28,
+    "closed_trades": 14,
+    "max_observed_drawdown_pct": 16.372,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 26233.91,
+    "closed_trades": 14,
+    "max_observed_drawdown_pct": 19.758,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 32260.11,
+    "closed_trades": 14,
+    "max_observed_drawdown_pct": 20.903,
+    "account_insolvent": false
+  },
+  {
+    "year": 2024,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 21857.51,
+    "closed_trades": 14,
+    "max_observed_drawdown_pct": 25.296,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 68874.12,
+    "closed_trades": 51,
+    "max_observed_drawdown_pct": 13.53,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": 29546.81,
+    "closed_trades": 51,
+    "max_observed_drawdown_pct": 17.374,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 59117.51,
+    "closed_trades": 39,
+    "max_observed_drawdown_pct": 19.0,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 26098.69,
+    "closed_trades": 39,
+    "max_observed_drawdown_pct": 24.849,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 103258.54,
+    "closed_trades": 36,
+    "max_observed_drawdown_pct": 19.966,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 64020.56,
+    "closed_trades": 37,
+    "max_observed_drawdown_pct": 25.171,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 138015.62,
+    "closed_trades": 35,
+    "max_observed_drawdown_pct": 10.428,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "aggressive",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 96507.49,
+    "closed_trades": 35,
+    "max_observed_drawdown_pct": 15.048,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "base",
+    "net_profit": 26115.18,
+    "closed_trades": 34,
+    "max_observed_drawdown_pct": 12.35,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 1,
+    "cost": "stress",
+    "net_profit": 9321.39,
+    "closed_trades": 34,
+    "max_observed_drawdown_pct": 16.681,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "base",
+    "net_profit": 38487.62,
+    "closed_trades": 27,
+    "max_observed_drawdown_pct": 12.745,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 2,
+    "cost": "stress",
+    "net_profit": 21613.34,
+    "closed_trades": 27,
+    "max_observed_drawdown_pct": 16.308,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "base",
+    "net_profit": 67549.55,
+    "closed_trades": 26,
+    "max_observed_drawdown_pct": 11.798,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 3,
+    "cost": "stress",
+    "net_profit": 49488.44,
+    "closed_trades": 26,
+    "max_observed_drawdown_pct": 15.903,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "base",
+    "net_profit": 83230.07,
+    "closed_trades": 25,
+    "max_observed_drawdown_pct": 6.376,
+    "account_insolvent": false
+  },
+  {
+    "year": 2025,
+    "benchmark": "quartile",
+    "hold": 5,
+    "cost": "stress",
+    "net_profit": 62952.29,
+    "closed_trades": 25,
+    "max_observed_drawdown_pct": 10.015,
+    "account_insolvent": false
+  }
+]
