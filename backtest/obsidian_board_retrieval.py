@@ -2,6 +2,8 @@
 import argparse
 import json
 import subprocess
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,14 +48,36 @@ def retrieve(run_id, intent, directory):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     archive = directory / f'artifact-{artifact["id"]}.zip'
-    payload = api(f'actions/artifacts/{artifact["id"]}/zip')
-    # Preserve the actual downloaded bytes before validation, including failures.
-    with archive.open('xb') as output:
-        output.write(payload)
+    if not archive.exists():
+        payload = api(f'actions/artifacts/{artifact["id"]}/zip')
+        # Atomic publication preserves incomplete temporary downloads for diagnosis.
+        with tempfile.NamedTemporaryFile(dir=directory, suffix='.partial', delete=False) as output:
+            output.write(payload)
+            output.flush()
+            os.fsync(output.fileno())
+            temporary = Path(output.name)
+        os.link(temporary, archive)
+        temporary.unlink()
+    receipt_path = directory / 'receipt.json'
+    if receipt_path.exists():
+        saved = json.loads(receipt_path.read_text())
+        if (saved.get('run_id') != run_id or saved.get('intent') != intent
+                or saved.get('artifact_id') != artifact['id']):
+            raise ValueError('EXISTING_RECEIPT_IDENTITY_MISMATCH')
+        verified = intake(archive, digest[7:], run_id, datetime.fromisoformat(saved['received_at']))
+        if any(saved.get(key) != value for key, value in verified.items()):
+            raise ValueError('EXISTING_RECEIPT_CONTENT_MISMATCH')
+        return saved
     receipt = intake(archive, digest[7:], run_id, datetime.now(timezone.utc))
     receipt.update(intent=intent, artifact_id=artifact['id'], run_identity_verified=True)
-    with (directory / 'receipt.json').open('x', encoding='utf-8') as output:
+    with tempfile.NamedTemporaryFile(mode='w', dir=directory, suffix='.receipt-partial',
+                                     encoding='utf-8', delete=False) as output:
         json.dump(receipt, output, indent=2)
+        output.flush()
+        os.fsync(output.fileno())
+        temporary = Path(output.name)
+    os.link(temporary, receipt_path)
+    temporary.unlink()
     return receipt
 
 
