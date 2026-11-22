@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$Day)
 $ErrorActionPreference = 'Stop'
-# Only a unique dispatch in this session window can reconcile the legacy lock.
+# Legacy locks retain time-window observations; identified requests match exact run titles.
 $folder = Join-Path $PSScriptRoot "state/$Day"
 if (!(Test-Path -LiteralPath $folder)) { exit 2 }
 $minutes = (Get-Content -Raw (Join-Path $PSScriptRoot 'sessions.json') | ConvertFrom-Json).PSObject.Properties[$Day].Value
@@ -15,16 +15,27 @@ $runs = @((($json -join [Environment]::NewLine) | ConvertFrom-Json).workflow_run
     $created = ([DateTimeOffset]$_.created_at).UtcDateTime
     $created -ge $start -and $created -lt $end
 })
-# Time-only legacy matching cannot prove ownership, so retain an observation
-# without setting accepted or authorizing a resubmission.
+$intentPath = Join-Path $folder 'intent.txt'
+$verified = $false
+if (Test-Path -LiteralPath $intentPath) {
+    $intent = (Get-Content -Raw -LiteralPath $intentPath).Trim()
+    $parsed = [guid]::Empty
+    if (![guid]::TryParse($intent, [ref]$parsed)) { throw 'Invalid dispatch intent' }
+    $runs = @($runs | Where-Object { $_.display_title -ceq $intent })
+    $verified = $runs.Count -eq 1
+}
 $receipt = [ordered]@{
     observed_at = [DateTimeOffset]::UtcNow.ToString('o')
     session = $Day
-    ownership_verified = $false
+    ownership_verified = $verified
     retry_authorized = $false
-    candidate_runs = @($runs | Select-Object id,status,conclusion,created_at,html_url)
+    candidate_runs = @($runs | Select-Object id,status,conclusion,created_at,html_url,display_title)
 }
 $temp = Join-Path $folder 'reconciliation.tmp'
 $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $temp -Encoding utf8
 Move-Item -LiteralPath $temp -Destination (Join-Path $folder 'reconciliation.json') -Force
+if ($verified) {
+    [IO.File]::WriteAllText((Join-Path $folder 'accepted'), "Matched GitHub run " + $runs[0].id)
+    exit 0
+}
 exit 2
