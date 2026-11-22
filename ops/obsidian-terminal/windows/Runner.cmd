@@ -14,5 +14,7 @@ if exist "state\%day%" (
 )
 gh api repos/Dirtyhandgernades/Dudebot/actions/workflows/obsidian-free-quant-feed.yml --silent || exit /b 1
 mkdir "state\%day%" 2>nul || exit /b 2
-gh workflow run obsidian-free-quant-feed.yml --repo Dirtyhandgernades/Dudebot --ref research/obsidian-early-rug-20261025 || exit /b 2
+powershell.exe -NoProfile -Command "[guid]::NewGuid().ToString() | Set-Content -Encoding ASCII 'state\%day%\intent.txt'" || exit /b 2
+set /p intent=<"state\%day%\intent.txt"
+gh workflow run obsidian-free-quant-feed.yml -f "dispatch_id=%intent%" --repo Dirtyhandgernades/Dudebot --ref research/obsidian-early-rug-20261025 || exit /b 2
 echo Dispatch accepted>"state\%day%\accepted"
