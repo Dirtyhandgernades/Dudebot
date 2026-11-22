@@ -47,8 +47,9 @@ def in_window(at):
     # A naive datetime can silently be interpreted in the runner's local timezone.
     if not isinstance(at, datetime) or at.utcoffset() is None:
         return False
-    local = at.astimezone(CENTRAL)
-    return local.weekday() < 5 and time(14, 45) <= local.time().replace(tzinfo=None) <= time(14, 58)
+    from smg.market import session_bounds
+    bounds = session_bounds(at.astimezone(CENTRAL).date())
+    return bool(bounds and bounds[1] - timedelta(minutes=15) <= at <= bounds[1] - timedelta(minutes=2))
 
 
 class ProviderAuthError(RuntimeError):
