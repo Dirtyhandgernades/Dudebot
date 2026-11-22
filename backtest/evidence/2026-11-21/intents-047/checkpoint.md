@@ -1,0 +1,5 @@
+# Order-intent transition history
+
+Ten focused offline tests passed. Added ordered intent_events history for preparation, submit claim and each reconciliation, transactionally committed with state and claim updates. Injected event-insert failure rolls back both submit state and account/ticker claim. Partial/cancel/restart history retains earlier unresolved quantity. Legacy rows get one explicitly named MIGRATION_SNAPSHOT:<state> at actual migration observation time; missing past events not reconstructed. Reopening does not duplicate snapshots. Application writes append events; database administrators can still modify local store. No platform authenticity or submission integration established.
+
+Next audit preparation requirements against actual supported SMG interface and local competition constraints, then test rejecting missing permission/account/confirmation evidence before claims. Avoid deploying journal as execution authorization. Complete data-source clocks, Monday pipeline receipts, independent outcomes and actual position review remain open parts of full objective. No orders submitted and goal remains active.
