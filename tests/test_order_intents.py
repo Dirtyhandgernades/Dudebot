@@ -124,8 +124,38 @@ def test_cancelled_remainder_preserves_fills_across_restart(tmp_path):
     assert current['state'] == 'CANCELLED'
     assert current['action']['shares'] == 10
     assert current['evidence']['filled_shares'] == 4
+    assert [event['state'] for event in journal.history('a')] == [
+        'PREPARED', 'SUBMITTING', 'PARTIAL', 'CANCELLED']
+    assert journal.history('a')[2]['evidence']['remaining_shares'] == 6
     assert not journal.claim_submission('a', 'account')
     assert journal.claim_submission('b', 'account')
     journal.close()
+
+
+def test_failed_history_write_rolls_back_state_and_position_claim(tmp_path):
+    journal = IntentJournal(tmp_path / 'intents.sqlite')
+    journal.prepare('a', dict(ticker='TEST', side='SHORT', shares=10))
+    journal.connection.execute("""CREATE TRIGGER fail_events BEFORE INSERT ON intent_events
+        BEGIN SELECT RAISE(ABORT, 'test failure'); END""")
+    assert not journal.claim_submission('a', 'account')
+    assert journal.get('a')['state'] == 'PREPARED'
+    assert journal.connection.execute('SELECT count(*) FROM position_claims').fetchone()[0] == 0
+    assert len(journal.history('a')) == 1
+    journal.close()
+
+
+def test_legacy_history_snapshot_is_explicit_and_not_duplicated(tmp_path):
+    path = tmp_path / 'intents.sqlite'
+    journal = IntentJournal(path)
+    journal.prepare('old', dict(ticker='TEST', side='SHORT', shares=10))
+    journal.connection.execute('DELETE FROM intent_events')
+    journal.connection.execute("UPDATE intents SET state='UNKNOWN' WHERE intent_id='old'")
+    journal.close()
+    for _ in range(2):
+        journal = IntentJournal(path)
+        events = journal.history('old')
+        assert len(events) == 1
+        assert events[0]['state'] == 'MIGRATION_SNAPSHOT:UNKNOWN'
+        journal.close()
 
 

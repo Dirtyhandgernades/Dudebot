@@ -14,6 +14,13 @@ class IntentJournal:
             account_scope TEXT NOT NULL, ticker TEXT NOT NULL,
             intent_id TEXT NOT NULL UNIQUE,
             PRIMARY KEY (account_scope, ticker))''')
+        self.connection.execute('''CREATE TABLE IF NOT EXISTS intent_events (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT, intent_id TEXT NOT NULL,
+            state TEXT NOT NULL, evidence TEXT, observed_at TEXT NOT NULL)''')
+        self.connection.execute('''INSERT INTO intent_events (intent_id,state,evidence,observed_at)
+            SELECT intent_id,'MIGRATION_SNAPSHOT:' || state,evidence,
+                strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM intents
+            WHERE NOT EXISTS (SELECT 1 FROM intent_events e WHERE e.intent_id=intents.intent_id)''')
 
     def close(self):
         self.connection.close()
@@ -28,9 +35,15 @@ class IntentJournal:
         if not isinstance(action.get('ticker'), str) or not action['ticker'].strip():
             raise ValueError('Ticker required')
         payload = json.dumps(action, sort_keys=True, allow_nan=False)
-        with self.connection:
+        self.connection.execute('BEGIN IMMEDIATE')
+        try:
             self.connection.execute('INSERT INTO intents VALUES (?, ?, ?, NULL, ?)',
                                     (intent_id, payload, 'PREPARED', self._now()))
+            self._event(intent_id, 'PREPARED', None)
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def claim_submission(self, intent_id, account_scope=None):
         # A single atomic compare-and-set grants at most one submit attempt.
@@ -54,6 +67,7 @@ class IntentJournal:
             self.connection.execute(
                 "UPDATE intents SET state='SUBMITTING', updated_at=? WHERE intent_id=?",
                 (self._now(), intent_id))
+            self._event(intent_id, 'SUBMITTING', None)
             self.connection.commit()
             return True
         except sqlite3.IntegrityError:
@@ -113,12 +127,25 @@ class IntentJournal:
                 (state, receipt, self._now(), intent_id, previous, prior_receipt))
             if cursor.rowcount != 1:
                 raise ValueError('Concurrent or invalid intent transition')
+            self._event(intent_id, state, receipt)
             if state in ('CONFIRMED', 'REJECTED', 'CANCELLED'):
                 self.connection.execute('DELETE FROM position_claims WHERE intent_id=?', (intent_id,))
             self.connection.commit()
         except Exception:
             self.connection.rollback()
             raise
+
+    def history(self, intent_id):
+        self.get(intent_id)
+        return [dict(sequence=row[0], state=row[1], evidence=json.loads(row[2]) if row[2] else None,
+                     observed_at=row[3]) for row in self.connection.execute(
+                         'SELECT sequence,state,evidence,observed_at FROM intent_events '
+                         'WHERE intent_id=? ORDER BY sequence', (intent_id,))]
+
+    def _event(self, intent_id, state, receipt):
+        self.connection.execute(
+            'INSERT INTO intent_events (intent_id,state,evidence,observed_at) VALUES (?, ?, ?, ?)',
+            (intent_id, state, receipt, self._now()))
 
     @staticmethod
     def _now():
