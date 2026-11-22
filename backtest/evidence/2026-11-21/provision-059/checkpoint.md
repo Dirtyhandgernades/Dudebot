@@ -1,0 +1,5 @@
+# Windows monitor provisioning
+
+Added Provision.ps1 with explicit destination and Python executable. Copies retrieval/intake into versioned local library, verifies actual Python imports before publishing runtime.json, copies runner/helpers/calendar and retains prior library. Tested under Windows PowerShell in isolated workspace directory and actual installed runner directory; imports passed. Monitor resolves configured versioned library; three injected observations still passed. Setup now invokes provisioning using OBSIDIAN_PYTHON override or bundled Codex Python default. Missing executable fails visibly. No extra task created.
+
+First isolated test exposed PowerShell5 param-default PSScriptRoot availability; moved default source-root resolution into script body, rerun passed. Full Setup interactive GitHub login and task-registration path not rerun; existing task retained. Standalone distributed ZIP must include Provision/Monitor/library payload; repository checkout install has source access, release archive packaging still unverified. Runtime depends on installed Python and awake/signed-in PC. No live packet freshness, decision receipt or execution verified.
