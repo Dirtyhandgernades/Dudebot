@@ -1,0 +1,5 @@
+# Prospective outcome and platform repair
+
+Read Oct29 evaluation registration and coverage summary:8502 symbols x4 horizons=34008 slots per capture originally without outcomes. These are saved registration-time unknowns; no current authenticated replacement outcome dataset was established in this audit. No precision/recall calculated or outcomes synthesized.
+
+Legacy scorer used fixed16:00 Eastern close and previous weekday; replaced with actual exchange session close and previous exchange session. Focused holiday/early-close regression remains pending. Running existing outcome tests on Windows first failed in capture persistence with UNIVERSE_HASH_MISMATCH. Reproduced before outcome scoring: JSONL text writer translated LF to CRLF, while hash used LF bytes. Added explicit newline LF to the atomic staged capture writer. All11 existing prospective outcome tests now pass under Windows. Capture verification remains active. No existing saved capture was modified or rehashed. Need focused cross-platform byte tests and boundary calendar tests before broad verification. Full goal remains incomplete.
