@@ -5,6 +5,7 @@ import json
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 def intake(archive, expected_sha256, run_id, received_at):
@@ -24,6 +25,8 @@ def intake(archive, expected_sha256, run_id, received_at):
     packet_hash = hashlib.sha256(raw).hexdigest()
     if board.get('source_packet_sha256') != packet_hash:
         raise ValueError('BOARD_SOURCE_HASH_MISMATCH')
+    if board.get('source_packet_at') != packet.get('finished_at'):
+        raise ValueError('BOARD_SOURCE_TIMESTAMP_MISMATCH')
     symbols = packet['requested_symbols']
     board_symbols = [row['ticker'] for row in board['rows']]
     if (len(symbols) != len(set(symbols)) or len(board_symbols) != len(set(board_symbols))
@@ -39,6 +42,26 @@ def intake(archive, expected_sha256, run_id, received_at):
                 packet_sha256=packet_hash, board_sha256=hashlib.sha256(board_raw).hexdigest(),
                 roster_count=len(symbols), packet_age_seconds=(received_at-source_at).total_seconds(),
                 intake_verified=True, decision_review_completed=False, submission_authorized=False)
+
+
+def delivery_check(receipt, deadline, max_age_seconds):
+    if deadline.utcoffset() is None or type(max_age_seconds) is not int or max_age_seconds <= 0:
+        raise ValueError('Aware deadline and explicit positive freshness limit required')
+    received = datetime.fromisoformat(receipt['received_at'])
+    source = datetime.fromisoformat(receipt['source_packet_at'])
+    blockers = []
+    if receipt.get('intake_verified') is not True:
+        blockers.append('INTAKE_UNVERIFIED')
+    if received > deadline:
+        blockers.append('DELIVERY_LATE')
+    if not 0 <= (received-source).total_seconds() <= max_age_seconds:
+        blockers.append('PACKET_STALE_OR_FUTURE')
+    zone = ZoneInfo('America/New_York')
+    if source.astimezone(zone).date() != deadline.astimezone(zone).date():
+        blockers.append('SOURCE_SESSION_MISMATCH')
+    return dict(delivery_eligible=not blockers, blockers=blockers,
+                deadline=deadline.isoformat(), max_age_seconds=max_age_seconds,
+                decision_review_completed=False, submission_authorized=False)
 
 
 def main():
