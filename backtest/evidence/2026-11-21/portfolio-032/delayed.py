@@ -2,7 +2,7 @@ import gzip,json,sys,zipfile
 from pathlib import Path
 from smg.risk_model import feature_row,predict
 from smg.models import Config
-from smg.swing_backtest import simulate
+from backtest.obsidian_delayed_swing import simulate
 with zipfile.ZipFile(sys.argv[1]) as z:
  packet=json.loads(gzip.decompress(z.read("firm-timing-inputs.json.gz")))
  events={y:json.loads(z.read(f"{y}-hybrid-signals.json")) for y in (2023,2024,2025)}
@@ -31,3 +31,4 @@ Path(sys.argv[3]).write_text(json.dumps(out,indent=2))
 print("Completed",len(out),"delayed-entry simulations")
 for row in out:
  if row["hold"]==3:print(row)
+

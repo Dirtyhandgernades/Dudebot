@@ -2,7 +2,7 @@ import gzip,json,sys,zipfile
 from pathlib import Path
 from smg.risk_model import feature_row,predict
 from smg.models import Config
-from smg.swing_backtest import simulate
+from backtest.obsidian_delayed_swing import simulate
 from backtest.obsidian_strategy_lab import stats
 with zipfile.ZipFile(sys.argv[1]) as z:
  packet=json.loads(gzip.decompress(z.read("firm-timing-inputs.json.gz")))
@@ -32,3 +32,4 @@ Path(sys.argv[3]).write_text(json.dumps(out,indent=2))
 print("Completed",len(out),"delayed-entry simulations")
 for row in out:
  if row["hold"]==3:print(row["year"],row["benchmark"],row["cost"],round(row["metrics"]["net_profit"],2),row["metrics"]["closed_trades"],round(row["metrics"]["largest_issuer_fraction_of_net_profit"] or 0,3),row["metrics"]["remove_top_winners_fixed_ledger"])
+

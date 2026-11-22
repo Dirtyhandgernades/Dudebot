@@ -27,8 +27,9 @@ with zipfile.ZipFile(sys.argv[2]) as z:
       archived=json.loads(z.read(f"backtest/target-rank-2026-10-05/{year}-{policy}-{target}-{case}.json"))
       assert abs(r["net_profit"]-archived["net_profit"])<1e-6
       assert r["closed_trades"]==archived["closed_trades"]
-     out.append(dict(year=year,benchmark=name,hold=hold,cost=case,metrics=stats(r,packet),gaps=r["gaps"],expirations=r["delayed_expirations"],input_signal_count=sum(map(len,selected.values())),observed_event_count=len(r["signal_events"])))
+     out.append(dict(year=year,benchmark=name,hold=hold,cost=case,metrics=stats(r,packet),gaps=r["gaps"],expirations=r.get("delayed_expirations",[]),input_signal_count=sum(map(len,selected.values())),observed_event_count=len(r["signal_events"])))
 Path(sys.argv[3]).write_text(json.dumps(out,indent=2))
 print("Completed",len(out),"baseline simulations; 12 archived three-session reconciliations passed")
 for row in out:
  if row["hold"]==3:print(row["year"],row["benchmark"],row["cost"],round(row["metrics"]["net_profit"],2),row["metrics"]["closed_trades"],round(row["metrics"]["largest_issuer_fraction_of_net_profit"] or 0,3),row["metrics"]["remove_top_winners_fixed_ledger"])
+
