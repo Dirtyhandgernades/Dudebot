@@ -1,0 +1,5 @@
+# PowerShell monitor orchestration
+
+Executed Windows PowerShell -NoProfile -ExecutionPolicy Bypass -File Test-Monitor.ps1. Three injected states pending/success/failure returned expected child exit codes; all three persisted in append-only monitor-history.jsonl. Injected gh and Python function stand-ins; no live API/download or scheduling inferred. Monitor now records unique-run uncertainty and API nonzero failures, plus child output/error/runID/time each observation. Updated installed helper. Configuration-read exceptions and missing state still surface task errors; fresh-install packaging and actual scheduled receipt remain unverified.
+
+Next provision Monitor/library/runtime through Setup with verified interpreter import test, then exercise installed existing task with safe isolated state. Need live UUID-bound run and actual packet during eligible collection window for complete proof. Current pending response does not imply intake success; decision consumer and source freshness review remain open.
