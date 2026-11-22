@@ -9,7 +9,7 @@ if not defined day exit /b 0
 if not exist state mkdir state
 if exist "state\%day%\accepted" exit /b 0
 if exist "state\%day%" (
-  powershell.exe -NoProfile -File "%~dp0Reconcile.ps1" -Day "%day%"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Reconcile.ps1" -Day "%day%"
   exit /b 2
 )
 gh api repos/Dirtyhandgernades/Dudebot/actions/workflows/obsidian-free-quant-feed.yml --silent || exit /b 1
