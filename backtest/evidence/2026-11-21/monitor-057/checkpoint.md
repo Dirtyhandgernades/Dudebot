@@ -1,0 +1,7 @@
+# Existing Windows task monitor integration
+
+Installed Monitor.ps1, isolated library/backtest intake/retrieval modules and local runtime.json pointing to verified bundled Python. Installed library import passed; Monitor syntax parsed. Existing Runner now observes accepted UUID request through15-minute window (14:20–14:35 normal, relative installed calendar on early close), while new dispatch remains limited to first5minutes. Same scheduled task retained, off-window invocation last result0. No duplicate automation.
+
+Monitor reads exact UUID, locates unique dispatch run, invokes retrieval with identity checks and exclusive receipt, captures output/errors locally. No actual live session run completed in this path yet. Monitoring stops at board deadline; slow/late run after deadline not yet captured automatically. Current Setup.cmd packaging does not yet provision runtime.json/library/Monitor, so new installation readiness remains incomplete; this PC was explicitly provisioned. Error files currently latest observation rather than immutable per-attempt history. Read retries bounded by next minute task, no automatic redispatch. Decision consumer/account join still absent. No current board delivery or execution claimed.
+
+Next test monitor against injected pending/success/failure responses under Windows PowerShell, add explicit latest status and append-only failure observation, then make Setup provision verified runtime dependencies without secrets. Private runtime paths and state remain local. Full goal remains active.
