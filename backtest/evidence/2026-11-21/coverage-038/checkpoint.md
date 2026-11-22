@@ -1,0 +1,7 @@
+# Independent evaluation coverage
+
+Registered sizing-037. Ran inventory.py hybrid.zip with repository PYTHONPATH, hash-verified original archive from training-030 and exchange calendar. Zero portfolio simulations.415 raw symbols;521 indexed session dates Jun1 2022–Dec5 2025. Year2022:148 dates with any raw bar,130 indexed,103 exchange sessions absent.2023:250 raw,130 indexed,120 raw dates outside index.2024:252 raw,130 indexed,122 outside index.2025:233 raw,131 indexed,17 absent Dec8–31.2026:zero raw or indexed. Calendar presence does not prove complete per-issuer data.
+
+No independent window established. All2023–25 were explicitly inspected development data, and some additional raw bars informed prior training. Original index remains frozen. Prior iteration017 calendar coverage also identifies absent original signal coverage Aug1–Sep5 and lateDec2025. Missing source data cannot be labeled a no-trade period.2026 historical bars require acquisition and authentication before evaluation.
+
+Next registered audit: inspect prospective outcome registrations and due horizons against existing source receipts, identity/action review and official-close evidence for flagged and unflagged names. Unknown counts precede precision/recall; no synthetic verification fields. Current account, source freshness, scheduler and execution gates remain open alongside research. Full objective remains incomplete.
