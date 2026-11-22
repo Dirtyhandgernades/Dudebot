@@ -1,0 +1,9 @@
+# Replay parity and current readiness
+
+Executed portfolio-033/baseline.py and delayed.py with original hybrid.zip and lab.zip, repository PYTHONPATH. Compared parsed JSON to committed baseline-metrics.json and delayed-metrics.json. Both exact matches across all96 simulations, including metrics, gap inventories, event counts and delayed expirations.12 baseline archive reconciliations again passed. Isolated research simulator preserves historical outputs while frozen smg implementation fingerprints remain valid. Full local suite previously1301 tests/326 subtests passed.
+
+Hosted prospective run44979955962, job137078073498, commit9939abbd04f938a9047c16c557e74a2d2fbb53b1 completed install and offline-validation steps successfully after pinned dependencies/calendar test integration. Earlier failed runs44979914298/44979832574 preserved. No market collection inferred from offline completion.
+
+Research verdict: reproducible inspected development results, blanket delay rejected, smaller cap reduces drawdown but fails profit/concentration gates. Monday operations: Windows dispatcher and vault-backed manual tool invocation tested separately; live session dispatch-recovery/board receipt/account join unverified. Execution: read-only authentication passed in private session, no supported non-submitting order lifecycle or sole-owner cutover verified. Profitability: insufficient independent windows/trades and concentration gates failed. No existing execution automation disabled or replaced.
+
+Next work: inspect execution guard's normal preparation/rejection/duplicate/timeout/reconciliation entry points and run offline fault cases. Keep actual account data private. Platform/local permission and existing confirmation remain required for unattended competition orders. Preserve other research streams including primary catalyst chronology, prospective full-denominator outcomes and provider freshness.
