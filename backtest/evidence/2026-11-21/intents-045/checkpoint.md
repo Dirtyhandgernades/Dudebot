@@ -1,0 +1,5 @@
+# Partial-fill journal validation
+
+Seven offline journal tests passed. Added PARTIAL state, whole-share cumulative filled/remaining assertions, full-quantity confirmation, zero-fill rejection and monotonic cumulative fills. PARTIAL retains account/ticker claim. Reconciliation compare-and-set now checks prior evidence as well as prior state, rejecting stale same-state updates from concurrent readers. Partial-fill cancellation cannot masquerade as REJECTED; remains unresolved until explicit cancelled-remainder semantics are implemented. No live adapter or authenticated record validation exists yet; reference strings in tests are synthetic. No orders submitted.
+
+Next add terminal cancelled remainder with immutable executed quantity and explicit remaining zero, preserving distinction from full fill or zero-fill rejection. Restart and cross-intent controls must continue to hold. Then evaluate actual supported platform confirmation interface and competition authorization before connecting submission. Research and prospective source collection remain independent workstreams; goal incomplete.
