@@ -159,3 +159,18 @@ def test_legacy_history_snapshot_is_explicit_and_not_duplicated(tmp_path):
         journal.close()
 
 
+def test_smg_partial_receipt_retains_unresolved_position_lock(tmp_path):
+    journal = IntentJournal(tmp_path / 'intents.sqlite')
+    action = dict(ticker='TEST', side='SHORT', shares=10)
+    journal.prepare('a', action)
+    journal.prepare('b', action)
+    assert journal.claim_submission('a', 'account')
+    with pytest.raises(ValueError, match='Unexpected SMG'):
+        journal.reconcile_smg('a', 'PARTIAL', dict(platform_record='bad', filled_shares=4, remaining_shares=6))
+    assert journal.get('a')['state'] == 'SUBMITTING'
+    assert not journal.claim_submission('b', 'account')
+    journal.reconcile_smg('a', 'CONFIRMED', dict(platform_record='whole-fill', filled_shares=10, remaining_shares=0))
+    assert journal.get('a')['state'] == 'CONFIRMED'
+    journal.close()
+
+

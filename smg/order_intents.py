@@ -108,6 +108,14 @@ class IntentJournal:
             raise ValueError('Cancellation requires an ended unfilled remainder')
         self._transition(intent_id, current['state'], status, evidence, current['evidence'])
 
+    def reconcile_smg(self, intent_id, status, evidence):
+        """Apply SMG's published whole-fill semantics to adapter receipts."""
+        current = self.get(intent_id)
+        filled = evidence.get('filled_shares') if isinstance(evidence, dict) else None
+        if status == 'PARTIAL' or (type(filled) is int and 0 < filled < current['action']['shares']):
+            raise ValueError('Unexpected SMG partial fill; retain unresolved state and investigate')
+        self.reconcile(intent_id, status, evidence)
+
     def get(self, intent_id):
         row = self.connection.execute(
             'SELECT payload, state, evidence FROM intents WHERE intent_id=?', (intent_id,)).fetchone()
