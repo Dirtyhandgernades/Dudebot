@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from smg.order_preparation import assess_short
+from smg.order_preparation import assess_short, assess_preparation
 
 
 def test_existing_and_pending_exposure_count_toward_limit():
@@ -26,3 +26,14 @@ def test_missing_pending_and_unverified_denominator_block():
     assert 'PENDING_ACTIVITY_UNRECONCILED' in result['blockers']
     assert 'LIMIT_DENOMINATOR_UNVERIFIED' in result['blockers']
     assert 'PENDING_UNKNOWN_OR_INVALID' in result['blockers']
+
+
+def test_recent_receipt_cannot_refresh_stale_quote_source():
+    now = datetime(2026, 11, 23, 20, 30, tzinfo=timezone.utc)
+    rows = [dict(kind='quote', subject='TEST', source='fixture', observed_at=now.isoformat(),
+                 value=dict(status='VERIFIED', price=10, source_timestamp='2026-11-23T20:00:00Z'))]
+    result = assess_preparation(dict(ticker='TEST', side='SHORT', shares=10, reference_price=10),
+                                {}, {}, now, 60, rows)
+    assert 'QUOTE_SOURCE_STALE_OR_FUTURE' in result['blockers']
+    assert 'SMG_SHORT_PERMISSION_EVIDENCE_MISSING' in result['blockers']
+    assert not result['submission_authorized']

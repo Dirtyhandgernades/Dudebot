@@ -1,6 +1,7 @@
 """Offline preparation assessment using supplied, source-backed account facts."""
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from .decision_evidence import execution_evidence, latest_known, stamp
 
 
 def assess_short(action, account, rule, now, max_age_seconds):
@@ -62,3 +63,35 @@ def assess_short(action, account, rule, now, max_age_seconds):
                 projected_exposure=str(projected) if projected is not None else None,
                 ceiling=str(ceiling) if ceiling is not None else None,
                 submission_authorized=False)
+
+
+def assess_preparation(action, account, rule, now, max_age_seconds, observations):
+    result = assess_short(action, account, rule, now, max_age_seconds)
+    ticker = action.get('ticker')
+    if not isinstance(ticker, str) or not ticker.strip():
+        return result
+    ticker = ticker.strip().upper()
+    indication = execution_evidence(ticker, now.isoformat(), action.get('reference_price'), observations)
+    result['blockers'].extend(indication['rejected'] + indication['missing'])
+    for kind in ('quote', 'smg_short_permission', 'corporate_actions'):
+        row = latest_known(observations, kind, ticker, now, max_age_seconds)
+        value = (row or {}).get('value', {})
+        if not row or not row.get('source') or value.get('status') != 'VERIFIED':
+            result['blockers'].append(kind.upper() + '_EVIDENCE_MISSING')
+            continue
+        if kind == 'quote':
+            source_at = stamp(value.get('source_timestamp'))
+            if source_at is None or not 0 <= (now-source_at).total_seconds() <= max_age_seconds:
+                result['blockers'].append('QUOTE_SOURCE_STALE_OR_FUTURE')
+            try:
+                equal = Decimal(str(value.get('price'))) == Decimal(str(action.get('reference_price')))
+            except InvalidOperation:
+                equal = False
+            if not equal:
+                result['blockers'].append('QUOTE_REFERENCE_MISMATCH')
+        elif value.get('allowed' if kind == 'smg_short_permission' else 'clear') is not True:
+            result['blockers'].append(kind.upper() + '_UNRESOLVED')
+    result['blockers'] = sorted(set(result['blockers']))
+    result['status'] = 'BLOCKED' if result['blockers'] else 'PREPARATION_CHECK_PASSED'
+    result['execution_indication'] = indication
+    return result
