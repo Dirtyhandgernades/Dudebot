@@ -1,0 +1,5 @@
+# Cross-intent duplicate prevention
+
+Five offline tests passed. Added atomic SQLite account/ticker claim across differing intent IDs and sides. UNKNOWN and PENDING retain claim; authenticated-adapter asserted CONFIRMED/REJECTED releases claim in same transaction as status change. Blank account scope rejected. Legacy active rows without scope locks block same-ticker new claims until reconciled, preserving pre-change data. Separate connections cannot bypass locks. IDs and account scopes remain local private journal values; test data synthetic.
+
+This is an offline journal component. Platform-record authenticity is not proved by a string, cross-journal/process deployments need one shared private durable store, and complete pending orders/partial fills must reconcile before terminal confirmation. Partial-fill representation and evidence completeness remain open. No execution adapter or unattended competition authorization established. Next implement explicit partial-fill state that retains the claim until remaining quantity is resolved, with rejection of inconsistent fill totals and immutable intended quantity.
