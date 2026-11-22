@@ -106,3 +106,26 @@ def test_stale_same_state_update_cannot_overwrite_new_receipt(tmp_path):
     journal.close()
 
 
+def test_cancelled_remainder_preserves_fills_across_restart(tmp_path):
+    path = tmp_path / 'intents.sqlite'
+    journal = IntentJournal(path)
+    action = dict(ticker='TEST', side='SHORT', shares=10)
+    journal.prepare('a', action)
+    journal.prepare('b', action)
+    assert journal.claim_submission('a', 'account')
+    journal.reconcile('a', 'PARTIAL', dict(platform_record='partial', filled_shares=4, remaining_shares=6))
+    with pytest.raises(ValueError, match='Cancellation'):
+        journal.reconcile('a', 'CANCELLED', dict(platform_record='pending-cancel', filled_shares=4, remaining_shares=6))
+    assert not journal.claim_submission('b', 'account')
+    journal.reconcile('a', 'CANCELLED', dict(platform_record='cancelled', filled_shares=4, remaining_shares=0))
+    journal.close()
+    journal = IntentJournal(path)
+    current = journal.get('a')
+    assert current['state'] == 'CANCELLED'
+    assert current['action']['shares'] == 10
+    assert current['evidence']['filled_shares'] == 4
+    assert not journal.claim_submission('a', 'account')
+    assert journal.claim_submission('b', 'account')
+    journal.close()
+
+

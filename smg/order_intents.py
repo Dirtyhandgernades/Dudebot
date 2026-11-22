@@ -67,7 +67,7 @@ class IntentJournal:
         self._transition(intent_id, 'SUBMITTING', 'UNKNOWN', evidence)
 
     def reconcile(self, intent_id, status, evidence):
-        if status not in ('PENDING', 'PARTIAL', 'CONFIRMED', 'REJECTED'):
+        if status not in ('PENDING', 'PARTIAL', 'CONFIRMED', 'REJECTED', 'CANCELLED'):
             raise ValueError('Explicit platform outcome required')
         if not isinstance(evidence, dict) or not evidence.get('platform_record'):
             raise ValueError('Platform record required')
@@ -90,6 +90,8 @@ class IntentJournal:
             raise ValueError('Partial fill requires unresolved remaining quantity')
         if status == 'PENDING' and (filled != 0 or remaining != total):
             raise ValueError('Pending requires full unfilled quantity')
+        if status == 'CANCELLED' and (remaining != 0 or filled >= total):
+            raise ValueError('Cancellation requires an ended unfilled remainder')
         self._transition(intent_id, current['state'], status, evidence, current['evidence'])
 
     def get(self, intent_id):
@@ -111,7 +113,7 @@ class IntentJournal:
                 (state, receipt, self._now(), intent_id, previous, prior_receipt))
             if cursor.rowcount != 1:
                 raise ValueError('Concurrent or invalid intent transition')
-            if state in ('CONFIRMED', 'REJECTED'):
+            if state in ('CONFIRMED', 'REJECTED', 'CANCELLED'):
                 self.connection.execute('DELETE FROM position_claims WHERE intent_id=?', (intent_id,))
             self.connection.commit()
         except Exception:
