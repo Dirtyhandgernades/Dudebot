@@ -23,6 +23,7 @@ CENTRAL = ZoneInfo("America/Chicago")
 EASTERN = ZoneInfo("America/New_York")
 ALLOWED_PHASES = ("MORNING", "INTRADAY", "EARLY_BOARD", "AFTERHOURS")
 SAFE_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}$")
+RSS_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}=?$")
 
 # Published 2026 NYSE/Nasdaq U.S. equity schedule, not a live market-open
 # attestation. Fail closed outside this explicitly reviewed calendar year.
@@ -140,7 +141,7 @@ def parse_nasdaq_halts(raw, captured_at):
                 raise ValueError("HALT_RSS_DUPLICATE_FIELD")
             fields[key]=(child.text or "").strip()
         symbol=(fields.get("issuesymbol") or "").upper()
-        if not SAFE_SYMBOL.fullmatch(symbol):
+        if not RSS_SYMBOL.fullmatch(symbol):
             raise ValueError("HALT_RSS_INVALID_SYMBOL")
         halt=_when(fields.get("haltdate"),fields.get("halttime"))
         if halt is None:
