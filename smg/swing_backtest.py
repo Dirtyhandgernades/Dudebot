@@ -219,6 +219,7 @@ def marked_equity(cash,positions,adjusted,day,side):
 def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, strategy='PUMP_FAILURE_SHORT',cost_bps=30,initial=100000,commission=5,borrow_rate=.10,borrow_observations=None,position_target=None,buying_power=None,firm_dates=None,firm_cfg=None,risk_controls=False,signal_share_sizing=False,intraday_signals=None,smg_cash_interest=False,positive_cash_rate=.0075,negative_cash_rate=.07,max_position_equity_fraction=.25,liquidate_at_end=True,decision_price_buffer=1.0,exposure_policy=None,research_hold_by_entry=None,research_entry_delay=0):
     if type(research_entry_delay) is not int or research_entry_delay not in (0,1):
         raise ValueError('Research entry delay must be zero or one session')
+    delayed_expirations=[]
     if research_entry_delay:
         if intraday_signals is None:
             raise ValueError('Delayed research entry requires original intraday signals')
@@ -228,6 +229,12 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
             if signal_index+research_entry_delay<len(sessions):
                 entry_day=sessions[signal_index+research_entry_delay]
                 shifted[entry_day].extend({**event,'research_original_signal_day':signal_day} for event in events)
+                if entry_day>=end:
+                    delayed_expirations.extend({**event,'research_original_signal_day':signal_day,
+                                                'reason':'NO_ENTRY_BEFORE_EVALUATION_END'} for event in events)
+            else:
+                delayed_expirations.extend({**event,'research_original_signal_day':signal_day,
+                                            'reason':'NO_FUTURE_SESSION'} for event in events)
         intraday_signals=dict(shifted)
     """Cash collateral, ten slots, one position/symbol, next-session close fills.
 
@@ -418,7 +425,8 @@ def simulate(raw, adjusted, symbols, sessions, start=START, end=END, hold=3, str
         win_rate=sum(p>0 for p in profits)/len(profits) if profits else None,max_observed_drawdown_pct=round(drawdown*100,3),
         gross_20pct_winners=sum(t['gross_return_pct']>=20-1e-10 for t in trades),gross_30pct_winners=sum(t['gross_return_pct']>=30-1e-10 for t in trades),
         signals=signals,borrow_execution=borrow_metrics(signal_events,borrow_observations),gaps=dict(gaps),
-        signal_events=signal_events,unresolved_positions=positions,trades=trades,daily_equity=curve)
+        signal_events=signal_events,unresolved_positions=positions,trades=trades,daily_equity=curve,
+        research_entry_delay=research_entry_delay,delayed_expirations=delayed_expirations)
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--replay',default='backtest/runtime/corrected-replay/decisions.json')
