@@ -7,6 +7,7 @@ on:
       - '.github/workflows/obsidian-free-quant-feed.yml'
       - 'backtest/obsidian_free_quant_feed.py'
       - 'tests/test_obsidian_free_quant_feed.py'
+      - 'tests/test_off_session_research.py'
       - 'backtest/obsidian_free_quant_watchlist.json'
       - 'backtest/obsidian_shadow_rank.py'
       - 'backtest/obsidian_candidate_pipeline.py'
@@ -14,6 +15,10 @@ on:
       - 'tests/test_obsidian_shadow_rank.py'
   workflow_dispatch:
     inputs:
+      off_session_research:
+        description: Explicit off-session research only, never an executable board
+        type: boolean
+        default: false
       dispatch_id:
         description: Unique caller request identifier
         required: false
@@ -41,6 +46,8 @@ jobs:
         run: python -m pip install -e '.[test]' -c requirements-tested.txt
       - name: Offline source and clock gates before live requests
         run: python -m unittest tests.test_obsidian_free_quant_feed tests.test_obsidian_feed_calendar_guard tests.test_obsidian_prospective_independent_quote_halt tests.test_obsidian_candidate_pipeline tests.test_obsidian_shadow_rank -v
+      - name: Verify explicit off-session research boundaries
+        run: python -m pytest tests/test_off_session_research.py -q
       - name: Restore last successful SEC rotation artifact without repository writes
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -80,6 +87,7 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: >-
           python -m backtest.obsidian_free_quant_feed
+          ${{ inputs.off_session_research && '--off-session-research' || '' }}
           --output outputs/backtest/free-quant-${{ github.run_id }}.json
           --raw-output outputs/backtest/free-quant-raw-${{ github.run_id }}
       - name: Build complete classifier and research board from actual packet
