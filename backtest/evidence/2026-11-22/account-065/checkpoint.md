@@ -1,0 +1,7 @@
+# Private account refresh evidence
+
+Read-only vault-backed TinyFish run completed. Authoritative run timestamps2026-11-23T00:27:31Z–00:32:51Z (SundayNov22 18:27–18:32CT). Account summary/holdings/buying-power/pending/notes accessible. Raw private result kept outside repository; no account identifiers, holdings, shares, balances or transaction particulars committed.
+
+Run reported holdings pagination reviewed and no current pending rows. Transaction history only sampled pages1–5 and18–19; pages6–17 unreviewed, so full history reconciliation incomplete. Sample exposed historical buying-power, concentration and market-cap rejection categories. Result had contradictory reject totals and weekend trading-session language, so exact counts/source-session interpretation are not accepted. A platform as-of date is not a verified exchange quote timestamp. Historical rejects do not imply current holdings absent or a pending order.
+
+Current per-position hold/cover conclusions lack fresh market evidence and original entry thesis binding. Default insufficient-evidence review, not automatic hold/cover. No order action. Next targeted read completes missing transaction-note pages and normalizes individual event records with confirmation status; resolve duplicates/counts from rows, not summaries. Monday must refresh actual account and quote/filing/halt evidence before decisions. Full goal remains active.
