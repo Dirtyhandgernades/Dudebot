@@ -33,7 +33,8 @@ def test_pending_and_failed_run_are_distinct():
 
 
 def test_download_resume_and_tamper_detection(tmp_path, monkeypatch):
-    raw = json.dumps(dict(requested_symbols=['TEST'], finished_at='2026-11-20T20:20:00+00:00')).encode()
+    raw = json.dumps(dict(requested_symbols=['TEST'], rows=[dict(ticker='TEST')],
+                          finished_at='2026-11-20T20:20:00+00:00')).encode()
     board = dict(source_packet_sha256=hashlib.sha256(raw).hexdigest(),
                  source_packet_at='2026-11-20T20:20:00+00:00',
                  created_at='2026-11-20T20:21:00+00:00',
@@ -56,6 +57,10 @@ def test_download_resume_and_tamper_detection(tmp_path, monkeypatch):
     first = retrieval.retrieve(1, 'intent', tmp_path)
     again = retrieval.retrieve(1, 'intent', tmp_path)
     assert first == again
+    freshness = json.loads((tmp_path / 'source-freshness.json').read_text())
+    assert freshness['observed_at'] == first['received_at']
+    assert freshness['packet_sha256'] == first['packet_sha256']
+    assert freshness['counts']['iex_trade_unknown_or_future'] == 1
     assert calls.count('actions/artifacts/2/zip') == 1
     (tmp_path / 'artifact-2.zip').write_bytes(b'corrupt')
     with pytest.raises(ValueError, match='HASH'):

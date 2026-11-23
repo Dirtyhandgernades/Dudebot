@@ -4,10 +4,13 @@ import json
 import subprocess
 import os
 import tempfile
+import hashlib
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 from backtest.obsidian_board_intake import intake
+from backtest.obsidian_packet_freshness import audit
 
 REPO = 'Dirtyhandgernades/Dudebot'
 BRANCH = 'research/obsidian-early-rug-20261025'
@@ -30,6 +33,28 @@ def validate_run(run, run_id, intent):
 
 def api(path):
     return subprocess.check_output(['gh', 'api', f'repos/{REPO}/{path}'], timeout=45)
+
+
+def preserve_freshness(archive, receipt, directory):
+    with zipfile.ZipFile(archive) as zipped:
+        raw = zipped.read(f'outputs/backtest/free-quant-{receipt["run_id"]}.json')
+    if hashlib.sha256(raw).hexdigest() != receipt['packet_sha256']:
+        raise ValueError('FRESHNESS_PACKET_BINDING_MISMATCH')
+    result = audit(json.loads(raw), datetime.fromisoformat(receipt['received_at']))
+    result.update(packet_sha256=receipt['packet_sha256'], run_id=receipt['run_id'])
+    destination = directory / 'source-freshness.json'
+    if destination.exists():
+        if json.loads(destination.read_text()) != result:
+            raise ValueError('EXISTING_FRESHNESS_RECEIPT_MISMATCH')
+        return
+    with tempfile.NamedTemporaryFile(mode='w', dir=directory, suffix='.freshness-partial',
+                                     encoding='utf-8', delete=False) as output:
+        json.dump(result, output, indent=2)
+        output.flush()
+        os.fsync(output.fileno())
+        temporary = Path(output.name)
+    os.link(temporary, destination)
+    temporary.unlink()
 
 
 def retrieve(run_id, intent, directory):
@@ -67,6 +92,7 @@ def retrieve(run_id, intent, directory):
         verified = intake(archive, digest[7:], run_id, datetime.fromisoformat(saved['received_at']))
         if any(saved.get(key) != value for key, value in verified.items()):
             raise ValueError('EXISTING_RECEIPT_CONTENT_MISMATCH')
+        preserve_freshness(archive, saved, directory)
         return saved
     receipt = intake(archive, digest[7:], run_id, datetime.now(timezone.utc))
     receipt.update(intent=intent, artifact_id=artifact['id'], run_identity_verified=True)
@@ -78,6 +104,7 @@ def retrieve(run_id, intent, directory):
         temporary = Path(output.name)
     os.link(temporary, receipt_path)
     temporary.unlink()
+    preserve_freshness(archive, receipt, directory)
     return receipt
 
 

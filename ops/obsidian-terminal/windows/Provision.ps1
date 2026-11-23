@@ -13,7 +13,7 @@ if (!(Test-Path (Join-Path $source 'obsidian_board_retrieval.py'))) {
 New-Item -ItemType Directory -Force $Destination | Out-Null
 $library = Join-Path $Destination ('library-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Force (Join-Path $library 'backtest') | Out-Null
-foreach ($name in @('obsidian_board_retrieval.py','obsidian_board_intake.py')) {
+foreach ($name in @('obsidian_board_retrieval.py','obsidian_board_intake.py','obsidian_packet_freshness.py')) {
     Copy-Item -LiteralPath (Join-Path $source $name) -Destination (Join-Path $library 'backtest')
 }
 [IO.File]::WriteAllText((Join-Path $library 'backtest/__init__.py'),'')
