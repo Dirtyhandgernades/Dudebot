@@ -164,7 +164,8 @@ def update_rotation(state, packet):
     return updated
 
 
-def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, priority=(), rank_model=None):
+def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, priority=(), rank_model=None, off_session_research=False):
+    if type(off_session_research) is not bool:raise ValueError('BOOLEAN_RESEARCH_MODE_REQUIRED')
     symbols=list(symbols)
     if not symbols or len(symbols)>MAX_SYMBOLS or len(set(symbols))!=len(symbols) or any(not SAFE.fullmatch(s) for s in symbols):
         raise ValueError('INVALID_BOUNDED_SYMBOL_UNIVERSE')
@@ -176,7 +177,7 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
     local=now.astimezone(CT)
     from smg.market import session_bounds
     bounds=session_bounds(now.astimezone(ET).date())
-    if bounds is None or bounds[1]-timedelta(minutes=15)<=now<=bounds[1]-timedelta(minutes=2):
+    if (bounds is None and not off_session_research) or (bounds and bounds[1]-timedelta(minutes=15)<=now<=bounds[1]-timedelta(minutes=2)):
         raise ValueError('OUTSIDE_RESEARCH_OR_PROTECTED_PRECLOSE_WINDOW')
     reader=reader or Reader();headers={'APCA-API-KEY-ID':os.environ.get('ALPACA_API_KEY',''),
                                        'APCA-API-SECRET-KEY':os.environ.get('ALPACA_SECRET_KEY','')}
@@ -275,7 +276,7 @@ def collect(symbols, reader=None, clock=None, sec_limit=8, rotation_state=None, 
                                         counterevidence_review='PENDING',issuer_release_review='PENDING'),
                          research_classification='BLOCKED_PENDING_MECHANISM_AND_ELIGIBILITY',trade_authorized=False,
                          smg_eligibility_verified=False))
-    return dict(mode=MODE,policy=POLICY,started_at=now.isoformat(),finished_at=datetime.now(UTC).isoformat(),
+    return dict(mode=MODE,policy=POLICY,off_session_research=off_session_research,started_at=now.isoformat(),finished_at=datetime.now(UTC).isoformat(),
                 source_scope='SUPPLIED_WATCHLIST_NOT_FULL_MARKET',market_session_state=session_state,requested_symbols=symbols,rows=rows,
                 coverage=dict(denominator=len(rows),iex_returned_symbols=sum(isinstance(snapshots.get(s),dict) for s in symbols),
                               iex_missing_symbols=sum(not isinstance(snapshots.get(s),dict) for s in symbols),
@@ -299,6 +300,7 @@ def main():
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--sec-limit',type=int,default=8)
     parser.add_argument('--raw-output',type=Path)
+    parser.add_argument('--off-session-research',action='store_true')
     parser.add_argument('--rank-model',default='backtest/frozen_research/target-rank-2025-model.json')
     args=parser.parse_args()
     if args.output.exists():raise FileExistsError(args.output)
@@ -308,7 +310,7 @@ def main():
     symbols=sorted({r['ticker'] for r in records}|set(extra))
     if not args.rotation_state.exists():raise FileNotFoundError('SEC_ROTATION_STATE_REQUIRED_NO_SILENT_RESET')
     state=validate_rotation(json.loads(args.rotation_state.read_text()))
-    packet=collect(symbols,reader=Reader(raw_dir=args.raw_output),sec_limit=args.sec_limit,rotation_state=state,priority=extra,rank_model=args.rank_model)
+    packet=collect(symbols,reader=Reader(raw_dir=args.raw_output),sec_limit=args.sec_limit,rotation_state=state,priority=extra,rank_model=args.rank_model,off_session_research=args.off_session_research)
     packet['source_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open('x') as f:json.dump(packet,f,indent=2,sort_keys=True,allow_nan=False)
