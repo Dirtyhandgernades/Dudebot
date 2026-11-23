@@ -6,6 +6,7 @@ import os
 import tempfile
 import hashlib
 import zipfile
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -108,13 +109,39 @@ def retrieve(run_id, intent, directory):
     return receipt
 
 
+def observe(run_id, intent, directory):
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    record = dict(run_id=run_id, intent=intent, started_at=datetime.now(timezone.utc).isoformat())
+    try:
+        result = retrieve(run_id, intent, directory)
+        record['status'] = 'INTAKE_VERIFIED' if result.get('intake_verified') is True else result.get('status', 'UNRESOLVED')
+        return result
+    except Exception as error:
+        record.update(status='RETRIEVAL_FAILED', error_type=type(error).__name__)
+        if isinstance(error, ValueError):
+            record['reason'] = str(error)
+        raise
+    finally:
+        record['finished_at'] = datetime.now(timezone.utc).isoformat()
+        path = directory / ('observation-' + str(uuid.uuid4()) + '.json')
+        with tempfile.NamedTemporaryFile(mode='w', dir=directory, suffix='.observation-partial',
+                                         encoding='utf-8', delete=False) as output:
+            json.dump(record, output, indent=2)
+            output.flush()
+            os.fsync(output.fileno())
+            temporary = Path(output.name)
+        os.link(temporary, path)
+        temporary.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-id', required=True, type=int)
     parser.add_argument('--intent', required=True)
     parser.add_argument('--directory', required=True, type=Path)
     args = parser.parse_args()
-    print(json.dumps(retrieve(args.run_id, args.intent, args.directory)))
+    print(json.dumps(observe(args.run_id, args.intent, args.directory)))
 
 
 if __name__ == '__main__':

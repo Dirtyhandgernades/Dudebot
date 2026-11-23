@@ -65,3 +65,23 @@ def test_download_resume_and_tamper_detection(tmp_path, monkeypatch):
     (tmp_path / 'artifact-2.zip').write_bytes(b'corrupt')
     with pytest.raises(ValueError, match='HASH'):
         retrieval.retrieve(1, 'intent', tmp_path)
+
+
+@pytest.mark.parametrize('status', ['WAITING_FOR_RUN', 'INTAKE_VERIFIED', 'RETRIEVAL_FAILED'])
+def test_observations_preserve_failure_without_fabricated_receipt(tmp_path, monkeypatch, status):
+    def fake(*args):
+        if status == 'RETRIEVAL_FAILED':
+            raise ValueError('MISSING_OR_AMBIGUOUS_ARTIFACT')
+        return dict(status='WAITING_FOR_RUN', intake_verified=status == 'INTAKE_VERIFIED')
+    monkeypatch.setattr(retrieval, 'retrieve', fake)
+    if status == 'RETRIEVAL_FAILED':
+        with pytest.raises(ValueError):
+            retrieval.observe(1, 'intent', tmp_path)
+    else:
+        retrieval.observe(1, 'intent', tmp_path)
+    rows = list(tmp_path.glob('observation-*.json'))
+    assert len(rows) == 1
+    record = json.loads(rows[0].read_text())
+    assert record['status'] == status
+    assert record['started_at'] <= record['finished_at']
+    assert not (tmp_path / 'receipt.json').exists()
