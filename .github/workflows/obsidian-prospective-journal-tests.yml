@@ -98,6 +98,16 @@ on:
       - 'backtest/obsidian_workflow_failure_guard.py'
       - 'tests/test_obsidian_prospective_workflow_failure_guard.py'
       - '.github/workflows/obsidian-prospective-journal-tests.yml'
+      - 'smg/order_intents.py'
+      - 'smg/order_preparation.py'
+      - 'backtest/obsidian_board_intake.py'
+      - 'backtest/obsidian_board_retrieval.py'
+      - 'backtest/obsidian_packet_freshness.py'
+      - 'tests/test_order_intents.py'
+      - 'tests/test_order_preparation.py'
+      - 'tests/test_board_intake.py'
+      - 'tests/test_board_retrieval.py'
+      - 'tests/test_packet_freshness.py'
   workflow_dispatch:
 
 permissions:
@@ -123,3 +133,6 @@ jobs:
           python -m unittest discover -s tests -p 'test_obsidian_prospective_*.py' -v
           python -m unittest discover -s tests -p 'test_obsidian_abc_board.py' -v
           python -m pytest tests/test_outcome_calendar_boundaries.py -q
+
+      - name: Validate offline account preparation and board intake
+        run: python -m pytest tests/test_order_intents.py tests/test_order_preparation.py tests/test_board_intake.py tests/test_board_retrieval.py tests/test_packet_freshness.py -q
