@@ -1,0 +1,7 @@
+# Existing full-day schedule ownership
+
+Read installed Codex automation configuration (no modifications). Four ACTIVE weekday heartbeat jobs: smg-morning-preparation-and-prior-day-audit08:00, smg-midday-coverage-and-developing-setups12:00, smg-close-window-firm-and-volatility-scan14:15, smg-after-hours-movers-and-missed-trade-review15:30. All target existing Find lucrative SMG trades chat. Prompts specifyAmerica/Chicago. Active file settings prove configured ownership only, not actual wake/execution/receipt.
+
+Their configured C:\\Users\\bhall\\Downloads\\SMG Vault directory is currently absent on this PC. Read-only search for vault_engine.py, START HERE.md andpaper_test.py under Documents/Downloads returned no match;2unrelated directories access-denied, so search was not exhaustive. Do not claim those jobs can complete vault steps. Existing Windows14:20 packet task is separate research dispatch/intake only and does not replace these jobs or account decision owner. No duplicate automations created or existing prompts altered.
+
+Next inspect supported current automation view and latest run status, then repair authorized missing-data-path dependency or route desk intake to durable GitHub research vault without inventing account execution cutover. Keep raw private account data local. All full-day checkpoints require actual Monday execution evidence. Transaction-note audit remains in progress in existing TinyFish run; no completed-history claim here.
