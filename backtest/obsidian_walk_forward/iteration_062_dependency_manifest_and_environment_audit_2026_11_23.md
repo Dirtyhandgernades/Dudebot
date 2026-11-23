@@ -1,0 +1,17 @@
+# OBSIDIAN iteration 062 — exact dependency declaration and execution-environment audit (2026-11-23)
+
+RESEARCH ONLY. Authorized branch research/obsidian-early-rug-20261025. Continuation of iteration 061; no SMG authentication, account access, orders, live Portfolio Desk, alerts, deployment, protected baseline or main changes.
+
+## Read and provenance
+Read backtest/OBSIDIAN_CONTINUOUS_WALK_FORWARD_PROTOCOL_2026_11_20.md (blob 45d49fb811827d5d614d05b30d7fac8a7bd5d771), backtest/FAST_DUMP_RANK_RESULTS.md (617d7606b11b92e0ccc87bfc70f44eb7544102d6), backtest/FIRM_TIMING_VALIDATION.md (88ed3dc7fc6cb0c539fa1dfaeab11f6b97f9e178), backtest/OBSIDIAN_TRADE_DISCOVERY_PLAYBOOK_V2_PROPOSAL_2026_11_20.md (c3b0873774cab2afc352d542d98db5e6565af032), backtest/OBSIDIAN_PROSPECTIVE_TRADE_EDGE_PROOF_GATE_2026_10_30.md (7c232327e5d6fd4d1b1b4532a624a0f3f34dbb79), and backtest/OBSIDIAN_DIAGNOSTIC_REPLAY_CYCLES_1_2_2026_11_20.md (9a9ba45a4485bed1d924e99d50c5a905b04e71de) as negative control. Original ranker backtest/target_rank_research.py blob e574c908eeb5fafbf918200296b01eeaf8dafbdd; pyproject.toml blob 6becde9c8ad62e0816591736dafae792a7cc1730.
+
+## Concrete repair / finding
+Located the repository's actual Python dependency declaration in pyproject.toml; a root requirements.txt does not exist. Runtime requires Python >=3.11,<3.14; requests >=2.32,<3; pydantic >=2.10,<3; PyYAML >=6,<7; beautifulsoup4 >=4.12,<5; lxml >=6,<7; exchange-calendars >=4.9,<5; pandas >=2.2,<4; numpy >=1.26,<3. This resolves uncertainty about the intended dependency specification; no substitute or stubs should be used. Source's original run writes to outputs/backtest/target-rank-2026-10-05 and reads outputs/backtest/hybrid-37386241124; it is restricted to Sep 8–Dec 5 of each year and cannot prove Aug–Dec coverage.
+
+Actual local execution-container check: /mnt/data contained no prior staged archive or ranker checkout; git ls-remote https://github.com/Dirtyhandgernades/Dudebot.git refs/heads/research/obsidian-early-rug-20261025 failed 'Could not resolve host: github.com'. Connector reads work but do not transfer an executable complete checkout into this container. No binary checksum check, extraction, ranker execution or 54-output comparison was attempted or claimed. The historical original archive is Actions run 37386241124 artifact 11378995592, expected SHA256 a53ffdb85d7d373912a3483d6894c4e841ce0c54a42c77987f3f121aa7f20e6e.
+
+## Reproduction once authentic inputs and checkout are colocated
+In isolated checkout of the authorized research branch, verify archive SHA256 and member hashes against iteration 056, safely stage into outputs/backtest/hybrid-37386241124, install declared pyproject dependencies in isolated Python 3.11–3.13 environment, then execute unmodified python -m backtest.target_rank_research. Compare all 54 cases, including trades, normal/stress and exposure against backtest/FAST_DUMP_RANK_RESULTS.md. Do not use diagnostic replay as baseline. Avoid overwriting any previous run output: stage a fresh isolated checkout/output root.
+
+## Outcome and next step
+Starting synthetic balance $100,000; new ending equity, P&L, PF, drawdown, challenger comparisons unavailable (no run). August hybrid signals and 17 late-December sessions still missing. No challenger registered; all 2023–25 seasons previously inspected, not fresh. Next priority: obtain a complete pinned repository checkout and authentic artifact in one executable isolated environment rather than continuing piecemeal import inventories. Promotion UNVALIDATED.
