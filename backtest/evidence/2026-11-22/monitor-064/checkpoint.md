@@ -1,0 +1,5 @@
+# Deadline and late results
+
+Existing runner now observes accepted requests for100minutes after planned dispatch (normal14:20–16:00CT, early close relative schedule), retaining original5minute new-dispatch limit. Monitoring extension is diagnostic only. Monitor writes first missed-board-deadline receipt when actual deadline=start+15minutes passes without a verified timely intake. Existing late receipts do not erase missed deadline. Failure observation is not backdated; repeated observations preserve original record. True source freshness remains separate.
+
+Windows PowerShell injected pending/success/failure tests passed, plus historical-date missed-deadline creation and repeat-preservation checks. Updated actual installed runtime via Provision; library imports passed. No live session run or after-close reconciliation completed. New-day/late-beyond100minute follow-up still requires explicit handling. Missing dispatch (no accepted state) remains task failure instead of a consumer receipt. Decision review/account join and execution permissions remain open. No new scheduled task or orders.
