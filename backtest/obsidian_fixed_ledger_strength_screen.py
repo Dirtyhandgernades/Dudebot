@@ -4,6 +4,7 @@ No reallocation, no retuning, no portfolio replay or fresh holdout.
 """
 import argparse
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -27,19 +28,27 @@ def open_verified(path, digest):
         raise ValueError("invalid archive")
     return z
 
-def classify(event):
+def classify(event, prior_close):
     if event is None:
-        return "UNKNOWN"
+        return "UNKNOWN", None, "MISSING_SIGNAL"
     try:
         decision = datetime.fromisoformat(event["decision_at"])
         observed = datetime.fromisoformat(event["last_complete_at"])
         cutoff = datetime.fromisoformat(event["data_cutoff"])
-        change = float(event["observed_change_from_prior_close"])
+        price = float(event["decision_price"])
+        prior = float(prior_close)
+        if not (math.isfinite(price) and math.isfinite(prior) and price > 0 and prior > 0):
+            return "UNKNOWN", None, "INVALID_PRICE"
+        change = price / prior - 1
+        explicit = event.get("observed_change_from_prior_close")
+        if explicit is not None and not math.isclose(float(explicit), change, abs_tol=.0001):
+            return "UNKNOWN", None, "CHANGE_CONFLICT"
         if not (observed <= cutoff <= decision and math.isfinite(change)):
-            return "UNKNOWN"
+            return "UNKNOWN", None, "TIME_OR_PRICE_INVALID"
     except (KeyError, ValueError, TypeError):
-        return "UNKNOWN"
-    return "EXCLUDE_STRENGTH" if change >= THRESHOLD else "KEEP"
+        return "UNKNOWN", None, "MISSING_OR_INVALID_PRIOR"
+    return ("EXCLUDE_STRENGTH" if change >= THRESHOLD else "KEEP", change,
+            "EXPLICIT_MATCH" if explicit is not None else "DERIVED_PRIOR_RAW_CLOSE")
 
 def metrics(rows):
     p = [float(r["pnl"]) for r in rows]
@@ -55,6 +64,9 @@ def run(signals, hosted):
     result = {"status": "RETROSPECTIVE_FIXED_LEDGER_NOT_PROMOTABLE",
               "threshold": THRESHOLD, "archives": ARCHIVES, "seasons": [], "rows": []}
     with open_verified(signals, ARCHIVES["signals"]) as s, open_verified(hosted, ARCHIVES["hosted"]) as h:
+        packet = json.loads(gzip.decompress(s.read("firm-timing-inputs.json.gz")))
+        sessions = packet["sessions"]
+        prior = dict(zip(sessions[1:], sessions[:-1]))
         for year in YEARS:
             events = json.loads(s.read(f"{year}-hybrid-signals.json"))
             by_key = {}
@@ -70,11 +82,16 @@ def run(signals, hosted):
                 groups = {"KEEP": [], "EXCLUDE_STRENGTH": [], "UNKNOWN": []}
                 for row in rows:
                     event = by_key.get((row["signal_date"], row["ticker"]))
-                    status = classify(event)
+                    day = row["signal_date"]
+                    prev = prior.get(day)
+                    if prev and (datetime.fromisoformat(day) - datetime.fromisoformat(prev)).days > 4:
+                        prev = None
+                    prior_close = packet["raw"].get(row["ticker"], {}).get(prev, {}).get("c")
+                    status, change, provenance = classify(event, prior_close)
                     groups[status].append(row)
                     result["rows"].append({"year": year, "case": case, "status": status,
                         "ticker": row["ticker"], "signal_date": row["signal_date"],
-                        "change": event.get("observed_change_from_prior_close") if event else None,
+                        "change": change, "provenance": provenance, "prior_date": prev,
                         "pnl": float(row["pnl"]), "notional": float(row["notional"])})
                 result["seasons"].append({"year": year, "case": case, "baseline": metrics(rows),
                                           **{k: metrics(v) for k,v in groups.items()}})
