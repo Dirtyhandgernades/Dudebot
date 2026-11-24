@@ -40,3 +40,12 @@ platform submission adapter. Authenticated account access alone does not verify
 Preview/Confirm, successful execution, or reconciliation after an ambiguous
 submission. Existing Portfolio Desk ownership and automations remain unchanged.
 Account-read results and credentials are deliberately excluded from this record.
+
+Read-only browser validation: a broad summary contained contradictory holdings
+counts and was quarantined. Narrow followups returned actual visible holdings
+rows from both pages, pending-table evidence, and recent transaction-note rows.
+Saved authentication and blank stock-form access worked. These reads do not
+restore the missing journal, certify a complete history audit, or validate
+automated submission. A later final-URL/form-state contradiction was also kept
+as a limitation instead of accepting the summary's pass label. Detailed account
+evidence is retained privately outside Git.
