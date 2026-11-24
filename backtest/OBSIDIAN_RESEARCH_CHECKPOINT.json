@@ -1,0 +1,99 @@
+{
+  "source_commit": "1ac920ff6f27dd78577ebe3ed026b9a3e39dbd63",
+  "experiment_id": "SQUEEZE-073",
+  "experiment_key": "c8817474c9ae489ce10cc47e515d2693967ca3cd1346ec4f8ba263d10ab07ac7",
+  "dataset_and_code_hashes": {
+    "..\\hybrid.zip": "a53ffdb85d7d373912a3483d6894c4e841ce0c54a42c77987f3f121aa7f20e6e",
+    "..\\lab.zip": "95f916cdc1d988f752a49f14c38852c1f9876c5ddfd535bb915c19f840ea1ba1",
+    "C:\\Users\\bhall\\Documents\\Codex\\2026-11-21\\discover-your-callable-tinyfish-tools-using\\work\\dudebot\\backtest\\obsidian_squeeze_batch.py": "f2191e5e8b0f24d7cdd4746f415e576c1531d59bfddbd4782f02cf8db07ffe44",
+    "smg\\exposure.py": "7875eb0e864161e6f8b8e7e9415779b298a2041e1a2172997faee4dbfc55bc6a",
+    "backtest\\evidence\\2026-11-21\\portfolio-033\\baseline-metrics.json": "46e94763eec3a28a7da3c3ea5da0e4672677255a968df7596f091e11102ae857",
+    "smg\\swing_backtest.py": "26a71bffad9b762140a734d12ee009ce4fd2b95fe7bf3ec495cd726de87312ae",
+    "smg\\risk_model.py": "c4cfbe268eaad4da2251263f2ac5eb20d9606ff3b299af1b7b022caba19149b4",
+    "smg\\models.py": "78488ec4493a6e0058700f0db7a605fdf8e71037a9578bab363b4a857e99ab98",
+    "backtest\\obsidian_strategy_lab.py": "5adf54c42dbf4df850deb8ba1eaccae67c424cabd2b65197b43d37ab8697ee35"
+  },
+  "completed_experiments": [
+    "original-54-reproduced",
+    "portfolio-033-96-cases",
+    "training-030",
+    "SQUEEZE-073"
+  ],
+  "rejected_hypotheses": [
+    "universal-5pct-strength-exclusion",
+    "blanket-one-session-delay",
+    "automatic-one-day-cover-deferral"
+  ],
+  "validated_strategy": null,
+  "development_candidate": "existing bounded-short-exposure-v1: substantial drawdown/largest-loss reduction, lower net profit, unvalidated",
+  "latest_results": [
+    {
+      "year": 2023,
+      "cost": "base",
+      "baseline_profit": 18658.11,
+      "challenger_profit": 4803.5,
+      "baseline_drawdown": 3.059,
+      "challenger_drawdown": 0.507,
+      "largest_loss": -542.7361673972598,
+      "issuer_fraction": 1.017042631728292
+    },
+    {
+      "year": 2023,
+      "cost": "stress",
+      "baseline_profit": 16487.95,
+      "challenger_profit": 4442.17,
+      "baseline_drawdown": 4.069,
+      "challenger_drawdown": 0.63,
+      "largest_loss": -625.0573547945202,
+      "issuer_fraction": 1.053130987042893
+    },
+    {
+      "year": 2024,
+      "cost": "base",
+      "baseline_profit": 39124.52,
+      "challenger_profit": 6315.64,
+      "baseline_drawdown": 25.691,
+      "challenger_drawdown": 2.518,
+      "largest_loss": -1564.1565342465751,
+      "issuer_fraction": 0.41144169304244305
+    },
+    {
+      "year": 2024,
+      "cost": "stress",
+      "baseline_profit": 25305.11,
+      "challenger_profit": 4847.16,
+      "baseline_drawdown": 29.486,
+      "challenger_drawdown": 2.951,
+      "largest_loss": -1595.2391780821915,
+      "issuer_fraction": 0.5247702826578186
+    },
+    {
+      "year": 2025,
+      "cost": "base",
+      "baseline_profit": 103258.54,
+      "challenger_profit": 8874.2,
+      "baseline_drawdown": 19.966,
+      "challenger_drawdown": 1.843,
+      "largest_loss": -1035.4778199999994,
+      "issuer_fraction": 0.351692958331108
+    },
+    {
+      "year": 2025,
+      "cost": "stress",
+      "baseline_profit": 64020.56,
+      "challenger_profit": 5490.63,
+      "baseline_drawdown": 25.171,
+      "challenger_drawdown": 2.687,
+      "largest_loss": -1149.7549479452048,
+      "issuer_fraction": 0.5461350244534906
+    }
+  ],
+  "blockers": [
+    "all evaluated periods inspected development",
+    "issuer concentration exceeds25percent",
+    "fewer than100independent closed trades",
+    "historical eligibility/action/official-close proof incomplete"
+  ],
+  "next_task": "Using saved SQUEEZE-073 metrics, compare net trade return per allocated notional and marked gross exposure against cached baseline; attribute efficiency change without rerunning portfolios or tuning parameters.",
+  "result_path": "backtest/evidence/2026-11-23/squeeze-073/results.json"
+}

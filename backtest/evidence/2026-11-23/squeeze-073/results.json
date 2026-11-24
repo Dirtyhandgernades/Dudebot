@@ -1,0 +1,1158 @@
+{
+  "experiment_id": "SQUEEZE-073",
+  "experiment_key": "c8817474c9ae489ce10cc47e515d2693967ca3cd1346ec4f8ba263d10ab07ac7",
+  "inputs": {
+    "..\\hybrid.zip": "a53ffdb85d7d373912a3483d6894c4e841ce0c54a42c77987f3f121aa7f20e6e",
+    "..\\lab.zip": "95f916cdc1d988f752a49f14c38852c1f9876c5ddfd535bb915c19f840ea1ba1",
+    "C:\\Users\\bhall\\Documents\\Codex\\2026-11-21\\discover-your-callable-tinyfish-tools-using\\work\\dudebot\\backtest\\obsidian_squeeze_batch.py": "f2191e5e8b0f24d7cdd4746f415e576c1531d59bfddbd4782f02cf8db07ffe44",
+    "smg\\exposure.py": "7875eb0e864161e6f8b8e7e9415779b298a2041e1a2172997faee4dbfc55bc6a",
+    "backtest\\evidence\\2026-11-21\\portfolio-033\\baseline-metrics.json": "46e94763eec3a28a7da3c3ea5da0e4672677255a968df7596f091e11102ae857",
+    "smg\\swing_backtest.py": "26a71bffad9b762140a734d12ee009ce4fd2b95fe7bf3ec495cd726de87312ae",
+    "smg\\risk_model.py": "c4cfbe268eaad4da2251263f2ac5eb20d9606ff3b299af1b7b022caba19149b4",
+    "smg\\models.py": "78488ec4493a6e0058700f0db7a605fdf8e71037a9578bab363b4a857e99ab98",
+    "backtest\\obsidian_strategy_lab.py": "5adf54c42dbf4df850deb8ba1eaccae67c424cabd2b65197b43d37ab8697ee35"
+  },
+  "policy": {
+    "id": "bounded-short-exposure-v1",
+    "max_position_fraction": 0.1,
+    "max_gross_fraction": 0.6,
+    "shock_loss_fraction": 0.02,
+    "shock_floor": 0.25,
+    "range_multiplier": 2.0,
+    "range_lookback_sessions": 5,
+    "target_ceiling": 20000,
+    "cooldown_sessions": 3
+  },
+  "baseline_sha256": "46e94763eec3a28a7da3c3ea5da0e4672677255a968df7596f091e11102ae857",
+  "simulations": 6,
+  "rows": [
+    {
+      "year": 2023,
+      "cost": "base",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 118658.11,
+        "net_profit": 18658.11,
+        "realized_trade_profit": 18475.9,
+        "interest_pnl": 182.21,
+        "return_pct": 18.65811,
+        "closed_trades": 3,
+        "unique_issuers": 3,
+        "wins": 2,
+        "losses": 1,
+        "win_rate": 0.6666666666666666,
+        "average_win": 11115.031221027399,
+        "average_loss": -3754.1598243835588,
+        "expectancy_per_trade": 6158.634205890412,
+        "profit_factor": 5.921448068797929,
+        "profit_factor_note": null,
+        "largest_individual_loss": -3754.1598243835588,
+        "max_observed_drawdown_pct": 3.059,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "GCT": -3754.1598243835588,
+          "MYNZ": 18417.67407191781,
+          "RVYL": 3812.388370136987
+        },
+        "largest_issuer_fraction_of_net_profit": 0.9871135968175666,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.8285030291716716,
+        "remove_top_winners_fixed_ledger": {
+          "1": 240.43592808219182,
+          "3": -3571.952442054797,
+          "5": -3571.952442054797
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": -0.002617671235356056,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "return_pct": 0.043159172525153444,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2023-10": {
+            "return_pct": 0.06577373726779356,
+            "observed_sessions": 22,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-11": {
+            "return_pct": 22.267230947453132,
+            "observed_sessions": 21,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-12": {
+            "return_pct": -3.057457521467344,
+            "observed_sessions": 3,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 2
+        },
+        "mean_daily_marked_gross_to_equity": 0.03018085853842694,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.1796661379635426,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 104803.5,
+        "net_profit": 4803.5,
+        "realized_trade_profit": 4621.48,
+        "interest_pnl": 182.01,
+        "return_pct": 4.8035,
+        "closed_trades": 3,
+        "unique_issuers": 3,
+        "wins": 2,
+        "losses": 1,
+        "win_rate": 0.6666666666666666,
+        "average_win": 2582.110072260274,
+        "average_loss": -542.7361673972598,
+        "expectancy_per_trade": 1540.4946590410962,
+        "profit_factor": 9.515157556729694,
+        "profit_factor_note": null,
+        "largest_individual_loss": -542.7361673972598,
+        "max_observed_drawdown_pct": 0.507,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "GCT": -542.7361673972598,
+          "MYNZ": 4885.36428150685,
+          "RVYL": 278.85586301369864
+        },
+        "largest_issuer_fraction_of_net_profit": 1.017042631728292,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.9460023284813727,
+        "remove_top_winners_fixed_ledger": {
+          "1": -81.8642815068497,
+          "3": -360.7201445205483,
+          "5": -360.7201445205483
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.006022876711767822,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "return_pct": 0.043159172525153444,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2023-10": {
+            "return_pct": 0.06577373726779356,
+            "observed_sessions": 22,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-11": {
+            "return_pct": 5.220868623171904,
+            "observed_sessions": 21,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-12": {
+            "return_pct": -0.5050733483373482,
+            "observed_sessions": 3,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 2
+        },
+        "mean_daily_marked_gross_to_equity": 0.005202168918556218,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.29005317673336095,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    },
+    {
+      "year": 2023,
+      "cost": "stress",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 116487.95,
+        "net_profit": 16487.95,
+        "realized_trade_profit": 16306.18,
+        "interest_pnl": 181.77,
+        "return_pct": 16.48795,
+        "closed_trades": 3,
+        "unique_issuers": 3,
+        "wins": 2,
+        "losses": 1,
+        "win_rate": 0.6666666666666666,
+        "average_win": 10316.634445890411,
+        "average_loss": -4327.089034246573,
+        "expectancy_per_trade": 5435.393285844751,
+        "profit_factor": 4.7683948096467725,
+        "profit_factor_note": null,
+        "largest_individual_loss": -4327.089034246573,
+        "max_observed_drawdown_pct": 4.069,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "GCT": -4327.089034246573,
+          "MYNZ": 17757.035719178082,
+          "RVYL": 2876.2331726027405
+        },
+        "largest_issuer_fraction_of_net_profit": 1.076970497798579,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.8606021572399284,
+        "remove_top_winners_fixed_ledger": {
+          "1": -1269.0857191780815,
+          "3": -4145.318891780822,
+          "5": -4145.318891780822
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.0001424657498034776,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "return_pct": 0.043159172525153444,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2023-10": {
+            "return_pct": 0.06577373726779356,
+            "observed_sessions": 22,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-11": {
+            "return_pct": 20.671898711935622,
+            "observed_sessions": 21,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-12": {
+            "return_pct": -3.572276210114944,
+            "observed_sessions": 3,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 2
+        },
+        "mean_daily_marked_gross_to_equity": 0.030244365977877715,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.15961830499616866,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 104442.17,
+        "net_profit": 4442.17,
+        "realized_trade_profit": 4260.25,
+        "interest_pnl": 181.91,
+        "return_pct": 4.44217,
+        "closed_trades": 3,
+        "unique_issuers": 3,
+        "wins": 2,
+        "losses": 1,
+        "win_rate": 0.6666666666666666,
+        "average_win": 2442.6561602739725,
+        "average_loss": -625.0573547945202,
+        "expectancy_per_trade": 1420.0849885844752,
+        "profit_factor": 7.815782476719965,
+        "profit_factor_note": null,
+        "largest_individual_loss": -625.0573547945202,
+        "max_observed_drawdown_pct": 0.63,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "GCT": -625.0573547945202,
+          "MYNZ": 4678.186876712329,
+          "RVYL": 207.12544383561647
+        },
+        "largest_issuer_fraction_of_net_profit": 1.053130987042893,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.9576024151077439,
+        "remove_top_winners_fixed_ledger": {
+          "1": -236.01687671232867,
+          "3": -443.142320547945,
+          "5": -443.142320547945
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.0050342465745814025,
+        "monthly_marked_returns": {
+          "2023-09": {
+            "return_pct": 0.043159172525153444,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2023-10": {
+            "return_pct": 0.06577373726779356,
+            "observed_sessions": 22,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-11": {
+            "return_pct": 4.942191279934649,
+            "observed_sessions": 21,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2023-12": {
+            "return_pct": -0.5848003118887002,
+            "observed_sessions": 3,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 1
+        },
+        "mean_daily_marked_gross_to_equity": 0.005166252117082414,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.2697892138745318,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    },
+    {
+      "year": 2024,
+      "cost": "base",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 139124.52,
+        "net_profit": 39124.52,
+        "realized_trade_profit": 38922.47,
+        "interest_pnl": 202.05,
+        "return_pct": 39.12452,
+        "closed_trades": 16,
+        "unique_issuers": 13,
+        "wins": 12,
+        "losses": 4,
+        "win_rate": 0.75,
+        "average_win": 6911.427479731735,
+        "average_loss": -11003.665518869859,
+        "expectancy_per_trade": 2432.654230081336,
+        "profit_factor": 1.8843068615306964,
+        "profit_factor_note": null,
+        "largest_individual_loss": -30147.453054794514,
+        "max_observed_drawdown_pct": 25.691,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ASPI": -10349.510563150681,
+          "ATLX": 2124.429437328766,
+          "ELWS": -30147.453054794514,
+          "FTEL": 5612.773226986299,
+          "LOBO": 4885.479117808222,
+          "LXEH": 9349.367147945206,
+          "NISN": 15870.765320000004,
+          "PGHL": 7353.463950684933,
+          "RYDE": 27224.38320328767,
+          "SDOT": 542.0089157534261,
+          "SLNH": 4016.474643013697,
+          "TELO": 88.86026082191462,
+          "YRD": 2351.4260756164363
+        },
+        "largest_issuer_fraction_of_net_profit": 0.6958394174110679,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.3427924722944464,
+        "remove_top_winners_fixed_ledger": {
+          "1": 11900.136796712326,
+          "3": -13319.995671232886,
+          "5": -29324.345597945205
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.002318698617443715,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "return_pct": 34.715251344315654,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2024-10": {
+            "return_pct": 14.285560807586762,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-11": {
+            "return_pct": -15.78675746602537,
+            "observed_sessions": 20,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-12": {
+            "return_pct": 7.303815870779529,
+            "observed_sessions": 4,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 11
+        },
+        "mean_daily_marked_gross_to_equity": 0.21085640719303922,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.058590308967892864,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 106315.64,
+        "net_profit": 6315.64,
+        "realized_trade_profit": 6132.82,
+        "interest_pnl": 182.83,
+        "return_pct": 6.31564,
+        "closed_trades": 15,
+        "unique_issuers": 13,
+        "wins": 12,
+        "losses": 3,
+        "win_rate": 0.8,
+        "average_win": 738.0465121004564,
+        "average_loss": -907.9135518264839,
+        "expectancy_per_trade": 408.8544993150684,
+        "profit_factor": 3.2516157980710854,
+        "profit_factor_note": null,
+        "largest_individual_loss": -1564.1565342465751,
+        "max_observed_drawdown_pct": 2.518,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ASPI": -944.1071721917807,
+          "ATLX": 183.8176856164383,
+          "ELWS": -1564.1565342465751,
+          "FTEL": 834.2707436986298,
+          "LOBO": 271.37912452054815,
+          "LXEH": 897.8767165753425,
+          "NISN": 2064.444393561644,
+          "PGHL": 903.9738149315068,
+          "RYDE": 2598.5176142465752,
+          "SDOT": 51.1200726027399,
+          "SLNH": 569.355099726027,
+          "TELO": 16.254944657533407,
+          "YRD": 250.070986027397
+        },
+        "largest_issuer_fraction_of_net_profit": 0.41144169304244305,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.30071672227776425,
+        "remove_top_winners_fixed_ledger": {
+          "1": 3717.122385753425,
+          "3": 625.1377010958913,
+          "5": -1176.7128304109583
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": -0.007489726025681875,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "return_pct": 3.562049806130574,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2024-10": {
+            "return_pct": 2.353914379347266,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-11": {
+            "return_pct": -0.6975935938758782,
+            "observed_sessions": 20,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-12": {
+            "return_pct": 1.0025423583511772,
+            "observed_sessions": 4,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 11,
+          "EXPOSURE_STOP_COOLDOWN": 2
+        },
+        "mean_daily_marked_gross_to_equity": 0.027531870004478744,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.09547419675409247,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    },
+    {
+      "year": 2024,
+      "cost": "stress",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 125305.11,
+        "net_profit": 25305.11,
+        "realized_trade_profit": 25113.64,
+        "interest_pnl": 191.46,
+        "return_pct": 25.30511,
+        "closed_trades": 16,
+        "unique_issuers": 13,
+        "wins": 9,
+        "losses": 7,
+        "win_rate": 0.5625,
+        "average_win": 8102.586266666665,
+        "average_loss": -6829.947742074363,
+        "expectancy_per_trade": 1569.6026378424658,
+        "profit_factor": 1.5252841321333037,
+        "profit_factor_note": null,
+        "largest_individual_loss": -29234.226575342465,
+        "max_observed_drawdown_pct": 29.486,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ASPI": -13439.898357534239,
+          "ATLX": 1120.0080479452045,
+          "ELWS": -29234.226575342465,
+          "FTEL": 3139.8506109589025,
+          "LOBO": 3923.989887671237,
+          "LXEH": 8377.075334246574,
+          "NISN": 14808.416616438359,
+          "PGHL": 6481.641056164383,
+          "RYDE": 26767.311156164382,
+          "SDOT": -478.8645547945192,
+          "SLNH": 2954.463775342464,
+          "TELO": -568.3605917808252,
+          "YRD": 1262.2357999999977
+        },
+        "largest_issuer_fraction_of_net_profit": 1.0577828413377528,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.38886197655641996,
+        "remove_top_winners_fixed_ledger": {
+          "1": -1462.2011561643812,
+          "3": -24647.693106849314,
+          "5": -38357.46888904109
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.0077945205476055435,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "return_pct": 32.72846118028794,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2024-10": {
+            "return_pct": 8.926925067361147,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-11": {
+            "return_pct": -18.78335810959633,
+            "observed_sessions": 20,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-12": {
+            "return_pct": 6.714746022137774,
+            "observed_sessions": 4,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 11
+        },
+        "mean_daily_marked_gross_to_equity": 0.2120302824419485,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.03944824109448367,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 104847.16,
+        "net_profit": 4847.16,
+        "realized_trade_profit": 4665.72,
+        "interest_pnl": 181.44,
+        "return_pct": 4.84716,
+        "closed_trades": 15,
+        "unique_issuers": 13,
+        "wins": 9,
+        "losses": 6,
+        "win_rate": 0.6,
+        "average_win": 877.9950681887366,
+        "average_loss": -539.3722205479452,
+        "expectancy_per_trade": 311.0481526940639,
+        "profit_factor": 2.4417138148961017,
+        "profit_factor_note": null,
+        "largest_individual_loss": -1595.2391780821915,
+        "max_observed_drawdown_pct": 2.951,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ASPI": -1151.5893260273972,
+          "ATLX": 96.73810958904099,
+          "ELWS": -1595.2391780821915,
+          "FTEL": 660.7828863013694,
+          "LOBO": 219.5794191780824,
+          "LXEH": 808.4122301369862,
+          "NISN": 1936.2994958904114,
+          "PGHL": 793.2369602739726,
+          "RYDE": 2543.6455232876715,
+          "SDOT": -66.09971232876697,
+          "SLNH": 446.57880821917774,
+          "TELO": -157.30891780822003,
+          "YRD": 130.68599178082164
+        },
+        "largest_issuer_fraction_of_net_profit": 0.5247702826578186,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.3331140701290135,
+        "remove_top_winners_fixed_ledger": {
+          "1": 2303.5144767123284,
+          "3": -559.5640945205487,
+          "5": -2161.2132849315076
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": -0.002290410958664779,
+        "monthly_marked_returns": {
+          "2024-09": {
+            "return_pct": 3.2227628085138793,
+            "observed_sessions": 16,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2024-10": {
+            "return_pct": 1.761230489190746,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-11": {
+            "return_pct": -1.0887665836332383,
+            "observed_sessions": 20,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2024-12": {
+            "return_pct": 0.9144206798112453,
+            "observed_sessions": 4,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 11,
+          "EXPOSURE_STOP_COOLDOWN": 2
+        },
+        "mean_daily_marked_gross_to_equity": 0.0273770480764441,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.07353882596316155,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    },
+    {
+      "year": 2025,
+      "cost": "base",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 203258.54,
+        "net_profit": 103258.54,
+        "realized_trade_profit": 103112.45,
+        "interest_pnl": 146.08,
+        "return_pct": 103.25854,
+        "closed_trades": 36,
+        "unique_issuers": 27,
+        "wins": 25,
+        "losses": 11,
+        "win_rate": 0.6944444444444444,
+        "average_win": 5411.816583254795,
+        "average_loss": -2925.7238991531754,
+        "expectancy_per_trade": 2864.234769185693,
+        "profit_factor": 4.203945268834459,
+        "profit_factor_note": null,
+        "largest_individual_loss": -7645.607835616435,
+        "max_observed_drawdown_pct": 19.966,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ACON": 3418.475915205481,
+          "AEI": 4393.998844931498,
+          "AGH": 1772.8406794520558,
+          "AMST": 3571.576980684929,
+          "BZAI": 2836.3889308219223,
+          "DTCK": 33966.51484794521,
+          "ENTO": -6096.071211780822,
+          "FATN": 3413.060002465753,
+          "JFU": 3898.639421369866,
+          "MAGH": -289.6968356164421,
+          "MLGO": 1160.0893490410956,
+          "MSGY": 24176.511799999997,
+          "NTHI": -2043.5564605479403,
+          "NVFY": -1622.0041736986254,
+          "ONEG": 314.3296157534261,
+          "PC": 7791.907343835618,
+          "PHOE": 3513.5376372602755,
+          "QUBT": 1135.5608213698624,
+          "SCLX": 3820.139136986305,
+          "SONN": -2881.709341095888,
+          "SWAG": 8370.434837945202,
+          "SWIN": -2104.9416219178097,
+          "VERI": -2995.3307298630125,
+          "WIMI": 2456.083627123289,
+          "WOK": 4339.6792434246545,
+          "WTF": 249.43647506849206,
+          "ZJK": 6546.556554520549
+        },
+        "largest_issuer_fraction_of_net_profit": 0.32894630166129807,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.2803772436518504,
+        "remove_top_winners_fixed_ledger": {
+          "1": 69292.02515205479,
+          "3": 35725.2526349315,
+          "5": 19562.910453150675
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.008309315047796417,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "return_pct": -6.577390158110797,
+            "observed_sessions": 17,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2025-10": {
+            "return_pct": 54.73731523340191,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-11": {
+            "return_pct": 34.926852504514905,
+            "observed_sessions": 19,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-12": {
+            "return_pct": 4.208549046961418,
+            "observed_sessions": 5,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 14
+        },
+        "mean_daily_marked_gross_to_equity": 0.4072415301294059,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.0858908815829097,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 108874.2,
+        "net_profit": 8874.2,
+        "realized_trade_profit": 8695.52,
+        "interest_pnl": 178.68,
+        "return_pct": 8.874200000000002,
+        "closed_trades": 35,
+        "unique_issuers": 28,
+        "wins": 24,
+        "losses": 11,
+        "win_rate": 0.6857142857142857,
+        "average_win": 524.263777166096,
+        "average_loss": -353.34652576587786,
+        "expectancy_per_trade": 248.44339624461847,
+        "profit_factor": 3.237185475675402,
+        "profit_factor_note": null,
+        "largest_individual_loss": -1035.4778199999994,
+        "max_observed_drawdown_pct": 1.843,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ACON": 625.8298128767127,
+          "AEI": 625.8354575342454,
+          "AGH": 148.8333731506849,
+          "AMST": 318.0904824657532,
+          "ANPA": 533.8472065753426,
+          "BZAI": 312.0757412328772,
+          "DTCK": 1540.4143671232875,
+          "ENTO": -438.99451643835596,
+          "FATN": 271.3320434246575,
+          "JFU": 215.71278027397273,
+          "MAGH": -381.76542794520526,
+          "MLGO": 148.07374465753418,
+          "MSGY": 3120.9936508219184,
+          "NTHI": -411.4798506849305,
+          "NVFY": -123.59937849315034,
+          "ONEG": 76.8958593150689,
+          "PC": 1536.753683013699,
+          "PHOE": 439.95793130137,
+          "QUBT": 149.70099561643826,
+          "SCLX": 337.0763150684936,
+          "SONN": -615.6042191780821,
+          "SWAG": 502.69575808219156,
+          "SWIN": -223.3127232876714,
+          "VERI": -498.12705424657497,
+          "WIMI": 547.6745697260277,
+          "WOK": -394.7125665753429,
+          "WTF": 44.89086739726004,
+          "ZJK": 286.42996575342465
+        },
+        "largest_issuer_fraction_of_net_profit": 0.351692958331108,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.2648700072380453,
+        "remove_top_winners_fixed_ledger": {
+          "1": 5753.206349178083,
+          "3": 2676.0382990410963,
+          "5": 1426.2105168493144
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.0011314383539797745,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "return_pct": -0.456586681149318,
+            "observed_sessions": 17,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2025-10": {
+            "return_pct": 7.13412538700291,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-11": {
+            "return_pct": 2.2959702306237117,
+            "observed_sessions": 19,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-12": {
+            "return_pct": -0.20102170979721112,
+            "observed_sessions": 5,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 17,
+          "EXPOSURE_STOP_COOLDOWN": 4
+        },
+        "mean_daily_marked_gross_to_equity": 0.05959616576550374,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.060694613945342694,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    },
+    {
+      "year": 2025,
+      "cost": "stress",
+      "baseline": {
+        "initial_balance": 100000,
+        "ending_balance": 164020.56,
+        "net_profit": 64020.56,
+        "realized_trade_profit": 63903.49,
+        "interest_pnl": 117.07,
+        "return_pct": 64.02056,
+        "closed_trades": 37,
+        "unique_issuers": 27,
+        "wins": 21,
+        "losses": 16,
+        "win_rate": 0.5675675675675675,
+        "average_win": 5013.33491409002,
+        "average_loss": -2586.033932020548,
+        "expectancy_per_trade": 1727.12135901518,
+        "profit_factor": 2.5444376399199036,
+        "profit_factor_note": null,
+        "largest_individual_loss": -8031.36424657534,
+        "max_observed_drawdown_pct": 25.171,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ACON": 2326.2830246575363,
+          "AEI": 2386.6936328767038,
+          "AGH": 449.45570136986385,
+          "AMST": 2818.9541739726005,
+          "BZAI": 1838.5489767123327,
+          "DTCK": 28012.06644520548,
+          "ENTO": -6925.942045205478,
+          "FATN": 2745.6412753424656,
+          "JFU": 2458.5787616438383,
+          "MAGH": -2774.567357534249,
+          "MLGO": 488.66499726027376,
+          "MSGY": 21391.897079452057,
+          "NTHI": -3516.8769972602695,
+          "NVFY": -2257.8352232876664,
+          "ONEG": -486.72756849314925,
+          "PC": 6354.878308219179,
+          "PHOE": 2417.0817342465766,
+          "QUBT": 319.68713424657483,
+          "SCLX": 1876.3811958904157,
+          "SONN": -4096.999841095888,
+          "SWAG": 6607.502006849312,
+          "SWIN": -2842.7178630137005,
+          "VERI": -3857.3438794520534,
+          "WIMI": 1805.600080821919,
+          "WOK": 1723.931976712326,
+          "WTF": -303.0342136986311,
+          "ZJK": 4943.688767123289
+        },
+        "largest_issuer_fraction_of_net_profit": 0.43754797591907163,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.30794153369470945,
+        "remove_top_winners_fixed_ledger": {
+          "1": 36008.49355479452,
+          "3": 6746.983687671222,
+          "5": -6215.396627397262
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": -0.0002835616617744563,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "return_pct": -16.165205230356893,
+            "observed_sessions": 17,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2025-10": {
+            "return_pct": 45.54532955378716,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-11": {
+            "return_pct": 31.480867923725842,
+            "observed_sessions": 19,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-12": {
+            "return_pct": 2.2381881784246715,
+            "observed_sessions": 5,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "POSITION_TARGET_EXCEEDED_AT_FILL": 14
+        },
+        "mean_daily_marked_gross_to_equity": 0.42104819123748183,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.05716074429489481,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      },
+      "challenger": {
+        "initial_balance": 100000,
+        "ending_balance": 105490.63,
+        "net_profit": 5490.63,
+        "realized_trade_profit": 5315.56,
+        "interest_pnl": 175.07,
+        "return_pct": 5.49063,
+        "closed_trades": 35,
+        "unique_issuers": 28,
+        "wins": 20,
+        "losses": 15,
+        "win_rate": 0.5714285714285714,
+        "average_win": 517.7014281849316,
+        "average_loss": -335.89815506849305,
+        "expectancy_per_trade": 151.87303536203532,
+        "profit_factor": 2.054993635712257,
+        "profit_factor_note": null,
+        "largest_individual_loss": -1149.7549479452048,
+        "max_observed_drawdown_pct": 2.687,
+        "missing_equity_sessions": 0,
+        "unresolved_positions": 0,
+        "financial_status": "CONDITIONAL_SIMULATION_COMPLETE",
+        "account_insolvent": false,
+        "issuer_profit": {
+          "ACON": 474.54626164383603,
+          "AEI": 380.311117808218,
+          "AGH": 11.897708219178043,
+          "AMST": 250.80178082191753,
+          "ANPA": 444.3056657534249,
+          "BZAI": 219.4431589041101,
+          "DTCK": 1455.1409452054795,
+          "ENTO": -493.3906986301368,
+          "FATN": 228.0704424657534,
+          "JFU": 148.6895561643837,
+          "MAGH": -530.7482013698628,
+          "MLGO": 60.314608219178034,
+          "MSGY": 2998.6253493150693,
+          "NTHI": -624.4593917808211,
+          "NVFY": -167.639435616438,
+          "ONEG": -137.2611698630133,
+          "PC": 1365.1853863013703,
+          "PHOE": 329.66525136986314,
+          "QUBT": 40.41224109589032,
+          "SCLX": 83.87843698630172,
+          "SONN": -653.7207671232875,
+          "SWAG": 425.2289424657533,
+          "SWIN": -328.18949315068505,
+          "VERI": -754.3823068493147,
+          "WIMI": 421.93239178082223,
+          "WOK": -472.287652054795,
+          "WTF": -77.48267945205501,
+          "ZJK": 216.66878904109592
+        },
+        "largest_issuer_fraction_of_net_profit": 0.5461350244534906,
+        "largest_positive_issuer_fraction_of_positive_issuer_profit": 0.3138239986970982,
+        "remove_top_winners_fixed_ledger": {
+          "1": 2492.0046506849308,
+          "3": -328.3216808219195,
+          "5": -1328.1634986301387
+        },
+        "removal_method": "ACCOUNTING_SENSITIVITY_ONLY_NO_REALLOCATION_COUNTERFACTUAL",
+        "pnl_reconciliation_delta": 0.003762328764139511,
+        "monthly_marked_returns": {
+          "2025-09": {
+            "return_pct": -1.9160970579757075,
+            "observed_sessions": 17,
+            "missing_marks": 0,
+            "partial_month": true
+          },
+          "2025-10": {
+            "return_pct": 5.9959584844100355,
+            "observed_sessions": 23,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-11": {
+            "return_pct": 1.9267624497457891,
+            "observed_sessions": 19,
+            "missing_marks": 0,
+            "partial_month": false
+          },
+          "2025-12": {
+            "return_pct": -0.4506085120340009,
+            "observed_sessions": 5,
+            "missing_marks": 0,
+            "partial_month": true
+          }
+        },
+        "coverage_gaps": {
+          "EXPOSURE_ENVELOPE_EXCEEDED_AT_FILL": 17,
+          "EXPOSURE_STOP_COOLDOWN": 4
+        },
+        "mean_daily_marked_gross_to_equity": 0.05927644081370252,
+        "exposure_mark_missing_sessions": 0,
+        "realized_trade_return_on_summed_entry_notional": 0.037893149205476546,
+        "allocated_capital_metric_note": "Sum of closed entry notionals reuses capital; not portfolio equity return or SMG margin",
+        "unmeasured": [
+          "actual_SMG_fills",
+          "historical_permissions_and_borrow",
+          "source_authenticated_official_closes",
+          "point_in_time_market_cap",
+          "catalyst_causality",
+          "intraday_adverse_excursion",
+          "calibrated_directional_accuracy"
+        ]
+      }
+    }
+  ],
+  "independent_holdout": false,
+  "promotion_authorized": false
+}
