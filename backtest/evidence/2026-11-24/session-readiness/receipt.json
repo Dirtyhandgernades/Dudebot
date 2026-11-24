@@ -1,0 +1,17 @@
+{
+  "run_id": 45420416729,
+  "received_at": "2026-11-24T15:01:09.187644+00:00",
+  "source_packet_at": "2026-11-24T15:00:46.181375+00:00",
+  "board_created_at": "2026-11-24T15:00:46.340360+00:00",
+  "artifact_sha256": "66ac9a1226cd2bf64d9a6b76ee1a29346743f36fa4eb9495d2d6e403c70627c6",
+  "packet_sha256": "fbb646560931e21b466df3e6b1a1d39732a930871a446215ed31a1b81c211e35",
+  "board_sha256": "4c30fa455ff3d2bcd4fdfe10f4b986a5593ca5a0d8468c914f7acf51af118ead",
+  "roster_count": 139,
+  "packet_age_seconds": 23.006269,
+  "intake_verified": true,
+  "decision_review_completed": false,
+  "submission_authorized": false,
+  "intent": "f750d7a4-59a9-42d4-b964-d17683991d60",
+  "artifact_id": 14933278877,
+  "run_identity_verified": true
+}

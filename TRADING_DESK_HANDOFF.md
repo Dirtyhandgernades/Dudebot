@@ -1,4 +1,8 @@
-# Current checkpoint — November 21 research continuation
+# Current operational checkpoint — November 24
+
+[Today's session readiness](backtest/evidence/2026-11-24/session-readiness/README.md): repaired live feed and installed local artifact intake verified in the morning; 139 blocked rows, zero recommendations. Nasdaq preferred-share source-symbol parsing fixed and tested. Scheduled afternoon dispatch, actual desk review, private journal, and platform confirmation/reconciliation remain unverified. Existing Portfolio Desk retains ownership. This is not unattended trading readiness approval; no order was submitted.
+
+# November 21 research continuation
 
 Latest verified continuation: [parity-042](backtest/evidence/2026-11-21/parity-042/checkpoint.md). All96 portfolio replays exactly match saved outputs after isolating delayed research from the frozen simulator. Full offline suite1301 tests/326 subtests passed. Hosted outcome checks run44979955962 passed. Blanket entry delay rejected; reduced sizing fails promotion. Read-only vault-backed SMG authentication passed in the private Codex session; credentials and account details remain outside this repository. Live unattended dispatch, decision receipt, account reconciliation, confirmation and sole execution ownership remain separate open gates. Previous authentication-blocker entries below are historical observations. Existing Portfolio Desk remains owner pending verified authorized cutover. No strategy promoted or order submitted by this continuation.
 
