@@ -115,3 +115,36 @@ def assess_preparation(action, account, rule, now, max_age_seconds, observations
     result['status'] = 'BLOCKED' if result['blockers'] else 'PREPARATION_CHECK_PASSED'
     result['execution_indication'] = indication
     return result
+
+
+def assess_reduction(action, account, now, max_age_seconds):
+    """Validate a source-backed position reduction, including sub-$3 exits."""
+    blockers = []
+    if not isinstance(now, datetime) or now.utcoffset() is None or type(max_age_seconds) is not int or max_age_seconds <= 0:
+        raise ValueError('Aware clock and explicit freshness limit required')
+    ticker, side, shares = action.get('ticker'), action.get('side'), action.get('shares')
+    if side not in ('SELL', 'COVER') or type(shares) is not int or shares <= 0:
+        blockers.append('INVALID_REDUCTION')
+    if not account.get('source_record'):
+        blockers.append('ACCOUNT_SOURCE_MISSING')
+    at = stamp(account.get('observed_at'))
+    if at is None or not 0 <= (now-at).total_seconds() <= max_age_seconds:
+        blockers.append('ACCOUNT_STALE_OR_FUTURE')
+    if account.get('holdings_complete') is not True or account.get('pending_reconciled') is not True:
+        blockers.append('ACCOUNT_ACTIVITY_UNRECONCILED')
+    position_side = 'short' if side == 'COVER' else 'long'
+    rows = [row for row in account.get('positions', [])
+            if row.get('ticker') == ticker and row.get('side') == position_side]
+    quantities = [row.get('shares') for row in rows]
+    if not rows or any(type(q) is not int or q <= 0 for q in quantities):
+        blockers.append('OWNED_WHOLE_SHARE_QUANTITY_UNVERIFIED')
+    elif type(shares) is int and shares > sum(quantities):
+        blockers.append('REDUCTION_EXCEEDS_POSITION')
+    if any(row.get('ticker') == ticker for row in account.get('pending_orders', [])):
+        blockers.append('CONFLICTING_PENDING_ORDER')
+    if any(row.get('instrument_type') not in ('STOCK', 'ETF') for row in rows):
+        blockers.append('STOCK_FORM_INSTRUMENT_UNVERIFIED')
+    if any(row.get('corporate_actions_clear') is not True or row.get('halt_clear') is not True for row in rows):
+        blockers.append('POSITION_IDENTITY_ACTION_OR_HALT_UNRESOLVED')
+    return dict(status='BLOCKED' if blockers else 'PREPARATION_CHECK_PASSED',
+                blockers=sorted(set(blockers)), submission_authorized=False)

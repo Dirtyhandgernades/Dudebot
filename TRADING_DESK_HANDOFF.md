@@ -1,5 +1,7 @@
 # Current operational checkpoint — November 24
 
+[Execution gap and guarded controller](backtest/evidence/2026-11-24/execution-controller/README.md): the scheduled 14:20 research collection and 14:21 vault delivery succeeded; all 139 names remained blocked. No completed decision-to-order handoff or submitted order was verified. A guarded private execution queue is now implemented and installed but DISARMED. Real non-submitting Preview showed password re-entry; field cleanup, actual confirmation and reconciliation remain unverified. Browser funding, permitted method, approved standing exits and sole-owner cutover remain unresolved. Existing Portfolio Desk ownership is preserved.
+
 [Today's session readiness](backtest/evidence/2026-11-24/session-readiness/README.md): original private vault recovered and hash verified; registry and SQLite integrity passed. Saved account reads are linked privately without inventing fills. Repaired live feed, local intake, and installed monitor-to-vault delivery verified on the real morning artifact; 139 blocked rows, zero recommendations. Afternoon dispatch and actual desk consumption still require real timed receipts. Existing Portfolio Desk retains ownership; platform method permission and confirmation/reconciliation remain separate unverified gates. No unattended trading approval or order submission occurred.
 
 # November 21 research continuation

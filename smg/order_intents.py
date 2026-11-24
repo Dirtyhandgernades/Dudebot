@@ -28,7 +28,7 @@ class IntentJournal:
     def prepare(self, intent_id, action):
         if not isinstance(intent_id, str) or not intent_id.strip():
             raise ValueError('Unique intent ID required')
-        if action.get('side') not in ('SHORT', 'COVER'):
+        if action.get('side') not in ('BUY', 'SELL', 'SHORT', 'COVER'):
             raise ValueError('Unsupported simulated action')
         if type(action.get('shares')) is not int or action['shares'] <= 0:
             raise ValueError('Positive whole shares required')
@@ -123,6 +123,16 @@ class IntentJournal:
             raise KeyError(intent_id)
         return dict(action=json.loads(row[0]), state=row[1],
                     evidence=json.loads(row[2]) if row[2] else None)
+
+    def unresolved(self, account_scope):
+        claims = dict(self.connection.execute('SELECT intent_id,account_scope FROM position_claims'))
+        result = []
+        for intent, raw in self.connection.execute(
+                "SELECT intent_id,payload FROM intents WHERE state IN ('SUBMITTING','UNKNOWN','PENDING','PARTIAL')"):
+            scope = json.loads(raw).get('account_scope') or claims.get(intent)
+            if scope is None or scope == account_scope:
+                result.append(intent)
+        return result
 
     def _transition(self, intent_id, previous, state, evidence, previous_evidence=None):
         receipt = json.dumps(evidence, sort_keys=True, allow_nan=False)
