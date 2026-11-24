@@ -1,0 +1,175 @@
+{
+  "source_sha256": "a27e82c1aa78f224bc07ffaf412e112b3dfd5969e38626af900d94c2839c4922",
+  "simulations": 0,
+  "interpretation": "Accounting attribution; summed notional reuses capital, not equity return. Mean gross/equity is a marked exposure diagnostic, not verified SMG buying power. Changed allocation and cooldown prevent causal isolation of volatility sizing.",
+  "rows": [
+    {
+      "year": 2023,
+      "cost": "base",
+      "baseline": {
+        "net_profit": 18658.11,
+        "trade_profit": 18475.9,
+        "interest": 182.21,
+        "trade_return_per_notional": 0.1796661379635426,
+        "summed_entry_notional": 102834.62543035841,
+        "mean_gross_to_equity": 0.03018085853842694,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 3
+      },
+      "challenger": {
+        "net_profit": 4803.5,
+        "trade_profit": 4621.48,
+        "interest": 182.01,
+        "trade_return_per_notional": 0.29005317673336095,
+        "summed_entry_notional": 15933.21628829605,
+        "mean_gross_to_equity": 0.005202168918556218,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 3
+      },
+      "efficiency_change_pp": 11.038703876981835,
+      "notional_retained_fraction": 0.15494018888692632,
+      "trade_profit_retained_fraction": 0.2501355820284803,
+      "net_profit_change": -13854.61
+    },
+    {
+      "year": 2023,
+      "cost": "stress",
+      "baseline": {
+        "net_profit": 16487.95,
+        "trade_profit": 16306.18,
+        "interest": 181.77,
+        "trade_return_per_notional": 0.15961830499616866,
+        "summed_entry_notional": 102157.33089254017,
+        "mean_gross_to_equity": 0.030244365977877715,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 3
+      },
+      "challenger": {
+        "net_profit": 4442.17,
+        "trade_profit": 4260.25,
+        "interest": 181.91,
+        "trade_return_per_notional": 0.2697892138745318,
+        "summed_entry_notional": 15791.03159395124,
+        "mean_gross_to_equity": 0.005166252117082414,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 3
+      },
+      "efficiency_change_pp": 11.017090887836314,
+      "notional_retained_fraction": 0.15457560858321473,
+      "trade_profit_retained_fraction": 0.26126597400494783,
+      "net_profit_change": -12045.78
+    },
+    {
+      "year": 2024,
+      "cost": "base",
+      "baseline": {
+        "net_profit": 39124.52,
+        "trade_profit": 38922.47,
+        "interest": 202.05,
+        "trade_return_per_notional": 0.058590308967892864,
+        "summed_entry_notional": 664315.8345747807,
+        "mean_gross_to_equity": 0.21085640719303922,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 16
+      },
+      "challenger": {
+        "net_profit": 6315.64,
+        "trade_profit": 6132.82,
+        "interest": 182.83,
+        "trade_return_per_notional": 0.09547419675409247,
+        "summed_entry_notional": 64235.3662926954,
+        "mean_gross_to_equity": 0.027531870004478744,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 15
+      },
+      "efficiency_change_pp": 3.6883887786199603,
+      "notional_retained_fraction": 0.0966940165347881,
+      "trade_profit_retained_fraction": 0.15756502606335104,
+      "net_profit_change": -32808.88
+    },
+    {
+      "year": 2024,
+      "cost": "stress",
+      "baseline": {
+        "net_profit": 25305.11,
+        "trade_profit": 25113.64,
+        "interest": 191.46,
+        "trade_return_per_notional": 0.03944824109448367,
+        "summed_entry_notional": 636622.5540918177,
+        "mean_gross_to_equity": 0.2120302824419485,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 16
+      },
+      "challenger": {
+        "net_profit": 4847.16,
+        "trade_profit": 4665.72,
+        "interest": 181.44,
+        "trade_return_per_notional": 0.07353882596316155,
+        "summed_entry_notional": 63445.66885439863,
+        "mean_gross_to_equity": 0.0273770480764441,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 15
+      },
+      "efficiency_change_pp": 3.409058486867788,
+      "notional_retained_fraction": 0.09965978812187684,
+      "trade_profit_retained_fraction": 0.18578429889096126,
+      "net_profit_change": -20457.95
+    },
+    {
+      "year": 2025,
+      "cost": "base",
+      "baseline": {
+        "net_profit": 103258.54,
+        "trade_profit": 103112.45,
+        "interest": 146.08,
+        "trade_return_per_notional": 0.0858908815829097,
+        "summed_entry_notional": 1200505.2003158971,
+        "mean_gross_to_equity": 0.4072415301294059,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 36
+      },
+      "challenger": {
+        "net_profit": 8874.2,
+        "trade_profit": 8695.52,
+        "interest": 178.68,
+        "trade_return_per_notional": 0.060694613945342694,
+        "summed_entry_notional": 143266.74864149519,
+        "mean_gross_to_equity": 0.05959616576550374,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 35
+      },
+      "efficiency_change_pp": -2.5196267637567002,
+      "notional_retained_fraction": 0.11933871557057514,
+      "trade_profit_retained_fraction": 0.08433045670042755,
+      "net_profit_change": -94384.34
+    },
+    {
+      "year": 2025,
+      "cost": "stress",
+      "baseline": {
+        "net_profit": 64020.56,
+        "trade_profit": 63903.49,
+        "interest": 117.07,
+        "trade_return_per_notional": 0.05716074429489481,
+        "summed_entry_notional": 1117961.1250392238,
+        "mean_gross_to_equity": 0.42104819123748183,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 37
+      },
+      "challenger": {
+        "net_profit": 5490.63,
+        "trade_profit": 5315.56,
+        "interest": 175.07,
+        "trade_return_per_notional": 0.037893149205476546,
+        "summed_entry_notional": 140277.59928783547,
+        "mean_gross_to_equity": 0.05927644081370252,
+        "missing_exposure_sessions": 0,
+        "closed_trades": 35
+      },
+      "efficiency_change_pp": -1.9267595089418263,
+      "notional_retained_fraction": 0.12547627654129193,
+      "trade_profit_retained_fraction": 0.08318105943822475,
+      "net_profit_change": -58529.93
+    }
+  ]
+}

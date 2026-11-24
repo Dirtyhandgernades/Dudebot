@@ -17,7 +17,8 @@
     "original-54-reproduced",
     "portfolio-033-96-cases",
     "training-030",
-    "SQUEEZE-073"
+    "SQUEEZE-073",
+    "EFFICIENCY-074"
   ],
   "rejected_hypotheses": [
     "universal-5pct-strength-exclusion",
@@ -94,6 +95,8 @@
     "fewer than100independent closed trades",
     "historical eligibility/action/official-close proof incomplete"
   ],
-  "next_task": "Using saved SQUEEZE-073 metrics, compare net trade return per allocated notional and marked gross exposure against cached baseline; attribute efficiency change without rerunning portfolios or tuning parameters.",
-  "result_path": "backtest/evidence/2026-11-23/squeeze-073/results.json"
+  "next_task": "Preregister2025 matched/omitted/changed-size trade attribution; add cached ledger output to existing squeeze runner, only compute missing outputs, preserve fixed policy and all rejected cases.",
+  "result_path": "backtest/evidence/2026-11-23/squeeze-073/results.json",
+  "latest_attribution": "Efficiency improved2023/24 but deteriorated2025 under both costs; universal efficiency improvement failed.",
+  "attribution_path": "backtest/evidence/2026-11-23/efficiency-074/results.json"
 }
