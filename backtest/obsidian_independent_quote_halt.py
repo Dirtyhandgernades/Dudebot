@@ -23,7 +23,9 @@ CENTRAL = ZoneInfo("America/Chicago")
 EASTERN = ZoneInfo("America/New_York")
 ALLOWED_PHASES = ("MORNING", "INTRADAY", "EARLY_BOARD", "AFTERHOURS")
 SAFE_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}$")
-RSS_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}=?$")
+# Preserve feed-only unit and preferred-share identities exactly. These do
+# not expand SAFE_SYMBOL or make an absent halt row execution clearance.
+RSS_SYMBOL = re.compile(r"^[A-Z][A-Z0-9.]{0,12}(?:-[A-Z])?=?$")
 
 # Published 2026 NYSE/Nasdaq U.S. equity schedule, not a live market-open
 # attestation. Fail closed outside this explicitly reviewed calendar year.
