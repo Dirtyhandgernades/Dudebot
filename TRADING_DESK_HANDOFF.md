@@ -1,6 +1,6 @@
 # Current operational checkpoint — November 24
 
-[Today's session readiness](backtest/evidence/2026-11-24/session-readiness/README.md): repaired live feed and installed local artifact intake verified in the morning; 139 blocked rows, zero recommendations. Nasdaq preferred-share source-symbol parsing fixed and tested. Scheduled afternoon dispatch, actual desk review, private journal, and platform confirmation/reconciliation remain unverified. Existing Portfolio Desk retains ownership. This is not unattended trading readiness approval; no order was submitted.
+[Today's session readiness](backtest/evidence/2026-11-24/session-readiness/README.md): original private vault recovered and hash verified; registry and SQLite integrity passed. Saved account reads are linked privately without inventing fills. Repaired live feed, local intake, and installed monitor-to-vault delivery verified on the real morning artifact; 139 blocked rows, zero recommendations. Afternoon dispatch and actual desk consumption still require real timed receipts. Existing Portfolio Desk retains ownership; platform method permission and confirmation/reconciliation remain separate unverified gates. No unattended trading approval or order submission occurred.
 
 # November 21 research continuation
 

@@ -108,6 +108,8 @@ on:
       - 'tests/test_board_intake.py'
       - 'tests/test_board_retrieval.py'
       - 'tests/test_packet_freshness.py'
+      - 'backtest/obsidian_desk_delivery.py'
+      - 'tests/test_desk_delivery.py'
   workflow_dispatch:
 
 permissions:
@@ -135,4 +137,4 @@ jobs:
           python -m pytest tests/test_outcome_calendar_boundaries.py -q
 
       - name: Validate offline account preparation and board intake
-        run: python -m pytest tests/test_order_intents.py tests/test_order_preparation.py tests/test_board_intake.py tests/test_board_retrieval.py tests/test_packet_freshness.py -q
+        run: python -m pytest tests/test_order_intents.py tests/test_order_preparation.py tests/test_board_intake.py tests/test_board_retrieval.py tests/test_packet_freshness.py tests/test_desk_delivery.py -q

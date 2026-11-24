@@ -10,6 +10,12 @@ function global:gh {
     $global:LASTEXITCODE = 0
 }
 function global:FakePython {
+    if ($args[1] -eq 'backtest.obsidian_desk_delivery') {
+        $global:deliveryCalled = $true
+        $global:LASTEXITCODE = 7
+        'synthetic delivery failure'
+        return
+    }
     if ($global:testStatus -eq 'failure') { $global:LASTEXITCODE=1; 'synthetic failure' }
     elseif ($global:testStatus -eq 'pending') { $global:LASTEXITCODE=0; '{"status":"WAITING_FOR_RUN"}' }
     else { $global:LASTEXITCODE=0; '{"intake_verified":true}' }
@@ -25,6 +31,14 @@ foreach ($state in @('pending','success','failure')) {
 $rows=@(Get-Content "$root/state/2026-11-23/monitor-history.jsonl")
 if($rows.Count -ne 3){throw 'History incomplete'}
 'Three monitor observations preserved'
+$global:testStatus='success'
+$global:deliveryCalled=$false
+'{"python":"FakePython","desk_vault":"synthetic-existing-vault"}' | Set-Content "$root/runtime.json"
+& "$root/Monitor.ps1" -Day '2026-11-23'
+if (!$global:deliveryCalled -or $LASTEXITCODE -ne 7) { throw 'Delivery failure was hidden' }
+if (!(Test-Path "$root/state/2026-11-23/desk-delivery-history.jsonl")) { throw 'Missing delivery observation' }
+'Desk delivery failure surfaced with receipt'
+'{"python":"FakePython"}' | Set-Content "$root/runtime.json"
 New-Item -ItemType Directory -Force "$root/state/2000-01-03" | Out-Null
 '{"2000-01-03":860}' | Set-Content "$root/sessions.json"
 'intent' | Set-Content "$root/state/2000-01-03/intent.txt"

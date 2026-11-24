@@ -37,4 +37,15 @@ $result = $LASTEXITCODE
   output=(Get-Content -Raw (Join-Path $folder 'monitor-output.json'));
   error=(Get-Content -Raw (Join-Path $folder 'monitor-error.txt'))} |
     ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $folder 'monitor-history.jsonl')
+if ($result -eq 0 -and $config.PSObject.Properties['desk_vault']) {
+    $observation = Get-Content -Raw (Join-Path $folder 'monitor-output.json') | ConvertFrom-Json
+    if ($observation.intake_verified -eq $true) {
+        & $config.python -m backtest.obsidian_desk_delivery --intake (Join-Path $folder 'intake') --vault $config.desk_vault 1> (Join-Path $folder 'desk-delivery-output.json') 2> (Join-Path $folder 'desk-delivery-error.txt')
+        $result = $LASTEXITCODE
+        @{at=[DateTimeOffset]::UtcNow.ToString('o'); run_id=$runs[0].id; exit_code=$result;
+          output=(Get-Content -Raw (Join-Path $folder 'desk-delivery-output.json'));
+          error=(Get-Content -Raw (Join-Path $folder 'desk-delivery-error.txt'))} |
+            ConvertTo-Json -Compress | Add-Content -LiteralPath (Join-Path $folder 'desk-delivery-history.jsonl')
+    }
+}
 exit $result

@@ -1,5 +1,39 @@
 # November 24 session readiness
 
+## Recovery and handoff repair
+
+The original private vault was found in the Windows Recycle Bin and copied back
+to its configured location. All 4,194 recovered files matched their original
+SHA256 hashes before refreshes; the Recycle Bin source was preserved. Registry
+and snapshot/link validation passed, and both SQLite databases passed integrity
+checks. A fresh public GitHub source sync succeeded. Existing paper events,
+historical closed lots and research rules were preserved. Current scoped account
+reads were attached privately with their original observation windows; no fill
+prices or complete-history audit were inferred.
+
+The existing Windows monitor now has an optional configured desk-vault handoff.
+It revalidates the exact artifact, original intake receipt, roster and source
+clock, then preserves packet/board bytes and a separate first-delivery receipt
+in the existing vault. A repeat does not refresh source/intake/delivery clocks;
+an older artifact cannot replace a newer pointer. Corruption and missing vaults
+fail visibly. No new schedule, executor, order permission or strategy is created.
+
+The installed monitor was tested against real run 45420416729 in an isolated
+manual probe, reusing the original verified archive and original intake receipt.
+Delivery into the real restored vault passed at 15:35:05.162165 UTC. The morning
+source remains 15:00:46.181375 UTC, not a fresh afternoon observation. Today's
+production dispatch state was not marked accepted by the probe, preserving the
+planned 14:20 Central collection. Existing Portfolio Desk ownership is unchanged.
+Actual scheduled afternoon receipt and completed desk review remain unverified,
+as do platform method permission and the Preview/Confirm/reconciliation path.
+
+Validation: 45 focused Python tests passed, plus the Windows monitor's pending,
+success, failure, surfaced desk-delivery failure and missed-deadline checks.
+Provision and upgrade preserved the configured desk vault; installed monitor
+and all four runtime modules matched source. The paper event count was unchanged.
+Private source files, credentials, account identifiers and holdings stay outside
+this repository. The observations below describe the earlier preflight state.
+
 Live morning collection and local artifact intake passed. This is not an
 unattended trading readiness approval. The research board has 139 BLOCKED rows
 and zero recommendations; no strategy was promoted and no order was submitted.
