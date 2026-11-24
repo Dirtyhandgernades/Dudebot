@@ -31,6 +31,8 @@ Validation: 45 focused Python tests passed, plus the Windows monitor's pending,
 success, failure, surfaced desk-delivery failure and missed-deadline checks.
 Provision and upgrade preserved the configured desk vault; installed monitor
 and all four runtime modules matched source. The paper event count was unchanged.
+Hosted prospective and account/intake checks also passed on commit `1ce5e26`:
+[run 45427922806](https://github.com/Dirtyhandgernades/Dudebot/actions/runs/45427922806).
 Private source files, credentials, account identifiers and holdings stay outside
 this repository. The observations below describe the earlier preflight state.
 
